@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { AppSidebar } from "@/app/(employee-relations)/employee-relations/_components/app-sidebar";
+import { AppSidebar } from "@/app/(vos-sync)/vos-sync/_components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function DashboardLayout({

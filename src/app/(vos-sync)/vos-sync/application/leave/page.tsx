@@ -12,7 +12,7 @@ import {NavUser} from "../../_components/nav-user";
 
 import {cookies} from "next/headers";
 
-import ComingSoon from "@/app/(employee-relations)/employee-relations/_components/ComingSoon";
+import ComingSoon from "@/app/(vos-sync)/vos-sync/_components/ComingSoon";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

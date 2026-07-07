@@ -12,7 +12,7 @@ import { NavUser } from "../_components/nav-user";
 
 import { cookies } from "next/headers";
 
-import ComingSoon from "@/app/(employee-relations)/employee-relations/_components/ComingSoon";
+import ComingSoon from "@/app/(vos-sync)/vos-sync/_components/ComingSoon";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -100,7 +100,7 @@ export default async function Page() {
                                 <BreadcrumbSeparator className="hidden md:block shrink-0" />
                                 <BreadcrumbItem className="min-w-0 overflow-hidden">
                                     <BreadcrumbPage className="truncate max-w-[56vw] sm:max-w-[60vw] md:max-w-none">
-                                        Attendance Report
+                                        Memo
                                     </BreadcrumbPage>
                                 </BreadcrumbItem>
                             </BreadcrumbList>
