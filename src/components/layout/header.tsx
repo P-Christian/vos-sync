@@ -43,7 +43,9 @@ export function Header() {
               <Button asChild variant="ghost" className="font-medium cursor-pointer text-zinc-900 hover:bg-zinc-100">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button className="rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer bg-zinc-900 text-zinc-50 hover:bg-zinc-900/90">Post a Job</Button>
+              <Button asChild className="rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer bg-zinc-900 text-zinc-50 hover:bg-zinc-900/90">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
             </div>
   
             {/* Mobile Menu Toggle */}
@@ -62,7 +64,9 @@ export function Header() {
               <Button asChild variant="outline" className="w-full justify-center cursor-pointer border-zinc-200 text-zinc-900">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button className="w-full justify-center cursor-pointer bg-zinc-900 text-zinc-50">Post a Job</Button>
+              <Button asChild className="w-full justify-center cursor-pointer bg-zinc-900 text-zinc-50">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
             </div>
           )}
         </header>
