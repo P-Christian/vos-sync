@@ -58,10 +58,34 @@ const data = {
     ],
 };
 
+import { usePathname } from "next/navigation";
+import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
+import { LayoutDashboard, Briefcase, FileText, User } from "lucide-react";
+
 export function AppSidebar({
     className,
     ...props
 }: React.ComponentProps<typeof Sidebar>) {
+    const pathname = usePathname();
+
+    if (pathname.startsWith("/vos-sync/freelancer")) {
+        const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
+            title: "Vos Sync",
+            subtitle: "FREELANCER PORTAL",
+            homeUrl: "/vos-sync/freelancer/dashboard",
+            navItems: [
+                { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
+                { label: "Find Work", href: "#", icon: Briefcase },
+                { label: "My Applications", href: "#", icon: FileText },
+                { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
+            ],
+            footerLinks: [
+                { label: "Settings", href: "#", icon: User },
+                { label: "Logout", href: "/login", icon: User },
+            ],
+        };
+        return <DashboardSidebar config={FREELANCER_SIDEBAR_CONFIG} {...props} />;
+    }
     return (
         <Sidebar
             {...props}

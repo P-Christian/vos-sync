@@ -92,6 +92,15 @@ function LoginForm() {
 
         setLoading(true)
 
+        if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
+            toast.success("Signed in", { description: "Auth disabled mode." })
+            const next = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
+            router.replace(next)
+            router.refresh()
+            setLoading(false)
+            return
+        }
+
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
