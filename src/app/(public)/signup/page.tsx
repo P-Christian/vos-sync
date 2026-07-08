@@ -46,7 +46,7 @@ export default function SignupPage() {
     setUserType(null);
   };
 
-  const SelectionScreen = () => (
+  const renderSelectionScreen = () => (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
       <h1 className="text-3xl md:text-4xl font-medium text-primary mb-4">
         Join as a client or freelancer
@@ -107,7 +107,7 @@ export default function SignupPage() {
     </div>
   );
 
-  const FormScreen = () => (
+  const renderFormScreen = () => (
     <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
       <div className="mb-6">
         <button
@@ -254,7 +254,7 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-12 font-sans selection:bg-primary/20">
-      {step === 'selection' ? <SelectionScreen /> : <FormScreen />}
+      {step === 'selection' ? renderSelectionScreen() : renderFormScreen()}
     </div>
   );
 }

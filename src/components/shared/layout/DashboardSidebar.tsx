@@ -15,7 +15,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    useSidebar,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -56,7 +55,6 @@ export function DashboardSidebar({
     ...props
 }: DashboardSidebarProps) {
     const pathname = usePathname();
-    const { isMobile } = useSidebar();
 
     return (
         <Sidebar

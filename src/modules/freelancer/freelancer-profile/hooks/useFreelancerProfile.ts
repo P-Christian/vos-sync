@@ -30,7 +30,7 @@ export function useFreelancerProfile() {
             if (!prev) return prev;
             return {
                 ...prev,
-                skills: [...prev.skills, skill],
+                coreSkills: [...prev.coreSkills, skill],
             };
         });
     }, []);
@@ -40,7 +40,7 @@ export function useFreelancerProfile() {
             if (!prev) return prev;
             return {
                 ...prev,
-                skills: prev.skills.filter((s) => s.id !== skillId),
+                coreSkills: prev.coreSkills.filter((s) => s.id !== skillId),
             };
         });
     }, []);

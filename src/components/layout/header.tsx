@@ -2,13 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
 import { Menu, X, Briefcase } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
 export function Header() {
-    const pathname = usePathname()
     const [isScrolled, setIsScrolled] = React.useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   
