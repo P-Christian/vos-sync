@@ -2,7 +2,7 @@ import { FreelancerProfile } from "../types/freelancer-profile.types";
 
 export const MOCK_FREELANCER_PROFILE: FreelancerProfile = {
     id: "mock-001",
-    fullName: "Julian Sterling",
+    fullName: "Vanessa Ernst",
     primaryRole: "Senior Product Designer",
     email: "j.sterling@design.com",
     location: "San Francisco, CA",
@@ -18,7 +18,7 @@ export const MOCK_FREELANCER_PROFILE: FreelancerProfile = {
         { id: "s8", label: "Stakeholder Mgmt" },
     ],
     resume: {
-        name: "sterling_cv_2023.pdf",
+        name: "vanessa_ernst_cv_2023.pdf",
         updatedAt: "UPDATED OCT 12",
         parsingStatus: "OPTIMIZED",
     },
