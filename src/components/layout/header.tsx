@@ -34,9 +34,9 @@ export function Header() {
               <Link href="#" className="hover:text-zinc-900 transition-colors">Find Jobs</Link>
               <Link href="#" className="hover:text-zinc-900 transition-colors">Companies</Link>
               <Link href="#" className="hover:text-zinc-900 transition-colors">Salaries</Link>
-              <Link href="/vos-sync/career-advice" className="hover:text-zinc-900 transition-colors">Career Advice</Link>
-              <Link href="/vos-sync/about-us" className="hover:text-zinc-900 transition-colors">About Us</Link>
-              <Link href="/vos-sync/contact-us" className="hover:text-zinc-900 transition-colors">Contact</Link>
+              <Link href="/career-advice" className="hover:text-zinc-900 transition-colors">Career Advice</Link>
+              <Link href="/about-us" className="hover:text-zinc-900 transition-colors">About Us</Link>
+              <Link href="/contact-us" className="hover:text-zinc-900 transition-colors">Contact</Link>
             </nav>
   
             <div className="hidden md:flex items-center gap-4">
@@ -60,9 +60,9 @@ export function Header() {
               <Link href="/dashboard/find-jobs" className="text-zinc-600 font-medium py-2">Find Jobs</Link>
               <Link href="/dashboard/companies" className="text-zinc-600 font-medium py-2">Companies</Link>
               <Link href="/dashboard/salaries" className="text-zinc-600 font-medium py-2">Salaries</Link>
-              <Link href="/vos-sync/career-advice" className="text-zinc-600 font-medium py-2">Career Advice</Link>
-              <Link href="/vos-sync/about-us" className="text-zinc-600 font-medium py-2">About Us</Link>
-              <Link href="/vos-sync/contact-us" className="text-zinc-600 font-medium py-2">Contact</Link>
+              <Link href="/career-advice" className="text-zinc-600 font-medium py-2">Career Advice</Link>
+              <Link href="/about-us" className="text-zinc-600 font-medium py-2">About Us</Link>
+              <Link href="/contact-us" className="text-zinc-600 font-medium py-2">Contact</Link>
               <hr className="border-zinc-100" />
               <Button asChild variant="outline" className="w-full justify-center cursor-pointer border-zinc-200 text-zinc-900">
                 <Link href="/login">Log in</Link>
