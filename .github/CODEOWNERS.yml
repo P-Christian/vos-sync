@@ -1,0 +1,45 @@
+/.github/ @P-Christian
+
+/src/app/(vos-sync)/vos-sync/_components/ @P-Christian
+
+/src/app/(vos-sync)/layout.tsx @P-Christian
+
+/src/actions/ @P-Christian
+
+/src/app/(vos-sync)/vos-sync/_components/ @P-Christian
+
+/src/app/(vos-sync)/vos-sync/[...slug]/ @P-Christian
+
+/src/app/layout.tsx @P-Christian
+
+/src/app/(public)/ @P-Christian
+
+/src/app/api/auth/ @P-Christian
+
+/src/app/main-dashboard/ @P-Christian
+
+/src/app/globals.css @P-Christian
+
+/src/components/ @P-Christian
+
+/src/hooks/ @P-Christian
+
+/src/lib @P-Christian
+
+/src/modules/cms/ @P-Christian
+
+/src/types/ @P-Christian
+
+/components.json @P-Christian
+
+/eslint.config.mjs @P-Christian
+
+/next.config.ts @P-Christian
+
+/next-env.d.ts @P-Christian
+
+/package.json @P-Christian
+
+/postcss.config.mjs @P-Christian
+
+/tsconfig.json @P-Christian
