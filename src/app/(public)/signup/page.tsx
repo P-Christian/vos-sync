@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Briefcase, User, Eye, EyeOff, Check, Apple, ArrowLeft } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 const GoogleIcon = () => (
   <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -31,9 +33,20 @@ const GoogleIcon = () => (
 );
 
 export default function SignupPage() {
+  const router = useRouter();
   const [step, setStep] = useState<'selection' | 'form'>('selection');
   const [userType, setUserType] = useState<'client' | 'freelancer' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    country: 'Philippines',
+    contact: ''
+  });
 
   const handleSelection = (type: 'client' | 'freelancer') => {
     setUserType(type);
@@ -44,6 +57,53 @@ export default function SignupPage() {
   const handleBackToSelection = () => {
     setStep('selection');
     setUserType(null);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleCountryChange = (val: string) => {
+    setFormData(prev => ({ ...prev, country: val }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...formData,
+        role: userType === 'client' ? 'CLIENT' : 'FREELANCER'
+      };
+
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error('Signup failed', { description: data.message || 'An error occurred' });
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Account created!', { description: 'Welcome to Vos Sync.' });
+      
+      // Redirect based on role
+      if (userType === 'freelancer') {
+        router.push('/vos-sync/freelancer/dashboard');
+      } else {
+        router.push('/main-dashboard'); // Or client dashboard
+      }
+      
+    } catch (err: any) {
+      toast.error('Signup failed', { description: 'Network error.' });
+      setLoading(false);
+    }
   };
 
   const renderSelectionScreen = () => (
@@ -128,12 +188,12 @@ export default function SignupPage() {
       </div>
 
       <div className="space-y-4 mb-8">
-        <Button variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
           <Apple size={20} />
           Continue with Apple
         </Button>
 
-        <Button variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
           <GoogleIcon />
           Continue with Google
         </Button>
@@ -143,12 +203,16 @@ export default function SignupPage() {
         <span className="bg-white px-4 relative z-10">or</span>
       </div>
 
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <label htmlFor="firstName" className="block text-sm font-medium text-zinc-900">First name</label>
             <Input
               id="firstName"
+              required
+              value={formData.firstName}
+              onChange={handleChange}
+              disabled={loading}
               className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
@@ -156,6 +220,10 @@ export default function SignupPage() {
             <label htmlFor="lastName" className="block text-sm font-medium text-zinc-900">Last name</label>
             <Input
               id="lastName"
+              required
+              value={formData.lastName}
+              onChange={handleChange}
+              disabled={loading}
               className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
@@ -168,6 +236,26 @@ export default function SignupPage() {
           <Input
             type="email"
             id="email"
+            required
+            value={formData.email}
+            onChange={handleChange}
+            disabled={loading}
+            className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+          />
+        </div>
+        
+        <div className="space-y-1">
+          <label htmlFor="contact" className="block text-sm font-medium text-zinc-900">
+            Contact Number
+          </label>
+          <Input
+            type="tel"
+            id="contact"
+            required
+            value={formData.contact}
+            onChange={handleChange}
+            disabled={loading}
+            placeholder="+63 912 345 6789"
             className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
           />
         </div>
@@ -178,6 +266,10 @@ export default function SignupPage() {
             <Input
               type={showPassword ? 'text' : 'password'}
               id="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              disabled={loading}
               placeholder="Password (8 or more characters)"
               className="h-12 pr-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
             />
@@ -193,7 +285,7 @@ export default function SignupPage() {
 
         <div className="space-y-1">
           <label htmlFor="country" className="block text-sm font-medium text-zinc-900">Country</label>
-          <Select defaultValue="Philippines">
+          <Select value={formData.country} onValueChange={handleCountryChange} disabled={loading}>
             <SelectTrigger id="country" className="h-12 border-2 border-zinc-200 focus:ring-0 focus:border-primary text-base">
               <SelectValue placeholder="Select Country" />
             </SelectTrigger>
@@ -216,7 +308,7 @@ export default function SignupPage() {
           </label>
 
           <label className="flex items-start gap-3 cursor-pointer group">
-            <Checkbox id="terms-checkbox" className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
+            <Checkbox id="terms-checkbox" required className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
             <span className="text-sm text-zinc-600 leading-tight select-none">
               Yes, I understand and agree to the{' '}
               <Link href="#" className="text-primary hover:underline font-medium">
@@ -237,9 +329,10 @@ export default function SignupPage() {
 
         <Button
           type="submit"
+          disabled={loading}
           className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg"
         >
-          Create my account
+          {loading ? 'Creating...' : 'Create my account'}
         </Button>
       </form>
 

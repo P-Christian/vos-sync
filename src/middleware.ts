@@ -1,20 +1,22 @@
 // src/middleware.ts
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
+import * as jose from "jose";
 
-const COOKIE_NAME = "vos_access_token"
-const PROTECTED_PREFIXES = ["/dashboard", "/scm", "/fm", "/hrm", "/bia", "/arf", "/cafeteria", "/vos-sync"]
-const PUBLIC_FILE = /\.(.*)$/
+const COOKIE_NAME = "vos_access_token";
+const PROTECTED_PREFIXES = ["/dashboard", "/scm", "/fm", "/hrm", "/bia", "/arf", "/cafeteria", "/vos-sync", "/main-dashboard"];
+const PUBLIC_FILE = /\.(.*)$/;
+const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
 function isProtectedPath(pathname: string) {
-    return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+    return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
     if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
-        return NextResponse.next()
+        return NextResponse.next();
     }
 
-    const { pathname } = req.nextUrl
+    const { pathname } = req.nextUrl;
 
     if (
         pathname.startsWith("/_next") ||
@@ -23,32 +25,45 @@ export function middleware(req: NextRequest) {
         pathname.startsWith("/sitemap.xml") ||
         PUBLIC_FILE.test(pathname)
     ) {
-        return NextResponse.next()
+        return NextResponse.next();
     }
 
     if (
         pathname === "/login" ||
+        pathname === "/signup" ||
         pathname.startsWith("/api/auth/login") ||
+        pathname.startsWith("/api/auth/signup") ||
         pathname.startsWith("/api/auth/logout")
     ) {
-        return NextResponse.next()
+        return NextResponse.next();
     }
 
     if (!isProtectedPath(pathname)) {
-        return NextResponse.next()
+        return NextResponse.next();
     }
 
-    const token = req.cookies.get(COOKIE_NAME)?.value
+    const token = req.cookies.get(COOKIE_NAME)?.value;
     if (!token) {
-        const url = req.nextUrl.clone()
-        url.pathname = "/login"
-        url.searchParams.set("next", pathname)
-        return NextResponse.redirect(url)
+        return redirectToLogin(req);
     }
 
-    return NextResponse.next()
+    try {
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        await jose.jwtVerify(token, secret);
+        return NextResponse.next();
+    } catch (err) {
+        console.error("[Middleware] JWT verification failed:", err);
+        return redirectToLogin(req);
+    }
+}
+
+function redirectToLogin(req: NextRequest) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", req.nextUrl.pathname);
+    return NextResponse.redirect(url);
 }
 
 export const config = {
     matcher: ["/:path*"],
-}
+};
