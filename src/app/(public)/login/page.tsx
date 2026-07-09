@@ -119,7 +119,7 @@ function LoginForm() {
 
             toast.success("Signed in", { description: "Welcome back." })
 
-            const next = searchParams.get("next") || "/main-dashboard"
+            const next = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
             router.replace(next)
             router.refresh()
         } catch (err: unknown) {
