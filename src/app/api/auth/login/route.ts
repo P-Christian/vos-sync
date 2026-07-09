@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
         return res;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[auth/login] Login error:", err);
         return NextResponse.json(
             { ok: false, message: "Server is down, please contact Administrator." },

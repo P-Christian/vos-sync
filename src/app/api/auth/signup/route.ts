@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: false, message: "Invalid JSON body." }, { status: 400 });
         }
 
-        const { firstName, lastName, email, password, country, contact, role } = body;
+        const { firstName, lastName, email, password, contact, role } = body;
 
         // Basic validation
         if (!firstName || !lastName || !email || !password || !contact || !role) {
@@ -92,10 +92,11 @@ export async function POST(req: NextRequest) {
 
         return res;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[auth/signup] Signup error:", err);
+        const errorMessage = err instanceof Error ? err.message : "Failed to create account.";
         return NextResponse.json(
-            { ok: false, message: err.message || "Failed to create account." },
+            { ok: false, message: errorMessage },
             { status: 500 }
         );
     }

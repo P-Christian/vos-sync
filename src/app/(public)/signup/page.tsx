@@ -100,7 +100,7 @@ export default function SignupPage() {
         router.push('/main-dashboard'); // Or client dashboard
       }
       
-    } catch (err: any) {
+    } catch {
       toast.error('Signup failed', { description: 'Network error.' });
       setLoading(false);
     }

@@ -9,9 +9,9 @@ export const ApplicationTips: React.FC = () => {
       <h3 className="text-lg font-bold text-primary mb-3">Maximize Your Success Rate</h3>
       <p className="text-muted-foreground text-sm leading-relaxed mb-5">
         Designers who follow up on{' '}
-        <span className="text-primary font-medium">"Applied"</span>{' '}
+        <span className="text-primary font-medium">&quot;Applied&quot;</span>{' '}
         positions within 3 days are 40% more likely to move to the{' '}
-        <span className="text-primary font-medium">"Interviewing"</span>{' '}
+        <span className="text-primary font-medium">&quot;Interviewing&quot;</span>{' '}
         stage. Try sending a quick note to hiring managers.
       </p>
       <a

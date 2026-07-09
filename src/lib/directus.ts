@@ -39,7 +39,7 @@ export async function getUserByEmail(email: string) {
 /**
  * Helper to create a new user in the vs_user table.
  */
-export async function createUser(userData: Record<string, any>) {
+export async function createUser(userData: Record<string, unknown>) {
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }

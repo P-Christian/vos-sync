@@ -15,7 +15,7 @@ export const AIPromotionCard: React.FC = () => {
         <div>
           <h3 className="text-lg font-bold mb-2">AI Profile Tune-up</h3>
           <p className="text-primary-foreground/80 text-sm leading-relaxed">
-            Our AI analyzed your recent applications. Updating your case study for "Velocity SaaS" could boost your offer chance.
+            Our AI analyzed your recent applications. Updating your case study for &quot;Velocity SaaS&quot; could boost your offer chance.
           </p>
         </div>
         <Button
