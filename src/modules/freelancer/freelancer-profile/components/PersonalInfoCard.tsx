@@ -26,28 +26,56 @@ export function PersonalInfoCard() {
                 <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
                     <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{data.fullName}</span>
+                        <span className="font-medium text-foreground">
+                            {data.user_fname} {data.user_mname ? data.user_mname + ' ' : ''}{data.user_lname} {data.suffix_name || ''}
+                        </span>
                     </div>
                 </div>
                 <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Primary Role</label>
                     <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">{data.primaryRole}</span>
+                        <span className="font-medium text-foreground">{data.user_position || 'Not specified'}</span>
                     </div>
                 </div>
                 <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Email Address</label>
                     <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">{data.email}</span>
+                        <span className="font-medium text-foreground">{data.user_email}</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Contact Number</label>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{data.user_contact || 'Not specified'}</span>
                     </div>
                 </div>
                 <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
                     <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">{data.location}</span>
+                        <span className="font-medium text-foreground">
+                            {[data.user_brgy, data.user_city, data.user_province].filter(Boolean).join(', ') || 'Not specified'}
+                        </span>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Gender</label>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{data.gender || 'Not specified'}</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Birthday</label>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{data.user_bday || 'Not specified'}</span>
+                    </div>
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Religion</label>
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{data.religion || 'Not specified'}</span>
                     </div>
                 </div>
             </div>

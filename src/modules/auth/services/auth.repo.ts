@@ -1,12 +1,9 @@
-// src/lib/directus.ts
+// src/modules/auth/services/auth.repo.ts
 
-const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-/**
- * Helper to fetch the vs_user by email.
- */
 export async function getUserByEmail(email: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
@@ -36,10 +33,10 @@ export async function getUserByEmail(email: string) {
     return null;
 }
 
-/**
- * Helper to create a new user in the vs_user table.
- */
 export async function createUser(userData: Record<string, unknown>) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }

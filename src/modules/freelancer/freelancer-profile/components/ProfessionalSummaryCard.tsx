@@ -24,7 +24,7 @@ export function ProfessionalSummaryCard() {
             
             <div className="p-6">
                 <p className="text-muted-foreground text-sm leading-relaxed">
-                    {data.summary}
+                    {data.job_seeker_profile?.[0]?.professional_summary || 'No professional summary provided.'}
                 </p>
             </div>
         </div>

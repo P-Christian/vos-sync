@@ -26,11 +26,15 @@ export function CoreSkillsCard() {
             
             <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                    {data.coreSkills?.map((skill) => (
-                        <Badge key={skill.id} variant="secondary" className="px-3 py-1.5 text-xs font-medium badge-info">
-                            {skill.label}
-                        </Badge>
-                    ))}
+                    {data.skills?.length ? (
+                        data.skills.map((s) => (
+                            <Badge key={s.skill_id} variant="secondary" className="px-3 py-1.5 text-xs font-medium badge-info">
+                                {s.skill?.skill_name || 'Unknown Skill'}
+                            </Badge>
+                        ))
+                    ) : (
+                        <p className="text-muted-foreground text-sm">No skills added yet.</p>
+                    )}
                 </div>
             </div>
         </div>

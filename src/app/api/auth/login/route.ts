@@ -1,15 +1,12 @@
 // src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getUserByEmail } from "@/lib/directus";
-import bcrypt from "bcrypt";
-import * as jose from "jose";
+import { loginUser } from "@/modules/auth/services/auth.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const COOKIE_NAME = "vos_access_token";
 const COOKIE_MAX_AGE_CAP = 60 * 60 * 24 * 7; // 7 days cap
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
 export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
@@ -17,47 +14,8 @@ export async function POST(req: NextRequest) {
     const email = String(body?.email ?? "").trim();
     const hashPassword = String(body?.hashPassword ?? body?.password ?? "").trim();
 
-    if (!email || !hashPassword) {
-        return NextResponse.json(
-            { ok: false, message: 'Both "email" and "password" are required.' },
-            { status: 400 }
-        );
-    }
-
     try {
-        // Fetch user from Directus
-        const user = await getUserByEmail(email);
-        
-        if (!user) {
-            return NextResponse.json(
-                { ok: false, message: "Credentials invalid." },
-                { status: 401 }
-            );
-        }
-
-        // Compare password
-        const isValid = await bcrypt.compare(hashPassword, user.hash_password);
-        
-        if (!isValid) {
-            return NextResponse.json(
-                { ok: false, message: "Credentials invalid." },
-                { status: 401 }
-            );
-        }
-
-        // Generate JWT
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        const alg = 'HS256';
-
-        const token = await new jose.SignJWT({ 
-            sub: String(user.user_id),
-            email: user.user_email,
-            role: user.role
-        })
-            .setProtectedHeader({ alg })
-            .setIssuedAt()
-            .setExpirationTime('7d')
-            .sign(secret);
+        const token = await loginUser(email, hashPassword);
 
         const res = NextResponse.json(
             { ok: true, message: "Login successful." },
@@ -76,11 +34,15 @@ export async function POST(req: NextRequest) {
 
         return res;
 
-    } catch (err: unknown) {
+    } catch (err: any) {
         console.error("[auth/login] Login error:", err);
+        
+        const errorMessage = err.message || "Server is down, please contact Administrator.";
+        const status = errorMessage === "Credentials invalid." || errorMessage.includes("required") ? 400 : 500;
+
         return NextResponse.json(
-            { ok: false, message: "Server is down, please contact Administrator." },
-            { status: 500 }
+            { ok: false, message: errorMessage },
+            { status }
         );
     }
 }

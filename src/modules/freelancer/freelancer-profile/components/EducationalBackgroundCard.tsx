@@ -30,14 +30,14 @@ export function EducationalBackgroundCard() {
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-foreground">{edu.institution}</h4>
+                                <h4 className="font-medium text-foreground">{edu.institution_name}</h4>
                                 <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 font-medium">Edit</Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
-                                {edu.degree}
+                                {edu.degree} {edu.field_of_study ? `in ${edu.field_of_study}` : ''}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                Graduated {edu.graduationYear}
+                                Graduated {edu.graduation_year}
                             </div>
                         </div>
                     </div>
