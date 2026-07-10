@@ -44,10 +44,10 @@ export async function POST(req: NextRequest) {
 
         return res;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[auth/verify-otp] Error:", err);
         
-        const errorMessage = err.message || "An unexpected error occurred.";
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
         const status = errorMessage.includes("Invalid") || errorMessage.includes("expired") ? 400 : 500;
 
         return NextResponse.json(

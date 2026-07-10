@@ -50,7 +50,7 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
         let errDetails = "";
         try {
             errDetails = await res.text();
-        } catch (e) {
+        } catch {
             errDetails = "Could not parse error details";
         }
         throw new Error(`Failed to update professional summary: HTTP ${res.status} - ${errDetails}`);
@@ -117,7 +117,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
 
         if (!addRes.ok) {
             let errText = "Unknown error";
-            try { errText = await addRes.text(); } catch (e) {}
+            try { errText = await addRes.text(); } catch {}
             throw new Error(`Failed to insert new skills: HTTP ${addRes.status} - ${errText}`);
         }
     }
@@ -131,7 +131,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
             });
             if (!delRes.ok) {
                 let errText = "Unknown error";
-                try { errText = await delRes.text(); } catch (e) {}
+                try { errText = await delRes.text(); } catch {}
                 console.error(`Failed to delete skill ${skillId}: HTTP ${delRes.status} - ${errText}`);
             }
         }

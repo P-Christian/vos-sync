@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
             { status: 200 }
         );
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[api/freelancer/profile] Error:", err);
         return NextResponse.json(
             { ok: false, message: "Internal server error" },

@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
 
         return res;
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[auth/login] Login error:", err);
         
-        const errorMessage = err.message || "Server is down, please contact Administrator.";
+        const errorMessage = err instanceof Error ? err.message : "Server is down, please contact Administrator.";
         const status = errorMessage === "Credentials invalid." || errorMessage.includes("required") ? 400 : 500;
 
         return NextResponse.json(

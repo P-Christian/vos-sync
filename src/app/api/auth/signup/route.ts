@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("[auth/signup] Signup error:", err);
         
-        const errorMessage = err.message || "An unexpected error occurred.";
+        const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
         let status = 500;
         
         if (errorMessage.includes("already registered")) {

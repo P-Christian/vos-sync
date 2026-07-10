@@ -42,7 +42,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         // Directus returns the expanded object under the foreign key field name (e.g. `skill_id: { skill_name: "..." }`)
         // The UI expects `skill: { skill_name: "..." }`
         if (user.skills && Array.isArray(user.skills)) {
-            user.skills = user.skills.map((s: any) => ({
+            user.skills = user.skills.map((s: { skill?: unknown, skill_id?: unknown, [key: string]: unknown }) => ({
                 ...s,
                 skill: s.skill || s.skill_id
             }));
@@ -84,7 +84,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 if (skillsRes.ok) {
                     const skillsData = await skillsRes.json();
                     if (skillsData.data && skillsData.data.length > 0) {
-                        user.skills = skillsData.data.map((s: any) => ({
+                        user.skills = skillsData.data.map((s: { skill?: unknown, skill_id?: unknown, [key: string]: unknown }) => ({
                             ...s,
                             skill: s.skill || s.skill_id
                         }));

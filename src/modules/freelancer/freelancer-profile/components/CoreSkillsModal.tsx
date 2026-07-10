@@ -97,8 +97,8 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
             
             toast.success("Skills updated", { description: "Your core skills have been saved." });
             onClose();
-        } catch (err: any) {
-            const errorMessage = err.message || "Failed to update skills.";
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to update skills.";
             setError(errorMessage);
             toast.error("Update failed", { description: errorMessage });
         } finally {

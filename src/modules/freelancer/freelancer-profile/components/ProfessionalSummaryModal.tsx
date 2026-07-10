@@ -34,8 +34,8 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary, prof
             await refresh(); // Force client-side state refresh
             toast.success("Summary updated", { description: "Your professional summary has been saved." });
             onClose();
-        } catch (err: any) {
-            const errorMessage = err.message || "Failed to update professional summary.";
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to update professional summary.";
             setError(errorMessage);
             toast.error("Update failed", { description: errorMessage });
         } finally {

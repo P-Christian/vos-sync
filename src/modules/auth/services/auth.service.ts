@@ -38,7 +38,14 @@ export async function loginUser(email: string, hashPasswordParam: string) {
 }
 
 export async function registerUser(body: unknown) {
-    const { email, password, firstName, lastName, contact, role } = body as any;
+    const { email, password, firstName, lastName, contact, role } = body as {
+        email?: string;
+        password?: string;
+        firstName?: string;
+        lastName?: string;
+        contact?: string;
+        role?: string;
+    };
 
     if (!email || !password || !firstName || !lastName || !contact || !role) {
         throw new Error("Missing required fields.");

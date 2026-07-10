@@ -383,7 +383,7 @@ export default function SignupPage() {
     <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
       <div className="mb-8">
         <h1 className="text-3xl font-medium text-primary mb-4">Check your email</h1>
-        <p className="text-zinc-600">We've sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below to verify your account.</p>
+        <p className="text-zinc-600">We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below to verify your account.</p>
       </div>
 
       <form onSubmit={handleOtpSubmit} className="space-y-6">
