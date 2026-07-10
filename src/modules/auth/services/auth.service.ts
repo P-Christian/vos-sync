@@ -1,7 +1,8 @@
 // src/modules/auth/services/auth.service.ts
 import bcrypt from "bcrypt";
 import * as jose from "jose";
-import { getUserByEmail, createUser } from "./auth.repo";
+import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified } from "./auth.repo";
+import { sendOTP } from "./email.service";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
@@ -69,19 +70,61 @@ export async function registerUser(body: unknown) {
 
     const newUser = await createUser(newUserPayload);
 
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Format as Philippine Time (UTC+8) in YYYY-MM-DD HH:mm:ss
+    const getPHTimeString = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+    
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 10 * 60 * 1000);
+
+    const otpSentAt = getPHTimeString(now);
+    const otpExpiry = getPHTimeString(expiry);
+
+    await updateUserOTP(newUser.user_id, otpCode, otpExpiry, otpSentAt);
+    await sendOTP(email, otpCode);
+
+    return { requireOtp: true, userId: newUser.user_id };
+}
+
+export async function confirmOTP(userId: string | number, code: string) {
+    if (!userId || !code) {
+        throw new Error('User ID and OTP code are required.');
+    }
+
+    const user = await getUserById(userId);
+    if (!user) {
+        throw new Error('User not found.');
+    }
+
+    if (String(user.otp_code) !== String(code)) {
+        throw new Error('Invalid verification code.');
+    }
+
+    // Validate expiry using pure string comparison against current PH Time
+    const expiryStr = String(user.otp_expiry).replace('T', ' ').substring(0, 19);
+    const nowPH = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
+
+    if (expiryStr < nowPH) {
+        throw new Error('Verification code has expired.');
+    }
+
+    await markOTPVerified(userId);
+
     const secret = new TextEncoder().encode(JWT_SECRET);
     const alg = 'HS256';
 
     const token = await new jose.SignJWT({ 
-        sub: String(newUser.user_id),
-        email: newUser.user_email,
-        role: newUser.role,
-        role_id: newUser.role_id
+        sub: String(user.user_id),
+        email: user.user_email,
+        role: user.role,
+        role_id: user.role_id
     })
         .setProtectedHeader({ alg })
         .setIssuedAt()
         .setExpirationTime('7d')
         .sign(secret);
 
-    return { newUser, token, role_id };
+    return { token, role_id: user.role_id };
 }

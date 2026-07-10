@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Zap, Plus } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { CoreSkillsModal } from "./CoreSkillsModal";
 
 export function CoreSkillsCard() {
     const { data } = useFreelancerProfileContext();
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     if (!data) return null;
 
@@ -18,7 +20,12 @@ export function CoreSkillsCard() {
                     <Zap className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Core Skills</h2>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 text-primary font-medium"
+                    onClick={() => setIsModalOpen(true)}
+                >
                     <Plus className="mr-1 h-4 w-4" />
                     Add Skill
                 </Button>
@@ -37,6 +44,13 @@ export function CoreSkillsCard() {
                     )}
                 </div>
             </div>
+
+            <CoreSkillsModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={data.user_id}
+                initialSkills={data.skills || []}
+            />
         </div>
     );
 }

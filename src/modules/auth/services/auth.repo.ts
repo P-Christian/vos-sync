@@ -60,3 +60,79 @@ export async function createUser(userData: Record<string, unknown>) {
     const json = await res.json();
     return json.data;
 }
+
+export async function getUserById(userId: string | number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to fetch user by ID: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function updateUserOTP(userId: string | number, otpCode: string, otpExpiry: string, otpSentAt: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            otp_code: otpCode,
+            otp_expiry: otpExpiry,
+            otp_sent_at: otpSentAt,
+            otp_verified: 0
+        }),
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update OTP in Directus: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function markOTPVerified(userId: string | number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            otp_verified: 1
+        }),
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to mark OTP verified in Directus: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}

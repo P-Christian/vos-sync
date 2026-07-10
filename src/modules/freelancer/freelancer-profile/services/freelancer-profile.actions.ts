@@ -60,3 +60,83 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
     
     return { success: true };
 }
+
+export async function searchMasterSkillsAction(query: string) {
+    if (!query || query.length < 2) return [];
+
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills?filter[skill_name][_icontains]=${encodeURIComponent(query)}&limit=20`;
+    
+    const res = await fetch(url, {
+        headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        console.error("Failed to search master skills", await res.text());
+        return [];
+    }
+
+    const data = await res.json();
+    return data.data || [];
+}
+
+export async function saveUserSkillsAction(userId: number, initialSkillIds: number[], newSkillIds: number[]) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+    
+    const toAdd = newSkillIds.filter(id => !initialSkillIds.includes(id));
+    const toRemove = initialSkillIds.filter(id => !newSkillIds.includes(id));
+
+    // 1. Add new skills directly to junction table
+    if (toAdd.length > 0) {
+        const addUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_skills_map`;
+        const addPayload = toAdd.map(skillId => ({
+            user_id: userId,
+            skill_id: skillId
+        }));
+        
+        const addRes = await fetch(addUrl, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(addPayload)
+        });
+
+        if (!addRes.ok) {
+            let errText = "Unknown error";
+            try { errText = await addRes.text(); } catch (e) {}
+            throw new Error(`Failed to insert new skills: HTTP ${addRes.status} - ${errText}`);
+        }
+    }
+
+    // 2. Remove deleted skills
+    if (toRemove.length > 0) {
+        for (const skillId of toRemove) {
+            const delRes = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_skills_map/${userId},${skillId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` }
+            });
+            if (!delRes.ok) {
+                let errText = "Unknown error";
+                try { errText = await delRes.text(); } catch (e) {}
+                console.error(`Failed to delete skill ${skillId}: HTTP ${delRes.status} - ${errText}`);
+            }
+        }
+    }
+
+    revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+    return { success: true };
+}
