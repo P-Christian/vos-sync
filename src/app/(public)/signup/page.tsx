@@ -94,10 +94,12 @@ export default function SignupPage() {
       toast.success('Account created!', { description: 'Welcome to Vos Sync.' });
       
       // Redirect based on role
-      if (userType === 'freelancer') {
+      if (data?.role_id === 1) {
         router.push('/vos-sync/freelancer/dashboard');
+      } else if (data?.role_id === 2) {
+        router.push('/vos-sync/client/dashboard');
       } else {
-        router.push('/main-dashboard'); // Or client dashboard
+        router.push('/main-dashboard');
       }
       
     } catch {

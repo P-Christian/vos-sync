@@ -119,7 +119,14 @@ function LoginForm() {
 
             toast.success("Signed in", { description: "Welcome back." })
 
-            const next = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
+            let defaultPath = "/main-dashboard"
+            if (data?.role_id === 1) {
+                defaultPath = "/vos-sync/freelancer/dashboard"
+            } else if (data?.role_id === 2) {
+                defaultPath = "/vos-sync/client/dashboard"
+            }
+
+            const next = searchParams.get("next") || defaultPath
             router.replace(next)
             router.refresh()
         } catch (err: unknown) {

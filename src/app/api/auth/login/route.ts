@@ -15,10 +15,10 @@ export async function POST(req: NextRequest) {
     const hashPassword = String(body?.hashPassword ?? body?.password ?? "").trim();
 
     try {
-        const token = await loginUser(email, hashPassword);
+        const { token, role_id } = await loginUser(email, hashPassword);
 
         const res = NextResponse.json(
-            { ok: true, message: "Login successful." },
+            { ok: true, message: "Login successful.", role_id },
             { headers: { "Cache-Control": "no-store" } }
         );
 

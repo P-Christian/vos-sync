@@ -33,13 +33,13 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         .setExpirationTime('7d')
         .sign(secret);
 
-    return token;
+    return { token, role_id: user.role_id };
 }
 
-export async function registerUser(body: any) {
-    const { email, password, firstName, lastName, contactNumber, role } = body;
+export async function registerUser(body: unknown) {
+    const { email, password, firstName, lastName, contact, role } = body as any;
 
-    if (!email || !password || !firstName || !lastName || !contactNumber || !role) {
+    if (!email || !password || !firstName || !lastName || !contact || !role) {
         throw new Error("Missing required fields.");
     }
 
@@ -51,16 +51,37 @@ export async function registerUser(body: any) {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
+    let role_id = 1; // Default to FREELANCER
+    if (String(role).toUpperCase() === 'EMPLOYER' || String(role).toUpperCase() === 'CLIENT') {
+        role_id = 2;
+    }
+
     const newUserPayload = {
         user_email: email,
         hash_password: hashedPassword,
         user_fname: firstName,
         user_lname: lastName,
-        user_contact: contactNumber,
-        role: role,
+        user_contact: contact,
+        role: String(role).toUpperCase(),
+        role_id: role_id,
         user_status: "Active"
     };
 
     const newUser = await createUser(newUserPayload);
-    return newUser;
+
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const alg = 'HS256';
+
+    const token = await new jose.SignJWT({ 
+        sub: String(newUser.user_id),
+        email: newUser.user_email,
+        role: newUser.role,
+        role_id: newUser.role_id
+    })
+        .setProtectedHeader({ alg })
+        .setIssuedAt()
+        .setExpirationTime('7d')
+        .sign(secret);
+
+    return { newUser, token, role_id };
 }
