@@ -1,19 +1,23 @@
-import { useState, useCallback } from "react";
-import { FreelancerProfile, FreelancerSkill } from "../types/freelancer-profile.types";
-import { getMockFreelancerProfile } from "../services/freelancer-profile.service";
+import { useState, useCallback, useEffect } from "react";
+import { FreelancerProfile, VsUserSkillMap } from "../types/freelancer-profile.types";
 
 export function useFreelancerProfile() {
-    const [data, setData] = useState<FreelancerProfile | null>(getMockFreelancerProfile());
-    const [isLoading, setIsLoading] = useState(false);
+    const [data, setData] = useState<FreelancerProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
     const refresh = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
-            // Simulated API delay
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            setData(getMockFreelancerProfile());
+            const res = await fetch('/api/freelancer/profile');
+            const result = await res.json();
+            
+            if (result.ok && result.data) {
+                setData(result.data);
+            } else {
+                throw new Error(result.message || "Failed to load profile");
+            }
         } catch (err) {
             setError(err instanceof Error ? err : new Error("Failed to load profile"));
         } finally {
@@ -21,26 +25,30 @@ export function useFreelancerProfile() {
         }
     }, []);
 
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
     const updateProfile = useCallback((updates: Partial<FreelancerProfile>) => {
         setData((prev) => (prev ? { ...prev, ...updates } : prev));
     }, []);
 
-    const addSkill = useCallback((skill: FreelancerSkill) => {
+    const addSkill = useCallback((skillMap: VsUserSkillMap) => {
         setData((prev) => {
             if (!prev) return prev;
             return {
                 ...prev,
-                coreSkills: [...prev.coreSkills, skill],
+                skills: [...(prev.skills || []), skillMap],
             };
         });
     }, []);
 
-    const removeSkill = useCallback((skillId: string) => {
+    const removeSkill = useCallback((skillId: number) => {
         setData((prev) => {
             if (!prev) return prev;
             return {
                 ...prev,
-                coreSkills: prev.coreSkills.filter((s) => s.id !== skillId),
+                skills: (prev.skills || []).filter((s) => s.skill_id !== skillId),
             };
         });
     }, []);

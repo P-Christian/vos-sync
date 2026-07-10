@@ -10,13 +10,17 @@ import {
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
-import { getMockFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
+import { cookies } from "next/headers";
+import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 
-export default function FreelancerDashboardPage() {
-    const profile = getMockFreelancerProfile();
+export default async function FreelancerDashboardPage() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("vos_access_token")?.value;
+    const profile = token ? await getFreelancerProfile(token) : null;
+
     const user = {
-        name: profile.fullName,
-        email: profile.email,
+        name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
+        email: profile?.user_email || "guest@example.com",
         avatar: "",
     };
 
@@ -49,7 +53,7 @@ export default function FreelancerDashboardPage() {
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8">
                 <div className="max-w-4xl mx-auto mt-8">
-                    <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile.fullName.split(' ')[0]}</h1>
+                    <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.user_fname || 'Guest'}</h1>
                     <p className="text-muted-foreground mt-2">Here is a summary of your activity on Vos Sync.</p>
                     
                     <div className="mt-8 p-12 border-2 border-dashed rounded-xl text-center flex flex-col items-center justify-center space-y-4">

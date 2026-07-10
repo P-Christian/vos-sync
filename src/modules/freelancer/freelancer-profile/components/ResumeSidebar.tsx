@@ -34,7 +34,7 @@ export function ResumeSidebar() {
                     Current Document
                 </h3>
                 
-                {data.resume ? (
+                {data.job_seeker_profile?.[0]?.resume_file_url ? (
                     <div className="space-y-6">
                         <div className="bg-muted/30 border rounded-lg p-4 flex flex-col items-center justify-center aspect-[3/4] relative">
                             {/* Abstract Document Visual */}
@@ -52,10 +52,10 @@ export function ResumeSidebar() {
                                 <FileText className="h-8 w-8 text-destructive shrink-0" />
                                 <div className="min-w-0">
                                     <p className="text-sm font-medium text-foreground truncate">
-                                        {data.resume.name}
+                                        Resume Document
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {data.resume.updatedAt}
+                                        {new Date(data.job_seeker_profile[0].updated_at).toLocaleDateString()}
                                     </p>
                                 </div>
                             </div>
@@ -72,7 +72,7 @@ export function ResumeSidebar() {
                         <div className="flex items-center justify-between pt-4 border-t">
                             <span className="text-sm text-muted-foreground">Parsing Status:</span>
                             <Badge variant="secondary" className="badge-success text-xs">
-                                {data.resume.parsingStatus}
+                                Completed
                             </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">

@@ -34,9 +34,11 @@ const GoogleIcon = () => (
 
 export default function SignupPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'selection' | 'form'>('selection');
+  const [step, setStep] = useState<'selection' | 'form' | 'otp'>('selection');
   const [userType, setUserType] = useState<'client' | 'freelancer' | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [otp, setOtp] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -91,17 +93,49 @@ export default function SignupPage() {
         return;
       }
 
-      toast.success('Account created!', { description: 'Welcome to Vos Sync.' });
+      toast.success('Account created!', { description: 'Please check your email for the verification code.' });
       
-      // Redirect based on role
-      if (userType === 'freelancer') {
-        router.push('/vos-sync/freelancer/dashboard');
-      } else {
-        router.push('/main-dashboard'); // Or client dashboard
-      }
+      setUserId(data.userId);
+      setStep('otp');
+      setLoading(false);
       
     } catch {
       toast.error('Signup failed', { description: 'Network error.' });
+      setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, code: otp })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error('Verification failed', { description: data.message || 'Invalid code.' });
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Verified!', { description: 'Welcome to Vos Sync.' });
+
+      // Redirect based on role
+      if (data?.role_id === 1) {
+        router.push('/vos-sync/freelancer/dashboard');
+      } else if (data?.role_id === 2) {
+        router.push('/vos-sync/client/dashboard');
+      } else {
+        router.push('/main-dashboard');
+      }
+    } catch {
+      toast.error('Verification failed', { description: 'Network error.' });
       setLoading(false);
     }
   };
@@ -345,9 +379,44 @@ export default function SignupPage() {
     </div>
   );
 
+  const renderOtpScreen = () => (
+    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
+      <div className="mb-8">
+        <h1 className="text-3xl font-medium text-primary mb-4">Check your email</h1>
+        <p className="text-zinc-600">We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below to verify your account.</p>
+      </div>
+
+      <form onSubmit={handleOtpSubmit} className="space-y-6">
+        <div>
+          <Input
+            id="otp"
+            type="text"
+            required
+            maxLength={6}
+            value={otp}
+            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+            disabled={loading}
+            placeholder="000000"
+            className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+          />
+        </div>
+
+        <Button
+          type="submit"
+          disabled={loading || otp.length !== 6}
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg"
+        >
+          {loading ? 'Verifying...' : 'Verify Email'}
+        </Button>
+      </form>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center py-12 font-sans selection:bg-primary/20">
-      {step === 'selection' ? renderSelectionScreen() : renderFormScreen()}
+      {step === 'selection' && renderSelectionScreen()}
+      {step === 'form' && renderFormScreen()}
+      {step === 'otp' && renderOtpScreen()}
     </div>
   );
 }

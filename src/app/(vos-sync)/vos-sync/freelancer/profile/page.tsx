@@ -2,14 +2,18 @@ import * as React from "react";
 import { Bell, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
-import { getMockFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
+import { cookies } from "next/headers";
+import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { FreelancerProfilePage } from "@/modules/freelancer/freelancer-profile/FreelancerProfilePage";
 
-export default function FreelancerProfileRoute() {
-    const profile = getMockFreelancerProfile();
+export default async function FreelancerProfileRoute() {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("vos_access_token")?.value;
+    const profile = token ? await getFreelancerProfile(token) : null;
+
     const user = {
-        name: profile.fullName,
-        email: profile.email,
+        name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
+        email: profile?.user_email || "guest@example.com",
         avatar: "",
     };
 

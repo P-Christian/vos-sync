@@ -30,14 +30,14 @@ export function CertificationsCard() {
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-foreground">{cert.name}</h4>
+                                <h4 className="font-medium text-foreground">{cert.certificate_name}</h4>
                                 <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 font-medium">Edit</Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
-                                {cert.issuer}
+                                {cert.issuing_organization}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                Issued {cert.issueDate}
+                                Issued {cert.issue_date || 'N/A'}
                             </div>
                         </div>
                     </div>

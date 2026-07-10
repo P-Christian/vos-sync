@@ -23,9 +23,9 @@ export function WorkExperienceCard() {
             </div>
 
             <div className="space-y-6">
-                {profile.workExperience?.map((exp, index) => (
+                {profile.work_experience?.map((exp, index) => (
                     <div key={exp.id} className="relative">
-                        {index !== profile.workExperience.length - 1 && (
+                        {index !== profile.work_experience!.length - 1 && (
                             <div className="absolute top-8 bottom-0 left-2 w-px bg-border -ml-px" />
                         )}
                         <div className="flex gap-4">
@@ -34,17 +34,17 @@ export function WorkExperienceCard() {
                             </div>
                             <div className="flex-1 space-y-1">
                                 <div className="flex items-center justify-between">
-                                    <h4 className="font-medium text-foreground">{exp.title}</h4>
+                                    <h4 className="font-medium text-foreground">{exp.job_title}</h4>
                                     <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 font-medium">Edit</Button>
                                 </div>
                                 <div className="text-sm font-medium text-muted-foreground">
-                                    {exp.company}
+                                    {exp.company_name}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                    {exp.startDate} - {exp.current ? "Present" : exp.endDate}
+                                    {exp.start_date} - {exp.is_current_role ? "Present" : (exp.end_date || "Present")}
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                                    {exp.description}
+                                    {exp.job_description}
                                 </p>
                             </div>
                         </div>
