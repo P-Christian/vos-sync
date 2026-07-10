@@ -124,15 +124,33 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
 
     // 2. Remove deleted skills
     if (toRemove.length > 0) {
-        for (const skillId of toRemove) {
-            const delRes = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_skills_map/${userId},${skillId}`, {
-                method: "DELETE",
-                headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` }
-            });
-            if (!delRes.ok) {
-                let errText = "Unknown error";
-                try { errText = await delRes.text(); } catch {}
-                console.error(`Failed to delete skill ${skillId}: HTTP ${delRes.status} - ${errText}`);
+        // Query the actual IDs of the rows to delete
+        const filterUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_skills_map?filter[user_id][_eq]=${userId}&filter[skill_id][_in]=${toRemove.join(',')}&fields=id`;
+        const filterRes = await fetch(filterUrl, {
+            method: "GET",
+            headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` }
+        });
+
+        if (filterRes.ok) {
+            const filterData = await filterRes.json();
+            const idsToDelete = filterData.data?.map((row: any) => row.id) || [];
+
+            if (idsToDelete.length > 0) {
+                // Bulk delete the mapped IDs
+                const delRes = await fetch(`${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_skills_map`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(idsToDelete)
+                });
+                
+                if (!delRes.ok) {
+                    let errText = "Unknown error";
+                    try { errText = await delRes.text(); } catch {}
+                    console.error(`Failed to bulk delete skills: HTTP ${delRes.status} - ${errText}`);
+                }
             }
         }
     }

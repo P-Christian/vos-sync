@@ -46,6 +46,15 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 ...s,
                 skill: s.skill || s.skill_id
             }));
+
+            // Strict deduplication by skill master ID
+            const seenSkillIds = new Set();
+            user.skills = user.skills.filter((s: any) => {
+                const id = s.skill?.id;
+                if (!id || seenSkillIds.has(id)) return false;
+                seenSkillIds.add(id);
+                return true;
+            });
         }
 
         // Fallback: If Directus didn't return the relational data, fetch it explicitly
@@ -84,10 +93,19 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 if (skillsRes.ok) {
                     const skillsData = await skillsRes.json();
                     if (skillsData.data && skillsData.data.length > 0) {
-                        user.skills = skillsData.data.map((s: { skill?: unknown, skill_id?: unknown, [key: string]: unknown }) => ({
+                        const mappedSkills = skillsData.data.map((s: { skill?: unknown, skill_id?: unknown, [key: string]: unknown }) => ({
                             ...s,
                             skill: s.skill || s.skill_id
                         }));
+
+                        // Strict deduplication by skill master ID
+                        const seenSkillIds = new Set();
+                        user.skills = mappedSkills.filter((s: any) => {
+                            const id = s.skill?.id;
+                            if (!id || seenSkillIds.has(id)) return false;
+                            seenSkillIds.add(id);
+                            return true;
+                        });
                     }
                 }
             } catch (err) {
