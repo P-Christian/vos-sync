@@ -60,7 +60,7 @@ const data = {
 
 import { usePathname } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays } from "lucide-react";
 
 export function AppSidebar({
     className,
@@ -85,6 +85,26 @@ export function AppSidebar({
             ],
         };
         return <DashboardSidebar config={FREELANCER_SIDEBAR_CONFIG} {...props} />;
+    }
+
+    if (pathname.startsWith("/vos-sync/client")) {
+        const CLIENT_SIDEBAR_CONFIG: SidebarConfig = {
+            title: "Vos Sync",
+            subtitle: "CLIENT PORTAL",
+            homeUrl: "/vos-sync/client/dashboard",
+            navItems: [
+                { label: "Dashboard", href: "/vos-sync/client/dashboard", icon: LayoutDashboard },
+                { label: "Company Profile", href: "/vos-sync/client/company-profile", icon: User },
+                { label: "Manage Jobs", href: "/vos-sync/client/jobs", icon: Briefcase },
+                { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
+                { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
+            ],
+            footerLinks: [
+                { label: "Settings", href: "#", icon: User },
+                { label: "Logout", href: "/login", icon: User },
+            ],
+        };
+        return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
     return (
         <Sidebar

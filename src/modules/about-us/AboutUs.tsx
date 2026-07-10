@@ -225,7 +225,7 @@ export default function AboutUs() {
                   <Link href="/signup">Get Started Free</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-zinc-700 text-white bg-transparent hover:bg-zinc-800 hover:text-white rounded-full px-8 cursor-pointer">
-                  <Link href="/contact">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
                 </Button>
               </div>
             </div>
