@@ -10,7 +10,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -48,6 +48,10 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
             user.certifications = user.vs_certifications;
         }
 
+        if (user.vs_job_seeker_resumes && !user.resumes) {
+            user.resumes = user.vs_job_seeker_resumes;
+        }
+
         if (user.work_experience && Array.isArray(user.work_experience)) {
             user.work_experience.forEach((exp: any) => {
                 if (exp.vs_work_experience_media && (!exp.media || exp.media.length === 0)) {
@@ -68,8 +72,6 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         if (user.vs_user_skills_map && (!user.skills || user.skills.length === 0)) {
             user.skills = user.vs_user_skills_map;
         }
-
-
 
         // Fix skill mapping for Directus response format
         // Directus returns the expanded object under the foreign key field name (e.g. `skill_id: { skill_name: "..." }`)
@@ -159,6 +161,28 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 }
             } catch (err) {
                 console.error("Failed to fallback fetch education", err);
+            }
+        }
+
+        // Fallback: If Directus didn't return resumes, fetch it explicitly
+        if (!user.resumes || user.resumes.length === 0) {
+            const resumesUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_resumes?filter[user_id][_eq]=${user.user_id}`;
+            try {
+                const resumesRes = await fetch(resumesUrl, {
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    cache: "no-store"
+                });
+                if (resumesRes.ok) {
+                    const resumesData = await resumesRes.json();
+                    if (resumesData.data) {
+                        user.resumes = resumesData.data;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fallback fetch resumes", err);
             }
         }
 
@@ -730,4 +754,3 @@ export async function upsertJobSeekerProfileInDirectus(userId: number, profileId
     const json = await res.json();
     return json.data;
 }
-

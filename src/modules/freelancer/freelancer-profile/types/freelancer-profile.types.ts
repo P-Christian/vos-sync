@@ -24,6 +24,15 @@ export interface VsJobSeekerProfile {
     updated_at: string;
 }
 
+export interface VsJobSeekerResume {
+    id: number;
+    user_id: number;
+    file_url: string;
+    file_name: string | null;
+    is_primary: boolean;
+    uploaded_at: string;
+}
+
 export interface VsWorkExperienceMedia {
     id: number;
     experience_id: number;
@@ -96,4 +105,5 @@ export interface FreelancerProfile {
     education?: VsEducation[];
     certifications?: VsCertification[];
     skills?: VsUserSkillMap[];
+    resumes?: VsJobSeekerResume[];
 }
