@@ -94,3 +94,35 @@ export async function deleteWorkExperienceService(id: number, userId: number) {
     // For simplicity, we directly delete here, but in a real app, verify ownership first.
     return await deleteWorkExperienceFromDirectus(id);
 }
+
+export async function addEducationService(userId: number, payload: any) {
+    const { addEducationToDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        user_id: userId,
+        institution_name: payload.institution_name,
+        degree: payload.degree || null,
+        field_of_study: payload.field_of_study || null,
+        graduation_year: payload.graduation_year || null,
+    };
+
+    return await addEducationToDirectus(data);
+}
+
+export async function updateEducationService(id: number, userId: number, payload: any) {
+    const { updateEducationInDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        institution_name: payload.institution_name,
+        degree: payload.degree || null,
+        field_of_study: payload.field_of_study || null,
+        graduation_year: payload.graduation_year || null,
+    };
+
+    return await updateEducationInDirectus(id, data);
+}
+
+export async function deleteEducationService(id: number, userId: number) {
+    const { deleteEducationFromDirectus } = await import("./freelancer-profile.repo");
+    return await deleteEducationFromDirectus(id);
+}

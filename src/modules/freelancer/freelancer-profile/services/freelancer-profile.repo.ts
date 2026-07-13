@@ -8,7 +8,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -36,6 +36,10 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
 
         if (user.vs_work_experience && !user.work_experience) {
             user.work_experience = user.vs_work_experience;
+        }
+
+        if (user.vs_education && !user.education) {
+            user.education = user.vs_education;
         }
 
         if (user.work_experience && Array.isArray(user.work_experience)) {
@@ -127,6 +131,28 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 }
             } catch (err) {
                 console.error("Failed to fallback fetch work experience", err);
+            }
+        }
+
+        // Fallback: If Directus didn't return education, fetch it explicitly
+        if (!user.education || user.education.length === 0) {
+            const eduUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education?filter[user_id][_eq]=${user.user_id}`;
+            try {
+                const eduRes = await fetch(eduUrl, {
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    cache: "no-store"
+                });
+                if (eduRes.ok) {
+                    const eduData = await eduRes.json();
+                    if (eduData.data && eduData.data.length > 0) {
+                        user.education = eduData.data;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fallback fetch education", err);
             }
         }
 
@@ -423,6 +449,87 @@ export async function deleteWorkExperienceFromDirectus(id: number) {
 
     if (!res.ok && res.status !== 204) {
         throw new Error(`Failed to delete work experience: HTTP ${res.status}`);
+    }
+
+    return true;
+}
+
+export async function addEducationToDirectus(payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education`;
+    
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to add education: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function updateEducationInDirectus(id: number, payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education/${id}`;
+    
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update education: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function deleteEducationFromDirectus(id: number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education/${id}`;
+    
+    const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`
+        },
+        cache: "no-store"
+    });
+
+    if (!res.ok && res.status !== 204) {
+        throw new Error(`Failed to delete education: HTTP ${res.status}`);
     }
 
     return true;
