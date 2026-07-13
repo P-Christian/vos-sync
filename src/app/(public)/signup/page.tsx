@@ -53,8 +53,13 @@ export default function SignupPage() {
 
   const handleSelection = (type: 'client' | 'freelancer') => {
     setUserType(type);
-    setStep('form');
-    window.scrollTo(0, 0);
+  };
+
+  const handleProceedToForm = () => {
+    if (userType) {
+      setStep('form');
+      window.scrollTo(0, 0);
+    }
   };
 
   const handleBackToSelection = () => {
@@ -147,41 +152,41 @@ export default function SignupPage() {
         Join as a client or freelancer
       </h1>
       <div className="flex justify-center mb-12">
-        <span className="text-zinc-600 mr-2">Already have an account?</span>
+        <span className="text-muted-foreground mr-2">Already have an account?</span>
         <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
       </div>
 
       <div className="flex flex-col gap-4 max-w-xl mx-auto mb-12">
         <button
           onClick={() => handleSelection('client')}
-          className="group relative flex items-center justify-between p-6 border-2 border-zinc-200 rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-zinc-50"
+          className="group relative flex items-center justify-between p-6 border-2 border-border rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-muted/50"
         >
           <div className="flex items-center gap-6">
-            <div className="p-3 bg-zinc-100 text-zinc-900 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+            <div className="p-3 bg-muted text-foreground rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
               <Briefcase size={28} />
             </div>
-            <h3 className="text-xl font-medium text-zinc-900">
+            <h3 className="text-xl font-medium text-foreground">
               I&apos;m a client, hiring for a project
             </h3>
           </div>
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${userType === 'client' ? 'border-primary bg-primary' : 'border-zinc-300'}`}>
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${userType === 'client' ? 'border-primary bg-primary' : 'border-border'}`}>
             {userType === 'client' && <Check size={16} className="text-white" />}
           </div>
         </button>
 
         <button
           onClick={() => handleSelection('freelancer')}
-          className="group relative flex items-center justify-between p-6 border-2 border-zinc-200 rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-zinc-50"
+          className="group relative flex items-center justify-between p-6 border-2 border-border rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-muted/50"
         >
           <div className="flex items-center gap-6">
-            <div className="p-3 bg-zinc-100 text-zinc-900 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+            <div className="p-3 bg-muted text-foreground rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
               <User size={28} />
             </div>
-            <h3 className="text-xl font-medium text-zinc-900">
+            <h3 className="text-xl font-medium text-foreground">
               I&apos;m a freelancer, looking for work
             </h3>
           </div>
-          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${userType === 'freelancer' ? 'border-primary bg-primary' : 'border-zinc-300'}`}>
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ${userType === 'freelancer' ? 'border-primary bg-primary' : 'border-border'}`}>
             {userType === 'freelancer' && <Check size={16} className="text-white" />}
           </div>
         </button>
@@ -189,11 +194,11 @@ export default function SignupPage() {
 
       <div className="max-w-md mx-auto">
         <Button
-          onClick={() => userType && setStep('form')}
+          onClick={handleProceedToForm}
           disabled={!userType}
           className={`w-full py-6 rounded-full font-medium text-white transition-colors text-lg ${userType
             ? 'bg-primary hover:bg-primary/90'
-            : 'bg-zinc-300 cursor-not-allowed hover:bg-zinc-300'
+            : 'bg-muted-foreground/30 cursor-not-allowed hover:bg-muted-foreground/30'
             }`}
         >
           {userType === 'client' ? 'Join as a Client' : userType === 'freelancer' ? 'Apply as a Freelancer' : 'Create Account'}
@@ -207,7 +212,7 @@ export default function SignupPage() {
       <div className="mb-6">
         <button
           onClick={handleBackToSelection}
-          className="flex items-center text-sm font-medium text-zinc-600 hover:text-primary transition-colors"
+          className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft size={16} className="mr-2" />
           Back to selection
@@ -223,49 +228,49 @@ export default function SignupPage() {
       </div>
 
       <div className="space-y-4 mb-8">
-        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-foreground rounded-full font-medium hover:bg-muted transition-colors text-base cursor-pointer">
           <Apple size={20} />
           Continue with Apple
         </Button>
 
-        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-zinc-900 rounded-full font-medium hover:bg-zinc-50 transition-colors text-base cursor-pointer">
+        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-foreground rounded-full font-medium hover:bg-muted transition-colors text-base cursor-pointer">
           <GoogleIcon />
           Continue with Google
         </Button>
       </div>
 
-      <div className="relative text-center text-sm text-zinc-500 mb-8 after:content-[''] after:absolute after:top-1/2 after:left-0 after:w-full after:h-[1px] after:bg-zinc-200 after:-z-10">
-        <span className="bg-white px-4 relative z-10">or</span>
+      <div className="relative text-center text-sm text-muted-foreground mb-8 after:content-[''] after:absolute after:top-1/2 after:left-0 after:w-full after:h-[1px] after:bg-border after:-z-10">
+        <span className="bg-background px-4 relative z-10">or</span>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label htmlFor="firstName" className="block text-sm font-medium text-zinc-900">First name</label>
+            <label htmlFor="firstName" className="block text-sm font-medium text-foreground">First name</label>
             <Input
               id="firstName"
               required
               value={formData.firstName}
               onChange={handleChange}
               disabled={loading}
-              className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+              className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="lastName" className="block text-sm font-medium text-zinc-900">Last name</label>
+            <label htmlFor="lastName" className="block text-sm font-medium text-foreground">Last name</label>
             <Input
               id="lastName"
               required
               value={formData.lastName}
               onChange={handleChange}
               disabled={loading}
-              className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+              className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
             />
           </div>
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="email" className="block text-sm font-medium text-zinc-900">
+          <label htmlFor="email" className="block text-sm font-medium text-foreground">
             {userType === 'client' ? 'Work email address' : 'Email'}
           </label>
           <Input
@@ -275,12 +280,12 @@ export default function SignupPage() {
             value={formData.email}
             onChange={handleChange}
             disabled={loading}
-            className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+            className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
           />
         </div>
         
         <div className="space-y-1">
-          <label htmlFor="contact" className="block text-sm font-medium text-zinc-900">
+          <label htmlFor="contact" className="block text-sm font-medium text-foreground">
             Contact Number
           </label>
           <Input
@@ -291,12 +296,12 @@ export default function SignupPage() {
             onChange={handleChange}
             disabled={loading}
             placeholder="+63 912 345 6789"
-            className="h-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+            className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="password" className="block text-sm font-medium text-zinc-900">Password</label>
+          <label htmlFor="password" className="block text-sm font-medium text-foreground">Password</label>
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
@@ -306,12 +311,12 @@ export default function SignupPage() {
               onChange={handleChange}
               disabled={loading}
               placeholder="Password (8 or more characters)"
-              className="h-12 pr-12 border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+              className="h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -319,9 +324,9 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="country" className="block text-sm font-medium text-zinc-900">Country</label>
+          <label htmlFor="country" className="block text-sm font-medium text-foreground">Country</label>
           <Select value={formData.country} onValueChange={handleCountryChange} disabled={loading}>
-            <SelectTrigger id="country" className="h-12 border-2 border-zinc-200 focus:ring-0 focus:border-primary text-base">
+            <SelectTrigger id="country" className="h-12 border-2 border-border focus:ring-0 focus:border-primary text-base">
               <SelectValue placeholder="Select Country" />
             </SelectTrigger>
             <SelectContent>
@@ -335,7 +340,7 @@ export default function SignupPage() {
         <div className="space-y-4 mt-6">
           <label className="flex items-start gap-3 cursor-pointer group">
             <Checkbox id="marketing-checkbox" defaultChecked className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
-            <span className="text-sm text-zinc-600 leading-tight select-none">
+            <span className="text-sm text-muted-foreground leading-tight select-none">
               {userType === 'freelancer'
                 ? 'Send me helpful emails to find rewarding work and job leads.'
                 : 'Send me emails with tips on how to find talent that fits my needs.'}
@@ -344,7 +349,7 @@ export default function SignupPage() {
 
           <label className="flex items-start gap-3 cursor-pointer group">
             <Checkbox id="terms-checkbox" required className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
-            <span className="text-sm text-zinc-600 leading-tight select-none">
+            <span className="text-sm text-muted-foreground leading-tight select-none">
               Yes, I understand and agree to the{' '}
               <Link href="#" className="text-primary hover:underline font-medium">
                 Upwork Terms of Service
@@ -371,7 +376,7 @@ export default function SignupPage() {
         </Button>
       </form>
 
-      <div className="mt-8 text-center text-sm text-zinc-600">
+      <div className="mt-8 text-center text-sm text-muted-foreground">
         Already have an account?{' '}
         <Link href="/login" className="text-primary font-medium hover:underline">
           Log In
@@ -384,7 +389,7 @@ export default function SignupPage() {
     <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
       <div className="mb-8">
         <h1 className="text-3xl font-medium text-primary mb-4">Check your email</h1>
-        <p className="text-zinc-600">We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below to verify your account.</p>
+        <p className="text-muted-foreground">We&apos;ve sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below to verify your account.</p>
       </div>
 
       <form onSubmit={handleOtpSubmit} className="space-y-6">
@@ -398,7 +403,7 @@ export default function SignupPage() {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
             disabled={loading}
             placeholder="000000"
-            className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-zinc-200 focus-visible:ring-0 focus-visible:border-primary"
+            className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary"
           />
         </div>
 
