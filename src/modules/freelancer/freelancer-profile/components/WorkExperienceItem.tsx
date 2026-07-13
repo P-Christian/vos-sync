@@ -349,7 +349,7 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                 <div className="flex-1 space-y-1">
                     <div className="flex items-start justify-between">
                         <h4 className="font-semibold text-lg text-foreground">{experience.job_title}</h4>
-                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary">
                             <Pencil className="h-4 w-4" />
                         </Button>
                     </div>

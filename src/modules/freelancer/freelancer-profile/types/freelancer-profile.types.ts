@@ -61,6 +61,7 @@ export interface VsCertification {
     issuing_organization: string;
     issue_date: string | null;
     credential_url: string | null;
+    image_uuid?: string | null;
 }
 
 export interface FreelancerProfile {

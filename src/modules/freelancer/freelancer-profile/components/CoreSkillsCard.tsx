@@ -22,12 +22,11 @@ export function CoreSkillsCard() {
                 </div>
                 <Button 
                     variant="ghost" 
-                    size="sm" 
-                    className="h-8 text-primary font-medium"
+                    size="icon" 
+                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                     onClick={() => setIsModalOpen(true)}
                 >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add Skill
+                    <Plus className="h-5 w-5" />
                 </Button>
             </div>
             

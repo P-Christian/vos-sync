@@ -82,3 +82,23 @@ export const deleteEducationSchema = z.object({
 export type AddEducationPayload = z.infer<typeof addEducationSchema>;
 export type UpdateEducationPayload = z.infer<typeof updateEducationSchema>;
 export type DeleteEducationPayload = z.infer<typeof deleteEducationSchema>;
+
+export const addCertificationSchema = z.object({
+    certificate_name: z.string().min(1, "Certificate Name is required").max(255),
+    issuing_organization: z.string().min(1, "Issuing Organization is required").max(255),
+    issue_date: z.string().nullable().optional(),
+    credential_url: z.string().max(500).nullable().optional(),
+    image_uuid: z.string().max(255).nullable().optional(),
+});
+
+export const updateCertificationSchema = addCertificationSchema.extend({
+    id: z.number(),
+});
+
+export const deleteCertificationSchema = z.object({
+    id: z.number(),
+});
+
+export type AddCertificationPayload = z.infer<typeof addCertificationSchema>;
+export type UpdateCertificationPayload = z.infer<typeof updateCertificationSchema>;
+export type DeleteCertificationPayload = z.infer<typeof deleteCertificationSchema>;

@@ -126,3 +126,37 @@ export async function deleteEducationService(id: number, userId: number) {
     const { deleteEducationFromDirectus } = await import("./freelancer-profile.repo");
     return await deleteEducationFromDirectus(id);
 }
+
+export async function addCertificationService(userId: number, payload: any) {
+    const { addCertificationToDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        user_id: userId,
+        certificate_name: payload.certificate_name,
+        issuing_organization: payload.issuing_organization,
+        issue_date: payload.issue_date || null,
+        credential_url: payload.credential_url || null,
+        image_uuid: payload.image_uuid || null,
+    };
+
+    return await addCertificationToDirectus(data);
+}
+
+export async function updateCertificationService(id: number, userId: number, payload: any) {
+    const { updateCertificationInDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        certificate_name: payload.certificate_name,
+        issuing_organization: payload.issuing_organization,
+        issue_date: payload.issue_date || null,
+        credential_url: payload.credential_url || null,
+        image_uuid: payload.image_uuid || null,
+    };
+
+    return await updateCertificationInDirectus(id, data);
+}
+
+export async function deleteCertificationService(id: number, userId: number) {
+    const { deleteCertificationFromDirectus } = await import("./freelancer-profile.repo");
+    return await deleteCertificationFromDirectus(id);
+}

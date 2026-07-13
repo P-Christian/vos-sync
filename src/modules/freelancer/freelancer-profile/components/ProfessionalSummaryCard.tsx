@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { ProfessionalSummaryModal } from "./ProfessionalSummaryModal";
@@ -25,11 +25,11 @@ export function ProfessionalSummaryCard() {
                 </div>
                 <Button 
                     variant="ghost" 
-                    size="sm" 
-                    className="h-8 text-primary font-medium"
+                    size="icon" 
+                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                     onClick={() => setIsModalOpen(true)}
                 >
-                    Edit
+                    <Pencil className="h-4 w-4" />
                 </Button>
             </div>
             

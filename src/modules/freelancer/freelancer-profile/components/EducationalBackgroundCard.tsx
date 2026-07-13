@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, Plus, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { EducationModal } from "./EducationModal";
@@ -32,11 +32,11 @@ export function EducationalBackgroundCard() {
                 </div>
                 <Button 
                     variant="ghost" 
-                    size="sm" 
-                    className="text-blue-600 hover:text-blue-700 h-8 px-2 font-medium"
+                    size="icon" 
+                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                     onClick={handleAddClick}
                 >
-                    + Add Education
+                    <Plus className="h-5 w-5" />
                 </Button>
             </div>
 
@@ -51,11 +51,11 @@ export function EducationalBackgroundCard() {
                                 <h4 className="font-medium text-foreground">{edu.institution_name}</h4>
                                 <Button 
                                     variant="ghost" 
-                                    size="sm" 
-                                    className="h-8 px-2 text-blue-600 font-medium"
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                                     onClick={() => handleEditClick(edu)}
                                 >
-                                    Edit
+                                    <Pencil className="h-4 w-4" />
                                 </Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">

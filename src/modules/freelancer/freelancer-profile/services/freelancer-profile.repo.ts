@@ -42,6 +42,10 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
             user.education = user.vs_education;
         }
 
+        if (user.vs_certifications && !user.certifications) {
+            user.certifications = user.vs_certifications;
+        }
+
         if (user.work_experience && Array.isArray(user.work_experience)) {
             user.work_experience.forEach((exp: any) => {
                 if (exp.vs_work_experience_media && (!exp.media || exp.media.length === 0)) {
@@ -153,6 +157,28 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 }
             } catch (err) {
                 console.error("Failed to fallback fetch education", err);
+            }
+        }
+
+        // Fallback: If Directus didn't return certifications, fetch it explicitly
+        if (!user.certifications || user.certifications.length === 0) {
+            const certUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_certifications?filter[user_id][_eq]=${user.user_id}`;
+            try {
+                const certRes = await fetch(certUrl, {
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    cache: "no-store"
+                });
+                if (certRes.ok) {
+                    const certData = await certRes.json();
+                    if (certData.data && certData.data.length > 0) {
+                        user.certifications = certData.data;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fallback fetch certifications", err);
             }
         }
 
@@ -530,6 +556,88 @@ export async function deleteEducationFromDirectus(id: number) {
 
     if (!res.ok && res.status !== 204) {
         throw new Error(`Failed to delete education: HTTP ${res.status}`);
+    }
+
+    return true;
+}
+
+
+export async function addCertificationToDirectus(payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_certifications`;
+    
+    const res = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to add certification: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function updateCertificationInDirectus(id: number, payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_certifications/${id}`;
+    
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update certification: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function deleteCertificationFromDirectus(id: number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_certifications/${id}`;
+    
+    const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`
+        },
+        cache: "no-store"
+    });
+
+    if (!res.ok && res.status !== 204) {
+        throw new Error(`Failed to delete certification: HTTP ${res.status}`);
     }
 
     return true;

@@ -31,7 +31,7 @@ export function WorkExperienceCard() {
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="text-muted-foreground hover:text-foreground h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                     onClick={() => setIsModalOpen(true)}
                 >
                     <Plus className="h-5 w-5" />

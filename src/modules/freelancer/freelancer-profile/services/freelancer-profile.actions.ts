@@ -272,3 +272,42 @@ export async function deleteEducationAction(id: number, userId: number) {
         return { success: false, error: err.message };
     }
 }
+
+export async function addCertificationAction(userId: number, payload: any) {
+    const { addCertificationService } = await import("./freelancer-profile.service");
+    
+    try {
+        await addCertificationService(userId, payload);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("addCertificationAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function updateCertificationAction(id: number, userId: number, payload: any) {
+    const { updateCertificationService } = await import("./freelancer-profile.service");
+    
+    try {
+        await updateCertificationService(id, userId, payload);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("updateCertificationAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function deleteCertificationAction(id: number, userId: number) {
+    const { deleteCertificationService } = await import("./freelancer-profile.service");
+    
+    try {
+        await deleteCertificationService(id, userId);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("deleteCertificationAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
