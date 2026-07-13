@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 

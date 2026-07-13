@@ -230,6 +230,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             </Button>
                         ) : (
                             <div className="relative group rounded-lg border overflow-hidden aspect-video max-w-sm bg-muted flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={previewUrl} alt="Certificate" className="w-full h-full object-cover" />
                                 <div className="absolute top-2 right-2">
                                     <Button 

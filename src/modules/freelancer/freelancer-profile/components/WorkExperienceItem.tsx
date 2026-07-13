@@ -73,7 +73,6 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMediaUrls(experience.media?.map(m => m.media_url) || []);
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedSkills((experience.skills?.map(s => s.skill).filter(Boolean) as VsMasterSkill[]) || []);
     }, [experience]);
 

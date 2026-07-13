@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as jose from "jose";
 import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
 import { FreelancerProfile } from "../types/freelancer-profile.types";

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/modules/freelancer/freelancer-profile/services/freelancer-profile.repo.ts
 
 export async function fetchFreelancerProfileFromDirectus(email: string) {
