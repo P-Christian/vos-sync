@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { addWorkExperienceAction } from "../services/freelancer-profile.actions";
-import { VsMasterSkill } from "../types/freelancer-profile.types";
+import { VsMasterSkill, VsWorkExperience } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
 
@@ -16,9 +15,10 @@ interface WorkExperienceModalProps {
     isOpen: boolean;
     onClose: () => void;
     userId: number;
+    experienceToEdit?: VsWorkExperience | null;
 }
 
-export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceModalProps) {
+export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit }: WorkExperienceModalProps) {
     const [companyName, setCompanyName] = useState("");
     const [jobTitle, setJobTitle] = useState("");
     const [startDate, setStartDate] = useState("");
@@ -31,10 +31,43 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
     const [selectedSkills, setSelectedSkills] = useState<VsMasterSkill[]>([]);
     const [mediaUrls, setMediaUrls] = useState<string[]>([]);
     
-    const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { data, pendingWorkExperience, setWorkExperienceDraft } = useFreelancerProfileContext();
+
+    const liveExperience = data?.work_experience || [];
+    const experienceList = pendingWorkExperience !== null ? pendingWorkExperience : liveExperience;
+
+    React.useEffect(() => {
+        if (isOpen) {
+            if (experienceToEdit) {
+                setCompanyName(experienceToEdit.company_name || "");
+                setJobTitle(experienceToEdit.job_title || "");
+                setStartDate(experienceToEdit.start_date || "");
+                setEndDate(experienceToEdit.end_date || "");
+                setIsCurrentRole(experienceToEdit.is_current_role || false);
+                setJobDescription(experienceToEdit.job_description || "");
+                setLocation(experienceToEdit.location || "");
+                setLocationType(experienceToEdit.location_type || "");
+                setEmploymentType(experienceToEdit.employment_type || "");
+                // map skills from experienceToEdit to VsMasterSkill[] format expected by Input if available
+                setSelectedSkills(experienceToEdit.skills?.map(s => s.skill).filter(Boolean) as any[] || []);
+                setMediaUrls(experienceToEdit.media?.map(m => m.media_url) || []);
+            } else {
+                setCompanyName("");
+                setJobTitle("");
+                setStartDate("");
+                setEndDate("");
+                setIsCurrentRole(false);
+                setJobDescription("");
+                setLocation("");
+                setLocationType("");
+                setEmploymentType("");
+                setSelectedSkills([]);
+                setMediaUrls([]);
+            }
+            setError(null);
+        }
+    }, [isOpen, experienceToEdit]);
 
     if (!isOpen) return null;
 
@@ -64,44 +97,41 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
             })),
         };
 
-        try {
-            const res = await addWorkExperienceAction(userId, payload);
-            if (!res.success) {
-                throw new Error(res.error || "Failed to add work experience");
-            }
+        const updatedList = [...experienceList];
 
-            router.refresh();
-            await refresh(); // Force client-side state refresh
-            toast.success("Experience added", { description: "Your work experience has been saved." });
-            
-            // Reset form
-            setCompanyName("");
-            setJobTitle("");
-            setLocation("");
-            setLocationType("");
-            setEmploymentType("");
-            setStartDate("");
-            setEndDate("");
-            setIsCurrentRole(false);
-            setJobDescription("");
-            setSelectedSkills([]);
-            setMediaUrls([]);
-            
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to add work experience.";
-            setError(errorMessage);
-            toast.error("Save failed", { description: errorMessage });
-        } finally {
-            setIsSaving(false);
+        if (experienceToEdit) {
+            const index = updatedList.findIndex(e => e.id === experienceToEdit.id);
+            if (index >= 0) {
+                updatedList[index] = { ...updatedList[index], ...payload } as VsWorkExperience;
+            }
+        } else {
+            updatedList.push({
+                id: -Math.floor(Math.random() * 1000000), // temp id
+                user_id: userId,
+                ...payload
+            } as VsWorkExperience);
         }
+
+        setWorkExperienceDraft(updatedList);
+        onClose();
+    };
+
+    const handleDelete = () => {
+        if (!experienceToEdit) return;
+        if (!confirm("Are you sure you want to delete this experience record?")) return;
+        
+        const updatedList = experienceList.filter(e => e.id !== experienceToEdit.id);
+        setWorkExperienceDraft(updatedList);
+        onClose();
     };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
-                    <DialogTitle className="text-xl font-semibold text-foreground">Add Work Experience</DialogTitle>
+                    <DialogTitle className="text-xl font-semibold text-foreground">
+                        {experienceToEdit ? "Edit Work Experience" : "Add Work Experience"}
+                    </DialogTitle>
                 </DialogHeader>
                 
                 <div className="p-6 overflow-y-auto flex-1 space-y-4 min-h-0">
@@ -119,7 +149,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                             onChange={(e) => setCompanyName(e.target.value)}
                             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="e.g. Acme Corp"
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -131,7 +160,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                             onChange={(e) => setJobTitle(e.target.value)}
                             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="e.g. Software Engineer"
-                            disabled={isSaving}
                         />
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -143,7 +171,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                                 onChange={(e) => setLocation(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="e.g. Metro Manila"
-                                disabled={isSaving}
                             />
                         </div>
 
@@ -153,7 +180,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                                 value={locationType}
                                 onChange={(e) => setLocationType(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving}
                             >
                                 <option value="">Select Type</option>
                                 <option value="On-site">On-site</option>
@@ -169,7 +195,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                             value={employmentType}
                             onChange={(e) => setEmploymentType(e.target.value)}
                             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={isSaving}
                         >
                             <option value="">Select Type</option>
                             <option value="Full-time">Full-time</option>
@@ -188,7 +213,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving}
                             />
                         </div>
 
@@ -199,7 +223,7 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isCurrentRole}
+                                disabled={isCurrentRole}
                             />
                         </div>
                     </div>
@@ -214,7 +238,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                                 if (e.target.checked) setEndDate("");
                             }}
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                            disabled={isSaving}
                         />
                         <label htmlFor="isCurrentRole" className="text-sm font-medium text-foreground cursor-pointer">
                             I currently work here
@@ -225,7 +248,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                         <WorkExperienceSkillsInput 
                             selectedSkills={selectedSkills} 
                             onChange={setSelectedSkills} 
-                            disabled={isSaving} 
                         />
                     </div>
 
@@ -236,7 +258,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                             onChange={(e) => setJobDescription(e.target.value)}
                             className="w-full min-h-[120px] p-3 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Describe your responsibilities and achievements..."
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -244,21 +265,27 @@ export function WorkExperienceModal({ isOpen, onClose, userId }: WorkExperienceM
                         <WorkExperienceMediaInput
                             mediaUrls={mediaUrls}
                             onChange={setMediaUrls}
-                            disabled={isSaving}
                         />
                     </div>
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    <Button variant="outline" onClick={onClose} disabled={isSaving}>
+                    {experienceToEdit && (
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleDelete} 
+                            className="mr-auto"
+                        >
+                            Delete
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleSave} 
-                        disabled={isSaving}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Experience
                     </Button>
                 </div>

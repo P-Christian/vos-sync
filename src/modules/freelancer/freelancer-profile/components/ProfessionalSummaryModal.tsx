@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { updateProfessionalSummaryAction } from "../services/freelancer-profile.actions";
 
 interface ProfessionalSummaryModalProps {
     isOpen: boolean;
@@ -20,27 +19,20 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary, prof
     const [summary, setSummary] = useState(initialSummary);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { setProfessionalSummaryDraft, pendingProfessionalSummary } = useFreelancerProfileContext();
+
+    // Keep state in sync if modal is reopened
+    React.useEffect(() => {
+        if (isOpen) {
+            setSummary(pendingProfessionalSummary !== null ? pendingProfessionalSummary : initialSummary);
+        }
+    }, [isOpen, pendingProfessionalSummary, initialSummary]);
 
     if (!isOpen) return null;
 
     const handleSave = async () => {
-        setIsSaving(true);
-        setError(null);
-        try {
-            await updateProfessionalSummaryAction(summary, profileId, userId);
-            router.refresh();
-            await refresh(); // Force client-side state refresh
-            toast.success("Summary updated", { description: "Your professional summary has been saved." });
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to update professional summary.";
-            setError(errorMessage);
-            toast.error("Update failed", { description: errorMessage });
-        } finally {
-            setIsSaving(false);
-        }
+        setProfessionalSummaryDraft(summary);
+        onClose();
     };
 
     return (

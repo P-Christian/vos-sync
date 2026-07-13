@@ -311,3 +311,93 @@ export async function deleteCertificationAction(id: number, userId: number) {
         return { success: false, error: err.message };
     }
 }
+
+export async function updatePersonalInfoAction(userId: number, payload: any) {
+    const { updatePersonalInfoService } = await import("./freelancer-profile.service");
+    
+    try {
+        await updatePersonalInfoService(userId, payload);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("updatePersonalInfoAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function updateProfileVisibilityAction(userId: number, profileId: number | undefined, visibility: string) {
+    const { upsertJobSeekerProfileInDirectus } = await import("./freelancer-profile.repo");
+    
+    try {
+        await upsertJobSeekerProfileInDirectus(userId, profileId, { profile_visibility: visibility });
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("updateProfileVisibilityAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function saveAllProfileChangesAction(payload: any) {
+    const { userId, profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications } = payload;
+    
+    // Import all services
+    const { 
+        updatePersonalInfoService, 
+        addEducationService, updateEducationService, deleteEducationService,
+        addWorkExperienceService, updateWorkExperienceService, deleteWorkExperienceService,
+        addCertificationService, updateCertificationService, deleteCertificationService
+    } = await import("./freelancer-profile.service");
+
+    const { upsertJobSeekerProfileInDirectus } = await import("./freelancer-profile.repo");
+
+    try {
+        if (personalInfo) {
+            await updatePersonalInfoService(userId, personalInfo);
+        }
+
+        if (visibility !== null || professionalSummary !== null) {
+            const profileUpdates: any = {};
+            if (visibility !== null) profileUpdates.profile_visibility = visibility;
+            if (professionalSummary !== null) profileUpdates.professional_summary = professionalSummary;
+            await upsertJobSeekerProfileInDirectus(userId, profileId, profileUpdates);
+        }
+
+        if (education && education.length > 0) {
+            for (const action of education) {
+                if (action.type === 'ADD') await addEducationService(userId, action.payload);
+                else if (action.type === 'UPDATE') await updateEducationService(action.id, userId, action.payload);
+                else if (action.type === 'DELETE') await deleteEducationService(action.id, userId);
+            }
+        }
+
+        if (workExperience && workExperience.length > 0) {
+            for (const action of workExperience) {
+                if (action.type === 'ADD') await addWorkExperienceService(userId, action.payload);
+                else if (action.type === 'UPDATE') await updateWorkExperienceService(action.id, userId, action.payload);
+                else if (action.type === 'DELETE') await deleteWorkExperienceService(action.id, userId);
+            }
+        }
+
+        if (certifications && certifications.length > 0) {
+            for (const action of certifications) {
+                if (action.type === 'ADD') await addCertificationService(userId, action.payload);
+                else if (action.type === 'UPDATE') await updateCertificationService(action.id, userId, action.payload);
+                else if (action.type === 'DELETE') await deleteCertificationService(action.id, userId);
+            }
+        }
+
+        if (skills !== null) {
+            await saveUserSkillsAction(userId, initialSkillIds || [], skills);
+        }
+
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        
+        return { success: true };
+    } catch (err: any) {
+        console.error("saveAllProfileChangesAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+

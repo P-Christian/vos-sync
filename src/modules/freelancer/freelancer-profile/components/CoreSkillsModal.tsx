@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { searchMasterSkillsAction, saveUserSkillsAction } from "../services/freelancer-profile.actions";
+import { searchMasterSkillsAction } from "../services/freelancer-profile.actions";
 import { VsUserSkillMap } from "../types/freelancer-profile.types";
 
 interface CoreSkillsModalProps {
@@ -25,8 +25,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { setSkillsDraft } = useFreelancerProfileContext();
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -85,23 +84,21 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
         setSelectedSkills(prev => prev.filter(s => s.id !== skillId));
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         setIsSaving(true);
         setError(null);
         try {
-            const initialSkillIds = initialSkills.filter(s => s.skill).map(s => s.skill.id);
-            const skillIds = selectedSkills.map(s => s.id);
-            await saveUserSkillsAction(userId, initialSkillIds, skillIds);
+            const draftedSkills = selectedSkills.map(s => ({
+                user_id: userId,
+                skill_id: s.id,
+                skill: { id: s.id, skill_name: s.skill_name }
+            })) as VsUserSkillMap[];
             
-            router.refresh();
-            await refresh(); // Force client-side state refresh
-            
-            toast.success("Skills updated", { description: "Your core skills have been saved." });
+            setSkillsDraft(draftedSkills);
             onClose();
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to update skills.";
+            const errorMessage = err instanceof Error ? err.message : "Failed to update skills draft.";
             setError(errorMessage);
-            toast.error("Update failed", { description: errorMessage });
         } finally {
             setIsSaving(false);
         }

@@ -1,15 +1,20 @@
 "use client";
 
-import React from "react";
-import { FileUp, FileText, Download, Trash2, Eye } from "lucide-react";
+import React, { useState } from "react";
+import { FileUp, FileText, Download, Trash2, Eye, Globe, Lock, Users } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { VisibilityModal } from "./VisibilityModal";
 
 export function ResumeSidebar() {
-    const { data } = useFreelancerProfileContext();
+    const { data, pendingVisibility } = useFreelancerProfileContext();
+    const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
 
     if (!data) return null;
+
+    const profile = data.job_seeker_profile?.[0];
+    const visibility = pendingVisibility ?? profile?.profile_visibility ?? "Public";
 
     return (
         <div className="space-y-6">
@@ -34,7 +39,7 @@ export function ResumeSidebar() {
                     Current Document
                 </h3>
                 
-                {data.job_seeker_profile?.[0]?.resume_file_url ? (
+                {profile?.resume_file_url ? (
                     <div className="space-y-6">
                         <div className="bg-muted/30 border rounded-lg p-4 flex flex-col items-center justify-center aspect-[3/4] relative">
                             {/* Abstract Document Visual */}
@@ -55,7 +60,7 @@ export function ResumeSidebar() {
                                         Resume Document
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                        {new Date(data.job_seeker_profile[0].updated_at).toLocaleDateString()}
+                                        {new Date(profile.updated_at).toLocaleDateString()}
                                     </p>
                                 </div>
                             </div>
@@ -84,20 +89,28 @@ export function ResumeSidebar() {
                 )}
             </div>
 
-            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6">
-                <div className="flex gap-4">
-                    <Eye className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-row items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-full text-primary">
+                        {visibility === "Private" ? <Lock className="h-5 w-5" /> : visibility === "Recruiters Only" ? <Users className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                    </div>
                     <div>
-                        <h3 className="text-sm font-semibold text-foreground">Visibility Settings</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            Your profile is currently <strong className="text-foreground">Public</strong> and visible to all verified recruiters.
-                        </p>
-                        <Button variant="link" className="p-0 h-auto text-primary text-xs font-semibold mt-2 uppercase tracking-wider">
-                            Change Visibility
-                        </Button>
+                        <p className="text-sm font-medium text-foreground">{visibility}</p>
+                        <p className="text-xs text-muted-foreground">Profile Visibility</p>
                     </div>
                 </div>
+                <Button variant="outline" size="sm" className="relative" onClick={() => setIsVisibilityModalOpen(true)}>
+                    Change Visibility
+                    {pendingVisibility && (
+                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background"></span>
+                    )}
+                </Button>
             </div>
+
+            <VisibilityModal 
+                isOpen={isVisibilityModalOpen}
+                onClose={() => setIsVisibilityModalOpen(false)}
+            />
         </div>
     );
 }

@@ -6,11 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Pencil, Loader2, X } from "lucide-react";
-import { updateWorkExperienceAction, deleteWorkExperienceAction } from "../services/freelancer-profile.actions";
-import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsWorkExperience, VsMasterSkill } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
+import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 
 function formatDisplayDate(dateStr: string) {
     if (!dateStr) return "";
@@ -70,19 +69,17 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
         experience.media?.map(m => m.media_url) || []
     );
 
-    const [isSaving, setIsSaving] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // Sync local state whenever the parent re-fetches the experience data (e.g. after save)
-    // Without this, mediaUrls stays stale and wipes out saved media on the next save.
     useEffect(() => {
         setMediaUrls(experience.media?.map(m => m.media_url) || []);
         setSelectedSkills((experience.skills?.map(s => s.skill).filter(Boolean) as VsMasterSkill[]) || []);
     }, [experience]);
 
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { data, pendingWorkExperience, setWorkExperienceDraft } = useFreelancerProfileContext();
+    const liveExperience = data?.work_experience || [];
+    const experienceList = pendingWorkExperience !== null ? pendingWorkExperience : liveExperience;
 
     const handleSave = async () => {
         if (!companyName.trim() || !jobTitle.trim() || !startDate) {
@@ -90,67 +87,35 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
             return;
         }
 
-        setIsSaving(true);
-        setError(null);
-
         const payload = {
             company_name: companyName,
             job_title: jobTitle,
-            location: location,
-            location_type: locationType,
-            employment_type: employmentType,
             start_date: startDate,
             end_date: isCurrentRole ? null : (endDate || null),
             is_current_role: isCurrentRole,
-            job_description: jobDescription,
-            skills: selectedSkills.map(s => ({ skill_id: s.id })),
-            media: mediaUrls.map(url => ({
-                media_type: "image",
-                media_url: url
-            })),
+            job_description: jobDescription || null,
+            location: location || null,
+            location_type: locationType || null,
+            employment_type: employmentType || null,
+            skills: selectedSkills.map(s => ({ skill_id: s.id, skill: s })),
+            media: mediaUrls.map((url, i) => ({ id: -Math.floor(Math.random() * 1000000), media_url: url, experience_id: experience.id, media_type: 'image', media_title: null, media_description: null }))
         };
 
-        try {
-            const res = await updateWorkExperienceAction(experience.id, userId, payload);
-            if (!res.success) {
-                throw new Error(res.error || "Failed to update work experience");
-            }
-            
-            router.refresh();
-            await refresh();
-            toast.success("Experience updated", { description: "Your changes have been saved." });
-            setIsEditing(false);
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to update.";
-            setError(errorMessage);
-            toast.error("Save failed", { description: errorMessage });
-        } finally {
-            setIsSaving(false);
+        const updatedList = [...experienceList];
+        const index = updatedList.findIndex(e => e.id === experience.id);
+        if (index >= 0) {
+            updatedList[index] = { ...updatedList[index], ...payload } as VsWorkExperience;
         }
+
+        setWorkExperienceDraft(updatedList);
+        setIsEditing(false);
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!confirm("Are you sure you want to delete this work experience?")) return;
         
-        setIsDeleting(true);
-        setError(null);
-        
-        try {
-            const res = await deleteWorkExperienceAction(experience.id, userId);
-            if (!res.success) {
-                throw new Error(res.error || "Failed to delete work experience");
-            }
-            
-            router.refresh();
-            await refresh();
-            toast.success("Experience deleted", { description: "The record has been removed." });
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to delete.";
-            setError(errorMessage);
-            toast.error("Delete failed", { description: errorMessage });
-        } finally {
-            setIsDeleting(false);
-        }
+        const updatedList = experienceList.filter(e => e.id !== experience.id);
+        setWorkExperienceDraft(updatedList);
     };
 
     const handleCancel = () => {
@@ -193,7 +158,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={companyName}
                                 onChange={(e) => setCompanyName(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             />
                         </div>
                         <div className="space-y-2">
@@ -203,7 +167,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={jobTitle}
                                 onChange={(e) => setJobTitle(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             />
                         </div>
                     </div>
@@ -215,7 +178,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             />
                         </div>
                         <div className="space-y-2">
@@ -224,7 +186,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={locationType}
                                 onChange={(e) => setLocationType(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             >
                                 <option value="">Select Type</option>
                                 <option value="On-site">On-site</option>
@@ -241,7 +202,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={employmentType}
                                 onChange={(e) => setEmploymentType(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             >
                                 <option value="">Select Type</option>
                                 <option value="Full-time">Full-time</option>
@@ -261,7 +221,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting}
                             />
                         </div>
                         <div className="space-y-2">
@@ -271,7 +230,7 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving || isDeleting || isCurrentRole}
+                                disabled={isCurrentRole}
                             />
                         </div>
                     </div>
@@ -286,7 +245,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 if (e.target.checked) setEndDate("");
                             }}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            disabled={isSaving || isDeleting}
                         />
                         <label htmlFor={`isCurrentRole-${experience.id}`} className="text-sm font-medium text-foreground cursor-pointer">
                             I currently work here
@@ -297,7 +255,6 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                         <WorkExperienceSkillsInput
                             selectedSkills={selectedSkills}
                             onChange={setSelectedSkills}
-                            disabled={isSaving || isDeleting}
                         />
                     </div>
 
@@ -307,32 +264,28 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                             value={jobDescription}
                             onChange={(e) => setJobDescription(e.target.value)}
                             className="w-full min-h-[100px] p-2 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                            disabled={isSaving || isDeleting}
                         />
                     </div>
                             <div className="pt-4 border-t">
                                 <WorkExperienceMediaInput
                                     mediaUrls={mediaUrls}
                                     onChange={setMediaUrls}
-                                    disabled={isSaving || isDeleting}
                                 />
                             </div>
                         </div>
                         </div>
 
                         <div className="flex justify-end gap-2 p-6 border-t shrink-0">
-                            <Button variant="destructive" onClick={handleDelete} disabled={isSaving || isDeleting} className="mr-auto">
-                                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete"}
+                            <Button variant="destructive" onClick={handleDelete} className="mr-auto">
+                                Delete
                             </Button>
-                            <Button variant="outline" onClick={handleCancel} disabled={isSaving || isDeleting}>
+                            <Button variant="outline" onClick={handleCancel}>
                                 Cancel
                             </Button>
                             <Button 
                                 onClick={handleSave} 
-                                disabled={isSaving || isDeleting}
                                 className="bg-primary text-primary-foreground hover:bg-primary/90"
                             >
-                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Save Experience
                             </Button>
                         </div>

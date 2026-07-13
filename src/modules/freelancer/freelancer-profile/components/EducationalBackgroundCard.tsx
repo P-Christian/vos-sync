@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { EducationModal } from "./EducationModal";
 
 export function EducationalBackgroundCard() {
-    const { data: profile } = useFreelancerProfileContext();
+    const { data: profile, pendingEducation } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEducation, setEditingEducation] = useState<any>(null);
 
     if (!profile) return null;
+
+    const educationList = pendingEducation !== null ? pendingEducation : profile.education || [];
 
     const handleAddClick = () => {
         setEditingEducation(null);
@@ -25,23 +27,28 @@ export function EducationalBackgroundCard() {
 
     return (
         <div className="bg-background rounded-lg border shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
                     <GraduationCap className="h-5 w-5 text-blue-600" />
                     <h3 className="font-semibold text-foreground">Educational Background</h3>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
-                    onClick={handleAddClick}
-                >
-                    <Plus className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    {pendingEducation !== null && (
+                        <span className="h-2.5 w-2.5 bg-primary rounded-full" title="Unsaved changes" />
+                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        onClick={handleAddClick}
+                    >
+                        <Plus className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4">
-                {profile.education?.map((edu) => (
+                {educationList.map((edu) => (
                     <div key={edu.id} className="flex gap-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
                             <GraduationCap className="h-5 w-5 text-blue-600" />

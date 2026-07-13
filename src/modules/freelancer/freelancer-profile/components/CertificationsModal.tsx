@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { addCertificationAction, updateCertificationAction, deleteCertificationAction, uploadMediaAction } from "../services/freelancer-profile.actions";
+import { uploadMediaAction } from "../services/freelancer-profile.actions";
 import { VsCertification } from "../types/freelancer-profile.types";
 
 interface CertificationsModalProps {
@@ -24,14 +24,14 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
     const [credentialUrl, setCredentialUrl] = useState("");
     const [imageUuid, setImageUuid] = useState("");
     
-    const [isSaving, setIsSaving] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { data, pendingCertifications, setCertificationsDraft } = useFreelancerProfileContext();
+
+    const liveCertifications = data?.certifications || [];
+    const certificationsList = pendingCertifications !== null ? pendingCertifications : liveCertifications;
 
     useEffect(() => {
         if (isOpen) {
@@ -98,9 +98,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
             return;
         }
 
-        setIsSaving(true);
-        setErrors({});
-        
         const payload = {
             certificate_name: certificateName,
             issuing_organization: issuingOrganization,
@@ -109,54 +106,32 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
             image_uuid: imageUuid || null,
         };
 
-        try {
-            let res;
-            if (certificationToEdit) {
-                res = await updateCertificationAction(certificationToEdit.id, userId, payload);
-            } else {
-                res = await addCertificationAction(userId, payload);
-            }
-            
-            if (!res.success) {
-                throw new Error(res.error || `Failed to ${certificationToEdit ? 'update' : 'add'} certification`);
-            }
+        const updatedList = [...certificationsList];
 
-            router.refresh();
-            await refresh();
-            toast.success(certificationToEdit ? "Certification updated" : "Certification added", { 
-                description: "Your certification has been saved." 
-            });
-            
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : `Failed to ${certificationToEdit ? 'update' : 'add'} certification.`;
-            toast.error("Save failed", { description: errorMessage });
-        } finally {
-            setIsSaving(false);
+        if (certificationToEdit) {
+            const index = updatedList.findIndex(c => c.id === certificationToEdit.id);
+            if (index >= 0) {
+                updatedList[index] = { ...updatedList[index], ...payload } as VsCertification;
+            }
+        } else {
+            updatedList.push({
+                id: -Math.floor(Math.random() * 1000000), // temp id
+                user_id: userId,
+                ...payload
+            } as VsCertification);
         }
+
+        setCertificationsDraft(updatedList);
+        onClose();
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!certificationToEdit) return;
         if (!confirm("Are you sure you want to delete this certification?")) return;
         
-        setIsDeleting(true);
-        try {
-            const res = await deleteCertificationAction(certificationToEdit.id, userId);
-            if (!res.success) {
-                throw new Error(res.error || "Failed to delete certification");
-            }
-            
-            router.refresh();
-            await refresh();
-            toast.success("Certification deleted", { description: "The record has been removed." });
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to delete.";
-            toast.error("Delete failed", { description: errorMessage });
-        } finally {
-            setIsDeleting(false);
-        }
+        const updatedList = certificationsList.filter(c => c.id !== certificationToEdit.id);
+        setCertificationsDraft(updatedList);
+        onClose();
     };
 
     const previewUrl = imageUuid ? (imageUuid.startsWith("http") ? imageUuid : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${imageUuid}`) : "";
@@ -185,7 +160,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 errors.certificateName ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. AWS Certified Solutions Architect"
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -202,7 +176,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 errors.issuingOrganization ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. Amazon Web Services"
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -214,7 +187,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 value={issueDate}
                                 onChange={(e) => setIssueDate(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={isSaving}
                             />
                         </div>
                     </div>
@@ -227,7 +199,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             onChange={(e) => setCredentialUrl(e.target.value)}
                             className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="e.g. https://www.credly.com/badges/..."
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -241,7 +212,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             className="hidden" 
                             onChange={handleFileSelect}
                             accept="image/*"
-                            disabled={isSaving || isUploading}
+                            disabled={isUploading}
                         />
                         
                         {!imageUuid ? (
@@ -250,7 +221,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 variant="outline" 
                                 className="w-full h-24 border-dashed rounded-lg flex flex-col items-center justify-center text-muted-foreground hover:bg-muted/50"
                                 onClick={() => fileInputRef.current?.click()}
-                                disabled={isSaving || isUploading}
+                                disabled={isUploading}
                             >
                                 {isUploading ? (
                                     <Loader2 className="h-6 w-6 animate-spin mb-2" />
@@ -269,7 +240,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                         size="icon"
                                         className="h-8 w-8 rounded-full shadow-md"
                                         onClick={() => setImageUuid("")}
-                                        disabled={isSaving}
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
@@ -287,9 +257,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             variant="ghost" 
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={handleDelete}
-                            disabled={isSaving || isDeleting}
                         >
-                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Delete Certification
                         </Button>
                     ) : (
@@ -301,7 +269,6 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             type="button" 
                             variant="outline" 
                             onClick={onClose}
-                            disabled={isSaving || isDeleting}
                         >
                             Cancel
                         </Button>
@@ -309,14 +276,9 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             type="button"
                             className="bg-blue-600 hover:bg-blue-700 text-white"
                             onClick={handleSave}
-                            disabled={isSaving || isDeleting || isUploading}
+                            disabled={isUploading}
                         >
-                            {isSaving ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Saving...
-                                </>
-                            ) : "Save"}
+                            Save
                         </Button>
                     </div>
                 </div>

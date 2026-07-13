@@ -8,12 +8,13 @@ import { WorkExperienceModal } from "./WorkExperienceModal";
 import { WorkExperienceItem } from "./WorkExperienceItem";
 
 export function WorkExperienceCard() {
-    const { data: profile } = useFreelancerProfileContext();
+    const { data: profile, pendingWorkExperience } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     if (!profile) return null;
 
-    const workExperience = profile.work_experience || [];
+    const liveExperience = profile.work_experience || [];
+    const workExperience = pendingWorkExperience !== null ? pendingWorkExperience : liveExperience;
     // Optionally sort work experience by start_date descending
     const sortedExperience = [...workExperience].sort((a, b) => {
         const dateA = new Date(a.start_date).getTime();
@@ -23,19 +24,24 @@ export function WorkExperienceCard() {
 
     return (
         <div className="bg-background rounded-lg border shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
                     <Briefcase className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold text-foreground">Work Experience</h3>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
-                    onClick={() => setIsModalOpen(true)}
-                >
-                    <Plus className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    {pendingWorkExperience !== null && (
+                        <span className="h-2.5 w-2.5 bg-primary rounded-full" title="Unsaved changes" />
+                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        onClick={() => setIsModalOpen(true)}
+                    >
+                        <Plus className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
 
             {sortedExperience.length === 0 ? (

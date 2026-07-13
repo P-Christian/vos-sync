@@ -1,3 +1,8 @@
+export type DraftAction<T> = 
+  | { type: 'ADD'; payload: Omit<T, 'id'> & { tempId: string } }
+  | { type: 'UPDATE'; id: number; payload: Partial<T> }
+  | { type: 'DELETE'; id: number };
+
 export interface VsMasterSkill {
     id: number;
     skill_name: string;

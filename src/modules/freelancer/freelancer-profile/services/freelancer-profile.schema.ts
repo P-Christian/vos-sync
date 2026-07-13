@@ -102,3 +102,24 @@ export const deleteCertificationSchema = z.object({
 export type AddCertificationPayload = z.infer<typeof addCertificationSchema>;
 export type UpdateCertificationPayload = z.infer<typeof updateCertificationSchema>;
 export type DeleteCertificationPayload = z.infer<typeof deleteCertificationSchema>;
+
+export const updatePersonalInfoSchema = z.object({
+    user_fname: z.string().min(1, "First name is required").max(255).optional(),
+    user_mname: z.string().max(255).nullable().optional(),
+    user_lname: z.string().min(1, "Last name is required").max(255).optional(),
+    suffix_name: z.string().max(20).nullable().optional(),
+    nickname: z.string().max(20).nullable().optional(),
+    user_contact: z.string().max(255).optional(),
+    user_bday: z.string().nullable().optional(),
+    gender: z.string().max(20).nullable().optional(),
+    civil_status: z.string().max(20).nullable().optional(),
+    blood_type: z.string().max(5).nullable().optional(),
+    religion: z.string().max(100).nullable().optional(),
+    nationality: z.string().max(100).nullable().optional(),
+    place_of_birth: z.string().max(150).nullable().optional(),
+    user_province: z.string().max(255).nullable().optional(),
+    user_city: z.string().max(255).nullable().optional(),
+    user_brgy: z.string().max(255).nullable().optional(),
+});
+
+export type UpdatePersonalInfoPayload = z.infer<typeof updatePersonalInfoSchema>;

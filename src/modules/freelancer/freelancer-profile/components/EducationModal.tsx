@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { addEducationAction, updateEducationAction, deleteEducationAction } from "../services/freelancer-profile.actions";
 import { VsEducation } from "../types/freelancer-profile.types";
 
 interface EducationModalProps {
@@ -23,11 +22,11 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const [fieldOfStudy, setFieldOfStudy] = useState("");
     const [graduationYear, setGraduationYear] = useState("");
     
-    const [isSaving, setIsSaving] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
+    
+    const liveEducation = data?.education || [];
+    const educationList = pendingEducation !== null ? pendingEducation : liveEducation;
 
     useEffect(() => {
         if (isOpen) {
@@ -78,9 +77,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             return;
         }
 
-        setIsSaving(true);
-        setErrors({});
-        
         const payload = {
             institution_name: institutionName,
             degree: degree || null,
@@ -88,54 +84,32 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             graduation_year: parseInt(graduationYear, 10),
         };
 
-        try {
-            let res;
-            if (educationToEdit) {
-                res = await updateEducationAction(educationToEdit.id, userId, payload);
-            } else {
-                res = await addEducationAction(userId, payload);
-            }
-            
-            if (!res.success) {
-                throw new Error(res.error || `Failed to ${educationToEdit ? 'update' : 'add'} education`);
-            }
+        const updatedList = [...educationList];
 
-            router.refresh();
-            await refresh(); // Force client-side state refresh
-            toast.success(educationToEdit ? "Education updated" : "Education added", { 
-                description: "Your educational background has been saved." 
-            });
-            
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : `Failed to ${educationToEdit ? 'update' : 'add'} education.`;
-            toast.error("Save failed", { description: errorMessage });
-        } finally {
-            setIsSaving(false);
+        if (educationToEdit) {
+            const index = updatedList.findIndex(e => e.id === educationToEdit.id);
+            if (index >= 0) {
+                updatedList[index] = { ...updatedList[index], ...payload } as VsEducation;
+            }
+        } else {
+            updatedList.push({
+                id: -Math.floor(Math.random() * 1000000), // temp id
+                user_id: userId,
+                ...payload
+            } as VsEducation);
         }
+
+        setEducationDraft(updatedList);
+        onClose();
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         if (!educationToEdit) return;
         if (!confirm("Are you sure you want to delete this education record?")) return;
         
-        setIsDeleting(true);
-        try {
-            const res = await deleteEducationAction(educationToEdit.id, userId);
-            if (!res.success) {
-                throw new Error(res.error || "Failed to delete education");
-            }
-            
-            router.refresh();
-            await refresh();
-            toast.success("Education deleted", { description: "The record has been removed." });
-            onClose();
-        } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to delete.";
-            toast.error("Delete failed", { description: errorMessage });
-        } finally {
-            setIsDeleting(false);
-        }
+        const updatedList = educationList.filter(e => e.id !== educationToEdit.id);
+        setEducationDraft(updatedList);
+        onClose();
     };
 
     return (
@@ -162,7 +136,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 errors.institutionName ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. University of Science"
-                            disabled={isSaving}
                         />
                     </div>
 
@@ -175,7 +148,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 onChange={(e) => setDegree(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="e.g. Bachelor of Science"
-                                disabled={isSaving}
                             />
                         </div>
 
@@ -187,7 +159,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 onChange={(e) => setFieldOfStudy(e.target.value)}
                                 className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="e.g. Computer Science"
-                                disabled={isSaving}
                             />
                         </div>
                     </div>
@@ -205,7 +176,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 errors.graduationYear ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. 2024"
-                            disabled={isSaving}
                         />
                     </div>
                 </div>
@@ -215,21 +185,18 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                         <Button 
                             variant="destructive" 
                             onClick={handleDelete} 
-                            disabled={isSaving || isDeleting}
                             className="mr-auto"
                         >
-                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete"}
+                            Delete
                         </Button>
                     )}
-                    <Button variant="outline" onClick={onClose} disabled={isSaving || isDeleting}>
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleSave} 
-                        disabled={isSaving || isDeleting}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                     >
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Education
                     </Button>
                 </div>

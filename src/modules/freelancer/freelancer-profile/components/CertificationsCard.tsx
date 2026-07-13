@@ -8,34 +8,42 @@ import { CertificationsModal } from "./CertificationsModal";
 import { VsCertification } from "../types/freelancer-profile.types";
 
 export function CertificationsCard() {
-    const { data: profile } = useFreelancerProfileContext();
+    const { data: profile, pendingCertifications } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [certificationToEdit, setCertificationToEdit] = useState<VsCertification | null>(null);
 
     if (!profile) return null;
 
+    const liveCertifications = profile.certifications || [];
+    const certificationsList = pendingCertifications !== null ? pendingCertifications : liveCertifications;
+
     return (
         <div className="bg-background rounded-lg border shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
                     <Award className="h-5 w-5 text-blue-600" />
                     <h3 className="font-semibold text-foreground">Certifications</h3>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
-                    onClick={() => {
-                        setCertificationToEdit(null);
-                        setIsModalOpen(true);
-                    }}
-                >
-                    <Plus className="h-5 w-5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                    {pendingCertifications !== null && (
+                        <span className="h-2.5 w-2.5 bg-primary rounded-full" title="Unsaved changes" />
+                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        onClick={() => {
+                            setCertificationToEdit(null);
+                            setIsModalOpen(true);
+                        }}
+                    >
+                        <Plus className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4">
-                {profile.certifications?.map((cert) => (
+                {certificationsList.map((cert) => (
                     <div key={cert.id} className="flex gap-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
                             <Award className="h-5 w-5 text-blue-600" />

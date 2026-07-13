@@ -160,3 +160,35 @@ export async function deleteCertificationService(id: number, userId: number) {
     const { deleteCertificationFromDirectus } = await import("./freelancer-profile.repo");
     return await deleteCertificationFromDirectus(id);
 }
+
+export async function updatePersonalInfoService(userId: number, payload: any) {
+    const { updateUserInDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        user_fname: payload.user_fname,
+        user_mname: payload.user_mname,
+        user_lname: payload.user_lname,
+        suffix_name: payload.suffix_name,
+        nickname: payload.nickname,
+        user_contact: payload.user_contact,
+        user_bday: payload.user_bday ? formatToPHDate(payload.user_bday) : null,
+        gender: payload.gender,
+        civil_status: payload.civil_status,
+        blood_type: payload.blood_type,
+        religion: payload.religion,
+        nationality: payload.nationality,
+        place_of_birth: payload.place_of_birth,
+        user_province: payload.user_province,
+        user_city: payload.user_city,
+        user_brgy: payload.user_brgy,
+    };
+
+    // Remove undefined values
+    Object.keys(data).forEach(key => {
+        if (data[key as keyof typeof data] === undefined) {
+            delete data[key as keyof typeof data];
+        }
+    });
+
+    return await updateUserInDirectus(userId, data);
+}

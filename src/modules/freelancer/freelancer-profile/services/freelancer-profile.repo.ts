@@ -642,3 +642,90 @@ export async function deleteCertificationFromDirectus(id: number) {
 
     return true;
 }
+
+export async function updateUserInDirectus(userId: number, payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+    
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to update user personal info: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
+export async function upsertJobSeekerProfileInDirectus(userId: number, profileId: number | undefined, payload: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    let targetProfileId = profileId;
+    let method = profileId ? "PATCH" : "POST";
+
+    if (!targetProfileId && userId) {
+        const checkUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile?filter[user_id][_eq]=${userId}`;
+        const checkRes = await fetch(checkUrl, {
+            headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+            cache: "no-store"
+        });
+        if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.data && checkData.data.length > 0) {
+                targetProfileId = checkData.data[0].profile_id;
+                method = "PATCH";
+            }
+        }
+    }
+
+    const url = targetProfileId 
+        ? `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile/${targetProfileId}`
+        : `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile`;
+    
+    const body = targetProfileId 
+        ? { ...payload }
+        : { ...payload, user_id: userId };
+
+    const res = await fetch(url, {
+        method,
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body),
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        let errDetails = "";
+        try {
+            errDetails = await res.text();
+        } catch {
+            errDetails = "Could not parse error details";
+        }
+        throw new Error(`Failed to upsert job seeker profile: HTTP ${res.status} - ${errDetails}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}
+
