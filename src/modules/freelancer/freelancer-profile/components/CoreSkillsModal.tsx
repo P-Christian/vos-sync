@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Loader2, Search, Trash2 } from "lucide-react";
+import { X, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { searchMasterSkillsAction } from "../services/freelancer-profile.actions";
 import { VsUserSkillMap } from "../types/freelancer-profile.types";

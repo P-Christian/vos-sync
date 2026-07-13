@@ -5,11 +5,12 @@ import { GraduationCap, Plus, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { EducationModal } from "./EducationModal";
+import { VsEducation } from "../types/freelancer-profile.types";
 
 export function EducationalBackgroundCard() {
     const { data: profile, pendingEducation } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingEducation, setEditingEducation] = useState<any>(null);
+    const [editingEducation, setEditingEducation] = useState<VsEducation | null>(null);
 
     if (!profile) return null;
 
@@ -20,7 +21,7 @@ export function EducationalBackgroundCard() {
         setIsModalOpen(true);
     };
 
-    const handleEditClick = (edu: any) => {
+    const handleEditClick = (edu: VsEducation) => {
         setEditingEducation(edu);
         setIsModalOpen(true);
     };

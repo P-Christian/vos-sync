@@ -18,6 +18,7 @@ export function VisibilityModal({ isOpen, onClose }: VisibilityModalProps) {
     useEffect(() => {
         if (isOpen && data) {
             const currentVisibility = pendingVisibility ?? data.job_seeker_profile?.[0]?.profile_visibility ?? "Public";
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedVisibility(currentVisibility);
         }
     }, [isOpen, data, pendingVisibility]);

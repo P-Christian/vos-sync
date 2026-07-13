@@ -21,6 +21,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
         if (isOpen && data) {
             // Use pending draft if it exists, otherwise use live data
             const source = pendingPersonalInfo || data;
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData({
                 user_fname: source.user_fname || "",
                 user_mname: source.user_mname || "",

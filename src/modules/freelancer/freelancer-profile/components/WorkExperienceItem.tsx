@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Pencil, Loader2, X } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { VsWorkExperience, VsMasterSkill } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
@@ -49,7 +47,7 @@ interface WorkExperienceItemProps {
     isLast: boolean;
 }
 
-export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienceItemProps) {
+export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceItemProps, 'userId'> & { userId?: number }) {
     const [isEditing, setIsEditing] = useState(false);
     
     // Form state
@@ -73,7 +71,9 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
 
     // Sync local state whenever the parent re-fetches the experience data (e.g. after save)
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMediaUrls(experience.media?.map(m => m.media_url) || []);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedSkills((experience.skills?.map(s => s.skill).filter(Boolean) as VsMasterSkill[]) || []);
     }, [experience]);
 
@@ -98,7 +98,7 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
             location_type: locationType || null,
             employment_type: employmentType || null,
             skills: selectedSkills.map(s => ({ skill_id: s.id, skill: s })),
-            media: mediaUrls.map((url, i) => ({ id: -Math.floor(Math.random() * 1000000), media_url: url, experience_id: experience.id, media_type: 'image', media_title: null, media_description: null }))
+            media: mediaUrls.map((url) => ({ id: -Math.floor(Math.random() * 1000000), media_url: url, experience_id: experience.id, media_type: 'image', media_title: null, media_description: null }))
         };
 
         const updatedList = [...experienceList];
@@ -324,7 +324,7 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                     )}
                     {experience.media && experience.media.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2">
-                            {experience.media.map((m: any) => {
+                            {experience.media.map((m: { id?: number; media_url?: string; media_title?: string | null }) => {
                                 const urlStr = m.media_url || m.id || "";
                                 if (!urlStr || typeof urlStr !== 'string') return null;
 
@@ -333,6 +333,7 @@ export function WorkExperienceItem({ experience, userId, isLast }: WorkExperienc
                                 
                                 return (
                                     <div key={m.id || urlStr} className="relative w-[120px] h-[70px] bg-muted rounded-md overflow-hidden border border-border shadow-sm transition-all hover:shadow-md cursor-pointer flex-shrink-0">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img src={previewUrl} alt={m.media_title || "Media"} className="object-cover w-full h-full" />
                                     </div>
                                 );

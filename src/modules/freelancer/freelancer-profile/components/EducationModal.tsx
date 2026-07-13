@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsEducation } from "../types/freelancer-profile.types";
@@ -31,6 +29,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     useEffect(() => {
         if (isOpen) {
             if (educationToEdit) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setInstitutionName(educationToEdit.institution_name || "");
                 setDegree(educationToEdit.degree || "");
                 setFieldOfStudy(educationToEdit.field_of_study || "");

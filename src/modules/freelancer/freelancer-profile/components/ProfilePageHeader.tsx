@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 
 export function ProfilePageHeader() {
-    const { hasPendingChanges, saveAllChanges, isSaving } = useFreelancerProfileContext();
+    const { saveAllChanges, isSaving } = useFreelancerProfileContext();
 
     const handleSave = async () => {
         const res = await saveAllChanges();

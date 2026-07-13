@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FileUp, FileText, Download, Trash2, Eye, Globe, Lock, Users } from "lucide-react";
+import { FileUp, FileText, Download, Trash2, Globe, Lock, Users } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

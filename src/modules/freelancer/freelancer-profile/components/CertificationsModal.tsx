@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Loader2, Plus, X, ImageIcon } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { uploadMediaAction } from "../services/freelancer-profile.actions";
@@ -74,9 +73,9 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
             
             setImageUuid(res.url);
             toast.success("Image uploaded successfully");
-        } catch (error: any) {
-            console.error("Upload error:", error);
-            toast.error("Failed to upload image", { description: error.message });
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to upload image";
+            toast.error("Failed to upload image", { description: errorMessage });
         } finally {
             setIsUploading(false);
         }
@@ -226,9 +225,8 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 {isUploading ? (
                                     <Loader2 className="h-6 w-6 animate-spin mb-2" />
                                 ) : (
-                                    <ImageIcon className="h-6 w-6 mb-2" />
+                                    <span className="text-sm">Click to upload image</span>
                                 )}
-                                <span className="text-sm">{isUploading ? "Uploading..." : "Click to upload image"}</span>
                             </Button>
                         ) : (
                             <div className="relative group rounded-lg border overflow-hidden aspect-video max-w-sm bg-muted flex items-center justify-center">

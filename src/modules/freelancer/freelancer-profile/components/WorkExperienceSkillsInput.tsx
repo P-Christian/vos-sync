@@ -53,7 +53,7 @@ export function WorkExperienceSkillsInput({ selectedSkills, onChange, disabled }
         <div className="space-y-4">
             <div>
                 <label className="text-sm font-medium text-foreground">Skills</label>
-                <p className="text-xs text-muted-foreground mb-2">We recommend adding your top 5 used in this role. They'll also appear in your Skills section.</p>
+                <p className="text-xs text-muted-foreground mb-2">We recommend adding your top 5 used in this role. They&apos;ll also appear in your Skills section.</p>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <input

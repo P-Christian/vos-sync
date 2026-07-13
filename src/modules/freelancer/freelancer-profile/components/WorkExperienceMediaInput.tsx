@@ -1,16 +1,10 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Plus, Loader2, X, FileIcon, ImageIcon } from "lucide-react";
+import { Plus, Loader2, X, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadMediaAction } from "../services/freelancer-profile.actions";
 import { toast } from "sonner";
-
-interface MediaItem {
-    url: string;
-    type?: string;
-    id?: number;
-}
 
 interface WorkExperienceMediaInputProps {
     mediaUrls: string[];
@@ -43,9 +37,9 @@ export function WorkExperienceMediaInput({ mediaUrls, onChange, disabled }: Work
             
             onChange([...mediaUrls, res.url]);
             toast.success("Media uploaded successfully");
-        } catch (error: any) {
-            console.error("Upload error:", error);
-            toast.error("Failed to upload media", { description: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "Failed to upload media";
+            toast.error("Failed to upload media", { description: errorMessage });
         } finally {
             setIsUploading(false);
         }
@@ -94,7 +88,10 @@ export function WorkExperienceMediaInput({ mediaUrls, onChange, disabled }: Work
                         return (
                             <div key={idx} className="relative group rounded-md border overflow-hidden bg-muted aspect-video flex items-center justify-center">
                                 {isImage ? (
-                                    <img src={previewUrl} alt={`Media ${idx + 1}`} className="w-full h-full object-cover" />
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={previewUrl} alt={`Media ${idx + 1}`} className="w-full h-full object-cover" />
+                                    </>
                                 ) : (
                                     <FileIcon className="h-8 w-8 text-muted-foreground" />
                                 )}

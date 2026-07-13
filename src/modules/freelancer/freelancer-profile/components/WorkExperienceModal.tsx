@@ -1,11 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsMasterSkill, VsWorkExperience } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
@@ -50,7 +47,7 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
                 setLocationType(experienceToEdit.location_type || "");
                 setEmploymentType(experienceToEdit.employment_type || "");
                 // map skills from experienceToEdit to VsMasterSkill[] format expected by Input if available
-                setSelectedSkills(experienceToEdit.skills?.map(s => s.skill).filter(Boolean) as any[] || []);
+                setSelectedSkills(experienceToEdit.skills?.map(s => s.skill).filter(Boolean) as VsMasterSkill[] || []);
                 setMediaUrls(experienceToEdit.media?.map(m => m.media_url) || []);
             } else {
                 setCompanyName("");
@@ -77,7 +74,6 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
             return;
         }
 
-        setIsSaving(true);
         setError(null);
         
         const payload = {
