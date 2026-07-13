@@ -19,15 +19,30 @@ export interface VsJobSeekerProfile {
     updated_at: string;
 }
 
+export interface VsWorkExperienceMedia {
+    id: number;
+    experience_id: number;
+    media_type: string;
+    media_url: string;
+    media_title: string | null;
+    media_description: string | null;
+}
+
 export interface VsWorkExperience {
     id: number;
     user_id: number;
     company_name: string;
+    location: string | null;
+    location_type: string | null;
     job_title: string;
+    employment_type: string | null;
     start_date: string;
     end_date: string | null;
     is_current_role: boolean;
     job_description: string | null;
+    discovery_source: string | null;
+    media?: VsWorkExperienceMedia[];
+    skills?: { skill_id: number; skill?: VsMasterSkill }[];
 }
 
 export interface VsEducation {

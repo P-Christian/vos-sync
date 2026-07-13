@@ -10,7 +10,7 @@ export function useFreelancerProfile() {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await fetch('/api/freelancer/profile');
+            const res = await fetch('/api/freelancer/profile', { cache: 'no-store' });
             const result = await res.json();
             
             if (result.ok && result.data) {

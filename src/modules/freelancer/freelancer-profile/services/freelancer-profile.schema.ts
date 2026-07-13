@@ -23,3 +23,40 @@ export const freelancerProfileSchema = z.object({
 });
 
 export type FreelancerProfilePayload = z.infer<typeof freelancerProfileSchema>;
+
+export const workExperienceMediaSchema = z.object({
+    id: z.number().optional(), // optional because it might be new
+    media_type: z.string().min(1),
+    media_url: z.string().url(),
+    media_title: z.string().nullable().optional(),
+    media_description: z.string().nullable().optional(),
+});
+
+export const addWorkExperienceSchema = z.object({
+    company_name: z.string().min(1, "Company name is required").max(255),
+    location: z.string().nullable().optional(),
+    location_type: z.string().nullable().optional(),
+    job_title: z.string().min(1, "Job title is required").max(255),
+    employment_type: z.string().nullable().optional(),
+    start_date: z.string().min(1, "Start date is required"), // Expected format YYYY-MM-DD
+    end_date: z.string().nullable().optional(),
+    is_current_role: z.boolean().default(false),
+    job_description: z.string().nullable().optional(),
+    discovery_source: z.string().nullable().optional(),
+    media: z.array(workExperienceMediaSchema).optional(),
+    skills: z.array(z.object({
+        skill_id: z.number()
+    })).optional(),
+});
+
+export const updateWorkExperienceSchema = addWorkExperienceSchema.extend({
+    id: z.number(),
+});
+
+export const deleteWorkExperienceSchema = z.object({
+    id: z.number(),
+});
+
+export type AddWorkExperiencePayload = z.infer<typeof addWorkExperienceSchema>;
+export type UpdateWorkExperiencePayload = z.infer<typeof updateWorkExperienceSchema>;
+export type DeleteWorkExperiencePayload = z.infer<typeof deleteWorkExperienceSchema>;

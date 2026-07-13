@@ -158,3 +158,78 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
     revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
     return { success: true };
 }
+
+export async function addWorkExperienceAction(userId: number, payload: any) {
+    const { addWorkExperienceService } = await import("./freelancer-profile.service");
+    
+    try {
+        await addWorkExperienceService(userId, payload);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("addWorkExperienceAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function updateWorkExperienceAction(id: number, userId: number, payload: any) {
+    const { updateWorkExperienceService } = await import("./freelancer-profile.service");
+    
+    try {
+        await updateWorkExperienceService(id, userId, payload);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("updateWorkExperienceAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function deleteWorkExperienceAction(id: number, userId: number) {
+    const { deleteWorkExperienceService } = await import("./freelancer-profile.service");
+    
+    try {
+        await deleteWorkExperienceService(id, userId);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true };
+    } catch (err: any) {
+        console.error("deleteWorkExperienceAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function uploadMediaAction(formData: FormData) {
+    const file = formData.get("file");
+    if (!file) return { success: false, error: "No file provided" };
+    
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+    
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        return { success: false, error: "Directus API URL or Static Token is not configured." };
+    }
+    
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/files`;
+    
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`
+            },
+            body: formData,
+        });
+        
+        if (!res.ok) {
+            let errText = "Unknown error";
+            try { errText = await res.text(); } catch {}
+            throw new Error(`Failed to upload media: HTTP ${res.status} - ${errText}`);
+        }
+        
+        const json = await res.json();
+        return { success: true, url: json.data.id, id: json.data.id };
+    } catch (err: any) {
+        console.error("uploadMediaAction Error:", err);
+        return { success: false, error: err.message };
+    }
+}
