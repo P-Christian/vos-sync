@@ -53,7 +53,7 @@ export function ResumeSidebar() {
             } else {
                 toast.error(res.error || "Failed to upload resume");
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred");
         } finally {
             setIsUploading(false);
@@ -70,7 +70,7 @@ export function ResumeSidebar() {
             } else {
                 toast.error(res.error || "Failed to set primary resume");
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred");
         }
     };
@@ -86,7 +86,7 @@ export function ResumeSidebar() {
             } else {
                 toast.error(res.error || "Failed to delete resume");
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred");
         }
     };

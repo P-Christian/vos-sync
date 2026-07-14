@@ -8,9 +8,9 @@ export async function uploadResumeAction(userId: number, formData: FormData, fil
         await uploadResumeService(userId, formData, fileName);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("uploadResumeAction Error:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
 
@@ -19,9 +19,9 @@ export async function setPrimaryResumeAction(userId: number, resumeId: number) {
         await setPrimaryResumeService(userId, resumeId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("setPrimaryResumeAction Error:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
 
@@ -30,8 +30,8 @@ export async function deleteResumeAction(resumeId: number) {
         await deleteResumeService(resumeId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("deleteResumeAction Error:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }

@@ -71,7 +71,7 @@ export async function demotePrimaryResumes(userId: number, apiUrl: string, token
     const fetchData = await fetchRes.json();
     
     if (fetchData.data && fetchData.data.length > 0) {
-        const ids = fetchData.data.map((r: any) => r.id);
+        const ids = fetchData.data.map((r: { id: number }) => r.id);
         const updateUrl = `${apiUrl}/items/vs_job_seeker_resumes`;
         const payload = {
             keys: ids,

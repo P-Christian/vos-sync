@@ -8,19 +8,19 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
         await updateProfessionalSummaryService(summary, profileId, userId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("updateProfessionalSummaryAction Error:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
 
-export async function updatePersonalInfoAction(userId: number, payload: any) {
+export async function updatePersonalInfoAction(userId: number, payload: Record<string, unknown>) {
     try {
         await updatePersonalInfoService(userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("updatePersonalInfoAction Error:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }

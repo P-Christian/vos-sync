@@ -1,4 +1,3 @@
-import { VsJobSeekerProfile } from "../../types/freelancer-profile.types";
 
 export async function updateProfessionalSummary(
     profileId: number | undefined, 
@@ -49,7 +48,7 @@ export async function updateProfessionalSummary(
     return true;
 }
 
-export async function updatePersonalInfo(userId: number, payload: any, apiUrl: string, token: string) {
+export async function updatePersonalInfo(userId: number, payload: Record<string, unknown>, apiUrl: string, token: string) {
     const url = `${apiUrl}/users/${userId}`;
     const res = await fetch(url, {
         method: "PATCH",

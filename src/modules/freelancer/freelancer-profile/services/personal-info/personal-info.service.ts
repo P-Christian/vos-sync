@@ -1,5 +1,5 @@
 import * as repo from "./personal-info.repo";
-import { z } from "zod";
+
 
 const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -24,7 +24,7 @@ export async function updateProfessionalSummaryService(summary: string, profileI
     );
 }
 
-export async function updatePersonalInfoService(userId: number, payload: any) {
+export async function updatePersonalInfoService(userId: number, payload: Record<string, unknown>) {
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
