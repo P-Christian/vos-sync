@@ -1,0 +1,140 @@
+"use client";
+
+import { useState, useCallback } from 'react';
+import { VsSchoolRequest, VsCourseRequest, ReviewAction } from '../types/request.types';
+
+export function useRequests() {
+  const [schoolRequests, setSchoolRequests] = useState<VsSchoolRequest[]>([]);
+  const [courseRequests, setCourseRequests] = useState<VsCourseRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSchoolRequests = useCallback(async (status: string = 'Pending') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const q = status !== 'ALL' ? `?status=${status}` : '';
+      const res = await fetch(`/api/school-admin/school-requests${q}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch school requests');
+      setSchoolRequests(json.requests ?? []);
+    } catch (err: any) {
+      setError(err.message);
+      setSchoolRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchCourseRequests = useCallback(async (status: string = 'Pending') => {
+    setLoading(true);
+    setError(null);
+    try {
+      const q = status !== 'ALL' ? `?status=${status}` : '';
+      const res = await fetch(`/api/school-admin/course-requests${q}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch course requests');
+      setCourseRequests(json.requests ?? []);
+    } catch (err: any) {
+      setError(err.message);
+      setCourseRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createSchoolRequest = async (data: any): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/school-admin/school-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to create school request');
+      }
+      return true;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    }
+  };
+
+  const createCourseRequest = async (data: any): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/school-admin/course-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to create course request');
+      }
+      return true;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    }
+  };
+
+  const reviewSchoolRequest = async (id: number, data: ReviewAction): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/school-admin/school-requests/${id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to review school request');
+      }
+      
+      const json = await res.json();
+      
+      // Optimistic update
+      setSchoolRequests(prev => prev.map(r => r.school_request_id === id ? json.request : r));
+      return true;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    }
+  };
+
+  const reviewCourseRequest = async (id: number, data: ReviewAction): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/school-admin/course-requests/${id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        throw new Error(json.error || 'Failed to review course request');
+      }
+      
+      const json = await res.json();
+      
+      // Optimistic update
+      setCourseRequests(prev => prev.map(r => r.course_request_id === id ? json.request : r));
+      return true;
+    } catch (err: any) {
+      setError(err.message);
+      return false;
+    }
+  };
+
+  return {
+    schoolRequests,
+    courseRequests,
+    loading,
+    error,
+    fetchSchoolRequests,
+    fetchCourseRequests,
+    createSchoolRequest,
+    createCourseRequest,
+    reviewSchoolRequest,
+    reviewCourseRequest,
+  };
+}

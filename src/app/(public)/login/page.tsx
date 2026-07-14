@@ -124,6 +124,8 @@ function LoginForm() {
                 defaultPath = "/vos-sync/freelancer/dashboard"
             } else if (data?.role_id === 2) {
                 defaultPath = "/vos-sync/client/dashboard"
+            } else if (data?.role_id === 3) {
+                defaultPath = "/vos-sync/school-admin"
             }
 
             const next = searchParams.get("next") || defaultPath

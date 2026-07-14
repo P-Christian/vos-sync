@@ -137,6 +137,8 @@ export default function SignupPage() {
         router.push('/vos-sync/freelancer/dashboard');
       } else if (data?.role_id === 2) {
         router.push('/vos-sync/client/dashboard');
+      } else if (data?.role_id === 3) {
+        router.push('/vos-sync/school-admin');
       } else {
         router.push('/main-dashboard');
       }
