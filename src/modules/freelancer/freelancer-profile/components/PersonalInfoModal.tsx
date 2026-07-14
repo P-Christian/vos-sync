@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { FreelancerProfile } from "../types/freelancer-profile.types";
+import { FreelancerProfile, VsUserSocialLink } from "../types/freelancer-profile.types";
+import { Plus, X } from "lucide-react";
 
 interface PersonalInfoModalProps {
     isOpen: boolean;
@@ -12,10 +13,11 @@ interface PersonalInfoModalProps {
 }
 
 export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
-    const { data, pendingPersonalInfo, setPersonalInfoDraft } = useFreelancerProfileContext();
+    const { data, pendingPersonalInfo, setPersonalInfoDraft, pendingSocialLinks, setSocialLinksDraft } = useFreelancerProfileContext();
     
     // Initial state setup based on pending draft or live data
     const [formData, setFormData] = useState<Partial<FreelancerProfile>>({});
+    const [socialLinks, setSocialLinks] = useState<VsUserSocialLink[]>([]);
 
     useEffect(() => {
         if (isOpen && data) {
@@ -33,20 +35,28 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                 gender: source.gender || "",
                 civil_status: source.civil_status || "",
                 blood_type: source.blood_type || "",
-                religion: source.religion || "",
                 nationality: source.nationality || "",
                 place_of_birth: source.place_of_birth || "",
                 user_province: source.user_province || "",
                 user_city: source.user_city || "",
                 user_brgy: source.user_brgy || "",
             });
+
+            if (pendingSocialLinks) {
+                setSocialLinks(pendingSocialLinks);
+            } else if (data.social_links) {
+                setSocialLinks(data.social_links);
+            } else {
+                setSocialLinks([]);
+            }
         }
-    }, [isOpen, data, pendingPersonalInfo]);
+    }, [isOpen, data, pendingPersonalInfo, pendingSocialLinks]);
 
     if (!isOpen || !data) return null;
 
     const handleApply = () => {
         setPersonalInfoDraft(formData);
+        setSocialLinksDraft(socialLinks);
         onClose();
     };
 
@@ -205,16 +215,6 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Religion</label>
-                                <input
-                                    type="text"
-                                    name="religion"
-                                    value={formData.religion || ""}
-                                    onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                />
-                            </div>
-                            <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Nationality</label>
                                 <input
                                     type="text"
@@ -271,6 +271,67 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* Social Links Section */}
+                    <div>
+                        <div className="flex items-center justify-between border-b pb-2 mb-4">
+                            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Social Links</h3>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 gap-1"
+                                onClick={() => setSocialLinks([...socialLinks, { id: -Date.now(), user_id: data.user_id, platform_name: 'Github', profile_url: '' }])}
+                            >
+                                <Plus className="h-4 w-4" /> Add Link
+                            </Button>
+                        </div>
+                        <div className="space-y-4">
+                            {socialLinks.map((link, idx) => (
+                                <div key={link.id} className="flex items-center gap-3">
+                                    <select
+                                        value={link.platform_name}
+                                        onChange={(e) => {
+                                            const newLinks = [...socialLinks];
+                                            newLinks[idx].platform_name = e.target.value as VsUserSocialLink['platform_name'];
+                                            setSocialLinks(newLinks);
+                                        }}
+                                        className="flex h-10 w-40 shrink-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    >
+                                        <option value="Github">Github</option>
+                                        <option value="LinkedIn">LinkedIn</option>
+                                        <option value="X (Twitter)">X (Twitter)</option>
+                                        <option value="Personal Portfolio">Personal Portfolio</option>
+                                    </select>
+                                    <input
+                                        type="url"
+                                        placeholder="Profile URL"
+                                        value={link.profile_url}
+                                        onChange={(e) => {
+                                            const newLinks = [...socialLinks];
+                                            newLinks[idx].profile_url = e.target.value;
+                                            setSocialLinks(newLinks);
+                                        }}
+                                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    />
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+                                        onClick={() => {
+                                            const newLinks = [...socialLinks];
+                                            newLinks.splice(idx, 1);
+                                            setSocialLinks(newLinks);
+                                        }}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            {socialLinks.length === 0 && (
+                                <p className="text-sm text-muted-foreground text-center py-4">No social links added yet.</p>
+                            )}
                         </div>
                     </div>
 

@@ -10,7 +10,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*,social_links.*,vs_user_social_links.*`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -50,6 +50,34 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
 
         if (user.vs_job_seeker_resumes && !user.resumes) {
             user.resumes = user.vs_job_seeker_resumes;
+        }
+
+        if (user.vs_user_social_links && !user.social_links) {
+            user.social_links = user.vs_user_social_links;
+        }
+
+        // Fallback: If social_links is still undefined or not returned via the relation, fetch it directly
+        if (!user.social_links) {
+            try {
+                const linksUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_social_links?filter[user_id][_eq]=${user.user_id}`;
+                const linksRes = await fetch(linksUrl, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    cache: "no-store"
+                });
+                if (linksRes.ok) {
+                    const linksJson = await linksRes.json();
+                    user.social_links = linksJson.data || [];
+                } else {
+                    user.social_links = [];
+                }
+            } catch (err) {
+                console.error("Failed to fetch social links directly", err);
+                user.social_links = [];
+            }
         }
 
         if (user.work_experience && Array.isArray(user.work_experience)) {

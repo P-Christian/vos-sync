@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from "react";
-import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, DraftAction } from "../types/freelancer-profile.types";
+import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, VsUserSocialLink, DraftAction } from "../types/freelancer-profile.types";
 
 export function useFreelancerProfile() {
     const [data, setData] = useState<FreelancerProfile | null>(null);
@@ -18,6 +18,7 @@ export function useFreelancerProfile() {
     const [pendingEducation, setPendingEducation] = useState<VsEducation[] | null>(null);
     const [pendingWorkExperience, setPendingWorkExperience] = useState<VsWorkExperience[] | null>(null);
     const [pendingCertifications, setPendingCertifications] = useState<VsCertification[] | null>(null);
+    const [pendingSocialLinks, setPendingSocialLinks] = useState<VsUserSocialLink[] | null>(null);
 
     const refresh = useCallback(async () => {
         setIsLoading(true);
@@ -76,6 +77,10 @@ export function useFreelancerProfile() {
         setPendingCertifications(certifications);
     }, []);
 
+    const setSocialLinksDraft = useCallback((socialLinks: VsUserSocialLink[]) => {
+        setPendingSocialLinks(socialLinks);
+    }, []);
+
     const clearDrafts = useCallback(() => {
         setPendingPersonalInfoState(null);
         setPendingVisibilityState(null);
@@ -84,6 +89,7 @@ export function useFreelancerProfile() {
         setPendingEducation(null);
         setPendingWorkExperience(null);
         setPendingCertifications(null);
+        setPendingSocialLinks(null);
     }, []);
 
     const hasPendingChanges = 
@@ -93,7 +99,8 @@ export function useFreelancerProfile() {
         pendingSkills !== null ||
         pendingEducation !== null ||
         pendingWorkExperience !== null ||
-        pendingCertifications !== null;
+        pendingCertifications !== null ||
+        pendingSocialLinks !== null;
 
     const saveAllChanges = useCallback(async () => {
         if (!data) return { success: false, error: "No profile data loaded" };
@@ -144,6 +151,12 @@ export function useFreelancerProfile() {
                 certifications: generateDiff(data.certifications, pendingCertifications)
             };
 
+            if (pendingSocialLinks !== null) {
+                const { saveSocialLinksAction } = await import("../services/freelancer-profile.actions");
+                const resLink = await saveSocialLinksAction(data.user_id, pendingSocialLinks);
+                if (!resLink.success) return { success: false, error: resLink.error || "Failed to save social links" };
+            }
+
             const res = await saveAllProfileChangesAction(payload);
             
             if (res.success) {
@@ -161,7 +174,7 @@ export function useFreelancerProfile() {
     }, [
         data, hasPendingChanges, pendingPersonalInfo, pendingVisibility, 
         pendingProfessionalSummary, pendingSkills, pendingEducation, 
-        pendingWorkExperience, pendingCertifications, clearDrafts, refresh
+        pendingWorkExperience, pendingCertifications, pendingSocialLinks, clearDrafts, refresh
     ]);
 
     return {
@@ -178,6 +191,7 @@ export function useFreelancerProfile() {
         pendingEducation,
         pendingWorkExperience,
         pendingCertifications,
+        pendingSocialLinks,
         // Setters
         setPersonalInfoDraft,
         setVisibilityDraft,
@@ -186,6 +200,7 @@ export function useFreelancerProfile() {
         setEducationDraft,
         setWorkExperienceDraft,
         setCertificationsDraft,
+        setSocialLinksDraft,
         clearDrafts,
         hasPendingChanges,
         saveAllChanges,
