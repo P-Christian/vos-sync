@@ -141,13 +141,21 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Degree</label>
-                            <input
-                                type="text"
+                            <select
                                 value={degree}
                                 onChange={(e) => setDegree(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="e.g. Bachelor of Science"
-                            />
+                                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="" disabled>Select a degree</option>
+                                <option value="High School Undergraduate">High School Undergraduate</option>
+                                <option value="High School Graduate">High School Graduate</option>
+                                <option value="Vocational Diploma / Short Course Certificate">Vocational Diploma / Short Course Certificate</option>
+                                <option value="College Undergraduate">College Undergraduate</option>
+                                <option value="Bachelor's / College Degree">Bachelor's / College Degree</option>
+                                <option value="Post-Graduate Diploma / Master's Degree">Post-Graduate Diploma / Master's Degree</option>
+                                <option value="Professional License">Professional License</option>
+                                <option value="Doctorate Degree">Doctorate Degree</option>
+                            </select>
                         </div>
 
                         <div className="space-y-2">
