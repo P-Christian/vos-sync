@@ -1,29 +1,55 @@
 "use client";
 
-import React from "react";
-import { GraduationCap } from "lucide-react";
+import React, { useState } from "react";
+import { GraduationCap, Plus, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { EducationModal } from "./EducationModal";
+import { VsEducation } from "../types/freelancer-profile.types";
 
 export function EducationalBackgroundCard() {
-    const { data: profile } = useFreelancerProfileContext();
+    const { data: profile, pendingEducation } = useFreelancerProfileContext();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingEducation, setEditingEducation] = useState<VsEducation | null>(null);
 
     if (!profile) return null;
 
+    const educationList = pendingEducation !== null ? pendingEducation : profile.education || [];
+
+    const handleAddClick = () => {
+        setEditingEducation(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEditClick = (edu: VsEducation) => {
+        setEditingEducation(edu);
+        setIsModalOpen(true);
+    };
+
     return (
         <div className="bg-background rounded-lg border shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
                     <GraduationCap className="h-5 w-5 text-blue-600" />
                     <h3 className="font-semibold text-foreground">Educational Background</h3>
                 </div>
-                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 h-8 px-2 font-medium">
-                    + Add Education
-                </Button>
+                <div className="flex items-center gap-2">
+                    {pendingEducation !== null && (
+                        <span className="h-2.5 w-2.5 bg-primary rounded-full" title="Unsaved changes" />
+                    )}
+                    <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        onClick={handleAddClick}
+                    >
+                        <Plus className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
 
             <div className="space-y-4">
-                {profile.education?.map((edu) => (
+                {educationList.map((edu) => (
                     <div key={edu.id} className="flex gap-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
                             <GraduationCap className="h-5 w-5 text-blue-600" />
@@ -31,7 +57,14 @@ export function EducationalBackgroundCard() {
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-medium text-foreground">{edu.institution_name}</h4>
-                                <Button variant="ghost" size="sm" className="h-8 px-2 text-blue-600 font-medium">Edit</Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                                    onClick={() => handleEditClick(edu)}
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
                                 {edu.degree} {edu.field_of_study ? `in ${edu.field_of_study}` : ''}
@@ -43,6 +76,13 @@ export function EducationalBackgroundCard() {
                     </div>
                 ))}
             </div>
+
+            <EducationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                userId={profile.user_id}
+                educationToEdit={editingEducation}
+            />
         </div>
     );
 }

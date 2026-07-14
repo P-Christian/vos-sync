@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Loader2, Search, Trash2 } from "lucide-react";
+import { X, Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { searchMasterSkillsAction, saveUserSkillsAction } from "../services/freelancer-profile.actions";
+import { searchMasterSkillsAction } from "../services/freelancer-profile.actions";
 import { VsUserSkillMap } from "../types/freelancer-profile.types";
 
 interface CoreSkillsModalProps {
@@ -24,8 +23,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     
-    const router = useRouter();
-    const { refresh } = useFreelancerProfileContext();
+    const { setSkillsDraft } = useFreelancerProfileContext();
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
@@ -84,23 +82,21 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
         setSelectedSkills(prev => prev.filter(s => s.id !== skillId));
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         setIsSaving(true);
         setError(null);
         try {
-            const initialSkillIds = initialSkills.filter(s => s.skill).map(s => s.skill.id);
-            const skillIds = selectedSkills.map(s => s.id);
-            await saveUserSkillsAction(userId, initialSkillIds, skillIds);
+            const draftedSkills = selectedSkills.map(s => ({
+                user_id: userId,
+                skill_id: s.id,
+                skill: { id: s.id, skill_name: s.skill_name }
+            })) as VsUserSkillMap[];
             
-            router.refresh();
-            await refresh(); // Force client-side state refresh
-            
-            toast.success("Skills updated", { description: "Your core skills have been saved." });
+            setSkillsDraft(draftedSkills);
             onClose();
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : "Failed to update skills.";
+            const errorMessage = err instanceof Error ? err.message : "Failed to update skills draft.";
             setError(errorMessage);
-            toast.error("Update failed", { description: errorMessage });
         } finally {
             setIsSaving(false);
         }
@@ -169,43 +165,27 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
                     {/* Selected Skills Table */}
                     <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
                         <label className="text-sm font-medium text-foreground">Selected Skills</label>
-                        <div className="border rounded-md overflow-hidden flex-1">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-muted text-muted-foreground text-xs uppercase">
-                                    <tr>
-                                        <th className="px-4 py-3 font-medium">Skill Name</th>
-                                        <th className="px-4 py-3 font-medium text-right w-24">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {selectedSkills.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground italic">
-                                                No skills selected. Search and click above to add skills.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        selectedSkills.map((skill) => (
-                                            <tr key={skill.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors group">
-                                                <td className="px-4 py-3 font-medium text-foreground">
-                                                    {skill.skill_name}
-                                                </td>
-                                                <td className="px-4 py-2 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 text-destructive opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity px-2"
-                                                        onClick={() => handleRemoveSkill(skill.id)}
-                                                        disabled={isSaving}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                        <div className="border rounded-md p-4 flex-1 flex flex-wrap content-start gap-2 bg-muted/10 overflow-y-auto max-h-[300px]">
+                            {selectedSkills.length === 0 ? (
+                                <p className="text-sm text-muted-foreground italic text-center w-full mt-10">
+                                    No skills selected. Search and click above to add skills.
+                                </p>
+                            ) : (
+                                selectedSkills.map((skill) => (
+                                    <Badge key={skill.id} variant="outline" className="pl-3 pr-1 py-1.5 flex items-center gap-1 border-primary text-primary bg-primary/5 text-sm h-9">
+                                        {skill.skill_name}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 rounded-full hover:bg-primary/20 text-primary hover:text-primary shrink-0 ml-1"
+                                            onClick={() => handleRemoveSkill(skill.id)}
+                                            disabled={isSaving}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </Badge>
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>

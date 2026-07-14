@@ -1,3 +1,8 @@
+export type DraftAction<T> = 
+  | { type: 'ADD'; payload: Omit<T, 'id'> & { tempId: string } }
+  | { type: 'UPDATE'; id: number; payload: Partial<T> }
+  | { type: 'DELETE'; id: number };
+
 export interface VsMasterSkill {
     id: number;
     skill_name: string;
@@ -19,15 +24,39 @@ export interface VsJobSeekerProfile {
     updated_at: string;
 }
 
+export interface VsJobSeekerResume {
+    id: number;
+    user_id: number;
+    file_url: string;
+    file_name: string | null;
+    is_primary: boolean;
+    uploaded_at: string;
+}
+
+export interface VsWorkExperienceMedia {
+    id: number;
+    experience_id: number;
+    media_type: string;
+    media_url: string;
+    media_title: string | null;
+    media_description: string | null;
+}
+
 export interface VsWorkExperience {
     id: number;
     user_id: number;
     company_name: string;
+    location: string | null;
+    location_type: string | null;
     job_title: string;
+    employment_type: string | null;
     start_date: string;
     end_date: string | null;
     is_current_role: boolean;
     job_description: string | null;
+    discovery_source: string | null;
+    media?: VsWorkExperienceMedia[];
+    skills?: { skill_id: number; skill?: VsMasterSkill }[];
 }
 
 export interface VsEducation {
@@ -46,6 +75,7 @@ export interface VsCertification {
     issuing_organization: string;
     issue_date: string | null;
     credential_url: string | null;
+    image_uuid?: string | null;
 }
 
 export interface FreelancerProfile {
@@ -75,4 +105,5 @@ export interface FreelancerProfile {
     education?: VsEducation[];
     certifications?: VsCertification[];
     skills?: VsUserSkillMap[];
+    resumes?: VsJobSeekerResume[];
 }

@@ -70,7 +70,7 @@ export function AppSidebar({
 
     if (pathname.startsWith("/vos-sync/freelancer")) {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
-            title: "Vos Sync",
+            title: "VOS Sync",
             subtitle: "FREELANCER PORTAL",
             homeUrl: "/vos-sync/freelancer/dashboard",
             navItems: [
@@ -89,7 +89,7 @@ export function AppSidebar({
 
     if (pathname.startsWith("/vos-sync/client")) {
         const CLIENT_SIDEBAR_CONFIG: SidebarConfig = {
-            title: "Vos Sync",
+            title: "VOS Sync",
             subtitle: "CLIENT PORTAL",
             homeUrl: "/vos-sync/client/dashboard",
             navItems: [
