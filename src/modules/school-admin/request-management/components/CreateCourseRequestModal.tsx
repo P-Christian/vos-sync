@@ -30,16 +30,18 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: any) => Promise<boolean>;
+  defaultSchoolId?: number;
+  hideSchoolSelect?: boolean;
 }
 
-export function CreateCourseRequestModal({ open, onOpenChange, onSubmit }: Props) {
+export function CreateCourseRequestModal({ open, onOpenChange, onSubmit, defaultSchoolId, hideSchoolSelect }: Props) {
   const { schools, fetchSchools } = useSchools();
   const [loading, setLoading] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(createCourseRequestSchema),
     defaultValues: {
-      school_id: undefined,
+      school_id: defaultSchoolId,
       requested_course_name: "",
       requested_course_code: "",
     },
@@ -47,14 +49,14 @@ export function CreateCourseRequestModal({ open, onOpenChange, onSubmit }: Props
 
   useEffect(() => {
     if (open) {
-      fetchSchools("Active");
+      if (!hideSchoolSelect) fetchSchools("Active");
       form.reset({
-        school_id: undefined,
+        school_id: defaultSchoolId,
         requested_course_name: "",
         requested_course_code: "",
       });
     }
-  }, [open, fetchSchools, form]);
+  }, [open, fetchSchools, form, defaultSchoolId, hideSchoolSelect]);
 
   const handleValidSubmit = async (data: any) => {
     setLoading(true);
@@ -86,30 +88,32 @@ export function CreateCourseRequestModal({ open, onOpenChange, onSubmit }: Props
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleValidSubmit, handleValidationError)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="school_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>School *</FormLabel>
-                  <Select onValueChange={(val) => field.onChange(parseInt(val, 10))} value={field.value?.toString()}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a school" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {schools.map(s => (
-                        <SelectItem key={s.school_id} value={s.school_id.toString()}>
-                          {s.school_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!hideSchoolSelect && (
+              <FormField
+                control={form.control}
+                name="school_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>School *</FormLabel>
+                    <Select onValueChange={(val) => field.onChange(parseInt(val, 10))} value={field.value?.toString()}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a school" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {schools.map(s => (
+                          <SelectItem key={s.school_id} value={s.school_id.toString()}>
+                            {s.school_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

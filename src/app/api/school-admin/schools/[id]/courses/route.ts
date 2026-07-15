@@ -21,12 +21,13 @@ async function verifyAdmin(req: NextRequest): Promise<number | null> {
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const adminId = await verifyAdmin(req);
         if (!adminId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-        const schoolId = Number(params.id);
+        const { id } = await params;
+        const schoolId = Number(id);
         const courses = await getSchoolCourses(schoolId);
 
         return NextResponse.json({ courses });
@@ -35,12 +36,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const adminId = await verifyAdmin(req);
         if (!adminId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-        const schoolId = Number(params.id);
+        const { id } = await params;
+        const schoolId = Number(id);
         const body = await req.json();
 
         // Zod validation

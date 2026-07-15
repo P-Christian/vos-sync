@@ -67,12 +67,17 @@ export interface VsWorkExperience {
 }
 
 export interface VsEducation {
-    id: number;
+    id?: number;
+    employee_education_id?: number;
     user_id: number;
-    institution_name: string;
-    degree: string | null;
-    field_of_study: string | null;
-    graduation_year: number | null;
+    school_id: number;
+    school_course_id: number | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    
+    // Virtual fields joined from DB for UI rendering
+    school_name?: string;
+    course_name?: string;
 }
 
 export interface VsCertification {

@@ -10,7 +10,10 @@ import {
   reviewSchoolRequestRepo, 
   reviewCourseRequestRepo,
   createSchoolRequestRepo,
-  createCourseRequestRepo
+  createCourseRequestRepo,
+  fetchSchoolRequestById,
+  fetchCourseRequestById,
+  upsertEmployeeEducation
 } from './request.repo';
 
 export async function getSchoolRequests(status?: string): Promise<VsSchoolRequest[]> {
@@ -40,7 +43,25 @@ export async function reviewSchoolRequest(id: number, data: ReviewAction, adminI
     payload.admin_remarks = data.admin_remarks;
   }
 
-  return reviewSchoolRequestRepo(id, payload);
+  const updatedRequest = await reviewSchoolRequestRepo(id, payload);
+
+  // If approved, upsert the employee education record with the matched school and a null course
+  if (data.action === 'Approved' && data.matched_school_id) {
+    const originalRequest = await fetchSchoolRequestById(id);
+    if (originalRequest && originalRequest.requested_by) {
+      // requested_by comes back populated or as ID depending on fields, handle both:
+      const userId = typeof originalRequest.requested_by === 'object' 
+        ? (originalRequest.requested_by as any).user_id 
+        : originalRequest.requested_by;
+      
+      if (userId) {
+        await upsertEmployeeEducation(Number(userId), data.matched_school_id, null);
+      }
+    }
+  }
+
+  // Re-fetch the updated request to ensure we have the populated `requested_by` fields for the UI
+  return fetchSchoolRequestById(id);
 }
 
 export async function reviewCourseRequest(id: number, data: ReviewAction, adminId: number): Promise<VsCourseRequest> {
@@ -62,7 +83,30 @@ export async function reviewCourseRequest(id: number, data: ReviewAction, adminI
     payload.admin_remarks = data.admin_remarks;
   }
 
-  return reviewCourseRequestRepo(id, payload);
+  const updatedRequest = await reviewCourseRequestRepo(id, payload);
+
+  // If approved, upsert the employee education record with the matched course
+  if (data.action === 'Approved' && data.matched_school_course_id) {
+    const originalRequest = await fetchCourseRequestById(id);
+    if (originalRequest && originalRequest.requested_by) {
+      const userId = typeof originalRequest.requested_by === 'object' 
+        ? (originalRequest.requested_by as any).user_id 
+        : originalRequest.requested_by;
+      
+      // We must pass the school_id too since vs_employee_education requires it.
+      // We assume originalRequest.school_id is available.
+      const schoolId = typeof originalRequest.school_id === 'object'
+        ? (originalRequest.school_id as any).school_id
+        : originalRequest.school_id;
+
+      if (userId && schoolId) {
+        await upsertEmployeeEducation(Number(userId), Number(schoolId), data.matched_school_course_id);
+      }
+    }
+  }
+
+  // Re-fetch the updated request to ensure we have the populated `requested_by` fields for the UI
+  return fetchCourseRequestById(id);
 }
 
 export async function createSchoolRequest(data: any, adminId: number): Promise<VsSchoolRequest> {

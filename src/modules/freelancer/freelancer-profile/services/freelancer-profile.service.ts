@@ -102,10 +102,10 @@ export async function addEducationService(userId: number, payload: any) {
 
     const data = {
         user_id: userId,
-        institution_name: payload.institution_name,
-        degree: payload.degree || null,
-        field_of_study: payload.field_of_study || null,
-        graduation_year: payload.graduation_year || null,
+        school_id: payload.school_id,
+        school_course_id: payload.school_course_id || null,
+        start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
+        end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
     return await addEducationToDirectus(data);
@@ -115,10 +115,10 @@ export async function updateEducationService(id: number, userId: number, payload
     const { updateEducationInDirectus } = await import("./freelancer-profile.repo");
 
     const data = {
-        institution_name: payload.institution_name,
-        degree: payload.degree || null,
-        field_of_study: payload.field_of_study || null,
-        graduation_year: payload.graduation_year || null,
+        school_id: payload.school_id,
+        school_course_id: payload.school_course_id || null,
+        start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
+        end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
     return await updateEducationInDirectus(id, data);

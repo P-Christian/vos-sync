@@ -62,13 +62,10 @@ export type UpdateWorkExperiencePayload = z.infer<typeof updateWorkExperienceSch
 export type DeleteWorkExperiencePayload = z.infer<typeof deleteWorkExperienceSchema>;
 
 export const addEducationSchema = z.object({
-    institution_name: z.string().min(1, "School Name is required").max(255),
-    degree: z.string().nullable().optional(),
-    field_of_study: z.string().nullable().optional(),
-    graduation_year: z.union([
-        z.number().int().min(1900).max(2100),
-        z.string().regex(/^\d{4}$/, "Must be a 4-digit year").transform(Number)
-    ]),
+    school_id: z.number().int().positive("School is required"),
+    school_course_id: z.number().int().positive().nullable().optional(),
+    start_date: z.string().nullable().optional(),
+    end_date: z.string().nullable().optional(),
 });
 
 export const updateEducationSchema = addEducationSchema.extend({

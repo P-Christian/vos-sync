@@ -56,7 +56,7 @@ export function EducationalBackgroundCard() {
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-foreground">{edu.institution_name}</h4>
+                                <h4 className="font-medium text-foreground">{edu.school_name || "Unknown School"}</h4>
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -67,10 +67,10 @@ export function EducationalBackgroundCard() {
                                 </Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
-                                {edu.degree} {edu.field_of_study ? `in ${edu.field_of_study}` : ''}
+                                {edu.course_name || "No Course Specified"}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                                Graduated {edu.graduation_year}
+                                {edu.start_date ? new Date(edu.start_date).getFullYear() : "?"} - {edu.end_date ? new Date(edu.end_date).getFullYear() : "Present"}
                             </div>
                         </div>
                     </div>

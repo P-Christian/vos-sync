@@ -85,3 +85,52 @@ export async function createCourseRequestRepo(payload: Partial<VsCourseRequest>)
   if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to create course request.");
   return json.data;
 }
+
+export async function fetchSchoolRequestById(id: number): Promise<VsSchoolRequest> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_request/${id}?fields=*,requested_by.user_id,requested_by.user_fname,requested_by.user_lname`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch school request details.");
+  const json = await res.json();
+  return json.data;
+}
+
+export async function fetchCourseRequestById(id: number): Promise<VsCourseRequest> {
+  const url = `${DIRECTUS_BASE}/items/vs_course_request/${id}?fields=*,requested_by.user_id,requested_by.user_fname,requested_by.user_lname,school_id.*`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch course request details.");
+  const json = await res.json();
+  return json.data;
+}
+
+export async function upsertEmployeeEducation(userId: number, schoolId: number, courseId: number | null): Promise<void> {
+  // Check if education record exists for this user
+  const checkUrl = `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${userId}`;
+  const checkRes = await fetch(checkUrl, { headers: getHeaders(), cache: "no-store" });
+  if (!checkRes.ok) throw new Error("Failed to check existing employee education.");
+  const checkJson = await checkRes.json();
+  
+  const payload = {
+    user_id: userId,
+    school_id: schoolId,
+    school_course_id: courseId
+  };
+
+  if (checkJson.data && checkJson.data.length > 0) {
+    // Update existing
+    const recordId = checkJson.data[0].employee_education_id || checkJson.data[0].id;
+    const updateUrl = `${DIRECTUS_BASE}/items/vs_employee_education/${recordId}`;
+    await fetch(updateUrl, {
+      method: "PATCH",
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+  } else {
+    // Insert new
+    const insertUrl = `${DIRECTUS_BASE}/items/vs_employee_education`;
+    await fetch(insertUrl, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(payload)
+    });
+  }
+}

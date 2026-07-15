@@ -49,10 +49,17 @@ export async function fetchSchoolsRepo(status?: string, search?: string): Promis
 
 export async function fetchSchoolByIdRepo(id: number): Promise<SchoolWithStats | null> {
   const url = `${DIRECTUS_BASE}/items/vs_school/${id}?fields=*`;
+  console.log("Fetching school details from Directus:", url);
   const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error("Directus returned not ok for school details:", res.status, await res.text());
+    return null;
+  }
   const json = await res.json();
-  if (!json.data) return null;
+  if (!json.data) {
+    console.error("Directus returned ok but no data for school details:", json);
+    return null;
+  }
   
   // Fetch actual counts if needed, but for MVP we return 0
   return {

@@ -21,27 +21,38 @@ async function verifyAdmin(req: NextRequest): Promise<number | null> {
     }
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const adminId = await verifyAdmin(req);
-        if (!adminId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+        if (!adminId) {
+            console.error("verifyAdmin failed. Unauthorized.");
+            return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+        }
 
-        const schoolId = Number(params.id);
+        const { id } = await params;
+        const schoolId = Number(id);
+        console.log("GET /api/school-admin/schools/[id] called with id:", id, "parsed schoolId:", schoolId);
+        
         const school = await getSchoolDetail(schoolId);
-        if (!school) return NextResponse.json({ error: "School not found" }, { status: 404 });
+        if (!school) {
+            console.error("School not found for id:", schoolId);
+            return NextResponse.json({ error: "School not found" }, { status: 404 });
+        }
 
         return NextResponse.json({ school });
     } catch (err: any) {
+        console.error("Error in GET /api/school-admin/schools/[id]:", err);
         return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
     }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const adminId = await verifyAdmin(req);
         if (!adminId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-        const schoolId = Number(params.id);
+        const { id } = await params;
+        const schoolId = Number(id);
         const body = await req.json();
 
         // Zod validation

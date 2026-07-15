@@ -39,8 +39,8 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
             if (experienceToEdit) {
                 setCompanyName(experienceToEdit.company_name || "");
                 setJobTitle(experienceToEdit.job_title || "");
-                setStartDate(experienceToEdit.start_date || "");
-                setEndDate(experienceToEdit.end_date || "");
+                setStartDate(experienceToEdit.start_date ? experienceToEdit.start_date.split("T")[0] : "");
+                setEndDate(experienceToEdit.end_date ? experienceToEdit.end_date.split("T")[0] : "");
                 setIsCurrentRole(experienceToEdit.is_current_role || false);
                 setJobDescription(experienceToEdit.job_description || "");
                 setLocation(experienceToEdit.location || "");

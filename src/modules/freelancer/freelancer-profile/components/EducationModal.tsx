@@ -6,6 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsEducation } from "../types/freelancer-profile.types";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { CreateSchoolRequestModal } from "@/modules/school-admin/request-management/components/CreateSchoolRequestModal";
+import { CreateCourseRequestModal } from "@/modules/school-admin/request-management/components/CreateCourseRequestModal";
 
 interface EducationModalProps {
     isOpen: boolean;
@@ -15,72 +18,92 @@ interface EducationModalProps {
 }
 
 export function EducationModal({ isOpen, onClose, userId, educationToEdit }: EducationModalProps) {
-    const [institutionName, setInstitutionName] = useState("");
-    const [degree, setDegree] = useState("");
-    const [fieldOfStudy, setFieldOfStudy] = useState("");
-    const [graduationYear, setGraduationYear] = useState("");
+    const [schoolId, setSchoolId] = useState<string>("");
+    const [courseId, setCourseId] = useState<string>("");
+    const [startDate, setStartDate] = useState<string>("");
+    const [endDate, setEndDate] = useState<string>("");
     
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [schools, setSchools] = useState<any[]>([]);
+    const [courses, setCourses] = useState<any[]>([]);
+    const [loadingSchools, setLoadingSchools] = useState(false);
+    const [loadingCourses, setLoadingCourses] = useState(false);
+    
+    const [showSchoolRequest, setShowSchoolRequest] = useState(false);
+    const [showCourseRequest, setShowCourseRequest] = useState(false);
+
     const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
-    
     const liveEducation = data?.education || [];
     const educationList = pendingEducation !== null ? pendingEducation : liveEducation;
 
     useEffect(() => {
         if (isOpen) {
+            fetchSchools();
             if (educationToEdit) {
-                // eslint-disable-next-line react-hooks/set-state-in-effect
-                setInstitutionName(educationToEdit.institution_name || "");
-                setDegree(educationToEdit.degree || "");
-                setFieldOfStudy(educationToEdit.field_of_study || "");
-                setGraduationYear(educationToEdit.graduation_year ? String(educationToEdit.graduation_year) : "");
+                setSchoolId(educationToEdit.school_id ? String(educationToEdit.school_id) : "");
+                setCourseId(educationToEdit.school_course_id ? String(educationToEdit.school_course_id) : "");
+                setStartDate(educationToEdit.start_date ? educationToEdit.start_date.split("T")[0] : "");
+                setEndDate(educationToEdit.end_date ? educationToEdit.end_date.split("T")[0] : "");
             } else {
-                setInstitutionName("");
-                setDegree("");
-                setFieldOfStudy("");
-                setGraduationYear("");
+                setSchoolId("");
+                setCourseId("");
+                setStartDate("");
+                setEndDate("");
             }
-            setErrors({});
         }
     }, [isOpen, educationToEdit]);
 
-    if (!isOpen) return null;
+    useEffect(() => {
+        if (schoolId) {
+            fetchCourses(schoolId);
+        } else {
+            setCourses([]);
+        }
+    }, [schoolId]);
+
+    const fetchSchools = async () => {
+        setLoadingSchools(true);
+        try {
+            const res = await fetch("/api/freelancer/schools");
+            const json = await res.json();
+            if (json.schools) setSchools(json.schools);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingSchools(false);
+        }
+    };
+
+    const fetchCourses = async (sId: string) => {
+        setLoadingCourses(true);
+        try {
+            const res = await fetch(`/api/freelancer/schools/${sId}/courses`);
+            const json = await res.json();
+            if (json.courses) setCourses(json.courses);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoadingCourses(false);
+        }
+    };
 
     const handleSave = async () => {
-        const newErrors: Record<string, string> = {};
-        
-        if (!institutionName.trim()) {
-            newErrors.institutionName = "School name is required";
+        if (!schoolId) {
+            toast.error("Please select a school.");
+            return;
         }
 
-        if (!graduationYear.trim()) {
-            newErrors.graduationYear = "Graduation year is required";
-        } else {
-            const year = parseInt(graduationYear, 10);
-            if (isNaN(year) || year < 1900 || year > 2100) {
-                newErrors.graduationYear = "Please enter a valid 4-digit year";
-            }
-        }
-
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            
-            let desc = "";
-            if (newErrors.institutionName && newErrors.graduationYear?.includes("required")) {
-                desc = "School name and graduation year are required.";
-            } else {
-                desc = Object.values(newErrors).join(". ");
-            }
-
-            toast.error("Validation failed", { description: desc });
+        if (!courseId) {
+            toast.error("Please select a course/degree. If it's missing, you can request to add it.");
             return;
         }
 
         const payload = {
-            institution_name: institutionName,
-            degree: degree || null,
-            field_of_study: fieldOfStudy || null,
-            graduation_year: parseInt(graduationYear, 10),
+            school_id: parseInt(schoolId, 10),
+            school_course_id: courseId ? parseInt(courseId, 10) : null,
+            start_date: startDate || null,
+            end_date: endDate || null,
+            school_name: schools.find(s => String(s.school_id) === schoolId)?.school_name,
+            course_name: courses.find(c => String(c.school_course_id) === courseId)?.course_name,
         };
 
         const updatedList = [...educationList];
@@ -111,103 +134,119 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         onClose();
     };
 
+    const handleSchoolRequestSubmit = async (data: any) => {
+        const res = await fetch("/api/freelancer/school-requests", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        });
+        return res.ok;
+    };
+
+    const handleCourseRequestSubmit = async (data: any) => {
+        const payload = { ...data, school_id: parseInt(schoolId, 10) };
+        const res = await fetch("/api/freelancer/course-requests", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        return res.ok;
+    };
+
+    if (!isOpen) return null;
+
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
-                <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
-                    <DialogTitle className="text-xl font-semibold text-foreground">
-                        {educationToEdit ? "Edit Education" : "Add Education"}
-                    </DialogTitle>
-                </DialogHeader>
-                
-                <div className="p-6 overflow-y-auto flex-1 space-y-4 min-h-0">
+        <>
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
+                    <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
+                        <DialogTitle className="text-xl font-semibold text-foreground">
+                            {educationToEdit ? "Edit Education" : "Add Education"}
+                        </DialogTitle>
+                    </DialogHeader>
                     
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">School Name *</label>
-                        <input
-                            type="text"
-                            value={institutionName}
-                            onChange={(e) => {
-                                setInstitutionName(e.target.value);
-                                if (errors.institutionName) setErrors(prev => ({ ...prev, institutionName: "" }));
-                            }}
-                            className={`flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
-                                errors.institutionName ? "border-destructive focus-visible:ring-destructive" : "border-input"
-                            }`}
-                            placeholder="e.g. University of Science"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-6 overflow-y-auto flex-1 space-y-4 min-h-0">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">Degree</label>
-                            <select
-                                value={degree}
-                                onChange={(e) => setDegree(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="" disabled>Select a degree</option>
-                                <option value="High School Undergraduate">High School Undergraduate</option>
-                                <option value="High School Graduate">High School Graduate</option>
-                                <option value="Vocational Diploma / Short Course Certificate">Vocational Diploma / Short Course Certificate</option>
-                                <option value="College Undergraduate">College Undergraduate</option>
-                                <option value="Bachelor's / College Degree">Bachelor's / College Degree</option>
-                                <option value="Post-Graduate Diploma / Master's Degree">Post-Graduate Diploma / Master's Degree</option>
-                                <option value="Professional License">Professional License</option>
-                                <option value="Doctorate Degree">Doctorate Degree</option>
-                            </select>
+                            <label className="text-sm font-medium text-foreground">School Name *</label>
+                            <div className="flex gap-2 flex-col">
+                                <SearchableSelect
+                                    options={schools.map(s => ({ value: String(s.school_id), label: s.school_name }))}
+                                    value={schoolId}
+                                    onValueChange={(val) => { setSchoolId(val); setCourseId(""); }}
+                                    placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
+                                    disabled={loadingSchools}
+                                />
+                                <div className="text-xs text-muted-foreground mt-1 text-right">
+                                    Can't find your school? <button type="button" onClick={() => setShowSchoolRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">Field of Study</label>
-                            <input
-                                type="text"
-                                value={fieldOfStudy}
-                                onChange={(e) => setFieldOfStudy(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="e.g. Computer Science"
-                            />
+                            <label className="text-sm font-medium text-foreground">Course / Degree (Optional)</label>
+                            <div className="flex gap-2 flex-col">
+                                <SearchableSelect
+                                    options={courses.map(c => ({ value: String(c.school_course_id), label: c.course_name }))}
+                                    value={courseId}
+                                    onValueChange={setCourseId}
+                                    placeholder={loadingCourses ? "Loading courses..." : (schoolId ? "Search courses..." : "Select a school first")}
+                                    disabled={!schoolId || loadingCourses}
+                                />
+                                {schoolId && (
+                                    <div className="text-xs text-muted-foreground mt-1 text-right">
+                                        Can't find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">Start Date (Optional)</label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-foreground">End Date (Optional)</label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">Graduation Year *</label>
-                        <input
-                            type="text"
-                            value={graduationYear}
-                            onChange={(e) => {
-                                setGraduationYear(e.target.value);
-                                if (errors.graduationYear) setErrors(prev => ({ ...prev, graduationYear: "" }));
-                            }}
-                            className={`flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
-                                errors.graduationYear ? "border-destructive focus-visible:ring-destructive" : "border-input"
-                            }`}
-                            placeholder="e.g. 2024"
-                        />
-                    </div>
-                </div>
-
-                <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    {educationToEdit && (
-                        <Button 
-                            variant="destructive" 
-                            onClick={handleDelete} 
-                            className="mr-auto"
-                        >
-                            Delete
+                    <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
+                        {educationToEdit && (
+                            <Button variant="destructive" onClick={handleDelete} className="mr-auto">Delete</Button>
+                        )}
+                        <Button variant="outline" onClick={onClose}>Cancel</Button>
+                        <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            Save Education
                         </Button>
-                    )}
-                    <Button variant="outline" onClick={onClose}>
-                        Cancel
-                    </Button>
-                    <Button 
-                        onClick={handleSave} 
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                        Save Education
-                    </Button>
-                </div>
-            </DialogContent>
-        </Dialog>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <CreateSchoolRequestModal 
+                open={showSchoolRequest} 
+                onOpenChange={setShowSchoolRequest} 
+                onSubmit={handleSchoolRequestSubmit} 
+            />
+            {schoolId && (
+                <CreateCourseRequestModal 
+                    open={showCourseRequest} 
+                    onOpenChange={setShowCourseRequest} 
+                    onSubmit={handleCourseRequestSubmit} 
+                    defaultSchoolId={parseInt(schoolId, 10)}
+                    hideSchoolSelect={true}
+                />
+            )}
+        </>
     );
 }

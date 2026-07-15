@@ -10,7 +10,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_education.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*,social_links.*,vs_user_social_links.*`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_employee_education.*,vs_employee_education.school_id.*,vs_employee_education.school_course_id.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*,social_links.*,vs_user_social_links.*`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -40,8 +40,17 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
             user.work_experience = user.vs_work_experience;
         }
 
-        if (user.vs_education && !user.education) {
-            user.education = user.vs_education;
+        if (user.vs_employee_education && !user.education) {
+            user.education = user.vs_employee_education.map((edu: any) => ({
+                id: edu.employee_education_id || edu.id,
+                user_id: edu.user_id,
+                school_id: typeof edu.school_id === 'object' ? edu.school_id?.school_id : edu.school_id,
+                school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
+                school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
+                course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
+                start_date: edu.start_date,
+                end_date: edu.end_date
+            }));
         }
 
         if (user.vs_certifications && !user.certifications) {
@@ -172,7 +181,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
 
         // Fallback: If Directus didn't return education, fetch it explicitly
         if (!user.education || user.education.length === 0) {
-            const eduUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education?filter[user_id][_eq]=${user.user_id}`;
+            const eduUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education?filter[user_id][_eq]=${user.user_id}&fields=*,school_id.*,school_course_id.*`;
             try {
                 const eduRes = await fetch(eduUrl, {
                     headers: {
@@ -184,7 +193,16 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 if (eduRes.ok) {
                     const eduData = await eduRes.json();
                     if (eduData.data && eduData.data.length > 0) {
-                        user.education = eduData.data;
+                        user.education = eduData.data.map((edu: any) => ({
+                            id: edu.employee_education_id || edu.id,
+                            user_id: edu.user_id,
+                            school_id: typeof edu.school_id === 'object' ? edu.school_id?.school_id : edu.school_id,
+                            school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
+                            school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
+                            course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
+                            start_date: edu.start_date,
+                            end_date: edu.end_date
+                        }));
                     }
                 }
             } catch (err) {
@@ -542,7 +560,8 @@ export async function addEducationToDirectus(payload: any) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education`;
+    console.log("Sending ADD education payload to Directus:", JSON.stringify(payload));
     
     const res = await fetch(url, {
         method: "POST",
@@ -555,7 +574,12 @@ export async function addEducationToDirectus(payload: any) {
     });
 
     if (!res.ok) {
-        throw new Error(`Failed to add education: HTTP ${res.status}`);
+        let errDetails = "Unknown error";
+        try {
+            errDetails = await res.text();
+        } catch {}
+        console.error("Directus 400 error details:", errDetails);
+        throw new Error(`Failed to add education: HTTP ${res.status} - ${errDetails}`);
     }
 
     const json = await res.json();
@@ -570,7 +594,8 @@ export async function updateEducationInDirectus(id: number, payload: any) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education/${id}`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education/${id}`;
+    console.log("Sending UPDATE education payload to Directus:", JSON.stringify(payload));
     
     const res = await fetch(url, {
         method: "PATCH",
@@ -598,7 +623,7 @@ export async function deleteEducationFromDirectus(id: number) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_education/${id}`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education/${id}`;
     
     const res = await fetch(url, {
         method: "DELETE",
