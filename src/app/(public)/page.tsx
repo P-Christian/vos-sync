@@ -97,7 +97,31 @@ const TRUSTED_COMPANIES = ["Google", "Microsoft", "Meta", "Amazon", "Netflix", "
 // MAIN PAGE COMPONENT
 // ==========================================
 
-export default function Page() {
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { decodeJwtPayload } from "@/lib/auth-utils";
+
+const COOKIE_NAME = "vos_access_token";
+
+export default async function Page() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+
+  if (token) {
+    const payload = decodeJwtPayload(token);
+    if (payload) {
+      const userRole = String(payload.role || "").toUpperCase();
+      const roleId = Number(payload.role_id || 0);
+
+      if (userRole === "CLIENT" || userRole === "EMPLOYER" || roleId === 2) {
+        redirect("/vos-sync/client/dashboard");
+      } else if (userRole === "FREELANCER" || roleId === 1) {
+        redirect("/vos-sync/freelancer/dashboard");
+      } else {
+        redirect("/main-dashboard");
+      }
+    }
+  }
   return (
     <div className="bg-background pt-16 text-foreground font-sans selection:bg-muted">
       {/* HERO SECTION */}
