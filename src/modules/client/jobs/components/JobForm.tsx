@@ -31,7 +31,6 @@ import {
   MapPin,
   CircleDollarSign,
   GraduationCap,
-  Sparkles,
 } from "lucide-react";
 import { searchMasterSkillsAction, addMasterSkillAction } from "../services/jobs.actions";
 import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, ExperienceLevel } from "../types";

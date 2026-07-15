@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 // src/modules/client/company-profile/components/CompanyPreviewModal.tsx
 "use client";
 
