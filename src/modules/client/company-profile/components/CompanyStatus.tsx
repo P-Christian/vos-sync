@@ -25,7 +25,18 @@ const STATUS_CONFIG: Record<
     defaultMessage: string;
   }
 > = {
-  PENDING: {
+  DRAFT: {
+    icon: Clock,
+    label: "Draft",
+    badge: "bg-zinc-500 text-white border-0",
+    container: "border-zinc-200 bg-zinc-50 dark:bg-zinc-900/10",
+    iconWrapper: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20",
+    title: "Registration Status: DRAFT",
+    titleClass: "text-zinc-950 dark:text-zinc-300",
+    bodyClass: "text-zinc-800/80 dark:text-zinc-400/80",
+    defaultMessage: "Your company profile is in draft mode. Click edit to complete your profile details and submit for verification.",
+  },
+  PENDING_VERIFICATION: {
     icon: Clock,
     label: "In Review",
     badge: "bg-amber-500 text-white border-0",
@@ -66,6 +77,17 @@ const STATUS_CONFIG: Record<
     defaultMessage:
       "Your company verification could not be completed. Please contact support or resubmit with corrected documents.",
   },
+  INACTIVE: {
+    icon: AlertCircle,
+    label: "Inactive",
+    badge: "bg-red-500 text-white border-0",
+    container: "border-red-200/50 bg-red-500/10 dark:bg-red-950/20",
+    iconWrapper: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20",
+    title: "Registration Status: INACTIVE",
+    titleClass: "text-red-900 dark:text-red-300",
+    bodyClass: "text-red-800/80 dark:text-red-400/80",
+    defaultMessage: "Your company profile is currently inactive. Public visibility and job postings are disabled.",
+  },
   SUSPENDED: {
     icon: ShieldAlert,
     label: "Suspended",
@@ -82,7 +104,7 @@ const STATUS_CONFIG: Record<
 };
 
 export default function CompanyStatus({ status, remarks }: CompanyStatusProps) {
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING_VERIFICATION;
   const Icon = cfg.icon;
 
   return (

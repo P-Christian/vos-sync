@@ -80,7 +80,7 @@ export function AppSidebar({
                 { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
             ],
             footerLinks: [
-                { label: "Settings", href: "#", icon: User },
+                { label: "Settings", href: "/vos-sync/settings", icon: User },
                 { label: "Logout", href: "/login", icon: User },
             ],
         };
@@ -100,7 +100,7 @@ export function AppSidebar({
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
             ],
             footerLinks: [
-                { label: "Settings", href: "#", icon: User },
+                { label: "Settings", href: "/vos-sync/settings", icon: User },
                 { label: "Logout", href: "/login", icon: User },
             ],
         };

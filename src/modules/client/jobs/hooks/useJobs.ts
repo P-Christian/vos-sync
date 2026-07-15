@@ -15,7 +15,7 @@ const EMPTY_FORM: JobFormData = {
   salary_max: "",
   salary_negotiable: false,
   experience_level: "",
-  status: "ACTIVE",
+  status: "DRAFT",
 };
 
 export function useJobs() {
@@ -105,13 +105,17 @@ export function useJobs() {
     []
   );
 
-  const closeJob = useCallback(async (jobId: number) => {
+  const changeJobStatus = useCallback(async (jobId: number, newStatus: JobStatus) => {
     try {
-      const res = await fetch(`/api/client/jobs/${jobId}`, { method: "DELETE" });
+      const res = await fetch(`/api/client/jobs/${jobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to close job.");
+      if (!res.ok) throw new Error(json.error || "Failed to update status.");
       setJobs((prev) =>
-        prev.map((j) => (j.job_id === jobId ? { ...j, status: "CLOSED" as JobStatus } : j))
+        prev.map((j) => (j.job_id === jobId ? { ...j, status: newStatus } : j))
       );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred.");
@@ -129,7 +133,7 @@ export function useJobs() {
     fetchJobs,
     createJob,
     updateJob,
-    closeJob,
+    changeJobStatus,
     EMPTY_FORM,
     clearMessages: () => { setError(""); setSuccessMessage(""); },
   };

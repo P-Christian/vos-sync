@@ -51,7 +51,7 @@ export default function KpiCards({ stats }: KpiCardsProps) {
         return (
           <Card
             key={item.title}
-            className="group relative overflow-hidden border shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md rounded-xl"
+            className="group relative overflow-hidden border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl rounded-xl"
           >
             <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
             <CardContent className="p-6 relative z-10 flex items-center justify-between">

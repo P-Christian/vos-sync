@@ -1,11 +1,13 @@
 // src/modules/client/jobs/components/JobForm.tsx
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -13,200 +15,1339 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, ExperienceLevel, JobStatus } from "../types";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  AlertCircle,
+  Search,
+  Plus,
+  X,
+  PlusCircle,
+  Trash2,
+  HelpCircle,
+  Building,
+  Briefcase,
+  MapPin,
+  CircleDollarSign,
+  GraduationCap,
+} from "lucide-react";
+import { searchMasterSkillsAction, addMasterSkillAction } from "../services/jobs.actions";
+import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, ExperienceLevel } from "../types";
 
 interface JobFormProps {
   data: JobFormData;
-  onChange: (field: keyof JobFormData, value: string | boolean) => void;
-  errors?: Partial<Record<keyof JobFormData, string>>;
+  onChange: (field: keyof JobFormData, value: string | boolean | string[] | { id: number; skill_name: string; source?: string; confidence_score?: number | null }[]) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+  saving: boolean;
+  editingJob: boolean;
 }
 
-export default function JobForm({ data, onChange, errors }: JobFormProps) {
+const CATEGORIES = [
+  "Software Development",
+  "Design / Creative",
+  "Marketing & Communications",
+  "Sales & Business Development",
+  "Customer Support & Success",
+  "Finance & Accounting",
+  "Human Resources",
+  "Virtual Assistance",
+  "Others",
+];
+
+const BENEFITS_OPTIONS = [
+  "HMO / Medical Insurance",
+  "Paid Leave (Sick, Vacation)",
+  "Work From Home / Remote Option",
+  "Flexible Work Hours",
+  "Dental & Vision Benefits",
+  "13th Month Pay & Bonuses",
+  "Life Insurance",
+  "Professional Development / Training",
+];
+
+const EDUCATION_OPTIONS = [
+  "High School Graduate",
+  "Vocational / Associate Degree",
+  "Bachelor's Degree Graduate",
+  "Master's Degree / Post-Graduate",
+  "Doctorate / PhD",
+  "No Education Requirement / Open to All",
+];
+
+
+
+export default function JobForm({
+  data,
+  onChange,
+  onCancel,
+  onSubmit,
+  saving,
+  editingJob,
+}: JobFormProps) {
+  const [step, setStep] = useState(1);
+  const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+
+  // Skills Auto-Complete State
+  const [skillQuery, setSkillQuery] = useState("");
+  const [skillResults, setSkillResults] = useState<{ id: number; skill_name: string }[]>([]);
+  const [isSearchingSkills, setIsSearchingSkills] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Recommended Skills State
+  const [recommendedSkills, setRecommendedSkills] = useState<{ id: number; skill_name: string; source: "TEMPLATE" | "KEYWORD"; weight: number }[]>([]);
+  const [isFetchingRecommendations, setIsFetchingRecommendations] = useState(false);
+  const recommendationsDebounce = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch dynamic skill recommendations when job title or job description changes
+  useEffect(() => {
+    if (recommendationsDebounce.current) clearTimeout(recommendationsDebounce.current);
+
+    const title = data.job_title || "";
+    let rawDescription = "";
+    if (data.job_description) {
+      try {
+        const parsed = JSON.parse(data.job_description);
+        rawDescription = parsed.text || "";
+      } catch {
+        rawDescription = data.job_description;
+      }
+    }
+
+    if (!title.trim() && !rawDescription.trim()) {
+      setRecommendedSkills([]);
+      return;
+    }
+
+    setIsFetchingRecommendations(true);
+    recommendationsDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/client/jobs/recommend-skills?title=${encodeURIComponent(title)}&description=${encodeURIComponent(rawDescription)}`);
+        if (res.ok) {
+          const json = await res.json();
+          setRecommendedSkills(json.skills || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recommendations:", err);
+      } finally {
+        setIsFetchingRecommendations(false);
+      }
+    }, 500);
+
+    return () => {
+      if (recommendationsDebounce.current) clearTimeout(recommendationsDebounce.current);
+    };
+  }, [data.job_title, data.job_description]);
+
+  // Screening Questions Local Input State
+  const [questionInput, setQuestionInput] = useState("");
+
+  // Custom Benefit Local Input & List States
+  const [customBenefitInput, setCustomBenefitInput] = useState("");
+  const [allBenefits, setAllBenefits] = useState<string[]>(BENEFITS_OPTIONS);
+
+  useEffect(() => {
+    if (data.benefits && data.benefits.length > 0) {
+      const merged = Array.from(new Set([...BENEFITS_OPTIONS, ...data.benefits]));
+      setAllBenefits(merged);
+    }
+  }, [data.benefits]);
+
+  // Debounced master skills search
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (skillQuery.trim().length >= 2) {
+      setIsSearchingSkills(true);
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          const res = await searchMasterSkillsAction(skillQuery.trim());
+          if (res) {
+            const q = skillQuery.toLowerCase().trim();
+            const sorted = [...res].sort((a, b) => {
+              const nameA = a.skill_name.toLowerCase();
+              const nameB = b.skill_name.toLowerCase();
+              
+              // 1. Exact match
+              const exactA = nameA === q;
+              const exactB = nameB === q;
+              if (exactA && !exactB) return -1;
+              if (!exactA && exactB) return 1;
+              
+              // 2. Starts with
+              const startsA = nameA.startsWith(q);
+              const startsB = nameB.startsWith(q);
+              if (startsA && !startsB) return -1;
+              if (!startsA && startsB) return 1;
+              
+              // If both start with the query, sort by shorter length first
+              if (startsA && startsB) {
+                return nameA.length - nameB.length;
+              }
+              
+              // 3. Contains index comparison
+              const idxA = nameA.indexOf(q);
+              const idxB = nameB.indexOf(q);
+              if (idxA !== idxB) {
+                return idxA - idxB;
+              }
+              
+              return nameA.localeCompare(nameB);
+            });
+            setSkillResults(sorted);
+          } else {
+            setSkillResults([]);
+          }
+        } catch (e) {
+          console.error("Failed to query skills:", e);
+        } finally {
+          setIsSearchingSkills(false);
+        }
+      }, 300);
+    } else {
+      setSkillResults([]);
+      setIsSearchingSkills(false);
+    }
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [skillQuery]);
+
+  const validateStep = (currentStep: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (currentStep === 1) {
+      if (!data.job_title?.trim()) {
+        errors.job_title = "Job title is required.";
+      }
+      if (!data.job_category) {
+        errors.job_category = "Job category is required.";
+      }
+      if (!data.job_type) {
+        errors.job_type = "Employment type is required.";
+      }
+      if (!data.work_arrangement) {
+        errors.work_arrangement = "Work arrangement is required.";
+      }
+      if (!data.job_location?.trim()) {
+        errors.job_location = "Location is required.";
+      }
+    }
+
+    if (currentStep === 2) {
+      if (!data.job_description?.trim()) {
+        errors.job_description = "Job description is required.";
+      }
+      if (!data.job_responsibilities?.trim()) {
+        errors.job_responsibilities = "Core responsibilities are required.";
+      }
+      if (!data.job_qualifications?.trim()) {
+        errors.job_qualifications = "Qualifications & requirements details are required.";
+      }
+    }
+
+    if (currentStep === 3) {
+      if (!data.salary_negotiable) {
+        const minVal = Number(data.salary_min);
+        const maxVal = Number(data.salary_max);
+        if (!data.salary_min && !data.salary_max) {
+          errors.salary_info = "Please specify min/max salary or tick negotiable.";
+        } else if (data.salary_min && data.salary_max && minVal > maxVal) {
+          errors.salary_info = "Maximum salary cannot be less than minimum salary.";
+        }
+      }
+    }
+
+    setLocalErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((prev) => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    setStep((prev) => prev - 1);
+  };
+
+  const handleFinalSubmit = () => {
+    if (validateStep(step)) {
+      onSubmit();
+    }
+  };
+
+  // Skill Add / Remove
+  const handleSelectSkill = (skill: { id: number; skill_name: string }) => {
+    const currentSkills = data.skills || [];
+    if (!currentSkills.some((s) => s.skill_name.toLowerCase() === skill.skill_name.toLowerCase())) {
+      const recommended = recommendedSkills.find(
+        (r) => r.id === skill.id || r.skill_name.toLowerCase() === skill.skill_name.toLowerCase()
+      );
+      const source = recommended ? recommended.source : "MANUAL";
+      const confidence = recommended ? recommended.weight : 100;
+      onChange("skills", [...currentSkills, { ...skill, source, confidence_score: confidence }]);
+    }
+    setSkillQuery("");
+    setSkillResults([]);
+  };
+
+  const handleAddCustomSkill = async () => {
+    const query = skillQuery.trim();
+    if (!query) return;
+    const currentSkills = data.skills || [];
+    if (currentSkills.some((s) => s.skill_name.toLowerCase() === query.toLowerCase())) {
+      setSkillQuery("");
+      setSkillResults([]);
+      return;
+    }
+
+    try {
+      const savedSkill = await addMasterSkillAction(query);
+      if (savedSkill && savedSkill.id) {
+        onChange("skills", [
+          ...currentSkills,
+          {
+            id: Number(savedSkill.id),
+            skill_name: savedSkill.skill_name,
+            source: "MANUAL",
+            confidence_score: 100,
+          },
+        ]);
+      }
+    } catch (e) {
+      console.error("Failed to add master skill:", e);
+      // Fallback
+      onChange("skills", [
+        ...currentSkills,
+        {
+          id: -Date.now(),
+          skill_name: query,
+          source: "MANUAL",
+          confidence_score: 100,
+        },
+      ]);
+    }
+    setSkillQuery("");
+    setSkillResults([]);
+  };
+
+  const handleRemoveSkill = (skillId: number) => {
+    const currentSkills = data.skills || [];
+    onChange("skills", currentSkills.filter((s) => s.id !== skillId));
+  };
+
+  // Screening Questions Add / Remove
+  const handleAddQuestion = () => {
+    if (!questionInput.trim()) return;
+    const currentQuestions = data.screening_questions || [];
+    onChange("screening_questions", [...currentQuestions, questionInput.trim()]);
+    setQuestionInput("");
+  };
+
+  const handleRemoveQuestion = (idx: number) => {
+    const currentQuestions = data.screening_questions || [];
+    onChange("screening_questions", currentQuestions.filter((_, i) => i !== idx));
+  };
+
+  // Benefits toggle
+  const handleToggleBenefit = (benefit: string) => {
+    const currentBenefits = data.benefits || [];
+    if (currentBenefits.includes(benefit)) {
+      onChange("benefits", currentBenefits.filter((b) => b !== benefit));
+    } else {
+      onChange("benefits", [...currentBenefits, benefit]);
+    }
+  };
+
+  const handleAddCustomBenefit = () => {
+    if (!customBenefitInput.trim()) return;
+    const value = customBenefitInput.trim();
+    if (!allBenefits.includes(value)) {
+      setAllBenefits((prev) => [...prev, value]);
+    }
+    const currentBenefits = data.benefits || [];
+    if (!currentBenefits.includes(value)) {
+      onChange("benefits", [...currentBenefits, value]);
+    }
+    setCustomBenefitInput("");
+  };
+
+  const renderFormattedContent = (text: string | null | undefined) => {
+    if (!text) return <p className="text-xs text-zinc-400 italic">No information provided.</p>;
+    // Split text by double newlines or single newlines that are clearly separate items
+    const blocks = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    return (
+      <div className="space-y-2.5">
+        {blocks.map((block, bIdx) => {
+          const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+          // If a block consists of multiple lines or starts with bullet chars, format as bulleted list
+          const isList = lines.length > 1 || lines.some(line =>
+            line.startsWith("-") ||
+            line.startsWith("*") ||
+            line.startsWith("•") ||
+            /^\d+\./.test(line)
+          );
+
+          if (isList) {
+            return (
+              <ul key={bIdx} className="space-y-1.5 list-disc pl-4 text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed">
+                {lines.map((line, lIdx) => {
+                  const cleaned = line.replace(/^[-*•\d+\.]\s*/, "");
+                  return <li key={lIdx}>{cleaned}</li>;
+                })}
+              </ul>
+            );
+          } else {
+            return (
+              <p key={bIdx} className="text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed whitespace-pre-wrap">
+                {block}
+              </p>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Job Title */}
-      <div className="space-y-1.5">
-        <Label htmlFor="jf-title" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Job Title <span className="text-rose-500">*</span>
-        </Label>
-        <Input
-          id="jf-title"
-          value={data.job_title}
-          onChange={(e) => onChange("job_title", e.target.value)}
-          placeholder="e.g. Senior Full Stack Engineer"
-          className={`h-9 text-sm ${errors?.job_title ? "border-rose-400" : ""}`}
-        />
-        {errors?.job_title && (
-          <p className="text-[11px] text-rose-500">{errors.job_title}</p>
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* 5-Step Progress Bar Indicator */}
+      <div className="relative flex items-center justify-between px-5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900/40 rounded-xl border border-zinc-100 dark:border-zinc-800/80">
+        {/* Progress Line */}
+        <div className="absolute top-[32px] left-12 right-12 h-0.5 bg-zinc-200 dark:bg-zinc-800 -translate-y-1/2 z-0">
+          <div
+            className="h-full bg-[#14a800] transition-all duration-300 ease-out"
+            style={{ width: `${((step - 1) / 4) * 100}%` }}
+          />
+        </div>
+
+        {/* Step Steps */}
+        {[
+          { label: "Basic Info", icon: "1" },
+          { label: "Details", icon: "2" },
+          { label: "Salary", icon: "3" },
+          { label: "Screening", icon: "4" },
+          { label: "Preview", icon: "5" },
+        ].map((s, idx) => {
+          const curIdx = idx + 1;
+          const isDone = step > curIdx;
+          const isActive = step === curIdx;
+
+          return (
+            <div key={idx} className="relative z-10 flex flex-col items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => curIdx < step && setStep(curIdx)}
+                disabled={curIdx >= step || saving}
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2
+                  ${isDone
+                    ? "bg-[#14a800] border-[#14a800] text-white shadow-sm"
+                    : isActive
+                      ? "bg-white dark:bg-zinc-950 border-[#14a800] text-[#14a800] shadow-sm shadow-[#14a800]/10"
+                      : "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                  }`}
+              >
+                {isDone ? <Check className="h-4 w-4" /> : s.icon}
+              </button>
+              <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors duration-300 hidden sm:block
+                ${isActive ? "text-[#14a800]" : isDone ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400"}`}>
+                {s.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Wizard Contents */}
+      <div className="flex-1 overflow-y-auto pr-2 my-4 min-h-0">
+        {/* STEP 1: Basic Information */}
+        {step === 1 && (
+          <div className="space-y-4 animate-fadeIn px-1">
+            {/* Job Title */}
+            <div className="space-y-1.5">
+              <Label htmlFor="jf-title" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Job Title <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                id="jf-title"
+                value={data.job_title}
+                onChange={(e) => {
+                  onChange("job_title", e.target.value);
+                  if (localErrors.job_title) setLocalErrors((p) => ({ ...p, job_title: "" }));
+                }}
+                placeholder="e.g. Senior Full Stack Engineer"
+                className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_title ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                  }`}
+              />
+              {localErrors.job_title && (
+                <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {localErrors.job_title}
+                </p>
+              )}
+            </div>
+
+            {/* Category & Employment Type */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-category" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Category <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={data.job_category}
+                  onValueChange={(v) => {
+                    onChange("job_category", v);
+                    if (localErrors.job_category) setLocalErrors((p) => ({ ...p, job_category: "" }));
+                  }}
+                >
+                  <SelectTrigger
+                    id="jf-category"
+                    className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_category ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                      }`}
+                  >
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="text-sm">
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {localErrors.job_category && (
+                  <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" /> {localErrors.job_category}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-type" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Employment Type <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={data.job_type}
+                  onValueChange={(v) => {
+                    onChange("job_type", v as JobType);
+                    if (localErrors.job_type) setLocalErrors((p) => ({ ...p, job_type: "" }));
+                  }}
+                >
+                  <SelectTrigger
+                    id="jf-type"
+                    className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_type ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                      }`}
+                  >
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => (
+                      <SelectItem key={k} value={k} className="text-sm">
+                        {v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {localErrors.job_type && (
+                  <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" /> {localErrors.job_type}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Work Arrangement & Openings */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Work Arrangement <span className="text-rose-500">*</span>
+                </Label>
+                <div
+                  className={`flex gap-4 p-2.5 bg-zinc-50/50 dark:bg-zinc-900/35 border rounded-lg ${localErrors.work_arrangement ? "border-rose-455" : "border-zinc-200/60 dark:border-zinc-800/80"
+                    }`}
+                >
+                  {["Remote", "Hybrid", "On-site"].map((arr) => (
+                    <label key={arr} className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="work_arrangement"
+                        value={arr}
+                        checked={data.work_arrangement === arr}
+                        onChange={(e) => {
+                          onChange("work_arrangement", e.target.value);
+                          if (localErrors.work_arrangement) setLocalErrors((p) => ({ ...p, work_arrangement: "" }));
+                        }}
+                        className="text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                      />
+                      {arr}
+                    </label>
+                  ))}
+                </div>
+                {localErrors.work_arrangement && (
+                  <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" /> {localErrors.work_arrangement}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-openings" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Number of Openings
+                </Label>
+                <Input
+                  id="jf-openings"
+                  type="number"
+                  min={1}
+                  value={data.number_of_openings}
+                  onChange={(e) => onChange("number_of_openings", e.target.value)}
+                  placeholder="e.g. 1"
+                  className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Location & Department */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-location" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Location / Region <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  id="jf-location"
+                  value={data.job_location}
+                  onChange={(e) => {
+                    onChange("job_location", e.target.value);
+                    if (localErrors.job_location) setLocalErrors((p) => ({ ...p, job_location: "" }));
+                  }}
+                  placeholder="e.g. Manila, Philippines"
+                  className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_location ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                    }`}
+                />
+                {localErrors.job_location && (
+                  <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                    <AlertCircle className="h-3 w-3" /> {localErrors.job_location}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-dept" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Department / Business Unit
+                </Label>
+                <Input
+                  id="jf-dept"
+                  value={data.job_department}
+                  onChange={(e) => onChange("job_department", e.target.value)}
+                  placeholder="e.g. Engineering"
+                  className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                />
+              </div>
+            </div>
+
+            {/* Autocomplete Master Skills (Moved from Step 2) */}
+            <div className="space-y-2 relative pt-4 border-t border-zinc-200/60 dark:border-zinc-800/80">
+              <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Required Skills / Technologies
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                <Input
+                  type="text"
+                  placeholder="Type skills to search (e.g. React)..."
+                  value={skillQuery}
+                  onChange={(e) => setSkillQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const query = skillQuery.trim();
+                      if (!query) return;
+
+                      const exactMatch = skillResults.find(
+                        (s) => s.skill_name.toLowerCase() === query.toLowerCase()
+                      );
+                      if (exactMatch) {
+                        handleSelectSkill(exactMatch);
+                      } else if (skillResults.length > 0) {
+                        handleSelectSkill(skillResults[0]);
+                      } else {
+                        handleAddCustomSkill();
+                      }
+                    }
+                  }}
+                  className="pl-9 h-10 text-sm border-zinc-200 rounded-lg animate-none focus-visible:ring-emerald-500"
+                />
+                {isSearchingSkills && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                )}
+              </div>
+
+              {/* Dropdown Results list */}
+              {(skillResults.length > 0 || skillQuery.trim().length > 0) && (
+                <ul className="absolute z-[100] top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg divide-y divide-zinc-150 dark:divide-zinc-800/80">
+                  {skillResults.map((skill) => (
+                    <li
+                      key={`${skill.id}-${skill.skill_name}`}
+                      onClick={() => handleSelectSkill(skill)}
+                      className="px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer flex items-center justify-between"
+                    >
+                      <span>{skill.skill_name}</span>
+                      <Plus className="h-3.5 w-3.5 text-zinc-400" />
+                    </li>
+                  ))}
+                  {skillQuery.trim().length > 0 && !skillResults.some(s => s.skill_name.toLowerCase() === skillQuery.trim().toLowerCase()) && (
+                    <li
+                      onClick={handleAddCustomSkill}
+                      className="px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer flex items-center justify-between font-medium border-t border-zinc-100 dark:border-zinc-800/50"
+                    >
+                      <span>+ Add &quot;{skillQuery.trim()}&quot; as a custom skill</span>
+                      <Plus className="h-3.5 w-3.5" />
+                    </li>
+                  )}
+                </ul>
+              )}
+
+              {/* Suggested Skills */}
+              <div className="space-y-1.5 pt-2">
+                <span className="text-[11px] font-semibold text-zinc-500 block uppercase tracking-wider">
+                  Suggested Skills (Click to add)
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {isFetchingRecommendations ? (
+                    <span className="text-xs text-zinc-400 italic">Analyzing requirements & loading suggestions...</span>
+                  ) : recommendedSkills.length > 0 ? (
+                    recommendedSkills.map((skill) => {
+                      const isAdded = (data.skills || []).some(
+                        (s) => s.skill_name.toLowerCase() === skill.skill_name.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={`${skill.id}-${skill.skill_name}`}
+                          type="button"
+                          onClick={() => !isAdded && handleSelectSkill(skill)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200
+                            ${isAdded
+                              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-450 border-zinc-205 dark:border-zinc-700 cursor-not-allowed opacity-50"
+                              : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 hover:text-[#14a800] dark:hover:border-emerald-600 cursor-pointer"
+                            }`}
+                          disabled={isAdded}
+                        >
+                          {skill.skill_name}
+                          {!isAdded && <Plus className="h-3 w-3" />}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    [
+                      { id: 1050, skill_name: "Project Management" },
+                      { id: 1051, skill_name: "Communication" },
+                      { id: 1052, skill_name: "Problem Solving" },
+                      { id: 1053, skill_name: "Teamwork" },
+                      { id: 1054, skill_name: "Time Management" },
+                    ].map((skill) => {
+                      const isAdded = (data.skills || []).some(
+                        (s) => s.skill_name.toLowerCase() === skill.skill_name.toLowerCase()
+                      );
+                      return (
+                        <button
+                          key={`${skill.id}-${skill.skill_name}`}
+                          type="button"
+                          onClick={() => !isAdded && handleSelectSkill(skill)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200
+                            ${isAdded
+                              ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-450 border-zinc-205 dark:border-zinc-700 cursor-not-allowed opacity-50"
+                              : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 hover:text-[#14a800] dark:hover:border-emerald-600 cursor-pointer"
+                            }`}
+                          disabled={isAdded}
+                        >
+                          {skill.skill_name}
+                          {!isAdded && <Plus className="h-3 w-3" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Selected Skills Chips */}
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {(data.skills || []).map((skill) => (
+                  <Badge
+                    key={`${skill.id}-${skill.skill_name}`}
+                    variant="secondary"
+                    className="px-2.5 py-1 text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-md border-0 flex items-center gap-1"
+                  >
+                    {skill.skill_name}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill.id)}
+                      className="text-zinc-400 hover:text-rose-500 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                {(data.skills || []).length === 0 && (
+                  <p className="text-[11px] text-zinc-400 italic">No skills selected yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: Job Details */}
+        {step === 2 && (
+          <div className="space-y-5 animate-fadeIn px-1">
+            {/* Job Description */}
+            <div className="space-y-1.5">
+              <Label htmlFor="jf-desc" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Job Description <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                id="jf-desc"
+                value={data.job_description}
+                onChange={(e) => {
+                  onChange("job_description", e.target.value);
+                  if (localErrors.job_description) setLocalErrors((p) => ({ ...p, job_description: "" }));
+                }}
+                rows={6}
+                placeholder="Describe the overall purpose of the role and team context..."
+                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_description ? "border-rose-455" : ""
+                  }`}
+              />
+              {localErrors.job_description && (
+                <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" /> {localErrors.job_description}
+                </p>
+              )}
+            </div>
+
+            {/* Core Responsibilities */}
+            <div className="space-y-1.5">
+              <Label htmlFor="jf-resp" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Core Responsibilities <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                id="jf-resp"
+                value={data.job_responsibilities}
+                onChange={(e) => {
+                  onChange("job_responsibilities", e.target.value);
+                  if (localErrors.job_responsibilities) setLocalErrors((p) => ({ ...p, job_responsibilities: "" }));
+                }}
+                rows={6}
+                placeholder="Outline key daily tasks, reports, and scope of responsibility..."
+                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_responsibilities ? "border-rose-455" : ""
+                  }`}
+              />
+              {localErrors.job_responsibilities && (
+                <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" /> {localErrors.job_responsibilities}
+                </p>
+              )}
+            </div>
+
+            {/* Qualifications & Requirements */}
+            <div className="space-y-1.5">
+              <Label htmlFor="jf-quals" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Qualifications & Requirements <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                id="jf-quals"
+                value={data.job_qualifications}
+                onChange={(e) => {
+                  onChange("job_qualifications", e.target.value);
+                  if (localErrors.job_qualifications) setLocalErrors((p) => ({ ...p, job_qualifications: "" }));
+                }}
+                rows={6}
+                placeholder="List required skills, education, and years of experience..."
+                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_qualifications ? "border-rose-455" : ""
+                  }`}
+              />
+              {localErrors.job_qualifications && (
+                <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3 w-3" /> {localErrors.job_qualifications}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Salary and Benefits */}
+        {step === 3 && (
+          <div className="space-y-5 animate-fadeIn px-1">
+            {/* Salary details card */}
+            <div className="space-y-4 p-5 bg-zinc-50/50 dark:bg-zinc-900/35 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-400 flex items-center gap-1.5">
+                  <CircleDollarSign className="h-4 w-4 text-emerald-600" /> Salary Information
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="jf-negotiable"
+                    checked={data.salary_negotiable}
+                    onCheckedChange={(v) => {
+                      onChange("salary_negotiable", Boolean(v));
+                      if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                    }}
+                  />
+                  <Label htmlFor="jf-negotiable" className="text-xs font-semibold text-zinc-650 dark:text-zinc-350 cursor-pointer">
+                    Salary is negotiable / undisclosed
+                  </Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Salary Structure</Label>
+                  <Select
+                    value={data.salary_type || "Salary Range"}
+                    onValueChange={(v) => {
+                      onChange("salary_type", v);
+                      // Clear max salary if not a range type
+                      if (v !== "Salary Range") {
+                        onChange("salary_max", "");
+                      }
+                      if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                    }}
+                    disabled={data.salary_negotiable}
+                  >
+                    <SelectTrigger className="h-10 text-sm border-zinc-200 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Salary Range", "Fixed Salary", "Hourly Rate"].map((t) => (
+                        <SelectItem key={t} value={t} className="text-sm">{t}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* If Fixed Salary */}
+                {(data.salary_type === "Fixed Salary") && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="jf-sal-min" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Salary Amount (₱)</Label>
+                    <Input
+                      id="jf-sal-min"
+                      type="number"
+                      min={0}
+                      value={data.salary_min}
+                      onChange={(e) => {
+                        onChange("salary_min", e.target.value);
+                        if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                      }}
+                      placeholder="e.g. 35000"
+                      disabled={data.salary_negotiable}
+                      className="h-10 text-sm border-zinc-200 rounded-lg"
+                    />
+                  </div>
+                )}
+
+                {/* If Hourly Rate */}
+                {(data.salary_type === "Hourly Rate") && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor="jf-sal-min" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Hourly Rate (₱ / hr)</Label>
+                    <Input
+                      id="jf-sal-min"
+                      type="number"
+                      min={0}
+                      value={data.salary_min}
+                      onChange={(e) => {
+                        onChange("salary_min", e.target.value);
+                        if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                      }}
+                      placeholder="e.g. 500"
+                      disabled={data.salary_negotiable}
+                      className="h-10 text-sm border-zinc-200 rounded-lg"
+                    />
+                  </div>
+                )}
+
+                {/* If Salary Range */}
+                {(data.salary_type === "Salary Range" || !data.salary_type) && (
+                  <>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="jf-sal-min" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Minimum Salary (₱)</Label>
+                      <Input
+                        id="jf-sal-min"
+                        type="number"
+                        min={0}
+                        value={data.salary_min}
+                        onChange={(e) => {
+                          onChange("salary_min", e.target.value);
+                          if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                        }}
+                        placeholder="e.g. 25000"
+                        disabled={data.salary_negotiable}
+                        className="h-10 text-sm border-zinc-200 rounded-lg"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="jf-sal-max" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Maximum Salary (₱)</Label>
+                      <Input
+                        id="jf-sal-max"
+                        type="number"
+                        min={0}
+                        value={data.salary_max}
+                        onChange={(e) => {
+                          onChange("salary_max", e.target.value);
+                          if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
+                        }}
+                        placeholder="e.g. 50000"
+                        disabled={data.salary_negotiable}
+                        className="h-10 text-sm border-zinc-200 rounded-lg"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {localErrors.salary_info && (
+                <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {localErrors.salary_info}
+                </p>
+              )}
+            </div>
+
+            {/* Benefits selector list */}
+            <div className="space-y-3">
+              <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                Company Benefits / Incentives
+              </Label>
+              <div className="space-y-4 p-4 bg-zinc-50/50 dark:bg-zinc-900/35 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {allBenefits.map((benefit) => (
+                    <label key={benefit} className="flex items-start gap-2.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                      <Checkbox
+                        checked={(data.benefits || []).includes(benefit)}
+                        onCheckedChange={() => handleToggleBenefit(benefit)}
+                        className="mt-0.5"
+                      />
+                      <span>{benefit}</span>
+                    </label>
+                  ))}
+                </div>
+
+                {/* Custom Benefit Input */}
+                <div className="flex gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+                  <Input
+                    type="text"
+                    placeholder="Add other custom benefit (e.g., Free Lunch, Stock Options)..."
+                    value={customBenefitInput}
+                    onChange={(e) => setCustomBenefitInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomBenefit();
+                      }
+                    }}
+                    className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-w-md"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddCustomBenefit}
+                    className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none text-xs flex items-center gap-1.5 shrink-0"
+                  >
+                    <Plus className="h-4 w-4" /> Add Benefit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: Candidate Screening */}
+        {step === 4 && (
+          <div className="space-y-5 animate-fadeIn px-1">
+            {/* Experience & Education */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-exp" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Target Experience Level
+                </Label>
+                <Select
+                  value={data.experience_level}
+                  onValueChange={(v) => onChange("experience_level", v as ExperienceLevel)}
+                >
+                  <SelectTrigger id="jf-exp" className="h-10 text-sm border-zinc-200 rounded-lg">
+                    <SelectValue placeholder="Select Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([k, v]) => (
+                      <SelectItem key={k} value={k} className="text-sm">
+                        {v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="jf-education" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Minimum Education Required
+                </Label>
+                <Select
+                  value={data.education || "No Education Requirement / Open to All"}
+                  onValueChange={(v) => onChange("education", v)}
+                >
+                  <SelectTrigger id="jf-education" className="h-10 text-sm border-zinc-200 rounded-lg">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EDUCATION_OPTIONS.map((edu) => (
+                      <SelectItem key={edu} value={edu} className="text-sm">{edu}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Screening Questions List Creator */}
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                <HelpCircle className="h-4 w-4 text-emerald-600" /> Candidate Screening Questions <span className="text-zinc-400 font-normal">(Optional)</span>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="e.g. How many years of experience do you have in Next.js?"
+                  value={questionInput}
+                  onChange={(e) => setQuestionInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddQuestion())}
+                  className="h-10 text-sm border-zinc-200 rounded-lg"
+                />
+                <Button
+                  type="button"
+                  onClick={handleAddQuestion}
+                  className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none flex items-center gap-1.5"
+                >
+                  <PlusCircle className="h-4 w-4" /> Add
+                </Button>
+              </div>
+
+              {/* Questions Stack */}
+              <div className="space-y-2 mt-3">
+                {(data.screening_questions || []).map((q, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800"
+                  >
+                    <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate pr-4">
+                      {index + 1}. &quot;{q}&quot;
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveQuestion(index)}
+                      className="h-7 w-7 text-zinc-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+
+                {(data.screening_questions || []).length === 0 && (
+                  <p className="text-[11px] text-zinc-400 italic text-center py-4">
+                    No custom screening questions added yet. Candidates can apply directly.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: Preview and Publish */}
+        {step === 5 && (
+          <div className="space-y-5 animate-fadeIn px-1">
+            {/* Visual Header Banner */}
+            <div className="p-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4">
+              <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center shrink-0">
+                <Building className="h-6 w-6 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-50 truncate">
+                    {data.job_title || "Untitled Job Posting"}
+                  </h3>
+                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-0 text-[10px] font-bold uppercase tracking-wider">
+                    Preview Mode
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span className="flex items-center gap-1 font-medium"><MapPin className="h-3 w-3" /> {data.job_location || "Location undisclosed"}</span>
+                  <span>&bull;</span>
+                  <span className="flex items-center gap-1 font-medium"><Briefcase className="h-3 w-3" /> {data.job_type ? JOB_TYPE_LABELS[data.job_type] : "Type undisclosed"}</span>
+                  {data.job_category && (
+                    <>
+                      <span>&bull;</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">{data.job_category}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Grid details */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {/* Left/Middle Column Details */}
+              <div className="md:col-span-2 space-y-4">
+                {/* Description */}
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Job Description</h4>
+                  {renderFormattedContent(data.job_description)}
+                </div>
+
+                {/* Responsibilities */}
+                {data.job_responsibilities && (
+                  <div className="space-y-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Key Responsibilities</h4>
+                    {renderFormattedContent(data.job_responsibilities)}
+                  </div>
+                )}
+
+                {/* Qualifications */}
+                <div className="space-y-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Requirements & Qualifications</h4>
+                  {renderFormattedContent(data.job_qualifications)}
+                </div>
+              </div>
+
+              {/* Right Column Highlights */}
+              <div className="md:col-span-1 space-y-4 p-4 bg-zinc-50/50 dark:bg-zinc-900/35 border border-zinc-150 dark:border-zinc-800/80 rounded-xl h-fit">
+                {/* Salary */}
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Compensation</span>
+                  <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                    {data.salary_negotiable
+                      ? "Negotiable / Undisclosed"
+                      : `${data.salary_type || "Range"}: ${data.salary_min ? `₱${Number(data.salary_min).toLocaleString()}` : "—"} ${data.salary_max ? `to ₱${Number(data.salary_max).toLocaleString()}` : ""
+                      }`}
+                  </p>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2 pt-3 border-t border-zinc-150 dark:border-zinc-800">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Openings</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">{data.number_of_openings || "1"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Arrangement</span>
+                    <span className="font-semibold text-[#14a800]">{data.work_arrangement || "Remote"}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-zinc-500">Target Experience</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                      {data.experience_level ? EXPERIENCE_LEVEL_LABELS[data.experience_level] : "Undisclosed"}
+                    </span>
+                  </div>
+                  {data.education && (
+                    <div className="flex flex-col gap-0.5 pt-1 text-xs">
+                      <span className="text-zinc-500 flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> Education</span>
+                      <span className="font-semibold text-zinc-850 dark:text-zinc-250 truncate">{data.education}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Skills */}
+                {(data.skills || []).length > 0 && (
+                  <div className="space-y-1.5 pt-3 border-t border-zinc-150 dark:border-zinc-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Skills Required</span>
+                    <div className="flex flex-wrap gap-1">
+                      {(data.skills || []).map((s) => (
+                        <Badge key={s.id} variant="secondary" className="px-2 py-0.5 text-[10px] font-medium rounded">
+                          {s.skill_name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Benefits */}
+                {(data.benefits || []).length > 0 && (
+                  <div className="space-y-1.5 pt-3 border-t border-zinc-150 dark:border-zinc-800">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Benefits</span>
+                    <ul className="text-[10px] text-zinc-600 dark:text-zinc-400 space-y-1 list-disc pl-3">
+                      {(data.benefits || []).map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Job Type & Department */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="jf-type" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Job Type <span className="text-rose-500">*</span>
-          </Label>
-          <Select
-            value={data.job_type}
-            onValueChange={(v) => onChange("job_type", v as JobType)}
-          >
-            <SelectTrigger id="jf-type" className={`h-9 text-sm ${errors?.job_type ? "border-rose-400" : ""}`}>
-              <SelectValue placeholder="Select type" />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => (
-                <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {errors?.job_type && <p className="text-[11px] text-rose-500">{errors.job_type}</p>}
+      {/* Wizard Footer Actions */}
+      <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
+        <div>
+          {step > 1 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrev}
+              disabled={saving}
+              className="h-10 px-4 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={saving}
+              className="h-10 px-4 text-xs font-semibold rounded-xl"
+            >
+              Cancel
+            </Button>
+          )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="jf-dept" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Department
-          </Label>
-          <Input
-            id="jf-dept"
-            value={data.job_department}
-            onChange={(e) => onChange("job_department", e.target.value)}
-            placeholder="e.g. Engineering"
-            className="h-9 text-sm"
-          />
-        </div>
-      </div>
-
-      {/* Location & Experience */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="jf-location" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Location <span className="text-rose-500">*</span>
-          </Label>
-          <Input
-            id="jf-location"
-            value={data.job_location}
-            onChange={(e) => onChange("job_location", e.target.value)}
-            placeholder="e.g. Makati (Hybrid)"
-            className={`h-9 text-sm ${errors?.job_location ? "border-rose-400" : ""}`}
-          />
-          {errors?.job_location && <p className="text-[11px] text-rose-500">{errors.job_location}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="jf-exp" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Experience Level
-          </Label>
-          <Select
-            value={data.experience_level}
-            onValueChange={(v) => onChange("experience_level", v as ExperienceLevel)}
-          >
-            <SelectTrigger id="jf-exp" className="h-9 text-sm">
-              <SelectValue placeholder="Select level" />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(
-                ([k, v]) => (
-                  <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Salary */}
-      <div className="space-y-2.5">
-        <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Salary Range</Label>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label htmlFor="jf-sal-min" className="text-[10px] text-zinc-500">Minimum (₱)</Label>
-            <Input
-              id="jf-sal-min"
-              type="number"
-              min={0}
-              value={data.salary_min}
-              onChange={(e) => onChange("salary_min", e.target.value)}
-              placeholder="e.g. 25000"
-              disabled={data.salary_negotiable}
-              className="h-9 text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="jf-sal-max" className="text-[10px] text-zinc-500">Maximum (₱)</Label>
-            <Input
-              id="jf-sal-max"
-              type="number"
-              min={0}
-              value={data.salary_max}
-              onChange={(e) => onChange("salary_max", e.target.value)}
-              placeholder="e.g. 50000"
-              disabled={data.salary_negotiable}
-              className="h-9 text-sm"
-            />
-          </div>
-        </div>
         <div className="flex items-center gap-2">
-          <Checkbox
-            id="jf-negotiable"
-            checked={data.salary_negotiable}
-            onCheckedChange={(v) => onChange("salary_negotiable", Boolean(v))}
-          />
-          <Label htmlFor="jf-negotiable" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
-            Salary is negotiable / undisclosed
-          </Label>
+          {step < 5 ? (
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="h-10 px-5 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5"
+            >
+              Next <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={handleFinalSubmit}
+              disabled={saving}
+              className="h-10 px-6 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5"
+            >
+              {saving ? (
+                "Saving..."
+              ) : (
+                <>
+                  {editingJob ? "Save Changes" : "Create Posting"}
+                  <Check className="h-3.5 w-3.5" />
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Status */}
-      <div className="space-y-1.5">
-        <Label htmlFor="jf-status" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Posting Status
-        </Label>
-        <Select
-          value={data.status}
-          onValueChange={(v) => onChange("status", v as JobStatus)}
-        >
-          <SelectTrigger id="jf-status" className="h-9 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ACTIVE" className="text-sm">Active — Visible to job seekers</SelectItem>
-            <SelectItem value="DRAFT" className="text-sm">Draft — Save without publishing</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Description */}
-      <div className="space-y-1.5">
-        <Label htmlFor="jf-desc" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Job Description
-        </Label>
-        <Textarea
-          id="jf-desc"
-          value={data.job_description}
-          onChange={(e) => onChange("job_description", e.target.value)}
-          rows={5}
-          placeholder="Describe the role, responsibilities, and what the day-to-day looks like..."
-          className="resize-none text-sm leading-relaxed"
-        />
-      </div>
-
-      {/* Requirements */}
-      <div className="space-y-1.5">
-        <Label htmlFor="jf-req" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Requirements & Qualifications
-        </Label>
-        <Textarea
-          id="jf-req"
-          value={data.job_requirements}
-          onChange={(e) => onChange("job_requirements", e.target.value)}
-          rows={5}
-          placeholder="List required skills, education, certifications, and experience..."
-          className="resize-none text-sm leading-relaxed"
-        />
-      </div>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 220ms ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
-

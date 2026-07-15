@@ -2,17 +2,17 @@
 "use client";
 
 import React from "react";
-import { JobPosting } from "../types";
+import { JobPosting, JobStatus } from "../types";
 import JobCard from "./JobCard";
 import { Briefcase } from "lucide-react";
 
 interface JobListProps {
   jobs: JobPosting[];
   onEdit: (job: JobPosting) => void;
-  onClose: (jobId: number) => void;
+  onStatusChange: (jobId: number, newStatus: JobStatus) => void;
 }
 
-export default function JobList({ jobs, onEdit, onClose }: JobListProps) {
+export default function JobList({ jobs, onEdit, onStatusChange }: JobListProps) {
   if (jobs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -32,9 +32,8 @@ export default function JobList({ jobs, onEdit, onClose }: JobListProps) {
   return (
     <div className="space-y-3">
       {jobs.map((job) => (
-        <JobCard key={job.job_id} job={job} onEdit={onEdit} onClose={onClose} />
+        <JobCard key={job.job_id} job={job} onEdit={onEdit} onStatusChange={onStatusChange} />
       ))}
     </div>
   );
 }
-

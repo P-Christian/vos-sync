@@ -11,10 +11,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus, Phone, ShieldCheck, Mail, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function DashboardModule() {
+export default function DashboardModule({ userName }: { userName?: string }) {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,63 +178,178 @@ export default function DashboardModule() {
     }
   };
 
+  const getGreeting = () => {
+    const hrs = new Date().getHours();
+    if (hrs < 12) return "Good morning";
+    if (hrs < 18) return "Good afternoon";
+    return "Good evening";
+  };
+  const firstName = userName ? userName.split(" ")[0] : "Client";
+
   const isVerified = company.verification_status === "VERIFIED";
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Top Banner details */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-950 dark:to-zinc-900 text-white p-6 rounded-3xl border shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl text-white border border-white/10 shrink-0">
-            <Building className="h-8 w-8" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{company.company_name}</h1>
-              {isVerified && (
-                <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white py-0.5 px-2 rounded-full text-[10px] font-semibold border-0">
-                  Verified
-                </Badge>
-              )}
-            </div>
-            <p className="text-sm text-zinc-300 mt-0.5">{company.industry} • {company.company_city}, {company.company_province}</p>
-            {/* Profile Completion Progress Bar */}
-            {typeof company.profile_completion_percent === "number" && (
-              <div className="mt-3 w-48">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-zinc-400 font-medium">Profile Completion</span>
-                  <span className="text-[10px] text-zinc-300 font-semibold">{company.profile_completion_percent}%</span>
-                </div>
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(100, company.profile_completion_percent)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="space-y-8 client-page-transition pb-12">
+      <style>{`
+        @keyframes page-entry {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .client-page-transition {
+          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+      {/* Dynamic Upwork Greeting Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          {getGreeting()}, {firstName}
+        </h1>
+        <Button
+          onClick={() => router.push("/vos-sync/client/jobs")}
+          disabled={!isVerified}
+          className="h-10 bg-[#14a800] hover:bg-[#118f00] disabled:opacity-60 text-white rounded-full font-medium px-6 text-sm shadow-md transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-1.5 border-0"
+        >
+          <Plus className="h-4.5 w-4.5" />
+          Post a job
+        </Button>
+      </div>
 
-        <div className="flex items-center gap-3 relative z-10 w-full md:w-auto shrink-0">
-          <Button
-            disabled={!isVerified}
-            className="flex-1 md:flex-none h-10 bg-primary text-white hover:bg-primary/95 rounded-xl font-medium text-sm flex items-center justify-center gap-1.5"
-          >
-            <Plus className="h-4.5 w-4.5" />
-            Post a Job
-          </Button>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex-1 md:flex-none h-10 border-white/20 text-white bg-transparent hover:bg-white/10 rounded-xl font-medium text-sm flex items-center justify-center gap-1.5"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+      {/* Upwork Onboarding Task Checklist ("Last steps before you can hire") */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold tracking-tight text-zinc-800 dark:text-zinc-200">
+          Last steps before you can hire
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {/* Card 1: Phone Verification */}
+          <Card className="border bg-card p-5 rounded-xl flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-md transition-all duration-300">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Required to publish a job</span>
+                <Phone className="h-5 w-5 text-zinc-400 shrink-0" />
+              </div>
+              {company.company_contact ? (
+                <h3 className="text-base font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-[#14a800] shrink-0" />
+                  Phone number verified
+                </h3>
+              ) : (
+                <h3 
+                  onClick={() => router.push("/vos-sync/client/company-profile")}
+                  className="text-base font-bold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer decoration-2"
+                >
+                  Verify your phone number
+                </h3>
+              )}
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+                {company.company_contact 
+                  ? `Successfully verified phone: ${company.company_contact}` 
+                  : "Confirm it's you, to be able to publish your first job post."}
+              </p>
+            </div>
+          </Card>
+
+          {/* Card 2: Company verification */}
+          <Card className="border bg-card p-5 rounded-xl flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-md transition-all duration-300">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Required to hire</span>
+                <ShieldCheck className="h-5 w-5 text-zinc-400 shrink-0" />
+              </div>
+              {isVerified ? (
+                <h3 className="text-base font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                  <CheckCircle className="h-4 w-4 text-[#14a800] shrink-0" />
+                  Company profile verified
+                </h3>
+              ) : (
+                <h3 
+                  onClick={() => router.push("/vos-sync/client/company-profile")}
+                  className="text-base font-bold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer decoration-2"
+                >
+                  Submit company profile for review
+                </h3>
+              )}
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+                {isVerified 
+                  ? "Your organization is verified. All hiring capabilities are unlocked." 
+                  : "Verification officers are currently reviewing your company profile. Keep it completed."}
+              </p>
+            </div>
+          </Card>
+
+          {/* Card 3: Email Verification */}
+          <Card className="border bg-card p-5 rounded-xl flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-md transition-all duration-300">
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Required to hire</span>
+                <Mail className="h-5 w-5 text-zinc-400 shrink-0" />
+              </div>
+              <h3 className="text-base font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                <CheckCircle className="h-4 w-4 text-[#14a800] shrink-0" />
+                Email address verified
+              </h3>
+              <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+                Successfully verified login credentials for {company.company_email || "your company"}.
+              </p>
+            </div>
+          </Card>
         </div>
       </div>
+
+      {/* Top organization details card (plain style) */}
+      <Card className="shadow-sm border bg-card rounded-xl overflow-hidden">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-6 sm:p-8 relative">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-xl border border-emerald-500/20 shrink-0">
+              <Building className="h-7 w-7" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-bold text-foreground">{company.company_name}</h2>
+                {isVerified && (
+                  <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20 py-0.5 px-2 rounded-full text-[10px] font-semibold">
+                    Verified
+                  </Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">{company.industry} &bull; {company.company_city}, {company.company_province}</p>
+              {/* Profile Completion Progress Bar */}
+              {typeof company.profile_completion_percent === "number" && (
+                <div className="mt-3.5 w-48">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-muted-foreground font-medium">Profile Completion</span>
+                    <span className="text-[10px] text-foreground font-semibold">{company.profile_completion_percent}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-700"
+                      style={{ width: `${Math.min(100, company.profile_completion_percent)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+            <Button
+              onClick={() => router.push("/vos-sync/client/jobs")}
+              disabled={!isVerified}
+              className="flex-grow md:flex-none h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-1.5 border-0 shadow-sm"
+            >
+              <Plus className="h-4.5 w-4.5" />
+              Post a Job
+            </Button>
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              className="flex-grow md:flex-none h-10 rounded-xl font-medium text-sm flex items-center justify-center gap-1.5"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       {renderVerificationBanner()}
 
@@ -244,7 +359,7 @@ export default function DashboardModule() {
       {/* Filter and listings tab panels */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Workspaces Overview</h2>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Overview</h2>
           <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
             <Sparkles className="h-3 w-3" />
             Live Filtering

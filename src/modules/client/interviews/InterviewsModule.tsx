@@ -88,17 +88,26 @@ export default function InterviewsModule() {
   ).length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 client-page-transition">
+      <style>{`
+        @keyframes page-entry {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .client-page-transition {
+          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-950 dark:to-zinc-900 text-white p-6 rounded-3xl border shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 h-40 w-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
         <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/10">
+          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
             <CalendarDays className="h-7 w-7" />
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Interview Schedule</h1>
-            <p className="text-sm text-zinc-400 mt-0.5">
+            <p className="text-sm text-zinc-300 mt-1">
               {upcomingCount} upcoming &bull; {interviews.length} total
             </p>
           </div>
@@ -109,7 +118,7 @@ export default function InterviewsModule() {
             clearMessages();
             setCreateDialogOpen(true);
           }}
-          className="relative z-10 h-10 bg-primary hover:bg-primary/90 rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto"
+          className="relative z-10 h-10 bg-primary hover:bg-primary/90 rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto shadow-md shadow-primary/20 border-0"
         >
           <CalendarPlus className="h-4 w-4" />
           Schedule Interview
@@ -131,7 +140,7 @@ export default function InterviewsModule() {
       )}
 
       {/* Filter + List */}
-      <Card className="shadow-sm border">
+      <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
             All Interviews

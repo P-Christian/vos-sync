@@ -37,7 +37,7 @@ export default function DashboardFilters({
   };
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border rounded-xl bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl">
       <div className="relative flex-1 max-w-md">
         <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
         <Input
@@ -45,7 +45,7 @@ export default function DashboardFilters({
           placeholder="Search jobs or applicants..."
           value={filters.search}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="pl-10 h-10 w-full bg-white dark:bg-zinc-900 border-zinc-200"
+          className="pl-10 h-10 w-full bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50"
         />
       </div>
 
@@ -55,7 +55,7 @@ export default function DashboardFilters({
             value={filters.department || "ALL"}
             onValueChange={handleDeptChange}
           >
-            <SelectTrigger className="h-10 bg-white dark:bg-zinc-900 border-zinc-200">
+            <SelectTrigger className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50">
               <SelectValue placeholder="All Departments" />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +74,7 @@ export default function DashboardFilters({
             value={filters.status || "ALL"}
             onValueChange={handleStatusChange}
           >
-            <SelectTrigger className="h-10 bg-white dark:bg-zinc-900 border-zinc-200">
+            <SelectTrigger className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>

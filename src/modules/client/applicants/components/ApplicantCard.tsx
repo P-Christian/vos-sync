@@ -5,7 +5,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Briefcase, Clock } from "lucide-react";
+import { User, Mail, Briefcase, Clock, CalendarPlus } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -29,11 +29,12 @@ function timeAgo(dateStr?: string): string {
 interface ApplicantCardProps {
   applicant: Applicant;
   onUpdateStatus: (applicant: Applicant) => void;
+  onScheduleInterview: (applicant: Applicant) => void;
 }
 
-export default function ApplicantCard({ applicant, onUpdateStatus }: ApplicantCardProps) {
+export default function ApplicantCard({ applicant, onUpdateStatus, onScheduleInterview }: ApplicantCardProps) {
   return (
-    <Card className="hover:shadow-md transition-shadow duration-200 border bg-card">
+    <Card className="hover:shadow-lg transition-all duration-200 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -73,14 +74,26 @@ export default function ApplicantCard({ applicant, onUpdateStatus }: ApplicantCa
               </span>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onUpdateStatus(applicant)}
-            className="h-8 px-3 text-xs rounded-lg shrink-0"
-          >
-            Update Status
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onUpdateStatus(applicant)}
+              className="h-8 px-3 text-xs rounded-lg"
+            >
+              Update Status
+            </Button>
+            {applicant.application_status !== "REJECTED" && applicant.application_status !== "HIRED" && (
+              <Button
+                size="sm"
+                onClick={() => onScheduleInterview(applicant)}
+                className="h-8 px-3 text-xs rounded-lg gap-1 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
+              >
+                <CalendarPlus className="h-3.5 w-3.5" />
+                Schedule Interview
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

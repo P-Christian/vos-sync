@@ -22,12 +22,14 @@ interface InterviewFormProps {
   data: InterviewFormData;
   onChange: (field: keyof InterviewFormData, value: string) => void;
   errors?: Partial<Record<keyof InterviewFormData, string>>;
+  disableApplicationId?: boolean;
 }
 
 export default function InterviewForm({
   data,
   onChange,
   errors,
+  disableApplicationId,
 }: InterviewFormProps) {
   return (
     <div className="space-y-4">
@@ -42,6 +44,7 @@ export default function InterviewForm({
           value={data.application_id}
           onChange={(e) => onChange("application_id", e.target.value)}
           placeholder="e.g. 101"
+          disabled={disableApplicationId}
           className={`h-9 text-sm ${errors?.application_id ? "border-rose-400" : ""}`}
         />
         {errors?.application_id && (

@@ -65,7 +65,7 @@ export default async function JobsPage() {
             <Breadcrumb>
               <BreadcrumbList className="min-w-0 overflow-hidden">
                 <BreadcrumbItem className="hidden md:block shrink-0">
-                  <BreadcrumbLink href="/vos-sync/client/dashboard">client</BreadcrumbLink>
+                  <BreadcrumbLink href="/vos-sync/client/dashboard">Client</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block shrink-0" />
                 <BreadcrumbItem className="min-w-0 overflow-hidden">
@@ -81,10 +81,8 @@ export default async function JobsPage() {
           <NavUser user={headerUser} />
         </div>
       </header>
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-8">
-        <div className="max-w-5xl mx-auto py-6">
-          <JobsModule />
-        </div>
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
+        <JobsModule />
       </main>
     </div>
   );

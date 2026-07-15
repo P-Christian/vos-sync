@@ -273,6 +273,28 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────
+    // 5b. DUPLICATE COMPANY EMAIL CHECK
+    // ─────────────────────────────────────────
+    const compEmail = String(company?.company_email ?? "").trim().toLowerCase();
+    if (compEmail) {
+      const checkCompUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_email][_eq]=${encodeURIComponent(compEmail)}&fields=company_id&limit=1`;
+      const compCheckRes = await fetch(checkCompUrl, {
+        method: "GET",
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (compCheckRes.ok) {
+        const compCheckJson = await compCheckRes.json();
+        if (compCheckJson.data && compCheckJson.data.length > 0) {
+          return NextResponse.json(
+            { error: "Company email address is already registered to another company." },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────
     // 6. GENERATE OTP + HASH PASSWORD
     // ─────────────────────────────────────────
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -364,11 +386,9 @@ export async function POST(req: NextRequest) {
     const companyPayload = {
       company_code: companyCode,
       company_name: String(company.company_name ?? "").trim(),
+      company_legal_name: String(company.company_name ?? "").trim(),
       company_email: String(company.company_email ?? "").trim() || null,
       company_contact: String(company.company_contact ?? "").trim() || null,
-      industry: String(company.industry ?? "").trim(),
-      business_type: String(company.business_type ?? "").trim() || null,
-      company_size: String(company.company_size ?? "").trim() || null,
       company_website: String(company.company_website ?? "").trim() || null,
       company_description:
         String(company.company_description ?? "").trim() || null,
@@ -377,7 +397,7 @@ export async function POST(req: NextRequest) {
       company_brgy: String(address.company_brgy ?? "").trim() || null,
       company_address: String(address.company_address ?? "").trim() || null,
       company_zipCode: String(address.company_zipCode ?? "").trim() || null,
-      verification_status: "PENDING",
+      verification_status: "DRAFT",
       is_active: 1,
       is_deleted: 0,
       created_by_user_id: userId,
