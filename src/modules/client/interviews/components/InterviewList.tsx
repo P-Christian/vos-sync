@@ -58,7 +58,7 @@ export default function InterviewList({ interviews, onUpdateStatus }: InterviewL
   return (
     <div className="space-y-3">
       {interviews.map((iv) => (
-        <Card key={iv.interview_id} className="hover:shadow-md transition-shadow duration-200 border bg-card">
+        <Card key={iv.interview_id} className="hover:shadow-lg transition-all duration-200 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
           <CardContent className="p-4 sm:p-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0 flex-1">

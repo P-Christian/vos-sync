@@ -1,20 +1,9 @@
 // src/app/api/client/jobs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import * as jobService from "../service.directus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-function getHeaders(): Record<string, string> {
-  const h: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
-  return h;
-}
 
 // GET — Fetch single job
 export async function GET(
@@ -23,17 +12,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_posting/${id}?fields=*`,
-      { headers: getHeaders(), cache: "no-store" }
-    );
-    const json = await res.json();
-    if (!res.ok)
-      return NextResponse.json(
-        { error: json.errors?.[0]?.message ?? "Job not found." },
-        { status: res.status }
-      );
-    return NextResponse.json({ job: json.data });
+    const job = await jobService.getJob(id);
+    return NextResponse.json({ job });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
@@ -72,18 +52,9 @@ export async function PATCH(
       if (key in body) safePayload[key] = body[key];
     }
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${id}`, {
-      method: "PATCH",
-      headers: getHeaders(),
-      body: JSON.stringify(safePayload),
-    });
-    const json = await res.json();
-    if (!res.ok)
-      return NextResponse.json(
-        { error: json.errors?.[0]?.message ?? "Failed to update job." },
-        { status: res.status }
-      );
-    return NextResponse.json({ success: true, job: json.data });
+    const updatedJob = await jobService.updateJob(id, safePayload);
+
+    return NextResponse.json({ success: true, job: updatedJob });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
@@ -92,24 +63,14 @@ export async function PATCH(
   }
 }
 
-// DELETE — Soft-delete: set status = CLOSED and is_deleted = 1
+// DELETE — Soft-delete
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${id}`, {
-      method: "PATCH",
-      headers: getHeaders(),
-      body: JSON.stringify({ status: "CLOSED", is_deleted: 1 }),
-    });
-    const json = await res.json();
-    if (!res.ok)
-      return NextResponse.json(
-        { error: json.errors?.[0]?.message ?? "Failed to close job." },
-        { status: res.status }
-      );
+    await jobService.deleteJob(id);
     return NextResponse.json({ success: true, message: "Job posting closed." });
   } catch (err: unknown) {
     return NextResponse.json(

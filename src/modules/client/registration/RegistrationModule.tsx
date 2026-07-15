@@ -250,7 +250,7 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
 
 
 
-      <Card className="border border-zinc-200/60 dark:border-zinc-800/80 shadow-[0_20px_50px_-12px_rgba(99,102,241,0.06)] bg-white/75 dark:bg-zinc-950/75 backdrop-blur-xl rounded-[24px] overflow-hidden">
+      <Card className="border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-[24px] overflow-hidden">
         {renderProgressHeader()}
 
         <CardContent className="px-6 sm:px-8">

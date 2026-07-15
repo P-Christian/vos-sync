@@ -1,5 +1,6 @@
 // src/app/api/client/jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import * as jobService from "./service.directus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,14 +76,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    let filterQuery = `filter[company_id][_eq]=${companyId}&filter[is_deleted][_eq]=0`;
-    if (status && status !== "ALL") filterQuery += `&filter[status][_eq]=${status}`;
+    const jobs = await jobService.getJobs(companyId, status);
 
-    const jobsUrl = `${DIRECTUS_BASE}/items/vs_job_posting?${filterQuery}&sort[]=-created_at&fields=*`;
-    const jobsRes = await fetch(jobsUrl, { headers: getHeaders(), cache: "no-store" });
-    const jobsJson = await jobsRes.json();
-
-    return NextResponse.json({ jobs: jobsJson.data ?? [] });
+    return NextResponse.json({ jobs });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
@@ -108,19 +104,6 @@ export async function POST(req: NextRequest) {
     if (error || !companyId)
       return NextResponse.json({ error: error ?? "Company not found." }, { status: 404 });
 
-    // BUSINESS RULE: Only VERIFIED companies may post jobs
-    if (verification_status !== "VERIFIED") {
-      return NextResponse.json(
-        {
-          error:
-            "Job posting is only available for verified companies. Your account is currently " +
-            (verification_status ?? "PENDING") +
-            ".",
-        },
-        { status: 403 }
-      );
-    }
-
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
 
@@ -131,6 +114,21 @@ export async function POST(req: NextRequest) {
     if (!body.job_location?.trim()) errors.push("Job location is required.");
     if (!body.salary_min && !body.salary_max && !body.salary_negotiable)
       errors.push("Salary information is required.");
+
+    // BUSINESS RULE: Only VERIFIED companies can publish active jobs
+    // Unverified companies may save drafts but cannot submit active listings
+    const targetStatus = body.status ?? "ACTIVE";
+    if (targetStatus === "ACTIVE" && verification_status !== "VERIFIED") {
+      return NextResponse.json(
+        {
+          error:
+            "Job posting is only available for verified companies. Your account is currently " +
+            (verification_status ?? "PENDING") +
+            ". You may save it as a DRAFT instead.",
+        },
+        { status: 403 }
+      );
+    }
 
     if (errors.length > 0)
       return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
@@ -144,8 +142,8 @@ export async function POST(req: NextRequest) {
       company_id: companyId,
       created_by_user_id: userId,
       job_title: body.job_title?.trim(),
-      job_description: body.job_description?.trim() || null,
-      job_requirements: body.job_requirements?.trim() || null,
+      job_description: body.job_description || null,
+      job_requirements: body.job_requirements || null,
       job_type: body.job_type?.trim(),
       job_location: body.job_location?.trim(),
       job_department: body.job_department?.trim() || null,
@@ -153,30 +151,17 @@ export async function POST(req: NextRequest) {
       salary_max: body.salary_max ?? null,
       salary_negotiable: body.salary_negotiable ?? false,
       experience_level: body.experience_level?.trim() || null,
-      status: body.status ?? "ACTIVE",
+      status: targetStatus,
       is_deleted: 0,
       created_at: nowPH,
     };
 
-    const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify(jobPayload),
-    });
-
-    const createJson = await createRes.json();
-
-    if (!createRes.ok) {
-      return NextResponse.json(
-        { error: createJson.errors?.[0]?.message ?? "Failed to create job posting." },
-        { status: createRes.status }
-      );
-    }
+    const createdJob = await jobService.createJob(jobPayload);
 
     return NextResponse.json({
       success: true,
       message: "Job posting created successfully.",
-      job: createJson.data,
+      job: createdJob,
     });
   } catch (err: unknown) {
     return NextResponse.json(
@@ -185,4 +170,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

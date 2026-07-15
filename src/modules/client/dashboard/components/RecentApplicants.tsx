@@ -64,7 +64,7 @@ export default function RecentApplicants({ applicants }: RecentApplicantsProps) 
   }
 
   return (
-    <div className="overflow-x-auto border rounded-xl bg-white dark:bg-zinc-950">
+    <div className="overflow-x-auto border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl">
       <Table>
         <TableHeader>
           <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">

@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -21,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, CheckCircle, Plus, Briefcase } from "lucide-react";
+import { AlertCircle, CheckCircle, Plus } from "lucide-react";
 import { JobPosting, JobFormData, JobStatus } from "./types";
 
 export default function JobsModule() {
@@ -36,7 +37,7 @@ export default function JobsModule() {
     fetchJobs,
     createJob,
     updateJob,
-    closeJob,
+    changeJobStatus,
     EMPTY_FORM,
     clearMessages,
   } = useJobs();
@@ -49,23 +50,56 @@ export default function JobsModule() {
     fetchJobs(filterStatus);
   }, [fetchJobs, filterStatus]);
 
-  const handleFieldChange = (field: keyof JobFormData, value: string | boolean) => {
+  const parseJsonField = (value: string | null | undefined): { text: string; extra: Record<string, unknown> } => {
+    if (!value) return { text: "", extra: {} };
+    const trimmed = value.trim();
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return { text: parsed.text ?? "", extra: parsed };
+      } catch {
+        // ignore
+      }
+    }
+    return { text: value, extra: {} };
+  };
+
+  const handleFieldChange = (
+    field: keyof JobFormData,
+    value: string | boolean | string[] | { id: number; skill_name: string }[]
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleNewJob = () => {
     setEditingJob(null);
-    setFormData(EMPTY_FORM);
+    setFormData({
+      ...EMPTY_FORM,
+      job_category: "",
+      work_arrangement: "Remote",
+      number_of_openings: "1",
+      job_responsibilities: "",
+      job_qualifications: "",
+      skills: [],
+      salary_type: "Salary Range",
+      currency: "PHP",
+      benefits: [],
+      education: "",
+      screening_questions: [],
+    });
     clearMessages();
     setIsDialogOpen(true);
   };
 
   const handleEditJob = (job: JobPosting) => {
     setEditingJob(job);
+    const descData = parseJsonField(job.job_description);
+    const reqsData = parseJsonField(job.job_requirements);
+
     setFormData({
       job_title: job.job_title ?? "",
-      job_description: job.job_description ?? "",
-      job_requirements: job.job_requirements ?? "",
+      job_description: descData.text,
+      job_requirements: reqsData.text,
       job_type: job.job_type ?? "",
       job_location: job.job_location ?? "",
       job_department: job.job_department ?? "",
@@ -73,7 +107,20 @@ export default function JobsModule() {
       salary_max: job.salary_max?.toString() ?? "",
       salary_negotiable: job.salary_negotiable ?? false,
       experience_level: job.experience_level ?? "",
-      status: job.status ?? "ACTIVE",
+      status: job.status ?? "DRAFT",
+      // Extra step fields
+      job_category: (descData.extra.job_category as string) ?? "",
+      work_arrangement: (descData.extra.work_arrangement as string) ?? "Remote",
+      number_of_openings: (descData.extra.number_of_openings as string) ?? "1",
+      job_responsibilities: (descData.extra.job_responsibilities as string) ?? "",
+      job_qualifications: (reqsData.extra.job_qualifications as string) ?? "",
+      skills: (reqsData.extra.skills as { id: number; skill_name: string }[]) ?? [],
+      salary_type: (reqsData.extra.salary_type as string) ?? "Salary Range",
+      currency: (reqsData.extra.currency as string) ?? "PHP",
+      benefits: (reqsData.extra.benefits as string[]) ?? [],
+      education: (reqsData.extra.education as string) ?? "",
+      screening_questions: (reqsData.extra.screening_questions as string[]) ?? [],
+      
     });
     clearMessages();
     setIsDialogOpen(true);
@@ -81,11 +128,39 @@ export default function JobsModule() {
 
   const handleSave = async () => {
     clearMessages();
+
+    // Serialize extra fields into job_description and job_requirements text columns
+    const serializedDescription = JSON.stringify({
+      text: formData.job_description,
+      job_category: formData.job_category || "",
+      work_arrangement: formData.work_arrangement || "Remote",
+      number_of_openings: formData.number_of_openings || "1",
+      job_responsibilities: formData.job_responsibilities || "",
+      
+    });
+
+    const serializedRequirements = JSON.stringify({
+      text: formData.job_requirements,
+      job_qualifications: formData.job_qualifications || "",
+      skills: formData.skills || [],
+      salary_type: formData.salary_type || "Salary Range",
+      currency: formData.currency || "PHP",
+      benefits: formData.benefits || [],
+      education: formData.education || "",
+      screening_questions: formData.screening_questions || [],
+    });
+
+    const payload = {
+      ...formData,
+      job_description: serializedDescription,
+      job_requirements: serializedRequirements,
+    };
+
     let ok: boolean;
     if (editingJob) {
-      ok = await updateJob(editingJob.job_id, formData);
+      ok = await updateJob(editingJob.job_id, payload);
     } else {
-      ok = await createJob(formData);
+      ok = await createJob(payload);
     }
     if (ok) setIsDialogOpen(false);
   };
@@ -99,24 +174,27 @@ export default function JobsModule() {
   const draftCount = jobs.filter((j) => j.status === "DRAFT").length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 client-page-transition">
+      <style>{`
+        @keyframes page-entry {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .client-page-transition {
+          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-zinc-900 to-zinc-800 dark:from-zinc-950 dark:to-zinc-900 text-white p-6 rounded-3xl border shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/10">
-            <Briefcase className="h-7 w-7" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Job Postings</h1>
-            <p className="text-sm text-zinc-400 mt-0.5">
-              {activeCount} active &bull; {draftCount} draft
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Job Postings</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {activeCount} active &bull; {draftCount} draft
+          </p>
         </div>
         <Button
           onClick={handleNewJob}
-          className="relative z-10 h-10 bg-primary hover:bg-primary/90 rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto"
+          className="h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto shadow-sm border-0"
         >
           <Plus className="h-4 w-4" />
           New Job Post
@@ -138,8 +216,8 @@ export default function JobsModule() {
       )}
 
       {/* Filter & Job List */}
-      <Card className="shadow-sm border">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+      <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between p-6  border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10">
           <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
             All Postings
           </CardTitle>
@@ -158,25 +236,28 @@ export default function JobsModule() {
             </SelectContent>
           </Select>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {loading ? (
             <div className="flex items-center justify-center py-16 gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <span className="text-sm text-zinc-400 animate-pulse">Loading job postings...</span>
             </div>
           ) : (
-            <JobList jobs={jobs} onEdit={handleEditJob} onClose={closeJob} />
+            <JobList jobs={jobs} onEdit={handleEditJob} onStatusChange={changeJobStatus} />
           )}
         </CardContent>
       </Card>
 
       {/* Create / Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-5xl w-full h-[85vh] max-h-[85vh] flex flex-col p-6 overflow-hidden">
+          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800">
             <DialogTitle className="text-base font-bold">
               {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Fill out the details of the job posting below.
+            </DialogDescription>
           </DialogHeader>
 
           {error && (
@@ -186,16 +267,14 @@ export default function JobsModule() {
             </div>
           )}
 
-          <JobForm data={formData} onChange={handleFieldChange} />
-
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={handleClose} disabled={saving} className="h-9 text-sm rounded-lg">
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="h-9 text-sm rounded-lg gap-1.5">
-              {saving ? "Saving..." : editingJob ? "Save Changes" : "Create Posting"}
-            </Button>
-          </DialogFooter>
+          <JobForm
+            data={formData}
+            onChange={handleFieldChange}
+            onCancel={handleClose}
+            onSubmit={handleSave}
+            saving={saving}
+            editingJob={!!editingJob}
+          />
         </DialogContent>
       </Dialog>
     </div>
