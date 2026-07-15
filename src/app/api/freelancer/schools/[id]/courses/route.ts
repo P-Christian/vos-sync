@@ -17,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const activeCourses = courses.filter(c => c.course_status === 'Active');
         
         return NextResponse.json({ courses: activeCourses });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }

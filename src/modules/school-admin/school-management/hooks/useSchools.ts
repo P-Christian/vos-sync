@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { VsSchool, SchoolWithStats } from "../types/school.types";
+import { SchoolWithStats } from "../types/school.types";
 
 export function useSchools() {
   const [schools, setSchools] = useState<SchoolWithStats[]>([]);
@@ -28,14 +28,14 @@ export function useSchools() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load schools.");
       setSchools(json.schools ?? []);
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createSchool = useCallback(async (formData: any) => {
+  const createSchool = useCallback(async (formData: unknown) => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
@@ -50,15 +50,15 @@ export function useSchools() {
       
       setSuccessMessage("School created successfully.");
       return json.school;
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
       return null;
     } finally {
       setSaving(false);
     }
   }, []);
 
-  const updateSchool = useCallback(async (schoolId: number, formData: any) => {
+  const updateSchool = useCallback(async (schoolId: number, formData: unknown) => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
@@ -78,8 +78,8 @@ export function useSchools() {
       }
       setSuccessMessage("School updated successfully.");
       return json.school;
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
       return null;
     } finally {
       setSaving(false);

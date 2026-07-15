@@ -43,7 +43,7 @@ export async function reviewSchoolRequest(id: number, data: ReviewAction, adminI
     payload.admin_remarks = data.admin_remarks;
   }
 
-  const updatedRequest = await reviewSchoolRequestRepo(id, payload);
+  await reviewSchoolRequestRepo(id, payload);
 
   // If approved, upsert the employee education record with the matched school and a null course
   if (data.action === 'Approved' && data.matched_school_id) {
@@ -51,7 +51,7 @@ export async function reviewSchoolRequest(id: number, data: ReviewAction, adminI
     if (originalRequest && originalRequest.requested_by) {
       // requested_by comes back populated or as ID depending on fields, handle both:
       const userId = typeof originalRequest.requested_by === 'object' 
-        ? (originalRequest.requested_by as any).user_id 
+        ? (originalRequest.requested_by as {user_id: number}).user_id 
         : originalRequest.requested_by;
       
       if (userId) {
@@ -83,20 +83,20 @@ export async function reviewCourseRequest(id: number, data: ReviewAction, adminI
     payload.admin_remarks = data.admin_remarks;
   }
 
-  const updatedRequest = await reviewCourseRequestRepo(id, payload);
+  await reviewCourseRequestRepo(id, payload);
 
   // If approved, upsert the employee education record with the matched course
   if (data.action === 'Approved' && data.matched_school_course_id) {
     const originalRequest = await fetchCourseRequestById(id);
     if (originalRequest && originalRequest.requested_by) {
       const userId = typeof originalRequest.requested_by === 'object' 
-        ? (originalRequest.requested_by as any).user_id 
+        ? (originalRequest.requested_by as {user_id: number}).user_id 
         : originalRequest.requested_by;
       
       // We must pass the school_id too since vs_employee_education requires it.
       // We assume originalRequest.school_id is available.
       const schoolId = typeof originalRequest.school_id === 'object'
-        ? (originalRequest.school_id as any).school_id
+        ? (originalRequest.school_id as {school_id: number}).school_id
         : originalRequest.school_id;
 
       if (userId && schoolId) {
@@ -109,24 +109,24 @@ export async function reviewCourseRequest(id: number, data: ReviewAction, adminI
   return fetchCourseRequestById(id);
 }
 
-export async function createSchoolRequest(data: any, adminId: number): Promise<VsSchoolRequest> {
+export async function createSchoolRequest(data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, adminId: number): Promise<VsSchoolRequest> {
   const payload: Partial<VsSchoolRequest> = {
     requested_by: adminId,
     requested_school_name: data.requested_school_name,
     city_municipality: data.city_municipality || null,
     province: data.province || null,
-    request_status: 'Pending',
+    request_status: 'Pending' as const,
   };
   return createSchoolRequestRepo(payload);
 }
 
-export async function createCourseRequest(data: any, adminId: number): Promise<VsCourseRequest> {
+export async function createCourseRequest(data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */, adminId: number): Promise<VsCourseRequest> {
   const payload: Partial<VsCourseRequest> = {
     requested_by: adminId,
     school_id: data.school_id,
     requested_course_name: data.requested_course_name,
     requested_course_code: data.requested_course_code || null,
-    request_status: 'Pending',
+    request_status: 'Pending' as const,
   };
   return createCourseRequestRepo(payload);
 }

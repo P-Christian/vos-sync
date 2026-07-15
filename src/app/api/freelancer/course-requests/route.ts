@@ -14,7 +14,7 @@ async function getUserId(req: NextRequest): Promise<number | null> {
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
         return Number(payload.sub || payload.user_id || payload.id);
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -31,12 +31,12 @@ export async function POST(req: NextRequest) {
             school_id: body.school_id,
             requested_course_name: body.requested_course_name,
             requested_course_code: body.requested_course_code || null,
-            request_status: 'Pending'
+            request_status: 'Pending' as const
         };
 
         const newRequest = await createCourseRequestRepo(payload);
         return NextResponse.json({ success: true, request: newRequest });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }

@@ -23,8 +23,8 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const [startDate, setStartDate] = useState<string>("");
     const [endDate, setEndDate] = useState<string>("");
     
-    const [schools, setSchools] = useState<any[]>([]);
-    const [courses, setCourses] = useState<any[]>([]);
+    const [schools, setSchools] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+    const [courses, setCourses] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
     const [loadingSchools, setLoadingSchools] = useState(false);
     const [loadingCourses, setLoadingCourses] = useState(false);
     
@@ -134,7 +134,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         onClose();
     };
 
-    const handleSchoolRequestSubmit = async (data: any) => {
+    const handleSchoolRequestSubmit = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         const res = await fetch("/api/freelancer/school-requests", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -143,7 +143,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         return res.ok;
     };
 
-    const handleCourseRequestSubmit = async (data: any) => {
+    const handleCourseRequestSubmit = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         const payload = { ...data, school_id: parseInt(schoolId, 10) };
         const res = await fetch("/api/freelancer/course-requests", {
             method: "POST",
@@ -177,7 +177,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                     disabled={loadingSchools}
                                 />
                                 <div className="text-xs text-muted-foreground mt-1 text-right">
-                                    Can't find your school? <button type="button" onClick={() => setShowSchoolRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                    Can&apos;t find your school? <button type="button" onClick={() => setShowSchoolRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
                                 </div>
                             </div>
                         </div>
@@ -194,7 +194,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 />
                                 {schoolId && (
                                     <div className="text-xs text-muted-foreground mt-1 text-right">
-                                        Can't find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                        Can&apos;t find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
                                     </div>
                                 )}
                             </div>

@@ -17,11 +17,11 @@ import { VsSchoolCourse } from "../types/school.types";
 interface Props {
   schoolId: number;
   courses: VsSchoolCourse[];
-  onAddCourse: (data: any) => Promise<any>;
-  onToggleStatus: (courseId: number, currentStatus: string) => Promise<any>;
+  onAddCourse: (data: unknown) => Promise<unknown>;
+  onToggleStatus: (courseId: number, currentStatus: string) => Promise<unknown>;
 }
 
-export function SchoolCoursesTab({ schoolId, courses, onAddCourse, onToggleStatus }: Props) {
+export function SchoolCoursesTab({ courses, onAddCourse, onToggleStatus }: Props) {
   const [isAdding, setIsAdding] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
   const [newCourseCode, setNewCourseCode] = useState("");

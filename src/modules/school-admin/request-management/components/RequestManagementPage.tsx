@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export function RequestManagementPage() {
   const { 
     schoolRequests, 
-    courseRequests, 
-    loading, 
+    courseRequests,
     fetchSchoolRequests, 
     fetchCourseRequests,
     createSchoolRequest,

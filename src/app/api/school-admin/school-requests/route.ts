@@ -16,7 +16,7 @@ async function verifyAdmin(req: NextRequest): Promise<number | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return Number(payload.sub || payload.user_id || payload.id);
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -32,8 +32,8 @@ export async function GET(req: NextRequest) {
 
     const requests = await getSchoolRequests(status);
     return NextResponse.json({ requests });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
   }
 }
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const request = await createSchoolRequest(parsed, adminId);
     return NextResponse.json({ request }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 400 });
   }
 }

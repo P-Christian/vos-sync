@@ -29,7 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => Promise<boolean>;
+  onSubmit: (data: unknown) => Promise<boolean>;
   defaultSchoolId?: number;
   hideSchoolSelect?: boolean;
 }
@@ -58,7 +58,7 @@ export function CreateCourseRequestModal({ open, onOpenChange, onSubmit, default
     }
   }, [open, fetchSchools, form, defaultSchoolId, hideSchoolSelect]);
 
-  const handleValidSubmit = async (data: any) => {
+  const handleValidSubmit = async (data: unknown) => {
     setLoading(true);
     const success = await onSubmit(data);
     setLoading(false);
@@ -70,7 +70,7 @@ export function CreateCourseRequestModal({ open, onOpenChange, onSubmit, default
     }
   };
 
-  const handleValidationError = (errors: any) => {
+  const handleValidationError = (errors: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     const firstErrorKey = Object.keys(errors)[0];
     if (firstErrorKey && errors[firstErrorKey]?.message) {
       toast.error(errors[firstErrorKey].message);

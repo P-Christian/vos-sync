@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 
 interface Props {
   requests: VsSchoolRequest[];
-  onCreate: (data: any) => Promise<boolean>;
+  onCreate: (data: unknown) => Promise<boolean>;
   onReview: (id: number, data: ReviewAction) => Promise<boolean>;
 }
 
@@ -54,7 +54,7 @@ export function SchoolRequestsTab({ requests, onCreate, onReview }: Props) {
       cell: ({ row }) => {
         const by = row.original.requested_by;
         return typeof by === 'object' && by !== null 
-          ? `${by.user_fname} ${by.user_lname}` 
+          ? `${(by as {user_fname: string}).user_fname} ${(by as {user_lname: string}).user_lname}` 
           : `User #${by}`;
       }
     },

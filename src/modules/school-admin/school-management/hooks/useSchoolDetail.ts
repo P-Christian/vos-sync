@@ -26,14 +26,14 @@ export function useSchoolDetail() {
       if (coursesRes.ok) {
         setCourses(coursesJson.courses ?? []);
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const addCourse = useCallback(async (schoolId: number, formData: any) => {
+  const addCourse = useCallback(async (schoolId: number, formData: unknown) => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
@@ -52,8 +52,8 @@ export function useSchoolDetail() {
       }
       setSuccessMessage("Course added successfully.");
       return json.course;
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
       return null;
     } finally {
       setSaving(false);
@@ -88,8 +88,8 @@ export function useSchoolDetail() {
       }
       setSuccessMessage("Course status updated.");
       return true;
-    } catch(err:any) {
-      setError(err.message || "An error occurred.");
+    } catch(err: unknown) {
+      setError((err as Error).message || "An error occurred.");
       return false;
     } finally {
       setSaving(false);

@@ -17,7 +17,7 @@ async function verifyAdmin(req: NextRequest): Promise<number | null> {
         const { payload } = await jose.jwtVerify(token, secret);
         // Assuming admin id is in sub or user_id
         return Number(payload.sub || payload.user_id || payload.id);
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
 
         const schools = await getSchoolList(status, search);
         return NextResponse.json({ schools });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }
 
@@ -48,12 +48,12 @@ export async function POST(req: NextRequest) {
         // Zod validation
         const parsed = createSchoolSchema.safeParse(body);
         if (!parsed.success) {
-            return NextResponse.json({ error: parsed.error.errors.map(e => e.message).join(", ") }, { status: 400 });
+            return NextResponse.json({ error: parsed.error.issues.map(e => e.message).join(", ") }, { status: 400 });
         }
 
         const newSchool = await createSchool(parsed.data, adminId);
         return NextResponse.json({ success: true, school: newSchool });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }

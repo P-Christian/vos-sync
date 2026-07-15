@@ -18,8 +18,8 @@ export function useRequests() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch school requests');
       setSchoolRequests(json.requests ?? []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       setSchoolRequests([]);
     } finally {
       setLoading(false);
@@ -35,15 +35,15 @@ export function useRequests() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to fetch course requests');
       setCourseRequests(json.requests ?? []);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       setCourseRequests([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createSchoolRequest = async (data: any): Promise<boolean> => {
+  const createSchoolRequest = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */): Promise<boolean> => {
     try {
       const res = await fetch('/api/school-admin/school-requests', {
         method: 'POST',
@@ -55,13 +55,13 @@ export function useRequests() {
         throw new Error(json.error || 'Failed to create school request');
       }
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       return false;
     }
   };
 
-  const createCourseRequest = async (data: any): Promise<boolean> => {
+  const createCourseRequest = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */): Promise<boolean> => {
     try {
       const res = await fetch('/api/school-admin/course-requests', {
         method: 'POST',
@@ -73,8 +73,8 @@ export function useRequests() {
         throw new Error(json.error || 'Failed to create course request');
       }
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       return false;
     }
   };
@@ -96,8 +96,8 @@ export function useRequests() {
       // Optimistic update
       setSchoolRequests(prev => prev.map(r => r.school_request_id === id ? json.request : r));
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       return false;
     }
   };
@@ -119,8 +119,8 @@ export function useRequests() {
       // Optimistic update
       setCourseRequests(prev => prev.map(r => r.course_request_id === id ? json.request : r));
       return true;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       return false;
     }
   };

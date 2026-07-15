@@ -41,7 +41,7 @@ export function ReviewModal({ open, onOpenChange, action, requestType, onSubmit 
 
     setLoading(true);
     
-    const payload: any = {
+    const payload: any /* eslint-disable-line @typescript-eslint/no-explicit-any */ = {
       action: action === 'Approve' ? 'Approved' : 'Rejected',
       admin_remarks: remarks,
     };

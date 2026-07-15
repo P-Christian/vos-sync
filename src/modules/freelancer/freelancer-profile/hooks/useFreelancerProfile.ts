@@ -111,22 +111,22 @@ export function useFreelancerProfile() {
             const { saveAllProfileChangesAction } = await import("../services/freelancer-profile.actions");
             
             // Helper to generate DraftAction lists
-            const generateDiff = <T extends { id: number }>(live: T[] = [], draft: T[] | null = []) => {
+            const generateDiff = <T extends { id?: number }>(live: T[] = [], draft: T[] | null = []) => {
                 if (draft === null) return null;
                 const actions: DraftAction<T>[] = [];
-                const liveIds = new Set(live.map(item => item.id));
-                const draftIds = new Set(draft.map(item => item.id));
+                const liveIds = new Set(live.map(item => item.id!));
+                const draftIds = new Set(draft.map(item => item.id!));
 
                 // Deletes
                 live.forEach(item => {
-                    if (!draftIds.has(item.id)) {
-                        actions.push({ type: 'DELETE', id: item.id });
+                    if (!draftIds.has(item.id!)) {
+                        actions.push({ type: 'DELETE', id: item.id! });
                     }
                 });
 
                 // Adds and Updates
                 draft.forEach(item => {
-                    if (item.id < 0) {
+                    if (!item.id || item.id < 0) {
                         actions.push({ type: 'ADD', payload: item as any }); // Cast as any because temp items have negative id, which backend might ignore
                     } else if (liveIds.has(item.id)) {
                         const liveItem = live.find(l => l.id === item.id);

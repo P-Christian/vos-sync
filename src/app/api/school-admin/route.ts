@@ -15,11 +15,12 @@ async function verifyAdminAPI() {
         await jose.jwtVerify(token, secret);
         // Note: Check for payload.role === 'Admin' here in production
         return true;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
 
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 export async function GET(req: NextRequest) {
     const isAdmin = await verifyAdminAPI();
     

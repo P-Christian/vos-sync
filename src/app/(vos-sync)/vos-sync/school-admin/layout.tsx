@@ -26,7 +26,7 @@ async function verifyAdminRole() {
                 avatar: (payload.user_image as string) || ""
             } 
         }; 
-    } catch (error) {
+    } catch {
         return { isAdmin: false, user: null };
     }
 }

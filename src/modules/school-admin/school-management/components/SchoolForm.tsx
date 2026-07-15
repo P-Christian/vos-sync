@@ -29,7 +29,7 @@ import { VsSchool } from "../types/school.types";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: any) => Promise<VsSchool | null>;
+  onSubmit: (data: unknown) => Promise<VsSchool | null>;
   initialData?: VsSchool | null;
 }
 
@@ -84,7 +84,7 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
     }
   }, [initialData, open, form]);
 
-  const handleValidSubmit = async (data: any) => {
+  const handleValidSubmit = async (data: unknown) => {
     setLoading(true);
     const result = await onSubmit(data);
     setLoading(false);
@@ -94,7 +94,7 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
     }
   };
 
-  const handleValidationError = (errors: any) => {
+  const handleValidationError = (errors: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
     // Get the first error message and show it in a toast
     const firstErrorKey = Object.keys(errors)[0];
     if (firstErrorKey && errors[firstErrorKey]?.message) {

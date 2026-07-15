@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const createSchoolSchema = z.object({
   school_name: z.string().min(1, 'School name is required'),
   school_type: z.enum(['University', 'College', 'Technical/Vocational', 'Other'], {
-    required_error: 'School type is required',
+    error: 'School type is required',
   }),
   school_logo_url: z.string().url().optional().or(z.literal('')),
   school_description: z.string().optional(),

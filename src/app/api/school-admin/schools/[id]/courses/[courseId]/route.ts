@@ -15,7 +15,7 @@ async function verifyAdmin(req: NextRequest): Promise<number | null> {
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
         return Number(payload.sub || payload.user_id || payload.id);
-    } catch (e) {
+    } catch {
         return null;
     }
 }
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         const updated = await updateCourse(courseIdNum, body, adminId);
         return NextResponse.json({ success: true, course: updated });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }

@@ -46,6 +46,7 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
         </Button>
         <div className="flex h-16 w-16 items-center justify-center rounded-lg border bg-muted">
           {school.school_logo_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
             <img src={school.school_logo_url} alt={school.school_name} className="h-full w-full object-cover rounded-lg" />
           ) : (
             <Building2 className="h-8 w-8 text-muted-foreground" />

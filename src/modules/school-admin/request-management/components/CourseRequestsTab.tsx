@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 
 interface Props {
   requests: VsCourseRequest[];
-  onCreate: (data: any) => Promise<boolean>;
+  onCreate: (data: unknown) => Promise<boolean>;
   onReview: (id: number, data: ReviewAction) => Promise<boolean>;
 }
 
@@ -42,7 +42,7 @@ export function CourseRequestsTab({ requests, onCreate, onReview }: Props) {
       cell: ({ row }) => {
         const school = row.original.school_id;
         return typeof school === 'object' && school !== null 
-          ? (school as any).school_name 
+          ? (school as {school_name: string}).school_name 
           : `School ID: ${school}`;
       }
     },

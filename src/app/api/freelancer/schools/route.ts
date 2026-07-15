@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         // Freelancers should only ever see Active schools
         const schools = await fetchSchoolsRepo('Active', search);
         return NextResponse.json({ schools });
-    } catch (err: any) {
-        return NextResponse.json({ error: err.message || "Internal Server Error" }, { status: 500 });
+    } catch (err: unknown) {
+        return NextResponse.json({ error: (err as Error).message || "Internal Server Error" }, { status: 500 });
     }
 }
