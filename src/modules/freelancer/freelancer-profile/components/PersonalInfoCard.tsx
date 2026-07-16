@@ -1,19 +1,58 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, Mail, MapPin, Briefcase } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { User, Mail, MapPin, Briefcase, Camera } from "lucide-react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGithub, faLinkedin, faXTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { uploadProfileImageAction } from "../services/freelancer-profile.actions";
 import { PersonalInfoModal } from "./PersonalInfoModal";
 
 export function PersonalInfoCard() {
-    const { data, pendingPersonalInfo } = useFreelancerProfileContext();
+    const { data, pendingPersonalInfo, pendingSocialLinks, refresh } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!data) return null;
 
     // Use pending draft values if they exist, otherwise fallback to live data
     const displayData = { ...data, ...pendingPersonalInfo };
+    const displaySocialLinks = pendingSocialLinks !== null ? pendingSocialLinks : (data.social_links || []);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("title", file.name);
+            formData.append("file", file);
+            const res = await uploadProfileImageAction(data.user_id, formData);
+            if (res.success) {
+                await refresh();
+            } else {
+                console.error("Failed to upload profile image:", res.error);
+            }
+        } catch (err) {
+            console.error("Error uploading image:", err);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const getPlatformIcon = (platform: string) => {
+        switch (platform) {
+            case 'Github': return <FontAwesomeIcon icon={faGithub} className="text-2xl" />;
+            case 'LinkedIn': return <FontAwesomeIcon icon={faLinkedin} className="text-2xl" />;
+            case 'X (Twitter)': return <FontAwesomeIcon icon={faXTwitter} className="text-2xl" />;
+            case 'Personal Portfolio': return <FontAwesomeIcon icon={faGlobe} className="text-2xl" />;
+            default: return <FontAwesomeIcon icon={faGlobe} className="text-2xl" />;
+        }
+    };
 
     return (
         <div className="bg-card text-card-foreground border rounded-xl shadow-sm overflow-hidden">
@@ -29,66 +68,125 @@ export function PersonalInfoCard() {
                     )}
                 </Button>
             </div>
-            
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">
-                            {displayData.user_fname} {displayData.user_mname ? displayData.user_mname + ' ' : ''}{displayData.user_lname} {displayData.suffix_name || ''}
-                        </span>
+
+            <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
+                {/* Left Column: Profile Picture */}
+                <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
+                    <div className="relative w-48 h-48 rounded-full overflow-hidden border-2 border-border shadow-sm group">
+                        {displayData.profile_image_url ? (
+                            /* eslint-disable @next/next/no-img-element */
+                            <img
+                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${displayData.profile_image_url}`}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                                <User className="h-16 w-16" />
+                            </div>
+                        )}
+                        {isUploading && (
+                            <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                                <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></span>
+                            </div>
+                        )}
                     </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 text-xs h-8"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                    >
+                        <Camera className="h-3.5 w-3.5" />
+                        Change Photo
+                    </Button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                    />
                 </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Primary Role</label>
-                    <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">{displayData.user_position || 'Not specified'}</span>
+
+                {/* Right Column: Personal Info & Social Links */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 w-full">
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">
+                                {displayData.user_fname} {displayData.user_mname ? displayData.user_mname + ' ' : ''}{displayData.user_lname} {displayData.suffix_name || ''}
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Email Address</label>
-                    <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">{displayData.user_email}</span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Primary Role</label>
+                        <div className="flex items-center gap-2">
+                            <Briefcase className="h-4 w-4 text-muted-foreground hidden" />
+                            <span className="font-medium text-foreground">{displayData.user_position || 'Not specified'}</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Contact Number</label>
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{displayData.user_contact || 'Not specified'}</span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Email Address</label>
+                        <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground hidden" />
+                            <span className="font-medium text-foreground">{displayData.user_email}</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
-                    <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground hidden" />
-                        <span className="font-medium text-foreground">
-                            {[displayData.user_brgy, displayData.user_city, displayData.user_province].filter(Boolean).join(', ') || 'Not specified'}
-                        </span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Contact Number</label>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{displayData.user_contact || 'Not specified'}</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Gender</label>
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{displayData.gender || 'Not specified'}</span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+                        <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-muted-foreground hidden" />
+                            <span className="font-medium text-foreground">
+                                {[displayData.user_brgy, displayData.user_city, displayData.user_province].filter(Boolean).join(', ') || 'Not specified'}
+                            </span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Birthday</label>
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{displayData.user_bday || 'Not specified'}</span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Gender</label>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{displayData.gender || 'Not specified'}</span>
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Religion</label>
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{displayData.religion || 'Not specified'}</span>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Birthday</label>
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{displayData.user_bday || 'Not specified'}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Social Links</label>
+                        <div className="flex flex-wrap items-center gap-3">
+                            {displaySocialLinks.length > 0 ? (
+                                displaySocialLinks.map((link) => (
+                                    <a
+                                        key={link.id}
+                                        href={link.profile_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                        title={link.platform_name}
+                                    >
+                                        {getPlatformIcon(link.platform_name)}
+                                    </a>
+                                ))
+                            ) : (
+                                <span className="font-medium text-foreground text-sm">Not specified</span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <PersonalInfoModal 
+
+            <PersonalInfoModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
             />

@@ -14,6 +14,13 @@ export interface VsUserSkillMap {
     skill: VsMasterSkill; // Assuming expanded relation
 }
 
+export interface VsUserSocialLink {
+    id: number;
+    user_id: number;
+    platform_name: 'Github' | 'LinkedIn' | 'X (Twitter)' | 'Personal Portfolio';
+    profile_url: string;
+}
+
 export interface VsJobSeekerProfile {
     profile_id: number;
     user_id: number;
@@ -60,12 +67,17 @@ export interface VsWorkExperience {
 }
 
 export interface VsEducation {
-    id: number;
+    id?: number;
+    employee_education_id?: number;
     user_id: number;
-    institution_name: string;
-    degree: string | null;
-    field_of_study: string | null;
-    graduation_year: number | null;
+    school_id: number;
+    school_course_id: number | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    
+    // Virtual fields joined from DB for UI rendering
+    school_name?: string;
+    course_name?: string;
 }
 
 export interface VsCertification {
@@ -95,12 +107,14 @@ export interface FreelancerProfile {
     civil_status: string | null;
     blood_type: string | null;
     religion: string | null;
+    profile_image_url: string | null;
     user_bday: string | null;
     nationality: string | null;
     place_of_birth: string | null;
     
     // Relational fields fetched via Directus
     job_seeker_profile?: VsJobSeekerProfile[];
+    social_links?: VsUserSocialLink[];
     work_experience?: VsWorkExperience[];
     education?: VsEducation[];
     certifications?: VsCertification[];

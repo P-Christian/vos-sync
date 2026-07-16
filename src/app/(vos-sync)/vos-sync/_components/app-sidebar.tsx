@@ -60,7 +60,7 @@ const data = {
 
 import { usePathname } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck } from "lucide-react";
 
 export function AppSidebar({
     className,
@@ -105,6 +105,24 @@ export function AppSidebar({
             ],
         };
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
+    }
+
+    if (pathname.startsWith("/vos-sync/vos-admin")) {
+        const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
+            title: "VOS Sync",
+            subtitle: "VOS Sync ADMIN",
+            homeUrl: "/vos-sync/vos-admin",
+            navItems: [
+                { label: "Dashboard", href: "/vos-sync/vos-admin", icon: LayoutDashboard },
+                { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
+                { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
+            ],
+            footerLinks: [
+                { label: "Settings", href: "#", icon: User },
+                { label: "Logout", href: "/login", icon: User },
+            ],
+        };
+        return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;
     }
     return (
         <Sidebar

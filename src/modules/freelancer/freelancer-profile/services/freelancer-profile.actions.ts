@@ -402,3 +402,113 @@ export async function saveAllProfileChangesAction(payload: any) {
     }
 }
 
+export async function saveSocialLinksAction(userId: number, links: any[]) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    try {
+        const getUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_social_links?filter[user_id][_eq]=${userId}`;
+        const getRes = await fetch(getUrl, {
+            headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+            cache: "no-store"
+        });
+        if (getRes.ok) {
+            const getData = await getRes.json();
+            if (getData.data && getData.data.length > 0) {
+                const ids = getData.data.map((l: any) => l.id);
+                const deleteUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_social_links`;
+                await fetch(deleteUrl, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(ids)
+                });
+            }
+        }
+
+        if (links && links.length > 0) {
+            const payload = links.map(link => ({
+                user_id: userId,
+                platform_name: link.platform_name,
+                profile_url: link.profile_url
+            }));
+            const insertUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user_social_links`;
+            const insertRes = await fetch(insertUrl, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!insertRes.ok) throw new Error("Failed to insert social links");
+        }
+
+        return { success: true };
+    } catch (err: unknown) {
+        console.error("saveSocialLinksAction Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+export async function uploadProfileImageAction(userId: number, formData: FormData) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+    const FOLDER_ID = '1cd008d3-4d24-4da5-bcd5-adf0b9e99d69';
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    try {
+        const uploadUrl = `${NEXT_PUBLIC_API_BASE_URL}/files`;
+        const uploadRes = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+            body: formData,
+        });
+
+        if (!uploadRes.ok) throw new Error(`Failed to upload media: HTTP ${uploadRes.status}`);
+        const json = await uploadRes.json();
+        const fileId = json.data.id;
+
+        // Move the file into the specific folder
+        const patchRes = await fetch(`${uploadUrl}/${fileId}`, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ folder: FOLDER_ID })
+        });
+        
+        if (!patchRes.ok) {
+            console.error(`Failed to assign folder to file ${fileId}`);
+        }
+
+        const updateUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+        const updateRes = await fetch(updateUrl, {
+            method: "PATCH",
+            headers: {
+                "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ profile_image_url: fileId })
+        });
+
+        if (!updateRes.ok) throw new Error(`Failed to update user profile image: HTTP ${updateRes.status}`);
+
+        const { revalidatePath } = await import("next/cache");
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+        return { success: true, fileId };
+    } catch (err: unknown) {
+        console.error("uploadProfileImageAction Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
