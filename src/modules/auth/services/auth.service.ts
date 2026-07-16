@@ -27,7 +27,8 @@ export async function loginUser(email: string, hashPasswordParam: string) {
     const token = await new jose.SignJWT({ 
         sub: String(user.user_id),
         email: user.user_email,
-        role: user.role
+        role: user.role,
+        role_id: user.role_id
     })
         .setProtectedHeader({ alg })
         .setIssuedAt()

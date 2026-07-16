@@ -112,12 +112,15 @@ function LoginForm() {
             toast.success("Signed in", { description: "Welcome back." })
 
             let defaultPath = "/main-dashboard"
-            if (data?.role_id === 1) {
+            const roleId = Number(data?.role_id);
+            if (roleId === 1) {
                 defaultPath = "/vos-sync/freelancer/dashboard"
-            } else if (data?.role_id === 2) {
+            } else if (roleId === 2) {
                 defaultPath = "/vos-sync/client/dashboard"
-            } else if (data?.role_id === 3) {
+            } else if (roleId === 3) {
                 defaultPath = "/vos-sync/vos-admin"
+            } else if (roleId === 4) {
+                defaultPath = "/vos-sync/school-admin"
             }
 
             const next = searchParams.get("next") || defaultPath

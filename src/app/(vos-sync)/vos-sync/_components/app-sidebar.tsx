@@ -107,6 +107,23 @@ export function AppSidebar({
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
 
+    if (pathname.startsWith("/vos-sync/school-admin")) {
+        const SCHOOL_DASHBOARD_SIDEBAR_CONFIG: SidebarConfig = {
+            title: "VOS Sync",
+            subtitle: "SCHOOL ADMIN",
+            homeUrl: "/vos-sync/school-admin",
+            navItems: [
+                { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
+                { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
+            ],
+            footerLinks: [
+                { label: "Settings", href: "#", icon: User },
+                { label: "Logout", href: "/login", icon: User },
+            ],
+        };
+        return <DashboardSidebar config={SCHOOL_DASHBOARD_SIDEBAR_CONFIG} {...props} />;
+    }
+
     if (pathname.startsWith("/vos-sync/vos-admin")) {
         const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
