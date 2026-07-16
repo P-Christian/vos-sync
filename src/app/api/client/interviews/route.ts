@@ -37,6 +37,38 @@ async function getCompanyId(userId: number): Promise<number | null> {
   return json.data?.[0]?.company_id ?? null;
 }
 
+interface DirectusInterview {
+  interview_id: number;
+  company_id: number;
+  application_id: number;
+  interviewer_user_id?: number | null;
+  interview_date: string;
+  interview_time: string;
+  interview_format: string;
+  meeting_link?: string | null;
+  meeting_location?: string | null;
+  interview_notes?: string | null;
+  interview_status: string;
+  created_at?: string;
+}
+
+interface ApplicationSummary {
+  application_id: number;
+  user_id: number;
+  job_id: number;
+}
+
+interface DirectusUser {
+  user_id: number;
+  user_fname: string;
+  user_lname: string;
+}
+
+interface DirectusJob {
+  job_id: number;
+  job_title: string;
+}
+
 // GET — List interviews for the company
 export async function GET(req: NextRequest) {
   try {
@@ -62,8 +94,76 @@ export async function GET(req: NextRequest) {
       { headers: getHeaders(), cache: "no-store" }
     );
     const json = await res.json();
+    const rawInterviews: DirectusInterview[] = json.data ?? [];
 
-    return NextResponse.json({ interviews: json.data ?? [] });
+    if (rawInterviews.length === 0) {
+      return NextResponse.json({ interviews: [] });
+    }
+
+    // Resolve applications for these interviews
+    const appIds = [...new Set(rawInterviews.map((iv) => iv.application_id).filter(Boolean))];
+    const appsMap: Record<number, { user_id: number; job_id: number }> = {};
+    if (appIds.length > 0) {
+      const appsRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,user_id,job_id&limit=200`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (appsRes.ok) {
+        const appsJson = await appsRes.json();
+        const appsList: ApplicationSummary[] = appsJson.data ?? [];
+        appsList.forEach((a) => {
+          appsMap[a.application_id] = { user_id: a.user_id, job_id: a.job_id };
+        });
+      }
+    }
+
+    // Resolve user IDs and job IDs
+    const userIds = [...new Set(Object.values(appsMap).map((a) => a.user_id).filter(Boolean))];
+    const jobIds = [...new Set(Object.values(appsMap).map((a) => a.job_id).filter(Boolean))];
+
+    const usersMap: Record<number, string> = {};
+    if (userIds.length > 0) {
+      const usersRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname&limit=200`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (usersRes.ok) {
+        const usersJson = await usersRes.json();
+        const usersList: DirectusUser[] = usersJson.data ?? [];
+        usersList.forEach((u) => {
+          usersMap[u.user_id] = `${u.user_fname} ${u.user_lname}`.trim();
+        });
+      }
+    }
+
+    const jobsMap: Record<number, string> = {};
+    if (jobIds.length > 0) {
+      const jobsRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title&limit=200`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (jobsRes.ok) {
+        const jobsJson = await jobsRes.json();
+        const jobsList: DirectusJob[] = jobsJson.data ?? [];
+        jobsList.forEach((j) => {
+          jobsMap[j.job_id] = j.job_title;
+        });
+      }
+    }
+
+    // Enrich interviews
+    const interviews = rawInterviews.map((iv) => {
+      const app = appsMap[iv.application_id] ?? { user_id: null, job_id: null };
+      const applicantName = app.user_id ? (usersMap[app.user_id] ?? `Applicant #${app.user_id}`) : "Unknown Candidate";
+      const jobTitle = app.job_id ? (jobsMap[app.job_id] ?? "Unknown Role") : "Unknown Role";
+      return {
+        ...iv,
+        applicant_name: applicantName,
+        job_title: jobTitle,
+      };
+    });
+
+    return NextResponse.json({ interviews });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
@@ -133,7 +233,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Also update the application status to INTERVIEW_SCHEDULED
-    await fetch(`${DIRECTUS_BASE}/items/vs_application/${body.application_id}`, {
+    await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${body.application_id}`, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify({ application_status: "INTERVIEW_SCHEDULED" }),
@@ -151,4 +251,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

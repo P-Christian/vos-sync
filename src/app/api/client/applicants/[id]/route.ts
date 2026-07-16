@@ -59,9 +59,9 @@ export async function PATCH(
       status_updated_at: nowPH,
     };
 
-    if (body.client_notes) payload.client_notes = body.client_notes;
+    if (body.client_notes !== undefined) payload.client_notes = body.client_notes;
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_application/${id}`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}`, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify(payload),

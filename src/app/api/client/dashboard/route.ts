@@ -19,12 +19,22 @@ interface JobPostingRecord {
 interface ApplicationRecord {
   application_id: number;
   job_id: number;
-  applicant_name?: string;
-  applicant_email?: string;
-  job_title?: string;
-  experience?: string;
+  user_id: number;
   application_status: string;
   applied_at?: string;
+}
+
+interface DirectusUser {
+  user_id: number;
+  user_fname: string;
+  user_lname: string;
+  user_email: string;
+  user_position?: string | null;
+}
+
+interface DirectusProfile {
+  user_id: number;
+  profile_headline?: string | null;
 }
 
 function getHeaders(): Record<string, string> {
@@ -119,7 +129,7 @@ export async function GET(req: NextRequest) {
     const companyData = companyJson.data;
 
     // 3. Fetch vs_job_posting records
-    const jobsUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[company_id][_eq]=${companyId}&filter[is_deleted][_eq]=0&sort[]=-created_at&limit=100&fields=*`;
+    const jobsUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[company_id][_eq]=${companyId}&sort[]=-created_at&limit=100&fields=*`;
     const jobsRes = await fetch(jobsUrl, { headers: getHeaders(), cache: "no-store" });
     if (!jobsRes.ok) {
       return NextResponse.json({ error: "Failed to query jobs list." }, { status: jobsRes.status });
@@ -129,10 +139,10 @@ export async function GET(req: NextRequest) {
 
     const jobIds: number[] = jobsList.map((j) => j.job_id);
 
-    // 4. Fetch vs_application records
+    // 4. Fetch vs_job_application records
     let applicantsList: ApplicationRecord[] = [];
     if (jobIds.length > 0) {
-      const appUrl = `${DIRECTUS_BASE}/items/vs_application?filter[job_id][_in]=${jobIds.join(",")}&sort[]=-applied_at&limit=100&fields=*`;
+      const appUrl = `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&sort[]=-applied_at&limit=100&fields=*`;
       const appRes = await fetch(appUrl, { headers: getHeaders(), cache: "no-store" });
       if (appRes.ok) {
         const appJson = await appRes.json();
@@ -166,16 +176,56 @@ export async function GET(req: NextRequest) {
       postedAt: j.created_at || new Date().toISOString(),
     }));
 
-    // 8. Format applicants list
-    const formattedApplicants = applicantsList.slice(0, 5).map((a) => ({
-      id: a.application_id,
-      name: a.applicant_name || "Applicant",
-      jobTitle: jTitleLookup(a.job_id, jobsList) || a.job_title || "Unknown Role",
-      email: a.applicant_email || "",
-      experience: a.experience || "N/A",
-      status: a.application_status,
-      appliedDate: a.applied_at || new Date().toISOString(),
-    }));
+    // 8. Enrich & Format applicants list
+    const userIds = [...new Set(applicantsList.slice(0, 5).map((a) => a.user_id).filter(Boolean))];
+    const usersMap: Record<number, { name: string; email: string; position?: string }> = {};
+    const profilesMap: Record<number, string> = {};
+
+    if (userIds.length > 0) {
+      const usersRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_position&limit=10`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (usersRes.ok) {
+        const usersJson = await usersRes.json();
+        const usersList: DirectusUser[] = usersJson.data ?? [];
+        usersList.forEach((u) => {
+          usersMap[u.user_id] = {
+            name: `${u.user_fname} ${u.user_lname}`.trim(),
+            email: u.user_email,
+            position: u.user_position ?? undefined,
+          };
+        });
+      }
+
+      const profilesRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_seeker_profile?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,profile_headline&limit=10`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (profilesRes.ok) {
+        const profilesJson = await profilesRes.json();
+        const profilesList: DirectusProfile[] = profilesJson.data ?? [];
+        profilesList.forEach((p) => {
+          if (p.profile_headline) {
+            profilesMap[p.user_id] = p.profile_headline;
+          }
+        });
+      }
+    }
+
+    const formattedApplicants = applicantsList.slice(0, 5).map((a) => {
+      const u = usersMap[a.user_id] ?? { name: "Applicant", email: "" };
+      const headline = profilesMap[a.user_id] ?? u.position ?? "N/A";
+      return {
+        id: a.application_id,
+        name: u.name,
+        jobTitle: jTitleLookup(a.job_id, jobsList) || "Unknown Role",
+        email: u.email,
+        experience: headline,
+        status: a.application_status,
+        appliedDate: a.applied_at || new Date().toISOString(),
+      };
+    });
 
     return NextResponse.json({
       company: companyData,
