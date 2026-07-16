@@ -11,7 +11,7 @@ const STATUS_STYLES: Record<JobStatus, string> = {
   DRAFT:
     "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
   CLOSED:
-    "bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-400",
+    "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450",
 };
 
 interface JobStatusBadgeProps {

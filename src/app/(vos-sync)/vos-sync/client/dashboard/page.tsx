@@ -86,7 +86,7 @@ export default async function clientDashboardPage() {
                         <Breadcrumb>
                             <BreadcrumbList className="min-w-0 overflow-hidden">
                                 <BreadcrumbItem className="hidden md:block shrink-0">
-                                    <BreadcrumbLink href="#">client</BreadcrumbLink>
+                                    <BreadcrumbLink href="#">Client</BreadcrumbLink>
                                 </BreadcrumbItem>
                                 <BreadcrumbSeparator className="hidden md:block shrink-0" />
                                 <BreadcrumbItem className="min-w-0 overflow-hidden">
@@ -103,12 +103,9 @@ export default async function clientDashboardPage() {
                 </div>
             </header>
 
-            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-8">
-                <div className="max-w-6xl mx-auto">
-                    <DashboardModule />
-                </div>
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
+                <DashboardModule userName={headerUser.name} />
             </main>
         </div>
-    );
-}
+    );}
 

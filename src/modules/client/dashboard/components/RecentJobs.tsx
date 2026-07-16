@@ -10,14 +10,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Users } from "lucide-react";
+import { MapPin, Calendar, Users, FolderClosed, Search, Plus } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface RecentJobsProps {
   jobs: JobPosting[];
 }
 
 export default function RecentJobs({ jobs }: RecentJobsProps) {
+  const router = useRouter();
+
   const getStatusBadge = (status: JobPosting["status"]) => {
     switch (status) {
       case "ACTIVE":
@@ -45,14 +49,36 @@ export default function RecentJobs({ jobs }: RecentJobsProps) {
 
   if (jobs.length === 0) {
     return (
-      <div className="text-center py-10 border rounded-xl bg-zinc-50/50 dark:bg-zinc-900/30">
-        <p className="text-sm text-muted-foreground">No job postings found. Create your first job posting!</p>
+      <div className="flex flex-col items-center justify-center text-center p-8 sm:p-12 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-3xl min-h-[300px]">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 mb-4">
+          <FolderClosed className="h-8 w-8" />
+        </div>
+        <h3 className="text-base font-medium text-zinc-800 dark:text-zinc-200 mb-6">
+          No job posts or contracts in progress right now
+        </h3>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <Button
+            onClick={() => router.push("/vos-sync/client/applicants")}
+            variant="outline"
+            className="rounded-full border-zinc-300 text-zinc-700 dark:text-zinc-300 px-6 h-10 w-full sm:w-auto text-sm font-semibold"
+          >
+            <Search className="h-4 w-4 mr-1.5" />
+            Find a talent
+          </Button>
+          <Button
+            onClick={() => router.push("/vos-sync/client/jobs")}
+            className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 h-10 w-full sm:w-auto text-sm font-semibold border-0 shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Post a job
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto border rounded-xl bg-white dark:bg-zinc-950">
+    <div className="overflow-x-auto border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl">
       <Table>
         <TableHeader>
           <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">

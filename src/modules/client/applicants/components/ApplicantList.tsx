@@ -9,9 +9,10 @@ import { Users } from "lucide-react";
 interface ApplicantListProps {
   applicants: Applicant[];
   onUpdateStatus: (applicant: Applicant) => void;
+  onScheduleInterview: (applicant: Applicant) => void;
 }
 
-export default function ApplicantList({ applicants, onUpdateStatus }: ApplicantListProps) {
+export default function ApplicantList({ applicants, onUpdateStatus, onScheduleInterview }: ApplicantListProps) {
   if (applicants.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -33,6 +34,7 @@ export default function ApplicantList({ applicants, onUpdateStatus }: ApplicantL
           key={a.application_id}
           applicant={a}
           onUpdateStatus={onUpdateStatus}
+          onScheduleInterview={onScheduleInterview}
         />
       ))}
     </div>

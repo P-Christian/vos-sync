@@ -21,7 +21,17 @@ export interface JobPosting {
   applicants_count?: number;
   created_at?: string;
   updated_at?: string;
-  is_deleted?: number;
+  job_category?: string;
+  work_arrangement?: string;
+  number_of_openings?: string;
+  job_responsibilities?: string;
+  job_qualifications?: string;
+  skills?: { id: number; skill_name: string; source?: string; confidence_score?: number | null }[];
+  salary_type?: string;
+  currency?: string;
+  benefits?: string[];
+  education?: string;
+  screening_questions?: string[];
 }
 
 export interface JobFormData {
@@ -36,6 +46,17 @@ export interface JobFormData {
   salary_negotiable: boolean;
   experience_level: ExperienceLevel | "";
   status: JobStatus;
+  job_category?: string;
+  work_arrangement?: string;
+  number_of_openings?: string;
+  job_responsibilities?: string;
+  job_qualifications?: string;
+  skills?: { id: number; skill_name: string; source?: string; confidence_score?: number | null }[];
+  salary_type?: string;
+  currency?: string;
+  benefits?: string[];
+  education?: string;
+  screening_questions?: string[];
 }
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {
