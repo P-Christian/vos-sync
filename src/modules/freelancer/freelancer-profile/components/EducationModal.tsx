@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsEducation } from "../types/freelancer-profile.types";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { CreateSchoolRequestModal } from "@/modules/school-admin/request-management/components/CreateSchoolRequestModal";
-import { CreateCourseRequestModal } from "@/modules/school-admin/request-management/components/CreateCourseRequestModal";
+import { CreateSchoolRequestModal } from "@/modules/vos-admin/request-management/components/CreateSchoolRequestModal";
+import { CreateCourseRequestModal } from "@/modules/vos-admin/request-management/components/CreateCourseRequestModal";
 
 interface EducationModalProps {
     isOpen: boolean;

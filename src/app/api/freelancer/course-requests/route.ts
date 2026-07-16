@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import * as jose from "jose";
-import { createCourseRequestRepo } from "@/modules/school-admin/request-management/services/request.repo";
+import { createCourseRequestRepo } from "@/modules/vos-admin/request-management/services/request.repo";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 

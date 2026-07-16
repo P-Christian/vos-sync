@@ -125,7 +125,7 @@ function LoginForm() {
             } else if (data?.role_id === 2) {
                 defaultPath = "/vos-sync/client/dashboard"
             } else if (data?.role_id === 3) {
-                defaultPath = "/vos-sync/school-admin"
+                defaultPath = "/vos-sync/vos-admin"
             }
 
             const next = searchParams.get("next") || defaultPath
@@ -279,19 +279,7 @@ function LoginForm() {
                                 {loading ? "Signing in..." : "Sign in"}
                             </Button>
                         </form>
-                        
-                        <div className="relative my-8 text-center">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t"></div>
-                            </div>
-                            <span className="relative px-4 bg-card text-sm text-muted-foreground">Or continue with</span>
-                        </div>
-                        
-                        <Button variant="outline" type="button" className="w-full h-11 flex items-center justify-center gap-2 font-medium text-foreground">
-                            <GoogleIcon />
-                            Sign in with Google
-                        </Button>
-                        
+
                         <p className="mt-8 text-center text-sm text-muted-foreground">
                             Don&apos;t have an account?{" "}
                             <Link className="text-primary font-medium hover:underline" href="/signup">Sign up</Link>

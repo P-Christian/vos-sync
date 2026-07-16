@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchCoursesBySchoolRepo } from "@/modules/school-admin/school-management/services/school.repo";
+import { fetchCoursesBySchoolRepo } from "@/modules/vos-admin/school-management/services/school.repo";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {

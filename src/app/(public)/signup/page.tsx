@@ -138,7 +138,7 @@ export default function SignupPage() {
       } else if (data?.role_id === 2) {
         router.push('/vos-sync/client/dashboard');
       } else if (data?.role_id === 3) {
-        router.push('/vos-sync/school-admin');
+        router.push('/vos-sync/vos-admin');
       } else {
         router.push('/main-dashboard');
       }
@@ -227,22 +227,6 @@ export default function SignupPage() {
             ? 'Sign up to find work you love'
             : 'Sign up to hire talent'}
         </h1>
-      </div>
-
-      <div className="space-y-4 mb-8">
-        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-foreground rounded-full font-medium hover:bg-muted transition-colors text-base cursor-pointer">
-          <Apple size={20} />
-          Continue with Apple
-        </Button>
-
-        <Button type="button" variant="outline" className="w-full flex items-center justify-center gap-2 py-6 border-2 border-foreground rounded-full font-medium hover:bg-muted transition-colors text-base cursor-pointer">
-          <GoogleIcon />
-          Continue with Google
-        </Button>
-      </div>
-
-      <div className="relative text-center text-sm text-muted-foreground mb-8 after:content-[''] after:absolute after:top-1/2 after:left-0 after:w-full after:h-[1px] after:bg-border after:-z-10">
-        <span className="bg-background px-4 relative z-10">or</span>
       </div>
 
       <form className="space-y-6" onSubmit={handleSubmit}>

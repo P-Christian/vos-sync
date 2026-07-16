@@ -107,15 +107,15 @@ export function AppSidebar({
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/school-admin")) {
+    if (pathname.startsWith("/vos-sync/vos-admin")) {
         const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
-            subtitle: "SCHOOL ADMIN",
-            homeUrl: "/vos-sync/school-admin",
+            subtitle: "VOS Sync ADMIN",
+            homeUrl: "/vos-sync/vos-admin",
             navItems: [
-                { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
-                { label: "School List", href: "/vos-sync/school-admin/schools", icon: GraduationCap },
-                { label: "Request Management", href: "/vos-sync/school-admin/requests", icon: ClipboardCheck },
+                { label: "Dashboard", href: "/vos-sync/vos-admin", icon: LayoutDashboard },
+                { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
+                { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
             ],
             footerLinks: [
                 { label: "Settings", href: "#", icon: User },
