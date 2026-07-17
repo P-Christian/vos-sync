@@ -21,7 +21,7 @@ export function Footer() {
           <div>
             <h4 className="font-semibold text-foreground mb-4">Candidates</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-foreground transition-colors">Find Jobs</Link></li>
+              <li><Link href="/vos-sync/freelancer/jobs" className="hover:text-foreground transition-colors">Find Jobs</Link></li>
               <li><Link href="#" className="hover:text-foreground transition-colors">Browse Companies</Link></li>
               <li><Link href="#" className="hover:text-foreground transition-colors">Salary Guide</Link></li>
               <Link href="/career-advice" className="hover:text-foreground transition-colors">Career Advice</Link>

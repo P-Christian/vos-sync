@@ -75,7 +75,7 @@ export function AppSidebar({
             homeUrl: "/vos-sync/freelancer/dashboard",
             navItems: [
                 { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
-                { label: "Find Work", href: "#", icon: Briefcase },
+                { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
                 { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
             ],
