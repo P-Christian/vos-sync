@@ -12,7 +12,7 @@ async function getUserIdFromToken() {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return Number(payload.sub || payload.user_id || payload.id);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
@@ -41,7 +41,8 @@ export async function PATCH(
     const updated = await updateMyCourse(courseId, body, userId);
 
     return NextResponse.json({ course: updated });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -32,10 +32,10 @@ export async function GET(
         const admins = await getSchoolAdmins(schoolId);
 
         return NextResponse.json(admins);
-    } catch (err: any) {
-        console.error("Failed to fetch school admins", err);
+    } catch (error: unknown) {
+        console.error("Failed to fetch school admins", error);
         return NextResponse.json(
-            { error: err.message || "Failed to fetch school admins" }, 
+            { error: error instanceof Error ? error.message : "Failed to fetch school admins" }, 
             { status: 500 }
         );
     }

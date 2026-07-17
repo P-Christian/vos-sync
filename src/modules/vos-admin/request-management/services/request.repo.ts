@@ -109,7 +109,7 @@ export async function upsertEmployeeEducation(userId: number, schoolId: number, 
   if (!checkRes.ok) throw new Error("Failed to check existing employee education.");
   const checkJson = await checkRes.json();
   
-  const payload: any = {
+  const payload: Record<string, unknown> = {
     user_id: userId,
     school_id: schoolId,
     school_course_id: courseId,

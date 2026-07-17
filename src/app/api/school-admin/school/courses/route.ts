@@ -12,12 +12,12 @@ async function getUserIdFromToken() {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return Number(payload.sub || payload.user_id || payload.id);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const userId = await getUserIdFromToken();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,8 +27,9 @@ export async function GET(req: NextRequest) {
 
     const courses = await getMyCourses(school.school_id);
     return NextResponse.json({ courses });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -44,7 +45,8 @@ export async function POST(req: NextRequest) {
     const created = await createMyCourse(school.school_id, body, userId);
 
     return NextResponse.json({ course: created }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
 }

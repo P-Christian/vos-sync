@@ -32,10 +32,10 @@ export async function DELETE(
         await removeSchoolAdmin(adminId);
 
         return NextResponse.json({ success: true, message: "Admin removed" });
-    } catch (err: any) {
-        console.error("Failed to remove school admin", err);
+    } catch (error: unknown) {
+        console.error("Failed to remove school admin", error);
         return NextResponse.json(
-            { error: err.message || "Failed to remove school admin" }, 
+            { error: error instanceof Error ? error.message : "Failed to remove school admin" }, 
             { status: 500 }
         );
     }

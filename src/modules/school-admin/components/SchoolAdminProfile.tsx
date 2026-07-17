@@ -35,6 +35,7 @@ export function SchoolAdminProfile({
   // Keep formData in sync if school props update
   useEffect(() => {
     if (!isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         school_name: school.school_name || "",
         school_type: school.school_type || "University",
@@ -50,6 +51,8 @@ export function SchoolAdminProfile({
       });
     }
   }, [school, isEditing]);
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +97,7 @@ export function SchoolAdminProfile({
                 <Select 
                   disabled={!isEditing} 
                   value={formData.school_type} 
-                  onValueChange={(val: any) => setFormData({...formData, school_type: val})}
+                  onValueChange={(val: "University" | "College" | "Technical/Vocational" | "Other") => setFormData({...formData, school_type: val})}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />

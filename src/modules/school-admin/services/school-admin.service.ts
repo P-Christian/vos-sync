@@ -55,5 +55,5 @@ export async function updateMyCourse(courseId: number, data: Partial<VsSchoolCou
 
 export async function toggleMyCourseStatus(courseId: number, currentStatus: string, adminId: number): Promise<VsSchoolCourse> {
   const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-  return updateMyCourse(courseId, { course_status: newStatus as any }, adminId);
+  return updateMyCourse(courseId, { course_status: newStatus as "Active" | "Inactive" }, adminId);
 }

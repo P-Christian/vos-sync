@@ -40,8 +40,13 @@ export async function GET(req: Request) {
         
         const rawRequests = json.data || [];
         
-        // Group by case-insensitive school_name_raw
-        const groupedMap = new Map<string, any>();
+        interface GroupedRequest {
+            normalized_name: string;
+            display_name: string;
+            count: number;
+            requests: unknown[];
+        }
+        const groupedMap = new Map<string, GroupedRequest>();
         
         for (const req of rawRequests) {
             const rawName = req.school_name_raw || "Unknown";
@@ -56,13 +61,13 @@ export async function GET(req: Request) {
                 });
             }
             
-            const group = groupedMap.get(normalizedName);
+            const group = groupedMap.get(normalizedName)!;
             group.count++;
             group.requests.push(req);
         }
 
         return NextResponse.json({ requests: Array.from(groupedMap.values()) });
-    } catch (err: any) {
+    } catch {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
@@ -103,7 +108,7 @@ export async function POST(req: Request) {
         }
 
         return NextResponse.json({ success: true, school: createJson.data });
-    } catch (err: any) {
+    } catch {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
@@ -179,7 +184,7 @@ export async function PATCH(req: Request) {
         }
 
         return NextResponse.json({ success: true });
-    } catch (err: any) {
+    } catch {
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

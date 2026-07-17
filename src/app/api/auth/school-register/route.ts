@@ -193,7 +193,7 @@ export async function POST(req: Request) {
             userId: userId
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("School register POST error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }

@@ -4,15 +4,26 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { SchoolForm } from "./SchoolForm";
 import { MapSchoolModal } from "./MapSchoolModal";
 
+interface RequestItem {
+  id: number;
+  employee_education_id?: number;
+  course_name_raw?: string;
+}
+
+interface GroupedRequest {
+  normalized_name: string;
+  display_name: string;
+  count: number;
+  requests: RequestItem[];
+}
+
 export function SchoolRequestsTab() {
-  const [requests, setRequests] = useState<any[]>([]);
+  const [requests, setRequests] = useState<GroupedRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<any>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GroupedRequest | null>(null);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -36,38 +47,16 @@ export function SchoolRequestsTab() {
     fetchRequests();
   }, []);
 
-  const handleApproveClick = (group: any) => {
+  const handleApproveClick = (group: GroupedRequest) => {
     setSelectedGroup(group);
     setIsMapModalOpen(true);
   };
 
-  const handleReject = async (id: number) => {
-    if (!confirm("Are you sure you want to reject this request?")) return;
-    try {
-      const res = await fetch(`/api/vos-admin/unverified-schools`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action: "reject" })
-      });
-      if (res.ok) {
-        toast.success("Request rejected");
-        fetchRequests();
-      } else {
-        toast.error("Failed to reject request");
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleFormSubmit = async (data: any) => {
-    // Legacy support if they want to create school here, but now we map.
-    return null;
-  };
-
   const handleMapSubmit = async (officialSchoolId: number) => {
     try {
-      const educationIds = selectedGroup.requests.map((r: any) => r.employee_education_id || r.id);
+      const group = selectedGroup;
+      if (!group) return;
+      const educationIds = group.requests.map(r => r.employee_education_id || r.id);
       const res = await fetch("/api/vos-admin/unverified-schools", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -78,7 +67,7 @@ export function SchoolRequestsTab() {
         })
       });
       if (res.ok) {
-        toast.success(`Successfully linked ${selectedGroup.count} freelancers to official school!`);
+        toast.success(`Successfully linked ${group.count} freelancers to official school!`);
         setIsMapModalOpen(false);
         fetchRequests();
       } else {
@@ -117,7 +106,7 @@ export function SchoolRequestsTab() {
                   <TableCell className="font-medium">{group.display_name}</TableCell>
                   <TableCell>
                     <div className="text-xs text-muted-foreground max-w-[200px] truncate">
-                      {Array.from(new Set(group.requests.map((r: any) => r.course_name_raw || 'No Course'))).join(", ")}
+                      {Array.from(new Set(group.requests.map(r => r.course_name_raw || 'No Course'))).join(", ")}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -142,7 +131,7 @@ export function SchoolRequestsTab() {
       <MapSchoolModal
         open={isMapModalOpen}
         onOpenChange={setIsMapModalOpen}
-        group={selectedGroup}
+        group={selectedGroup!}
         onSubmit={handleMapSubmit}
       />
     </div>

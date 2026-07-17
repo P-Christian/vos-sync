@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { VsSchoolAdminRecord, CreateSchoolAdminPayload } from "../types/school.types";
+import { VsSchoolAdminRecord } from "../types/school.types";
 import { SendInviteModal } from "./SendInviteModal";
 
 interface SchoolAdminsTabProps {
@@ -13,11 +13,10 @@ interface SchoolAdminsTabProps {
   schoolName: string;
   schoolEmail: string | null;
   admins: VsSchoolAdminRecord[];
-  onAddAdmin: (payload: CreateSchoolAdminPayload) => Promise<boolean>;
   onRemoveAdmin: (adminId: number) => Promise<boolean>;
 }
 
-export function SchoolAdminsTab({ schoolId, schoolName, schoolEmail, admins, onAddAdmin, onRemoveAdmin }: SchoolAdminsTabProps) {
+export function SchoolAdminsTab({ schoolId, schoolName, schoolEmail, admins, onRemoveAdmin }: SchoolAdminsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (

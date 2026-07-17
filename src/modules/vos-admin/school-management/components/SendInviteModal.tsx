@@ -46,8 +46,8 @@ export function SendInviteModal({ isOpen, onOpenChange, schoolId, schoolName, sc
 
       toast.success(`Invite sent to ${email}!`);
       onOpenChange(false);
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Error");
     } finally {
       setIsSending(false);
     }
@@ -59,7 +59,7 @@ export function SendInviteModal({ isOpen, onOpenChange, schoolId, schoolName, sc
         <DialogHeader>
           <DialogTitle>Send Invite Link</DialogTitle>
           <DialogDescription>
-            Send a unique registration link to the school's official email address.
+            An invitation link will be sent to the admin&apos;s email address.
           </DialogDescription>
         </DialogHeader>
         

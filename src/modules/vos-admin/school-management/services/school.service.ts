@@ -56,9 +56,9 @@ export async function toggleSchoolStatus(id: number, currentStatus: string, admi
   return updateSchool(id, { school_status: newStatus }, adminId);
 }
 
-export async function toggleSchoolCourseStatus(courseId: number, currentStatus: string, adminId: number): Promise<VsSchoolCourse> {
+export async function toggleSchoolCourseStatus(courseId: number, currentStatus: string): Promise<VsSchoolCourse> {
   const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-  return updateSchoolCourseRepo(courseId, { course_status: newStatus }, adminId);
+  return updateSchoolCourseRepo(courseId, { course_status: newStatus as "Active" | "Inactive" });
 }
 
 export async function getSchoolAdmins(schoolId: number): Promise<VsSchoolAdminRecord[]> {

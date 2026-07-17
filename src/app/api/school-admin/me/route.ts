@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { getMySchool } from "@/modules/school-admin/services/school-admin.service";
@@ -13,12 +13,12 @@ async function getUserIdFromToken() {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return Number(payload.sub || payload.user_id || payload.id);
-  } catch (err) {
+  } catch {
     return null;
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const userId = await getUserIdFromToken();
     if (!userId) {
@@ -31,8 +31,9 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ school });
-  } catch (err: any) {
-    console.error("GET /api/school-admin/me error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  } catch (error: unknown) {
+    console.error("GET /api/school-admin/me error:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

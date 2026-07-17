@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 export default function SchoolRegisterPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  const [step, setStep] = useState<'loading' | 'invalid' | 'form' | 'otp' | 'success'>('loading');
-  const [errorMessage, setErrorMessage] = useState("");
+  const [step, setStep] = useState<'loading' | 'invalid' | 'form' | 'otp' | 'success'>(token ? 'loading' : 'invalid');
+  const [errorMessage, setErrorMessage] = useState(token ? "" : "No invitation token provided.");
   const [schoolInfo, setSchoolInfo] = useState<{ name: string; email: string } | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [otp, setOtp] = useState('');
@@ -32,8 +31,6 @@ export default function SchoolRegisterPage() {
 
   useEffect(() => {
     if (!token) {
-      setErrorMessage("No invitation token provided.");
-      setStep('invalid');
       return;
     }
 

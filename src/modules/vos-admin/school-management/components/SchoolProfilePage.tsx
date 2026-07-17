@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
-  const { school, courses, admins, loading, saving, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, createAdmin, removeAdmin, approveSchool } = useSchoolDetail();
+  const { school, courses, admins, loading, saving, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, removeAdmin, approveSchool } = useSchoolDetail();
 
   useEffect(() => {
     fetchSchoolDetail(schoolId);
@@ -150,7 +150,6 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
             schoolName={school.school_name}
             schoolEmail={school.school_email}
             admins={admins} 
-            onAddAdmin={(data) => createAdmin(data)} 
             onRemoveAdmin={(adminId) => removeAdmin(schoolId, adminId)} 
           />
         </TabsContent>

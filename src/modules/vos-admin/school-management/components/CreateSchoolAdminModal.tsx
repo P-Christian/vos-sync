@@ -25,7 +25,7 @@ interface CreateSchoolAdminModalProps {
 
 export function CreateSchoolAdminModal({ schoolId, isOpen, onClose, onSave }: CreateSchoolAdminModalProps) {
   const [saving, setSaving] = useState(false);
-  const [schools, setSchools] = useState<any[]>([]);
+  const [schools, setSchools] = useState<{ school_id: number; school_name: string }[]>([]);
   const [formData, setFormData] = useState({
     school_id: schoolId,
     user_fname: "",
@@ -37,6 +37,7 @@ export function CreateSchoolAdminModal({ schoolId, isOpen, onClose, onSave }: Cr
 
   // Keep formData school_id in sync if schoolId prop changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData(prev => ({ ...prev, school_id: schoolId }));
   }, [schoolId]);
 

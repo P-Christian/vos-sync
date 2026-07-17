@@ -1,37 +1,53 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+
+interface School {
+    id: number;
+    school_name: string;
+}
+
+interface MapSchoolModalProps {
+    open: boolean;
+    onOpenChange: (o: boolean) => void;
+    group: {
+        count: number;
+        display_name: string;
+    };
+    onSubmit: (officialSchoolId: number) => Promise<void>;
+}
 
 export function MapSchoolModal({ 
     open, 
     onOpenChange, 
     group, 
     onSubmit 
-}: { 
-    open: boolean; 
-    onOpenChange: (o: boolean) => void;
-    group: any;
-    onSubmit: (officialSchoolId: number) => Promise<void>;
-}) {
-    const [schools, setSchools] = useState<any[]>([]);
+}: MapSchoolModalProps) {
+    const [schools, setSchools] = useState<School[]>([]);
     const [selectedSchool, setSelectedSchool] = useState<string>("");
     const [loading, setLoading] = useState(false);
 
+    const fetchSchools = useCallback(async () => {
+        try {
+            const res = await fetch("/api/vos-admin/schools?status=Active");
+            const data = await res.json();
+            setSchools(data.schools || []);
+        } catch (err) {
+            console.error("Failed to load schools", err);
+        }
+    }, []);
+
     useEffect(() => {
         if (open) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedSchool("");
-            // Fetch official schools
-            fetch("/api/vos-admin/schools?status=Active")
-                .then(res => res.json())
-                .then(data => {
-                    setSchools(data.schools || []);
-                })
-                .catch(err => console.error("Failed to load schools", err));
+            fetchSchools();
         }
-    }, [open]);
+    }, [open, fetchSchools]);
 
     const handleSubmit = async () => {
         if (!selectedSchool) return;
@@ -46,7 +62,7 @@ export function MapSchoolModal({
                 <DialogHeader>
                     <DialogTitle>Map to Official School</DialogTitle>
                     <DialogDescription>
-                        Select the official school to link to the {group?.count} freelancers who typed "{group?.display_name}".
+                        Select the official school to link to the {group?.count} freelancers who typed &quot;{group?.display_name}&quot;.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -56,7 +72,7 @@ export function MapSchoolModal({
                         </SelectTrigger>
                         <SelectContent>
                             {schools.map(s => (
-                                <SelectItem key={s.id || s.school_id} value={(s.id || s.school_id).toString()}>
+                                <SelectItem key={s.id || s.school_name} value={(s.id || s.school_name).toString()}>
                                     {s.school_name}
                                 </SelectItem>
                             ))}

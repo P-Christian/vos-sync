@@ -58,10 +58,11 @@ export async function POST(req: NextRequest) {
             data: junction
         });
 
-    } catch (err: any) {
-        console.error("Failed to create and assign school admin", err);
+    } catch (error: unknown) {
+        console.error("Failed to create and assign school admin", error);
+        const message = error instanceof Error ? error.message : "Failed to create school admin";
         return NextResponse.json(
-            { error: err.message || "Failed to create school admin" }, 
+            { error: message }, 
             { status: 500 }
         );
     }

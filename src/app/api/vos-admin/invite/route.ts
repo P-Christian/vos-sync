@@ -80,8 +80,8 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ message: "Invite sent successfully" });
 
-    } catch (err: any) {
-        console.error("Invite API error:", err);
+    } catch (error: unknown) {
+        console.error("Invite API error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }

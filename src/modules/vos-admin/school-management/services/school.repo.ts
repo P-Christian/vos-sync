@@ -42,12 +42,12 @@ export async function fetchSchoolsRepo(status?: string, search?: string): Promis
   // Fetch course counts grouped by school_id
   const courseCountUrl = `${DIRECTUS_BASE}/items/vs_school_course?aggregate[count]=*&groupBy[]=school_id`;
   const courseCountRes = await fetch(courseCountUrl, { headers: getHeaders(), cache: "no-store" });
-  let courseCounts: Record<number, number> = {};
+  const courseCounts: Record<number, number> = {};
   if (courseCountRes.ok) {
     const ccJson = await courseCountRes.json();
     if (ccJson.data) {
-      ccJson.data.forEach((item: any) => {
-        if (item.school_id) courseCounts[item.school_id] = parseInt(item.count || 0, 10);
+      ccJson.data.forEach((item: { school_id?: number, count?: string | number }) => {
+        if (item.school_id) courseCounts[item.school_id] = typeof item.count === 'string' ? parseInt(item.count, 10) : (item.count || 0);
       });
     }
   }
@@ -145,6 +145,16 @@ export async function updateSchoolCourseRepo(id: number, payload: Partial<VsScho
   return json.data;
 }
 
+export async function deleteSchoolCourseRepo(courseId: number): Promise<unknown> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_course/${courseId}`;
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: getHeaders(),
+  });
+  if (!res.ok) throw new Error("Failed to delete course.");
+  return null;
+}
+
 export async function fetchSchoolAdminsRepo(schoolId: number): Promise<VsSchoolAdminRecord[]> {
   const url = `${DIRECTUS_BASE}/items/vs_school_admin?filter[school_id][_eq]=${schoolId}&filter[is_active][_eq]=true&fields=*,user_id.user_fname,user_id.user_lname,user_id.user_email`;
   const res = await fetch(url, { headers: getHeaders() });
@@ -152,6 +162,7 @@ export async function fetchSchoolAdminsRepo(schoolId: number): Promise<VsSchoolA
   if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to fetch school admins.");
   
   // Flatten the user_id relation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return json.data.map((item: any) => ({
     ...item,
     user_fname: item.user_id?.user_fname,
