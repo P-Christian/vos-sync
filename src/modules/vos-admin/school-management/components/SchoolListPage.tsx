@@ -17,6 +17,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SchoolRequestsTab } from "./SchoolRequestsTab";
 
 export function SchoolListPage() {
   const {
@@ -73,30 +75,37 @@ export function SchoolListPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search schools..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <select
-          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-        </select>
-      </div>
+      <Tabs defaultValue="directory" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="directory">School Directory</TabsTrigger>
+          <TabsTrigger value="requests">Pending Requests</TabsTrigger>
+        </TabsList>
 
-      {loading ? (
-        <SchoolTableSkeleton />
-      ) : (
+        <TabsContent value="directory" className="space-y-6 mt-0">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search schools..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          {loading ? (
+            <SchoolTableSkeleton />
+          ) : (
         <div className="rounded-md border bg-card">
           <table className="w-full text-sm">
             <thead>
@@ -171,6 +180,11 @@ export function SchoolListPage() {
           </table>
         </div>
       )}
+        </TabsContent>
+        <TabsContent value="requests" className="mt-0">
+          <SchoolRequestsTab />
+        </TabsContent>
+      </Tabs>
 
       <SchoolForm
         open={isFormOpen}

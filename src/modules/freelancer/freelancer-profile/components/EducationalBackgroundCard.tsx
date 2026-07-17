@@ -56,7 +56,19 @@ export function EducationalBackgroundCard() {
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
-                                <h4 className="font-medium text-foreground">{edu.school_name || "Unknown School"}</h4>
+                                <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-foreground">{edu.school_name || edu.school_name_raw || "Unknown School"}</h4>
+                                    {edu.education_status === 'Pending' && (
+                                        <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                                            Pending Verification
+                                        </span>
+                                    )}
+                                    {edu.education_status === 'Unverified' && (
+                                        <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                                            Unverified
+                                        </span>
+                                    )}
+                                </div>
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
@@ -67,7 +79,7 @@ export function EducationalBackgroundCard() {
                                 </Button>
                             </div>
                             <div className="text-sm font-medium text-muted-foreground">
-                                {edu.course_name || "No Course Specified"}
+                                {edu.course_name || edu.course_name_raw || "No Course Specified"}
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 {edu.start_date ? new Date(edu.start_date).getFullYear() : "?"} - {edu.end_date ? new Date(edu.end_date).getFullYear() : "Present"}

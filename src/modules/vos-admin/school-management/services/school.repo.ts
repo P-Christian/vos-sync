@@ -37,12 +37,24 @@ export async function fetchSchoolsRepo(status?: string, search?: string): Promis
   const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch schools from database.");
   const json = await res.json();
-  
-  // NOTE: In a real implementation with Directus, you would query aggregates for courses and students.
-  // We'll mock the counts for the list view to avoid N+1 queries if we don't have a direct GraphQL/Aggregate endpoint ready.
-  return (json.data || []).map((school: VsSchool) => ({
+  const schools = json.data || [];
+
+  // Fetch course counts grouped by school_id
+  const courseCountUrl = `${DIRECTUS_BASE}/items/vs_school_course?aggregate[count]=*&groupBy[]=school_id`;
+  const courseCountRes = await fetch(courseCountUrl, { headers: getHeaders(), cache: "no-store" });
+  let courseCounts: Record<number, number> = {};
+  if (courseCountRes.ok) {
+    const ccJson = await courseCountRes.json();
+    if (ccJson.data) {
+      ccJson.data.forEach((item: any) => {
+        if (item.school_id) courseCounts[item.school_id] = parseInt(item.count || 0, 10);
+      });
+    }
+  }
+
+  return schools.map((school: VsSchool) => ({
     ...school,
-    course_count: 0, 
+    course_count: courseCounts[school.school_id] || 0, 
     student_count: 0,
   }));
 }
@@ -61,10 +73,18 @@ export async function fetchSchoolByIdRepo(id: number): Promise<SchoolWithStats |
     return null;
   }
   
-  // Fetch actual counts if needed, but for MVP we return 0
+  // Fetch actual course count
+  const courseUrl = `${DIRECTUS_BASE}/items/vs_school_course?filter[school_id][_eq]=${id}&aggregate[count]=*`;
+  const courseRes = await fetch(courseUrl, { headers: getHeaders(), cache: "no-store" });
+  let courseCount = 0;
+  if (courseRes.ok) {
+    const cJson = await courseRes.json();
+    courseCount = parseInt(cJson.data?.[0]?.count || 0, 10);
+  }
+
   return {
     ...json.data,
-    course_count: 0,
+    course_count: courseCount,
     student_count: 0
   };
 }

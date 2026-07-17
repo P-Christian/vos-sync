@@ -62,7 +62,10 @@ export type UpdateWorkExperiencePayload = z.infer<typeof updateWorkExperienceSch
 export type DeleteWorkExperiencePayload = z.infer<typeof deleteWorkExperienceSchema>;
 
 export const addEducationSchema = z.object({
-    school_id: z.number().int().positive("School is required"),
+    school_id: z.number().int().positive().nullable().optional(),
+    school_name_raw: z.string().nullable().optional(),
+    course_name_raw: z.string().nullable().optional(),
+    education_status: z.enum(['Verified', 'Pending', 'Unverified']).optional(),
     school_course_id: z.number().int().positive().nullable().optional(),
     start_date: z.string().nullable().optional(),
     end_date: z.string().nullable().optional(),

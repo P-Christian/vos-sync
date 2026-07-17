@@ -1,6 +1,6 @@
 // src/modules/vos-admin/school-management/types/school.types.ts
 
-export type SchoolStatus = 'Active' | 'Inactive';
+export type SchoolStatus = 'Draft' | 'Pending' | 'Active' | 'Inactive';
 export type SchoolType = 'University' | 'College' | 'Technical/Vocational' | 'Other';
 
 export interface VsSchool {

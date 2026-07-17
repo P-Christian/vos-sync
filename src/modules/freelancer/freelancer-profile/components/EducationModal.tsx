@@ -7,8 +7,8 @@ import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsEducation } from "../types/freelancer-profile.types";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { CreateSchoolRequestModal } from "@/modules/vos-admin/request-management/components/CreateSchoolRequestModal";
 import { CreateCourseRequestModal } from "@/modules/vos-admin/request-management/components/CreateCourseRequestModal";
+import { Input } from "@/components/ui/input";
 
 interface EducationModalProps {
     isOpen: boolean;
@@ -28,7 +28,9 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const [loadingSchools, setLoadingSchools] = useState(false);
     const [loadingCourses, setLoadingCourses] = useState(false);
     
-    const [showSchoolRequest, setShowSchoolRequest] = useState(false);
+    const [isUnverifiedSchool, setIsUnverifiedSchool] = useState(false);
+    const [rawSchoolName, setRawSchoolName] = useState("");
+    const [rawCourseName, setRawCourseName] = useState("");
     const [showCourseRequest, setShowCourseRequest] = useState(false);
 
     const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
@@ -39,12 +41,25 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         if (isOpen) {
             fetchSchools();
             if (educationToEdit) {
-                setSchoolId(educationToEdit.school_id ? String(educationToEdit.school_id) : "");
+                if (educationToEdit.school_id) {
+                    setSchoolId(String(educationToEdit.school_id));
+                    setIsUnverifiedSchool(false);
+                    setRawSchoolName("");
+                    setRawCourseName("");
+                } else {
+                    setSchoolId("");
+                    setIsUnverifiedSchool(true);
+                    setRawSchoolName(educationToEdit.school_name_raw || "");
+                    setRawCourseName(educationToEdit.course_name_raw || "");
+                }
                 setCourseId(educationToEdit.school_course_id ? String(educationToEdit.school_course_id) : "");
                 setStartDate(educationToEdit.start_date ? educationToEdit.start_date.split("T")[0] : "");
                 setEndDate(educationToEdit.end_date ? educationToEdit.end_date.split("T")[0] : "");
             } else {
                 setSchoolId("");
+                setIsUnverifiedSchool(false);
+                setRawSchoolName("");
+                setRawCourseName("");
                 setCourseId("");
                 setStartDate("");
                 setEndDate("");
@@ -87,23 +102,36 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     };
 
     const handleSave = async () => {
-        if (!schoolId) {
+        if (!isUnverifiedSchool && !schoolId) {
             toast.error("Please select a school.");
             return;
         }
 
-        if (!courseId) {
+        if (isUnverifiedSchool && !rawSchoolName.trim()) {
+            toast.error("Please enter the school name.");
+            return;
+        }
+
+        if (isUnverifiedSchool && !rawCourseName.trim()) {
+            toast.error("Please enter the course/degree name.");
+            return;
+        }
+
+        if (!isUnverifiedSchool && !courseId) {
             toast.error("Please select a course/degree. If it's missing, you can request to add it.");
             return;
         }
 
         const payload = {
-            school_id: parseInt(schoolId, 10),
-            school_course_id: courseId ? parseInt(courseId, 10) : null,
+            school_id: isUnverifiedSchool ? null : parseInt(schoolId, 10),
+            school_name_raw: isUnverifiedSchool ? rawSchoolName.trim() : null,
+            course_name_raw: isUnverifiedSchool ? rawCourseName.trim() : null,
+            education_status: isUnverifiedSchool ? 'Pending' : 'Verified',
+            school_course_id: (!isUnverifiedSchool && courseId) ? parseInt(courseId, 10) : null,
             start_date: startDate || null,
             end_date: endDate || null,
-            school_name: schools.find(s => String(s.school_id) === schoolId)?.school_name,
-            course_name: courses.find(c => String(c.school_course_id) === courseId)?.course_name,
+            school_name: isUnverifiedSchool ? rawSchoolName.trim() : schools.find(s => String(s.school_id) === schoolId)?.school_name,
+            course_name: isUnverifiedSchool ? rawCourseName.trim() : courses.find(c => String(c.school_course_id) === courseId)?.course_name,
         };
 
         const updatedList = [...educationList];
@@ -134,14 +162,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         onClose();
     };
 
-    const handleSchoolRequestSubmit = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
-        const res = await fetch("/api/freelancer/school-requests", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data)
-        });
-        return res.ok;
-    };
+
 
     const handleCourseRequestSubmit = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
         const payload = { ...data, school_id: parseInt(schoolId, 10) };
@@ -169,33 +190,58 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">School Name *</label>
                             <div className="flex gap-2 flex-col">
-                                <SearchableSelect
-                                    options={schools.map(s => ({ value: String(s.school_id), label: s.school_name }))}
-                                    value={schoolId}
-                                    onValueChange={(val) => { setSchoolId(val); setCourseId(""); }}
-                                    placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
-                                    disabled={loadingSchools}
-                                />
-                                <div className="text-xs text-muted-foreground mt-1 text-right">
-                                    Can&apos;t find your school? <button type="button" onClick={() => setShowSchoolRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
-                                </div>
+                                {isUnverifiedSchool ? (
+                                    <>
+                                        <Input 
+                                            value={rawSchoolName} 
+                                            onChange={(e) => setRawSchoolName(e.target.value)} 
+                                            placeholder="Enter school name" 
+                                        />
+                                        <div className="text-xs text-muted-foreground mt-1 text-right">
+                                            Found your school? <button type="button" onClick={() => { setIsUnverifiedSchool(false); setRawSchoolName(""); }} className="text-primary font-medium hover:underline">Select from list</button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <SearchableSelect
+                                            options={schools.map(s => ({ value: String(s.school_id), label: s.school_name }))}
+                                            value={schoolId}
+                                            onValueChange={(val) => { setSchoolId(val); setCourseId(""); }}
+                                            placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
+                                            disabled={loadingSchools}
+                                        />
+                                        <div className="text-xs text-muted-foreground mt-1 text-right">
+                                            Can&apos;t find your school? <button type="button" onClick={() => { setIsUnverifiedSchool(true); setSchoolId(""); setCourseId(""); }} className="text-primary font-medium hover:underline">Request to add school</button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Course / Degree (Optional)</label>
                             <div className="flex gap-2 flex-col">
-                                <SearchableSelect
-                                    options={courses.map(c => ({ value: String(c.school_course_id), label: c.course_name }))}
-                                    value={courseId}
-                                    onValueChange={setCourseId}
-                                    placeholder={loadingCourses ? "Loading courses..." : (schoolId ? "Search courses..." : "Select a school first")}
-                                    disabled={!schoolId || loadingCourses}
-                                />
-                                {schoolId && (
-                                    <div className="text-xs text-muted-foreground mt-1 text-right">
-                                        Can&apos;t find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
-                                    </div>
+                                {isUnverifiedSchool ? (
+                                    <Input 
+                                        value={rawCourseName} 
+                                        onChange={(e) => setRawCourseName(e.target.value)} 
+                                        placeholder="Enter course or degree" 
+                                    />
+                                ) : (
+                                    <>
+                                        <SearchableSelect
+                                            options={courses.map(c => ({ value: String(c.school_course_id), label: c.course_name }))}
+                                            value={courseId}
+                                            onValueChange={setCourseId}
+                                            placeholder={loadingCourses ? "Loading courses..." : (schoolId ? "Search courses..." : "Select a school first")}
+                                            disabled={!schoolId || loadingCourses}
+                                        />
+                                        {schoolId && (
+                                            <div className="text-xs text-muted-foreground mt-1 text-right">
+                                                Can&apos;t find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
@@ -233,11 +279,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                 </DialogContent>
             </Dialog>
 
-            <CreateSchoolRequestModal 
-                open={showSchoolRequest} 
-                onOpenChange={setShowSchoolRequest} 
-                onSubmit={handleSchoolRequestSubmit} 
-            />
+
             {schoolId && (
                 <CreateCourseRequestModal 
                     open={showCourseRequest} 

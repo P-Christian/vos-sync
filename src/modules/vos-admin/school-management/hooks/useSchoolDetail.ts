@@ -157,6 +157,29 @@ export function useSchoolDetail() {
     }
   }, []);
 
+  const approveSchool = useCallback(async (schoolId: number) => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/vos-admin/schools/${schoolId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ school_status: "Active" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to approve school.");
+      
+      setSchool((prev) => prev ? { ...prev, school_status: "Active" } : null);
+      setSuccessMessage("School approved successfully.");
+      return true;
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   return {
     school,
     courses,
@@ -171,6 +194,7 @@ export function useSchoolDetail() {
     fetchAdmins,
     createAdmin,
     removeAdmin,
+    approveSchool,
     clearMessages: () => { setError(""); setSuccessMessage(""); },
   };
 }

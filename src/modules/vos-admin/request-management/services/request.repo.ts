@@ -104,20 +104,44 @@ export async function fetchCourseRequestById(id: number): Promise<VsCourseReques
 
 export async function upsertEmployeeEducation(userId: number, schoolId: number, courseId: number | null): Promise<void> {
   // Check if education record exists for this user
-  const checkUrl = `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${userId}`;
+  const checkUrl = `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${userId}&fields=*`;
   const checkRes = await fetch(checkUrl, { headers: getHeaders(), cache: "no-store" });
   if (!checkRes.ok) throw new Error("Failed to check existing employee education.");
   const checkJson = await checkRes.json();
   
-  const payload = {
+  const payload: any = {
     user_id: userId,
     school_id: schoolId,
-    school_course_id: courseId
+    school_course_id: courseId,
+    education_status: 'Verified'
   };
 
   if (checkJson.data && checkJson.data.length > 0) {
+    const existingRecord = checkJson.data[0];
+    
+    // Auto-create course request if needed
+    if (courseId === null && existingRecord.course_name_raw && existingRecord.course_name_raw.trim() !== '') {
+      try {
+        // Check if there's already a pending course request for this user and school to prevent duplicates
+        const crCheckUrl = `${DIRECTUS_BASE}/items/vs_course_request?filter[requested_by][_eq]=${userId}&filter[school_id][_eq]=${schoolId}&filter[request_status][_eq]=Pending`;
+        const crCheckRes = await fetch(crCheckUrl, { headers: getHeaders(), cache: "no-store" });
+        const crCheckJson = crCheckRes.ok ? await crCheckRes.json() : { data: [] };
+        
+        if (!crCheckJson.data || crCheckJson.data.length === 0) {
+          await createCourseRequestRepo({
+            school_id: schoolId,
+            requested_by: userId,
+            requested_course_name: existingRecord.course_name_raw.trim(),
+            request_status: 'Pending'
+          });
+        }
+      } catch (err) {
+        console.error("Failed to auto-create course request from upsert:", err);
+      }
+    }
+
     // Update existing
-    const recordId = checkJson.data[0].employee_education_id || checkJson.data[0].id;
+    const recordId = existingRecord.employee_education_id || existingRecord.id;
     const updateUrl = `${DIRECTUS_BASE}/items/vs_employee_education/${recordId}`;
     await fetch(updateUrl, {
       method: "PATCH",

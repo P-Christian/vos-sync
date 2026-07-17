@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
-  const { school, courses, admins, loading, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, createAdmin, removeAdmin } = useSchoolDetail();
+  const { school, courses, admins, loading, saving, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, createAdmin, removeAdmin, approveSchool } = useSchoolDetail();
 
   useEffect(() => {
     fetchSchoolDetail(schoolId);
@@ -62,6 +62,22 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
             <span>{school.school_type}</span>
           </div>
         </div>
+        {school.school_status === 'Pending' && (
+          <div className="flex items-center">
+            <Button 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={saving}
+              onClick={async () => {
+                const success = await approveSchool(schoolId);
+                if (success) {
+                  // alert / toast handled by hook if we want, or we can just let it reload
+                }
+              }}
+            >
+              Approve School
+            </Button>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
@@ -131,6 +147,8 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
         <TabsContent value="admins" className="mt-6">
           <SchoolAdminsTab 
             schoolId={schoolId} 
+            schoolName={school.school_name}
+            schoolEmail={school.school_email}
             admins={admins} 
             onAddAdmin={(data) => createAdmin(data)} 
             onRemoveAdmin={(adminId) => removeAdmin(schoolId, adminId)} 

@@ -3,6 +3,7 @@
 import * as jose from "jose";
 import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
 import { FreelancerProfile } from "../types/freelancer-profile.types";
+import { createSchoolRequestRepo } from "@/modules/vos-admin/request-management/services/request.repo";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
@@ -103,12 +104,31 @@ export async function addEducationService(userId: number, payload: any) {
     const data = {
         user_id: userId,
         school_id: payload.school_id,
+        school_name_raw: payload.school_name_raw || null,
+        course_name_raw: payload.course_name_raw || null,
+        education_status: payload.education_status || 'Verified',
         school_course_id: payload.school_course_id || null,
         start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
         end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
-    return await addEducationToDirectus(data);
+    const result = await addEducationToDirectus(data);
+
+    // Auto-create a school request when employee submits an unverified school
+    if (data.education_status === 'Pending' && data.school_name_raw) {
+        try {
+            await createSchoolRequestRepo({
+                requested_by: userId,
+                requested_school_name: data.school_name_raw,
+                request_status: 'Pending'
+            });
+        } catch (err) {
+            // Non-blocking: log error but don't fail the education save
+            console.error("[addEducationService] Failed to auto-create school request:", err);
+        }
+    }
+
+    return result;
 }
 
 export async function updateEducationService(id: number, userId: number, payload: any) {
@@ -116,12 +136,31 @@ export async function updateEducationService(id: number, userId: number, payload
 
     const data = {
         school_id: payload.school_id,
+        school_name_raw: payload.school_name_raw || null,
+        course_name_raw: payload.course_name_raw || null,
+        education_status: payload.education_status || 'Verified',
         school_course_id: payload.school_course_id || null,
         start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
         end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
-    return await updateEducationInDirectus(id, data);
+    const result = await updateEducationInDirectus(id, data);
+
+    // Auto-create a school request when employee updates to an unverified school
+    if (data.education_status === 'Pending' && data.school_name_raw) {
+        try {
+            await createSchoolRequestRepo({
+                requested_by: userId,
+                requested_school_name: data.school_name_raw,
+                request_status: 'Pending'
+            });
+        } catch (err) {
+            // Non-blocking: log error but don't fail the education update
+            console.error("[updateEducationService] Failed to auto-create school request:", err);
+        }
+    }
+
+    return result;
 }
 
 export async function deleteEducationService(id: number, userId: number) {

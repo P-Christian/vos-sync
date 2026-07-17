@@ -6,16 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { VsSchoolAdminRecord, CreateSchoolAdminPayload } from "../types/school.types";
-import { CreateSchoolAdminModal } from "./CreateSchoolAdminModal";
+import { SendInviteModal } from "./SendInviteModal";
 
 interface SchoolAdminsTabProps {
   schoolId: number;
+  schoolName: string;
+  schoolEmail: string | null;
   admins: VsSchoolAdminRecord[];
   onAddAdmin: (payload: CreateSchoolAdminPayload) => Promise<boolean>;
   onRemoveAdmin: (adminId: number) => Promise<boolean>;
 }
 
-export function SchoolAdminsTab({ schoolId, admins, onAddAdmin, onRemoveAdmin }: SchoolAdminsTabProps) {
+export function SchoolAdminsTab({ schoolId, schoolName, schoolEmail, admins, onAddAdmin, onRemoveAdmin }: SchoolAdminsTabProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -24,7 +26,7 @@ export function SchoolAdminsTab({ schoolId, admins, onAddAdmin, onRemoveAdmin }:
         <h2 className="text-xl font-semibold">School Administrators</h2>
         <Button onClick={() => setIsModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Assign Admin
+          Send Invite Link
         </Button>
       </div>
 
@@ -76,19 +78,12 @@ export function SchoolAdminsTab({ schoolId, admins, onAddAdmin, onRemoveAdmin }:
         </Table>
       </div>
 
-      <CreateSchoolAdminModal
+      <SendInviteModal
         schoolId={schoolId}
+        schoolName={schoolName}
+        schoolEmail={schoolEmail}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={async (payload) => {
-          const success = await onAddAdmin(payload);
-          if (success) {
-            toast.success("School Admin created and assigned successfully!");
-            setIsModalOpen(false);
-          } else {
-            toast.error("Failed to create school admin. Please check the details.");
-          }
-        }}
+        onOpenChange={setIsModalOpen}
       />
     </div>
   );
