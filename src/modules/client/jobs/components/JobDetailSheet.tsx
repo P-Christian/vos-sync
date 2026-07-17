@@ -9,7 +9,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,19 +18,17 @@ import {
   Users,
   GraduationCap,
   DollarSign,
-  Send,
   Building2,
   Layers,
   HelpCircle,
-  ExternalLink,
   Mail,
   Phone,
   Facebook,
-  Linkedin,
+
   Instagram,
   Youtube,
 } from "lucide-react";
-import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
+import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -76,10 +73,35 @@ function getImageUrl(value: string | null | undefined): string {
   return `/api/client/assets/${value}`;
 }
 
-export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = [] }: Props) {
+const parseJsonField = (value: string | null | undefined): Record<string, unknown> => {
+  if (!value) return {};
+  const trimmed = value.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      // ignore
+    }
+  }
+  return {};
+};
+
+export function JobDetailSheet({ job, open, onClose }: Props) {
   if (!job) return null;
 
-  const alreadyApplied = appliedJobIds.includes(job.job_id);
+  const descData = parseJsonField(job.job_description);
+  const reqsData = parseJsonField(job.job_requirements);
+
+  const descriptionText = (descData.text as string) || job.job_description || "";
+  const responsibilitiesText = (descData.job_responsibilities as string) || job.job_responsibilities || "";
+  const qualificationsText = (reqsData.job_qualifications as string) || job.job_qualifications || "";
+  const salaryType = (reqsData.salary_type as string) || job.salary_type || "Salary Range";
+  const arrangement = (descData.work_arrangement as string) || job.work_arrangement || "Remote";
+  const openings = (descData.number_of_openings as string) || job.number_of_openings || "1";
+  const education = (reqsData.education as string) || job.education || "";
+  const skills = (reqsData.skills as JobSkill[]) || job.skills || [];
+  const benefits = (reqsData.benefits as string[]) || job.benefits || [];
+  const screeningQuestions = (reqsData.screening_questions as string[]) || job.screening_questions || [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -106,9 +128,9 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 -mt-12 relative z-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-md font-bold text-foreground shrink-0 overflow-hidden shadow-xs">
                 {job.company_logo ? (
-                  <img src={getImageUrl(job.company_logo)} alt={job.company_name ?? ""} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(job.company_logo)} alt={job.company?.company_name ?? ""} className="w-full h-full object-cover" />
                 ) : (
-                  getInitials(job.company_name)
+                  getInitials(job.company?.company_name)
                 )}
               </div>
               <div className="flex-1 min-w-0">
@@ -116,12 +138,12 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                   {job.job_title}
                 </SheetTitle>
                 <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                  {job.company_name ?? "Unknown Company"}
+                  {job.company?.company_name ?? "Unknown Company"}
                 </SheetDescription>
               </div>
             </div>
 
-            <a
+            {/* <a
               href={`/vos-sync/freelancer/jobs/${job.job_id}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -129,7 +151,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
             >
               <ExternalLink className="h-3.5 w-3.5" />
               Open job in a new window
-            </a>
+            </a> */}
           </div>
 
           {/* Quick meta */}
@@ -141,11 +163,11 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
               <Briefcase className="h-3 w-3" /> {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
             </span>
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-              <Building2 className="h-3 w-3" /> {job.work_arrangement}
+              <Building2 className="h-3 w-3" /> {arrangement}
             </span>
-            {job.number_of_openings > 1 && (
+            {Number(openings) > 1 && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-                <Users className="h-3 w-3" /> {job.number_of_openings} openings
+                <Users className="h-3 w-3" /> {openings} openings
               </span>
             )}
           </div>
@@ -164,7 +186,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                     <DollarSign className="h-3 w-3" /> Salary
                   </div>
                   <p className="text-sm font-semibold text-foreground">{formatSalary(job)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{job.salary_type}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{salaryType}</p>
                 </div>
                 {job.experience_level && (
                   <div className="p-3 rounded-xl bg-muted/40 border">
@@ -176,12 +198,12 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                     </p>
                   </div>
                 )}
-                {job.education && (
+                {education && (
                   <div className="p-3 rounded-xl bg-muted/40 border col-span-2">
                     <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
                       <GraduationCap className="h-3 w-3" /> Education
                     </div>
-                    <p className="text-sm text-foreground">{job.education}</p>
+                    <p className="text-sm text-foreground">{education}</p>
                   </div>
                 )}
               </div>
@@ -191,37 +213,41 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
               {/* Job Description */}
               <Section title="Job Description">
                 <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                  {job.job_description}
+                  {descriptionText}
                 </p>
               </Section>
 
               {/* Responsibilities */}
-              {job.job_responsibilities && (
+              {responsibilitiesText && (
                 <>
                   <Separator />
                   <Section title="Responsibilities">
                     <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                      {job.job_responsibilities}
+                      {responsibilitiesText}
                     </p>
                   </Section>
                 </>
               )}
 
               {/* Qualifications */}
-              <Separator />
-              <Section title="Qualifications">
-                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                  {job.job_qualifications}
-                </p>
-              </Section>
+              {qualificationsText && (
+                <>
+                  <Separator />
+                  <Section title="Qualifications">
+                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
+                      {qualificationsText}
+                    </p>
+                  </Section>
+                </>
+              )}
 
               {/* Skills */}
-              {job.skills && job.skills.length > 0 && (
+              {skills && skills.length > 0 && (
                 <>
                   <Separator />
                   <Section title="Required Skills">
                     <div className="flex flex-wrap gap-1.5">
-                      {job.skills.map((s) => (
+                      {skills.map((s) => (
                         <Badge key={s.id} variant="secondary" className="text-xs px-2.5 py-0.5 rounded-full font-normal">
                           {s.skill_name}
                         </Badge>
@@ -232,12 +258,12 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
               )}
 
               {/* Benefits */}
-              {job.benefits && job.benefits.length > 0 && (
+              {benefits && benefits.length > 0 && (
                 <>
                   <Separator />
                   <Section title="Benefits">
                     <div className="flex flex-wrap gap-1.5">
-                      {job.benefits.map((b) => (
+                      {benefits.map((b) => (
                         <span
                           key={b}
                           className="inline-flex items-center text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50"
@@ -251,12 +277,12 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
               )}
 
               {/* Screening Questions preview */}
-              {job.screening_questions && job.screening_questions.length > 0 && (
+              {screeningQuestions && screeningQuestions.length > 0 && (
                 <>
                   <Separator />
-                  <Section title={`Screening Questions (${job.screening_questions.length})`}>
+                  <Section title={`Screening Questions (${screeningQuestions.length})`}>
                     <div className="space-y-2">
-                      {job.screening_questions.map((q, i) => (
+                      {screeningQuestions.map((q, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-foreground/70 bg-muted/40 rounded-lg p-1">
                           <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
                           <span>{q}</span>
@@ -310,7 +336,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                 )}
 
                 {/* Socials */}
-                {(job.company_facebook || job.company_linkedin || job.company_instagram || job.company_x || job.company_youtube) && (
+                {(job.company_facebook|| job.company_instagram || job.company_x || job.company_youtube) && (
                   <div className="space-y-2 pt-2">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
                     <div className="flex flex-wrap gap-2">
@@ -319,11 +345,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                           <Facebook className="h-4 w-4" />
                         </a>
                       )}
-                      {job.company_linkedin && (
-                        <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
-                          <Linkedin className="h-4 w-4" />
-                        </a>
-                      )}
+
                       {job.company_instagram && (
                         <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
                           <Instagram className="h-4 w-4" />
@@ -342,19 +364,6 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
 
           </div>
         </ScrollArea>
-
-        {/* Sticky Apply Button */}
-        <div className="px-6 py-4 border-t bg-background shrink-0">
-          <Button
-            id="job-detail-apply-btn"
-            onClick={() => onApply(job)}
-            disabled={alreadyApplied}
-            className="w-full h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
-          >
-            <Send className="h-4 w-4" />
-            {alreadyApplied ? "Already Applied" : "Apply Now"}
-          </Button>
-        </div>
       </SheetContent>
     </Sheet>
   );

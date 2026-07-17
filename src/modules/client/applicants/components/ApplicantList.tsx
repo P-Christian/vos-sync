@@ -10,9 +10,15 @@ interface ApplicantListProps {
   applicants: Applicant[];
   onUpdateStatus: (applicant: Applicant) => void;
   onScheduleInterview: (applicant: Applicant) => void;
+  onViewDetails: (applicant: Applicant) => void;
 }
 
-export default function ApplicantList({ applicants, onUpdateStatus, onScheduleInterview }: ApplicantListProps) {
+export default function ApplicantList({
+  applicants,
+  onUpdateStatus,
+  onScheduleInterview,
+  onViewDetails,
+}: ApplicantListProps) {
   if (applicants.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -35,6 +41,7 @@ export default function ApplicantList({ applicants, onUpdateStatus, onScheduleIn
           applicant={a}
           onUpdateStatus={onUpdateStatus}
           onScheduleInterview={onScheduleInterview}
+          onViewDetails={onViewDetails}
         />
       ))}
     </div>

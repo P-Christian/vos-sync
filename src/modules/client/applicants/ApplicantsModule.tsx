@@ -5,6 +5,7 @@ import { useApplicants } from "./hooks/useApplicants";
 import ApplicantList from "./components/ApplicantList";
 import ApplicantFilters from "./components/ApplicantFilters";
 import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
+import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle } from "lucide-react";
 import { Applicant, ApplicationStatus } from "./types";
@@ -33,6 +34,11 @@ export default function ApplicantsModule() {
     fetchApplicants,
     updateStatus,
     clearError,
+    detail,
+    detailLoading,
+    detailError,
+    fetchApplicantDetail,
+    clearDetail,
   } = useApplicants();
 
   const {
@@ -44,6 +50,7 @@ export default function ApplicantsModule() {
 
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
@@ -56,6 +63,12 @@ export default function ApplicantsModule() {
     setSelectedApplicant(applicant);
     clearError();
     setDrawerOpen(true);
+  };
+
+  const handleViewDetails = (applicant: Applicant) => {
+    setSelectedApplicant(applicant);
+    fetchApplicantDetail(applicant.application_id);
+    setDetailOpen(true);
   };
 
   const handleSaveStatus = async (
@@ -158,6 +171,7 @@ export default function ApplicantsModule() {
               applicants={applicants}
               onUpdateStatus={handleUpdateStatus}
               onScheduleInterview={handleOpenSchedule}
+              onViewDetails={handleViewDetails}
             />
           )}
         </CardContent>
@@ -210,6 +224,27 @@ export default function ApplicantsModule() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Candidate Details Modal */}
+      <ApplicantDetailsModal
+        applicant={selectedApplicant}
+        detail={detail}
+        loading={detailLoading}
+        error={detailError}
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          clearDetail();
+        }}
+        onUpdateStatus={() => {
+          setDetailOpen(false);
+          if (selectedApplicant) handleUpdateStatus(selectedApplicant);
+        }}
+        onScheduleInterview={() => {
+          setDetailOpen(false);
+          if (selectedApplicant) handleOpenSchedule(selectedApplicant);
+        }}
+      />
     </div>
   );
 }

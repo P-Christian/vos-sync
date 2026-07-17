@@ -474,7 +474,7 @@ export default function JobForm({
               </Label>
               <Input
                 id="jf-title"
-                value={data.job_title}
+                value={data.job_title ?? ""}
                 onChange={(e) => {
                   onChange("job_title", e.target.value);
                   if (localErrors.job_title) setLocalErrors((p) => ({ ...p, job_title: "" }));
@@ -601,7 +601,7 @@ export default function JobForm({
                   id="jf-openings"
                   type="number"
                   min={1}
-                  value={data.number_of_openings}
+                  value={data.number_of_openings ?? ""}
                   onChange={(e) => onChange("number_of_openings", e.target.value)}
                   placeholder="e.g. 1"
                   className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
@@ -617,7 +617,7 @@ export default function JobForm({
                 </Label>
                 <Input
                   id="jf-location"
-                  value={data.job_location}
+                  value={data.job_location ?? ""}
                   onChange={(e) => {
                     onChange("job_location", e.target.value);
                     if (localErrors.job_location) setLocalErrors((p) => ({ ...p, job_location: "" }));
@@ -639,7 +639,7 @@ export default function JobForm({
                 </Label>
                 <Input
                   id="jf-dept"
-                  value={data.job_department}
+                  value={data.job_department ?? ""}
                   onChange={(e) => onChange("job_department", e.target.value)}
                   placeholder="e.g. Engineering"
                   className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
@@ -807,7 +807,7 @@ export default function JobForm({
               </Label>
               <Textarea
                 id="jf-desc"
-                value={data.job_description}
+                value={data.job_description ?? ""}
                 onChange={(e) => {
                   onChange("job_description", e.target.value);
                   if (localErrors.job_description) setLocalErrors((p) => ({ ...p, job_description: "" }));
@@ -831,7 +831,7 @@ export default function JobForm({
               </Label>
               <Textarea
                 id="jf-resp"
-                value={data.job_responsibilities}
+                value={data.job_responsibilities ?? ""}
                 onChange={(e) => {
                   onChange("job_responsibilities", e.target.value);
                   if (localErrors.job_responsibilities) setLocalErrors((p) => ({ ...p, job_responsibilities: "" }));
@@ -855,7 +855,7 @@ export default function JobForm({
               </Label>
               <Textarea
                 id="jf-quals"
-                value={data.job_qualifications}
+                value={data.job_qualifications ?? ""}
                 onChange={(e) => {
                   onChange("job_qualifications", e.target.value);
                   if (localErrors.job_qualifications) setLocalErrors((p) => ({ ...p, job_qualifications: "" }));
@@ -932,7 +932,7 @@ export default function JobForm({
                       id="jf-sal-min"
                       type="number"
                       min={0}
-                      value={data.salary_min}
+                      value={data.salary_min ?? ""}
                       onChange={(e) => {
                         onChange("salary_min", e.target.value);
                         if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
@@ -952,7 +952,7 @@ export default function JobForm({
                       id="jf-sal-min"
                       type="number"
                       min={0}
-                      value={data.salary_min}
+                      value={data.salary_min ?? ""}
                       onChange={(e) => {
                         onChange("salary_min", e.target.value);
                         if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
@@ -973,7 +973,7 @@ export default function JobForm({
                         id="jf-sal-min"
                         type="number"
                         min={0}
-                        value={data.salary_min}
+                        value={data.salary_min ?? ""}
                         onChange={(e) => {
                           onChange("salary_min", e.target.value);
                           if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));
@@ -990,7 +990,7 @@ export default function JobForm({
                         id="jf-sal-max"
                         type="number"
                         min={0}
-                        value={data.salary_max}
+                        value={data.salary_max ?? ""}
                         onChange={(e) => {
                           onChange("salary_max", e.target.value);
                           if (localErrors.salary_info) setLocalErrors((p) => ({ ...p, salary_info: "" }));

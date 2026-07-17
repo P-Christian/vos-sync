@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/modules/client/jobs/JobsModule.tsx
 "use client";
-
+import { JobDetailSheet } from "./components/JobDetailSheet";
 import React, { useEffect, useState } from "react";
 import { useJobs } from "./hooks/useJobs";
 import JobList from "./components/JobList";
@@ -40,7 +41,12 @@ export default function JobsModule() {
     EMPTY_FORM,
     clearMessages,
   } = useJobs();
-
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const handleViewJob = (job: JobPosting) => {
+    setSelectedJob(job);
+    setIsPreviewOpen(true);
+  };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
   const [formData, setFormData] = useState<JobFormData>(EMPTY_FORM);
@@ -119,7 +125,7 @@ export default function JobsModule() {
       benefits: (reqsData.extra.benefits as string[]) ?? [],
       education: (reqsData.extra.education as string) ?? "",
       screening_questions: (reqsData.extra.screening_questions as string[]) ?? [],
-      
+
     });
     clearMessages();
     setIsDialogOpen(true);
@@ -135,7 +141,7 @@ export default function JobsModule() {
       work_arrangement: formData.work_arrangement || "Remote",
       number_of_openings: formData.number_of_openings || "1",
       job_responsibilities: formData.job_responsibilities || "",
-      
+
     });
 
     const serializedRequirements = JSON.stringify({
@@ -242,7 +248,31 @@ export default function JobsModule() {
               <span className="text-sm text-zinc-400 animate-pulse">Loading job postings...</span>
             </div>
           ) : (
-            <JobList jobs={jobs} onEdit={handleEditJob} onStatusChange={changeJobStatus} />
+            <>
+              <JobList
+                jobs={jobs}
+                onView={handleViewJob}
+                onEdit={handleEditJob}
+                onStatusChange={changeJobStatus}
+              />
+              <JobDetailSheet
+                job={selectedJob as any}
+                open={isPreviewOpen}
+                onClose={() => {
+                  setIsPreviewOpen(false);
+                  setSelectedJob(null);
+                }}
+                onApply={() => { }}
+              />
+              {/* <JobForm
+                data={formData}
+                onChange={handleFieldChange}
+                onCancel={handleClose}
+                onSubmit={handleSave}
+                saving={saving}
+                editingJob={!!editingJob}
+              /> */}
+            </>
           )}
         </CardContent>
       </Card>
@@ -265,7 +295,6 @@ export default function JobsModule() {
               {error}
             </div>
           )}
-
           <JobForm
             data={formData}
             onChange={handleFieldChange}
