@@ -18,23 +18,16 @@ import {
     MapPin,
     Briefcase,
     Clock,
-    FileText,
+
     ExternalLink,
     GraduationCap,
-    Award,
     Wallet,
     CalendarPlus,
     AlertCircle,
     Download,
-    User,
-    Building2,
-    Sparkles,
-    ListChecks,
-    StickyNote,
-    Notebook,
-    NotebookIcon,
+
     NotebookText,
-    FileQuestion,
+
     BadgeQuestionMark,
     AwardIcon,
     Star,
@@ -160,6 +153,17 @@ function Section({
     );
 }
 
+function getDelays(visibilities: boolean[], baseDelay = 0.1): number[] {
+    let count = 0;
+    return visibilities.map((visible) => {
+        if (visible) {
+            count++;
+            return count * baseDelay;
+        }
+        return 0;
+    });
+}
+
 interface ApplicantDetailsModalProps {
     applicant: Applicant | null;
     detail: CandidateDetail | null;
@@ -181,11 +185,11 @@ export default function ApplicantDetailsModal({
     onUpdateStatus,
     onScheduleInterview,
 }: ApplicantDetailsModalProps) {
-
+    const [imageLoaded, setImageLoaded] = React.useState(false);
     if (!applicant) return null;
 
-    const isReady = !loading && detail;
-    const [imageLoaded, setImageLoaded] = React.useState(false);
+
+
     const name = applicant.applicant_name ?? `Applicant #${applicant.application_id}`;
     const status: ApplicationStatus = detail?.application_status ?? applicant.application_status;
     const jobTitle = detail?.job_title ?? applicant.job_title ?? "—";
@@ -205,12 +209,21 @@ export default function ApplicantDetailsModal({
             ([, v]) => v !== null && v !== "" && v !== undefined
         )
         : [];
-    let animationIndex = 0;
-
-    const nextDelay = () => {
-        animationIndex += 1;
-        return animationIndex * 0.1;
-    };
+    const visibilities = [
+        true, // Profile Metrics (0)
+        !!detail, // Contact (1)
+        !!detail && (!!detail.profile_headline || !!detail.professional_summary), // Summary (2)
+        !!detail && !!detail.cover_letter, // Cover Letter (3)
+        !!detail && (!!detail.portfolio_url || !!detail.resumes?.length || !!expectedSalary), // Salary (4)
+        !!detail && detail.skills.length > 0, // Skills (5)
+        !!detail && detail.work_experience.length > 0, // Work Experience (6)
+        !!detail && detail.education?.length > 0, // Education (7)
+        !!detail && detail.certifications.length > 0, // Certifications (8)
+        !!detail && screeningEntries.length > 0, // Screening (9)
+        !!detail && detail.social_links?.length > 0, // Social Links (10)
+        !!detail && !!detail.client_notes, // Client Notes (11)
+    ];
+    const delays = getDelays(visibilities);
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="w-[95vw] !max-w-[1400px] h-[90vh] p-0 overflow-hidden flex flex-col">
@@ -295,7 +308,7 @@ export default function ApplicantDetailsModal({
                 <div className="flex-1 overflow-y-auto scroll-smooth px-6 py-5 space-y-5 [scrollbar-gutter:stable]">
 
                     {/* Profile Metrics */}
-                    <AnimatedSection delay={nextDelay()}>
+                    <AnimatedSection delay={delays[0]}>
                         <Section icon={LandPlot} title="Profile Metrics">
                             <div className="grid grid-cols-2 gap-3 ">
 
@@ -372,7 +385,7 @@ export default function ApplicantDetailsModal({
                         <div className="space-y-5">
 
                             {/* Contact */}
-                            <AnimatedSection delay={nextDelay()}>
+                            <AnimatedSection delay={delays[1]}>
                                 <Section icon={Contact} title="Contact">
                                     <div className="space-y-1 px-2">
                                         <div className="flex items-center gap-1.5">
@@ -404,7 +417,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Headline & Summary */}
                             {(detail.profile_headline || detail.professional_summary) && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[2]}>
                                     <Section icon={User2} title="Professional Summary">
                                         {detail.profile_headline && (
                                             <p className="font-medium text-zinc-800 dark:text-zinc-200 px-2">{detail.profile_headline}</p>
@@ -420,7 +433,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Cover letter */}
                             {detail.cover_letter && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[3]}>
                                     <Section icon={LetterText} title="Cover Letter">
                                         <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400 px-2">{detail.cover_letter}</p>
                                     </Section>
@@ -433,7 +446,7 @@ export default function ApplicantDetailsModal({
                                 detail.resumes?.length ||
                                 expectedSalary
                             ) && (
-                                    <AnimatedSection delay={nextDelay()}>
+                                    <AnimatedSection delay={delays[4]}>
                                         <Section icon={Banknote} title="Expected Salary">
                                             <div className="flex flex-wrap gap-2">
                                                 {detail.resumes?.map((resume) => (
@@ -472,7 +485,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Skills */}
                             {detail.skills.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[5]}>
                                     <Section icon={Star} title="Skills">
                                         <div className="flex flex-wrap gap-1.5">
                                             {detail.skills.map((skill) => (
@@ -491,7 +504,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Work experience */}
                             {detail.work_experience.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[6]}>
                                     <Section icon={Briefcase} title="Work Experience">
                                         <div className="space-y-3">
                                             {detail.work_experience.map((exp) => (
@@ -520,7 +533,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Education */}
                             {detail.education?.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[7]}>
                                     <Section icon={GraduationCap} title="Education">
                                         <div className="space-y-3">
                                             {detail.education.map((edu, index) => (
@@ -552,7 +565,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Certifications */}
                             {detail.certifications.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[8]}>
                                     <Section icon={AwardIcon} title="Certifications">
                                         <div className="space-y-2">
                                             {detail.certifications.map((cert) => (
@@ -583,7 +596,7 @@ export default function ApplicantDetailsModal({
 
                             {/* Screening answers */}
                             {screeningEntries.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[9]}>
                                     <Section icon={BadgeQuestionMark} title="Screening Answers">
                                         <div className="space-y-2">
                                             {screeningEntries.map(([key, value]) => (
@@ -597,7 +610,7 @@ export default function ApplicantDetailsModal({
                                 </AnimatedSection>
                             )}
                             {detail.social_links?.length > 0 && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[10]}>
                                     <Section icon={Mail} title="Contact">
                                         <div className="flex flex-wrap gap-2">
                                             {detail.social_links.map((link, index) => (
@@ -618,7 +631,7 @@ export default function ApplicantDetailsModal({
                             )}
                             {/* Client notes */}
                             {detail.client_notes && (
-                                <AnimatedSection delay={nextDelay()}>
+                                <AnimatedSection delay={delays[11]}>
                                     <Section icon={NotebookText} title="Client Notes">
                                         <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400">{detail.client_notes}</p>
                                     </Section>
