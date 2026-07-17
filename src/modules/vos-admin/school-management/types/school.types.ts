@@ -41,3 +41,25 @@ export interface VsSchoolCourse {
   updated_by: number | null;
   updated_at: string | null;
 }
+
+export interface VsSchoolAdminRecord {
+  school_admin_id: number;
+  school_id: number;
+  user_id: number;
+  is_active: boolean;
+  assigned_by: number | null;
+  created_at: string;
+  // Joined from vs_user
+  user_fname?: string;
+  user_lname?: string;
+  user_email?: string;
+}
+
+export interface CreateSchoolAdminPayload {
+  school_id: number;
+  user_fname: string;
+  user_lname: string;
+  user_email: string;
+  user_contact: string;
+  password?: string;
+}

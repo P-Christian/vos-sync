@@ -7,17 +7,19 @@ import { ArrowLeft, Building2, MapPin, Mail, Phone, Globe } from "lucide-react";
 import { useSchoolDetail } from "../hooks/useSchoolDetail";
 import { SchoolStatusBadge } from "./SchoolStatusBadge";
 import { SchoolCoursesTab } from "./SchoolCoursesTab";
+import { SchoolAdminsTab } from "./SchoolAdminsTab";
 import { SchoolTableSkeleton } from "./SchoolTableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
-  const { school, courses, loading, fetchSchoolDetail, addCourse, updateCourseStatus } = useSchoolDetail();
+  const { school, courses, admins, loading, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, createAdmin, removeAdmin } = useSchoolDetail();
 
   useEffect(() => {
     fetchSchoolDetail(schoolId);
-  }, [fetchSchoolDetail, schoolId]);
+    fetchAdmins(schoolId);
+  }, [fetchSchoolDetail, fetchAdmins, schoolId]);
 
   if (loading && !school) {
     return <div className="p-6"><SchoolTableSkeleton /></div>;
@@ -66,6 +68,7 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="courses">Courses ({courses.length})</TabsTrigger>
+          <TabsTrigger value="admins">Administrators ({admins?.length || 0})</TabsTrigger>
           <TabsTrigger value="students" disabled>Students</TabsTrigger>
         </TabsList>
         
@@ -122,6 +125,15 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
             courses={courses} 
             onAddCourse={(data) => addCourse(schoolId, data)} 
             onToggleStatus={(courseId, status) => updateCourseStatus(schoolId, courseId, status)} 
+          />
+        </TabsContent>
+
+        <TabsContent value="admins" className="mt-6">
+          <SchoolAdminsTab 
+            schoolId={schoolId} 
+            admins={admins} 
+            onAddAdmin={(data) => createAdmin(data)} 
+            onRemoveAdmin={(adminId) => removeAdmin(schoolId, adminId)} 
           />
         </TabsContent>
       </Tabs>

@@ -30,10 +30,18 @@ export async function fetchSchoolByUserIdRepo(userId: number): Promise<SchoolWit
   
   if (!schoolJson.data) return null;
   
-  // Mock course and student count for MVP
+  // Calculate course count accurately
+  let course_count = 0;
+  try {
+    const courses = await fetchCoursesBySchoolIdRepo(adminRecord.school_id);
+    course_count = courses.length;
+  } catch (err) {
+    console.error("Failed to fetch course count", err);
+  }
+
   return {
     ...schoolJson.data,
-    course_count: 0,
+    course_count: course_count,
     student_count: 0
   };
 }

@@ -1,5 +1,5 @@
 // src/modules/vos-admin/school-management/services/school.repo.ts
-import { VsSchool, VsSchoolCourse, SchoolWithStats } from '../types/school.types';
+import { VsSchool, VsSchoolCourse, SchoolWithStats, VsSchoolAdminRecord } from '../types/school.types';
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -122,5 +122,52 @@ export async function updateSchoolCourseRepo(id: number, payload: Partial<VsScho
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to update course.");
+  return json.data;
+}
+
+export async function fetchSchoolAdminsRepo(schoolId: number): Promise<VsSchoolAdminRecord[]> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_admin?filter[school_id][_eq]=${schoolId}&filter[is_active][_eq]=true&fields=*,user_id.user_fname,user_id.user_lname,user_id.user_email`;
+  const res = await fetch(url, { headers: getHeaders() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to fetch school admins.");
+  
+  // Flatten the user_id relation
+  return json.data.map((item: any) => ({
+    ...item,
+    user_fname: item.user_id?.user_fname,
+    user_lname: item.user_id?.user_lname,
+    user_email: item.user_id?.user_email,
+    user_id: item.user_id?.user_id || item.user_id, // directus might expand it
+  }));
+}
+
+export async function fetchAllSchoolsForDropdownRepo(): Promise<Partial<VsSchool>[]> {
+  const url = `${DIRECTUS_BASE}/items/vs_school?fields=school_id,school_name&limit=-1`;
+  const res = await fetch(url, { headers: getHeaders() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to fetch schools.");
+  return json.data;
+}
+
+export async function removeSchoolAdminRepo(schoolAdminId: number): Promise<void> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_admin/${schoolAdminId}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify({ is_active: false })
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to remove school admin.");
+}
+
+export async function createSchoolAdminJunction(payload: { school_id: number; user_id: number; assigned_by: number; is_active?: boolean }): Promise<VsSchoolAdminRecord> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_admin`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify(payload)
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to assign school admin.");
   return json.data;
 }

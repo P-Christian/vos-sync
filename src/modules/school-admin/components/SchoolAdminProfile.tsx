@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,25 @@ export function SchoolAdminProfile({
     country: school.country || "",
   });
 
+  // Keep formData in sync if school props update
+  useEffect(() => {
+    if (!isEditing) {
+      setFormData({
+        school_name: school.school_name || "",
+        school_type: school.school_type || "University",
+        school_email: school.school_email || "",
+        school_contact_no: school.school_contact_no || "",
+        school_website: school.school_website || "",
+        school_description: school.school_description || "",
+        address_line: school.address_line || "",
+        city_municipality: school.city_municipality || "",
+        province: school.province || "",
+        postal_code: school.postal_code || "",
+        country: school.country || "",
+      });
+    }
+  }, [school, isEditing]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -40,6 +59,8 @@ export function SchoolAdminProfile({
     if (success) {
       toast.success("School profile updated successfully.");
       setIsEditing(false);
+    } else {
+      toast.error("Failed to update school profile.");
     }
   };
 
