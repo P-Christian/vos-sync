@@ -8,6 +8,7 @@ import { JobBrowseFilters } from "./components/JobBrowseFilters";
 import { JobBrowseCard } from "./components/JobBrowseCard";
 import { JobDetailSheet } from "./components/JobDetailSheet";
 import { ApplyModal } from "./components/ApplyModal";
+import { useFreelancerBookmarks } from "../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
 
 export default function JobBrowseModule() {
   const {
@@ -34,9 +35,12 @@ export default function JobBrowseModule() {
     closeApply,
   } = useJobBrowse();
 
+  const { bookmarkedJobIds, toggleBookmark, fetchBookmarks } = useFreelancerBookmarks();
+
   useEffect(() => {
     fetchJobs();
-  }, [fetchJobs]);
+    fetchBookmarks();
+  }, [fetchJobs, fetchBookmarks]);
 
   return (
     <div className="space-y-6 p-6 sm:p-8">
@@ -109,7 +113,13 @@ export default function JobBrowseModule() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {jobs.map((job) => (
-              <JobBrowseCard key={job.job_id} job={job} onViewDetail={openDetail} />
+              <JobBrowseCard
+                key={job.job_id}
+                job={job}
+                onViewDetail={openDetail}
+                isBookmarked={bookmarkedJobIds.includes(job.job_id)}
+                onToggleBookmark={toggleBookmark}
+              />
             ))}
           </div>
         )}
@@ -122,6 +132,8 @@ export default function JobBrowseModule() {
         onClose={closeDetail}
         onApply={openApply}
         appliedJobIds={appliedJobIds}
+        bookmarkedJobIds={bookmarkedJobIds}
+        onToggleBookmark={toggleBookmark}
       />
 
       {/* Apply Modal */}

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { MapPin, Briefcase, Clock, Building2, ChevronRight, Wifi, Users } from "lucide-react";
+import { MapPin, Briefcase, Clock, Building2, ChevronRight, Wifi, Users, Bookmark } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PublicJobPosting, JOB_TYPE_LABELS } from "../types";
@@ -9,6 +9,8 @@ import { PublicJobPosting, JOB_TYPE_LABELS } from "../types";
 interface Props {
   job: PublicJobPosting;
   onViewDetail: (job: PublicJobPosting) => void;
+  isBookmarked: boolean;
+  onToggleBookmark: (jobId: number) => void;
 }
 
 function formatSalary(job: PublicJobPosting): string {
@@ -61,7 +63,7 @@ function getImageUrl(value: string | null | undefined): string {
   return `/api/client/assets/${value}`;
 }
 
-export function JobBrowseCard({ job, onViewDetail }: Props) {
+export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmark }: Props) {
   const ArrangeIcon = arrangementIcon[job.work_arrangement] ?? Briefcase;
 
   return (
@@ -144,14 +146,25 @@ export function JobBrowseCard({ job, onViewDetail }: Props) {
           <Clock className="h-3 w-3" />
           <span className="font-medium text-foreground">{formatSalary(job)}</span>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2"
-          onClick={(e) => { e.stopPropagation(); onViewDetail(job); }}
-        >
-          View <ChevronRight className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0 rounded-lg text-primary hover:text-primary hover:bg-primary/10"
+            onClick={(e) => { e.stopPropagation(); onToggleBookmark(job.job_id); }}
+            title={isBookmarked ? "Remove Bookmark" : "Save Job"}
+          >
+            <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2"
+            onClick={(e) => { e.stopPropagation(); onViewDetail(job); }}
+          >
+            View <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
     </div>
   );

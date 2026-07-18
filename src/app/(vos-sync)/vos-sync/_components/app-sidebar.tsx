@@ -60,7 +60,7 @@ const data = {
 
 import { usePathname } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, Bookmark } from "lucide-react";
 
 export function AppSidebar({
     className,
@@ -77,6 +77,7 @@ export function AppSidebar({
                 { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
                 { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
+                { label: "Saved Jobs", href: "/vos-sync/freelancer/bookmarks", icon: Bookmark },
                 { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
             ],
             footerLinks: [

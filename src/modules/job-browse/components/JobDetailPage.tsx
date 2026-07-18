@@ -19,12 +19,14 @@ import {
   Linkedin,
   Instagram,
   Youtube,
+  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
 import { ApplyModal } from "./ApplyModal";
+import { useFreelancerBookmarks } from "../../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
 
 interface Props {
   jobId: number;
@@ -51,6 +53,13 @@ export default function JobDetailPage({ jobId }: Props) {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+
+  const { bookmarkedJobIds, toggleBookmark, fetchBookmarks } = useFreelancerBookmarks();
+  const isBookmarked = bookmarkedJobIds.includes(jobId);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   useEffect(() => {
     async function loadJob() {
@@ -283,18 +292,23 @@ export default function JobDetailPage({ jobId }: Props) {
               id="job-page-apply-btn"
               onClick={() => setApplyModalOpen(true)}
               disabled={alreadyApplied}
-              className="w-full h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl font-medium gap-2 border-0 shadow-xs disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+              className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-xs disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
             >
               <Send className="h-4 w-4" />
               {alreadyApplied ? "Already Applied" : "Apply for Job"}
             </Button>
-            {/* <Button
+            <Button
               variant="outline"
-              className="w-full h-10 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800"
+              className={`w-full h-10 rounded-xl font-medium gap-2 transition-colors ${
+                isBookmarked 
+                  ? "border-primary text-primary hover:bg-primary/5" 
+                  : "text-foreground border-zinc-200 dark:border-zinc-800"
+              }`}
+              onClick={() => toggleBookmark(jobId)}
             >
-              <Bookmark className="h-4 w-4" />
-              Save Job
-            </Button> */}
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+              {isBookmarked ? "Saved" : "Save Job"}
+            </Button>
           </div>
 
           {/* Card 2: About Client */}
