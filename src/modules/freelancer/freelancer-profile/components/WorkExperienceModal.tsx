@@ -233,7 +233,7 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
                                 setIsCurrentRole(e.target.checked);
                                 if (e.target.checked) setEndDate("");
                             }}
-                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                         />
                         <label htmlFor="isCurrentRole" className="text-sm font-medium text-foreground cursor-pointer">
                             I currently work here

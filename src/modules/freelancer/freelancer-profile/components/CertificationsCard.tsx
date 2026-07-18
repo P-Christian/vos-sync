@@ -21,7 +21,7 @@ export function CertificationsCard() {
         <div className="bg-background rounded-lg border shadow-sm p-6">
             <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-blue-600" />
+                    <Award className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold text-foreground">Certifications</h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -45,8 +45,8 @@ export function CertificationsCard() {
             <div className="space-y-4">
                 {certificationsList.map((cert) => (
                     <div key={cert.id} className="flex gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
-                            <Award className="h-5 w-5 text-blue-600" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                            <Award className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">
