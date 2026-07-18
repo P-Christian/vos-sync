@@ -98,15 +98,12 @@ export function AppSidebar({
                 { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
             ],
-            footerLinks: [
-                { label: "Settings", href: "/vos-sync/settings", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/school-admin")) {
+    if (pathname.startsWith("/vos-sync/school-admin") || portal === "school-admin") {
         const SCHOOL_DASHBOARD_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "SCHOOL ADMIN",
@@ -115,15 +112,12 @@ export function AppSidebar({
                 { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
             ],
-            footerLinks: [
-                { label: "Settings", href: "#", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={SCHOOL_DASHBOARD_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/vos-admin")) {
+    if (pathname.startsWith("/vos-sync/vos-admin") || portal === "vos-admin") {
         const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "VOS Sync ADMIN",
@@ -133,10 +127,7 @@ export function AppSidebar({
                 { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
             ],
-            footerLinks: [
-                { label: "Settings", href: "#", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;
     }
