@@ -58,7 +58,7 @@ const data = {
     ],
 };
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
 import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, Bookmark } from "lucide-react";
 
@@ -67,8 +67,10 @@ export function AppSidebar({
     ...props
 }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const portal = searchParams.get("portal");
 
-    if (pathname.startsWith("/vos-sync/freelancer")) {
+    if (pathname.startsWith("/vos-sync/freelancer") || portal === "freelancer") {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "FREELANCER PORTAL",
@@ -78,17 +80,13 @@ export function AppSidebar({
                 { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
                 { label: "Saved Jobs", href: "/vos-sync/freelancer/bookmarks", icon: Bookmark },
-                { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
             ],
-            footerLinks: [
-                { label: "Settings", href: "/vos-sync/settings", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={FREELANCER_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/client")) {
+    if (pathname.startsWith("/vos-sync/client") || portal === "client") {
         const CLIENT_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "CLIENT PORTAL",

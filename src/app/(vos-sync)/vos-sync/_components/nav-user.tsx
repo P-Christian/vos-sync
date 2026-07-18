@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import {
     ChevronsUpDown,
     LogOut,
@@ -42,16 +42,19 @@ type NavUserProps = {
      * POST /api/auth/logout -> router.replace("/login") -> router.refresh()
      */
     onLogout?: () => void
+    profileUrl?: string
+    settingsUrl?: string
 }
 
-export function NavUser({ user, onLogout }: NavUserProps) {
-    const { isMobile } = useSidebar()
+export function NavUser({ user, onLogout, profileUrl, settingsUrl }: NavUserProps) {
+
     const router = useRouter()
     const [loggingOut, setLoggingOut] = React.useState(false)
 
     // ✅ theme toggle support
     const { theme, setTheme, systemTheme } = useTheme()
     const [mounted, setMounted] = React.useState(false)
+    const pathname = usePathname()
     React.useEffect(() => setMounted(true), [])
 
     const currentTheme = theme === "system" ? systemTheme : theme
@@ -92,6 +95,27 @@ export function NavUser({ user, onLogout }: NavUserProps) {
         }
     }, [loggingOut, onLogout, router])
 
+    // Compute dynamic URLs based on current portal path
+    let defaultProfileUrl = "#"
+    let defaultSettingsUrl = "#"
+
+    if (pathname.startsWith("/vos-sync/freelancer")) {
+        defaultProfileUrl = "/vos-sync/freelancer/profile"
+        defaultSettingsUrl = "/vos-sync/settings?portal=freelancer"
+    } else if (pathname.startsWith("/vos-sync/client")) {
+        defaultProfileUrl = "/vos-sync/client/company-profile"
+        defaultSettingsUrl = "/vos-sync/settings?portal=client"
+    } else if (pathname.startsWith("/vos-sync/school-admin")) {
+        defaultProfileUrl = "/vos-sync/school-admin/profile"
+        defaultSettingsUrl = "/vos-sync/settings?portal=school-admin"
+    } else if (pathname.startsWith("/vos-sync/vos-admin")) {
+        defaultProfileUrl = "/vos-sync/vos-admin/profile"
+        defaultSettingsUrl = "/vos-sync/settings?portal=vos-admin"
+    }
+
+    const finalProfileUrl = profileUrl || defaultProfileUrl
+    const finalSettingsUrl = settingsUrl || defaultSettingsUrl
+
     return (
         <SidebarMenu>
             <SidebarMenuItem>
@@ -117,7 +141,7 @@ export function NavUser({ user, onLogout }: NavUserProps) {
 
                     <DropdownMenuContent
                         className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                        side={isMobile ? "bottom" : "bottom"}
+                        side="bottom"
                         align="start"
                         sideOffset={8}
                     >
@@ -141,7 +165,7 @@ export function NavUser({ user, onLogout }: NavUserProps) {
                             </DropdownMenuItem>
 
                             <DropdownMenuItem asChild>
-                                <Link href="/crm/my-profile" className="cursor-pointer">
+                                <Link href={finalProfileUrl} className="cursor-pointer">
                                     <User className="mr-2 size-4" />
                                     My Profile
                                 </Link>
@@ -162,7 +186,7 @@ export function NavUser({ user, onLogout }: NavUserProps) {
                             </DropdownMenuItem>
 
                             <DropdownMenuItem asChild>
-                                <Link href="/crm/settings" className="cursor-pointer">
+                                <Link href={finalSettingsUrl} className="cursor-pointer">
                                     <Settings className="mr-2 size-4" />
                                     Settings
                                 </Link>
