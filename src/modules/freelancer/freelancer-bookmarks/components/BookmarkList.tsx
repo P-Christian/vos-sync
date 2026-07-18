@@ -5,7 +5,6 @@ import React from "react";
 import Link from "next/link";
 import { BookmarkedJob } from "../types";
 import { MapPin, Briefcase, Clock, Building2, ChevronRight, Wifi, Users, Bookmark, BookmarkMinus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -33,17 +32,6 @@ function getInitials(name?: string | null): string {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-function timeAgo(dateStr?: string): string {
-  if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  if (days < 7) return `${days}d ago`;
-  if (days < 30) return `${Math.floor(days / 7)}w ago`;
-  return `${Math.floor(days / 30)}mo ago`;
 }
 
 const arrangementIcon: Record<string, React.ElementType> = {
@@ -77,8 +65,8 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
         </div>
         <div>
           <p className="text-sm font-medium text-foreground">No saved jobs</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            You haven't bookmarked any jobs yet.
+          <p className="text-muted-foreground max-w-sm mx-auto mt-1">
+            You haven&apos;t bookmarked any jobs yet.
           </p>
         </div>
         <Button variant="outline" className="mt-2" asChild>

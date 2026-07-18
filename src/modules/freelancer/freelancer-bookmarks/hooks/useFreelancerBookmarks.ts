@@ -1,7 +1,7 @@
 // src/modules/freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks.ts
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { BookmarkedJob } from "../types";
 
 export function useFreelancerBookmarks() {
