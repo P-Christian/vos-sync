@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from "react";
-import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, VsUserSocialLink, DraftAction } from "../types/freelancer-profile.types";
+import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, VsUserSocialLink, DraftAction, VsJobPreferences } from "../types/freelancer-profile.types";
 
 export function useFreelancerProfile() {
     const [data, setData] = useState<FreelancerProfile | null>(null);
@@ -12,6 +12,7 @@ export function useFreelancerProfile() {
     const [pendingPersonalInfo, setPendingPersonalInfoState] = useState<Partial<FreelancerProfile> | null>(null);
     const [pendingVisibility, setPendingVisibilityState] = useState<string | null>(null);
     const [pendingProfessionalSummary, setPendingProfessionalSummaryState] = useState<string | null>(null);
+    const [pendingJobPreferences, setPendingJobPreferencesState] = useState<Partial<VsJobPreferences> | null>(null);
 
     // List item drafts (null means no draft changes, [] means user deleted everything)
     const [pendingSkills, setPendingSkills] = useState<VsUserSkillMap[] | null>(null);
@@ -60,6 +61,10 @@ export function useFreelancerProfile() {
         setPendingProfessionalSummaryState(value);
     }, []);
 
+    const setJobPreferencesDraft = useCallback((draft: Partial<VsJobPreferences>) => {
+        setPendingJobPreferencesState(draft);
+    }, []);
+
     // List Draft Helpers
     const setSkillsDraft = useCallback((skills: VsUserSkillMap[]) => {
         setPendingSkills(skills);
@@ -90,6 +95,7 @@ export function useFreelancerProfile() {
         setPendingWorkExperience(null);
         setPendingCertifications(null);
         setPendingSocialLinks(null);
+        setPendingJobPreferencesState(null);
     }, []);
 
     const hasPendingChanges = 
@@ -100,7 +106,8 @@ export function useFreelancerProfile() {
         pendingEducation !== null ||
         pendingWorkExperience !== null ||
         pendingCertifications !== null ||
-        pendingSocialLinks !== null;
+        pendingSocialLinks !== null ||
+        pendingJobPreferences !== null;
 
     const saveAllChanges = useCallback(async () => {
         if (!data) return { success: false, error: "No profile data loaded" };
@@ -148,7 +155,8 @@ export function useFreelancerProfile() {
                 initialSkillIds: data.skills ? data.skills.map(s => (s.skill ? s.skill.id : (typeof s.skill_id === 'object' ? (s.skill_id as any)?.id : s.skill_id))) : [],
                 education: generateDiff(data.education, pendingEducation),
                 workExperience: generateDiff(data.work_experience, pendingWorkExperience),
-                certifications: generateDiff(data.certifications, pendingCertifications)
+                certifications: generateDiff(data.certifications, pendingCertifications),
+                jobPreferences: pendingJobPreferences
             };
 
             if (pendingSocialLinks !== null) {
@@ -174,7 +182,7 @@ export function useFreelancerProfile() {
     }, [
         data, hasPendingChanges, pendingPersonalInfo, pendingVisibility, 
         pendingProfessionalSummary, pendingSkills, pendingEducation, 
-        pendingWorkExperience, pendingCertifications, pendingSocialLinks, clearDrafts, refresh
+        pendingWorkExperience, pendingCertifications, pendingSocialLinks, pendingJobPreferences, clearDrafts, refresh
     ]);
 
     return {
@@ -192,6 +200,7 @@ export function useFreelancerProfile() {
         pendingWorkExperience,
         pendingCertifications,
         pendingSocialLinks,
+        pendingJobPreferences,
         // Setters
         setPersonalInfoDraft,
         setVisibilityDraft,
@@ -201,6 +210,7 @@ export function useFreelancerProfile() {
         setWorkExperienceDraft,
         setCertificationsDraft,
         setSocialLinksDraft,
+        setJobPreferencesDraft,
         clearDrafts,
         hasPendingChanges,
         saveAllChanges,

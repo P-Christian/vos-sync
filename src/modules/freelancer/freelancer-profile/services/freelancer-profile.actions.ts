@@ -340,14 +340,15 @@ export async function updateProfileVisibilityAction(userId: number, profileId: n
 }
 
 export async function saveAllProfileChangesAction(payload: any) {
-    const { userId, profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications } = payload;
+    const { userId, profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications, jobPreferences } = payload;
     
     // Import all services
     const { 
         updatePersonalInfoService, 
         addEducationService, updateEducationService, deleteEducationService,
         addWorkExperienceService, updateWorkExperienceService, deleteWorkExperienceService,
-        addCertificationService, updateCertificationService, deleteCertificationService
+        addCertificationService, updateCertificationService, deleteCertificationService,
+        saveJobPreferencesService, computeProfileCompletion
     } = await import("./freelancer-profile.service");
 
     const { upsertJobSeekerProfileInDirectus } = await import("./freelancer-profile.repo");
@@ -390,6 +391,25 @@ export async function saveAllProfileChangesAction(payload: any) {
 
         if (skills !== null) {
             await saveUserSkillsAction(userId, initialSkillIds || [], skills);
+        }
+
+        if (jobPreferences !== null && jobPreferences !== undefined) {
+            await saveJobPreferencesService(userId, jobPreferences);
+        }
+
+        // Recalculate Profile Completion
+        const { getFreelancerProfile } = await import("./freelancer-profile.service");
+        const { updateJobSeekerProfileCompletion } = await import("./freelancer-profile.repo");
+        
+        const cookieStore = await import("next/headers").then(m => m.cookies());
+        const token = cookieStore.get("vos_access_token")?.value;
+        
+        if (token) {
+            const updatedProfile = await getFreelancerProfile(token);
+            if (updatedProfile && updatedProfile.job_seeker_profile?.[0]) {
+                const { percent, status } = computeProfileCompletion(updatedProfile);
+                await updateJobSeekerProfileCompletion(updatedProfile.job_seeker_profile[0].profile_id, percent, status);
+            }
         }
 
         const { revalidatePath } = await import("next/cache");

@@ -38,7 +38,12 @@ export async function POST(req: NextRequest) {
         console.error("[auth/login] Login error:", err);
         
         const errorMessage = err instanceof Error ? err.message : "Server is down, please contact Administrator.";
-        const status = errorMessage === "Credentials invalid." || errorMessage.includes("required") ? 400 : 500;
+        const isClientError = errorMessage.includes("Credentials invalid") || 
+                              errorMessage.includes("Account is blocked") || 
+                              errorMessage.includes("Account is locked") || 
+                              errorMessage.includes("Account locked") || 
+                              errorMessage.includes("required");
+        const status = isClientError ? 400 : 500;
 
         return NextResponse.json(
             { ok: false, message: errorMessage },

@@ -16,7 +16,17 @@ function normalizeLoginErrorMessage(rawMsg: string, httpStatus?: number) {
     const msg = String(rawMsg || "")
     const m = msg.toLowerCase()
 
-    // ✅ Invalid credentials (401)
+    // ✅ Pass through detailed lockout and attempt messages
+    if (
+        m.includes("account is locked") || 
+        m.includes("account locked") || 
+        m.includes("account is blocked") || 
+        (m.includes("invalid") && m.includes("remaining"))
+    ) {
+        return msg
+    }
+
+    // ✅ Generic Invalid credentials (401)
     if (
         httpStatus === 401 ||
         m.includes("http 401") ||
@@ -231,7 +241,7 @@ function LoginForm() {
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
                                     <label className="text-sm font-medium text-foreground block" htmlFor="password">Password</label>
-                                    <Link className="text-sm text-primary hover:underline" href="#">Forgot password?</Link>
+                                    <Link className="text-sm text-primary hover:underline" href="/forgot-password">Forgot password?</Link>
                                 </div>
                                 <div className="relative">
                                     <Input 

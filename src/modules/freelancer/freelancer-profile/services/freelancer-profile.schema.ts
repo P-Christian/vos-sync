@@ -123,3 +123,15 @@ export const updatePersonalInfoSchema = z.object({
 });
 
 export type UpdatePersonalInfoPayload = z.infer<typeof updatePersonalInfoSchema>;
+
+export const jobPreferencesSchema = z.object({
+    job_type: z.string().nullable().optional(),
+    work_setup: z.string().nullable().optional(),
+    preferred_location: z.string().nullable().optional(),
+    salary_range_min: z.number().nullable().optional(),
+    salary_range_max: z.number().nullable().optional(),
+    availability: z.string().nullable().optional(),
+    preferred_industry: z.string().nullable().optional(),
+});
+
+export type JobPreferencesPayload = z.infer<typeof jobPreferencesSchema>;

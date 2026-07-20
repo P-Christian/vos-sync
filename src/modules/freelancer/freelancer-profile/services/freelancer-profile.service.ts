@@ -233,3 +233,80 @@ export async function updatePersonalInfoService(userId: number, payload: any) {
 
     return await updateUserInDirectus(userId, data);
 }
+
+export async function saveJobPreferencesService(userId: number, payload: any) {
+    const { upsertJobPreferencesInDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        job_type: payload.job_type,
+        work_setup: payload.work_setup,
+        preferred_location: payload.preferred_location,
+        salary_range_min: payload.salary_range_min,
+        salary_range_max: payload.salary_range_max,
+        availability: payload.availability,
+        preferred_industry: payload.preferred_industry,
+    };
+
+    return await upsertJobPreferencesInDirectus(userId, data);
+}
+
+export function computeProfileCompletion(profile: FreelancerProfile): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
+    let completedSections = 0;
+
+    // 1. Personal Info
+    if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) {
+        completedSections++;
+    }
+
+    // 2. Contact Info
+    if (profile.user_contact) {
+        completedSections++;
+    }
+
+    // 3. Address
+    if (profile.user_province && profile.user_city) {
+        completedSections++;
+    }
+
+    // 4. Professional Summary
+    if (profile.job_seeker_profile?.[0]?.professional_summary) {
+        completedSections++;
+    }
+
+    // 5. Skills
+    if (profile.skills && profile.skills.length > 0) {
+        completedSections++;
+    }
+
+    // 6. Work Experience
+    if (profile.work_experience && profile.work_experience.length > 0) {
+        completedSections++;
+    }
+
+    // 7. Education
+    if (profile.education && profile.education.length > 0) {
+        completedSections++;
+    }
+
+    // 8. Job Preferences
+    const prefs = profile.job_preferences?.[0];
+    if (prefs && prefs.job_type && prefs.availability) {
+        completedSections++;
+    }
+
+    const percent = Math.round((completedSections / 8) * 100);
+
+    let status: 'not_started' | 'draft' | 'complete' | 'admin_verified' = 'not_started';
+    const currentStatus = profile.job_seeker_profile?.[0]?.profile_status;
+
+    if (currentStatus === 'admin_verified') {
+        status = 'admin_verified';
+    } else if (percent === 100) {
+        status = 'complete';
+    } else if (percent > 0) {
+        status = 'draft';
+    }
+
+    return { percent, status };
+}
+

@@ -136,3 +136,110 @@ export async function markOTPVerified(userId: string | number) {
     const json = await res.json();
     return json.data;
 }
+
+export async function updateFailedAttempts(userId: string | number, attempts: number, lockUntil?: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const body: any = {
+        failed_attempts: attempts,
+        update_at: new Date().toISOString()
+    };
+    if (lockUntil !== undefined) {
+        body.lock_until = lockUntil;
+    }
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`Failed to update failed attempts: HTTP ${res.status}`);
+    return (await res.json()).data;
+}
+
+export async function resetFailedAttempts(userId: string | number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            failed_attempts: 0,
+            lock_until: null,
+            last_login_at: new Date().toISOString(),
+            update_at: new Date().toISOString()
+        }),
+    });
+
+    if (!res.ok) throw new Error(`Failed to reset attempts: HTTP ${res.status}`);
+    return (await res.json()).data;
+}
+
+export async function saveResetToken(userId: string | number, tokenId: string, tokenHash: string, expiry: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            reset_token_id: tokenId,
+            reset_token_hash: tokenHash,
+            reset_token_expiry: expiry,
+            update_at: new Date().toISOString()
+        }),
+    });
+
+    if (!res.ok) throw new Error(`Failed to save reset token: HTTP ${res.status}`);
+    return (await res.json()).data;
+}
+
+export async function clearResetToken(userId: string | number, newHashedPassword?: string, plainPassword?: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+
+    const body: any = {
+        reset_token_id: null,
+        reset_token_hash: null,
+        reset_token_expiry: null,
+        update_at: new Date().toISOString()
+    };
+    if (newHashedPassword) {
+        body.hash_password = newHashedPassword;
+    }
+    if (plainPassword) {
+        body.user_password = plainPassword;
+    }
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error(`Failed to clear reset token: HTTP ${res.status}`);
+    return (await res.json()).data;
+}
