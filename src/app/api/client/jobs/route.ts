@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/client/jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "./service.directus";
@@ -56,6 +57,57 @@ async function resolveCompany(userId: number): Promise<{
   };
 }
 
+async function attachCompanyToJob(job: any) {
+  if (!job || !job.company_id) return job;
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company/${job.company_id}?fields=*`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!res.ok) return job;
+    const json = await res.json();
+    const companyData = json.data;
+    if (!companyData) return job;
+
+    return {
+      ...job,
+      company: {
+        company_id: companyData.company_id,
+        company_name: companyData.company_name,
+        company_logo: companyData.company_logo,
+        company_cover: companyData.company_cover,
+        company_email: companyData.company_email,
+        company_contact: companyData.company_contact,
+        company_address: companyData.company_address,
+        company_city: companyData.company_city,
+        company_province: companyData.company_province,
+        company_facebook: companyData.company_facebook,
+        company_linkedin: companyData.company_linkedin,
+        company_instagram: companyData.company_instagram,
+        company_x: companyData.company_x,
+        company_youtube: companyData.company_youtube,
+      },
+      // fallback flat fields
+      company_name: companyData.company_name || null,
+      company_logo: companyData.company_logo || null,
+      company_cover: companyData.company_cover || null,
+      company_email: companyData.company_email || null,
+      company_contact: companyData.company_contact || null,
+      company_address: companyData.company_address || null,
+      company_city: companyData.company_city || null,
+      company_province: companyData.company_province || null,
+      company_facebook: companyData.company_facebook || null,
+      company_linkedin: companyData.company_linkedin || null,
+      company_instagram: companyData.company_instagram || null,
+      company_x: companyData.company_x || null,
+      company_youtube: companyData.company_youtube || null,
+    };
+  } catch (err) {
+    console.error("attachCompanyToJob error:", err);
+    return job;
+  }
+}
+
 // ─────────────────────────────────────────────
 // GET — List all job postings for the company
 // ─────────────────────────────────────────────
@@ -77,8 +129,9 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get("status");
 
     const jobs = await jobService.getJobs(companyId, status);
+    const jobsWithCompany = await Promise.all(jobs.map((j) => attachCompanyToJob(j)));
 
-    return NextResponse.json({ jobs });
+    return NextResponse.json({ jobs: jobsWithCompany });
   } catch (err: unknown) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
@@ -157,11 +210,12 @@ export async function POST(req: NextRequest) {
     };
 
     const createdJob = await jobService.createJob(jobPayload);
+    const jobWithCompany = await attachCompanyToJob(createdJob);
 
     return NextResponse.json({
       success: true,
       message: "Job posting created successfully.",
-      job: createdJob,
+      job: jobWithCompany,
     });
   } catch (err: unknown) {
     return NextResponse.json(

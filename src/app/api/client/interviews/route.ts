@@ -58,10 +58,11 @@ interface ApplicationSummary {
   job_id: number;
 }
 
-interface DirectusUser {
+interface VsUser {
   user_id: number;
   user_fname: string;
   user_lname: string;
+  profile_image_url?: string | null;
 }
 
 interface DirectusJob {
@@ -124,12 +125,12 @@ export async function GET(req: NextRequest) {
     const usersMap: Record<number, string> = {};
     if (userIds.length > 0) {
       const usersRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname&limit=200`,
+        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,profile_image_url&limit=200`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (usersRes.ok) {
         const usersJson = await usersRes.json();
-        const usersList: DirectusUser[] = usersJson.data ?? [];
+        const usersList: VsUser[] = usersJson.data ?? [];
         usersList.forEach((u) => {
           usersMap[u.user_id] = `${u.user_fname} ${u.user_lname}`.trim();
         });

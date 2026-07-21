@@ -12,16 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Users, Clock, Briefcase, Pencil, Landmark, Banknote } from "lucide-react";
+import { MapPin, Users, Clock, Briefcase, Pencil, Landmark, Banknote, ExternalLink } from "lucide-react";
 import JobStatusBadge from "./JobStatusBadge";
 import { JobPosting, JobStatus, JOB_TYPE_LABELS } from "../types";
 
 interface JobCardProps {
   job: JobPosting;
+  onView: (job: JobPosting) => void;
   onEdit: (job: JobPosting) => void;
-  onStatusChange: (jobId: number, newStatus: JobStatus) => void;
+  onStatusChange: (
+    jobId: number,
+    newStatus: JobStatus
+  ) => void;
 }
-
 const parseJsonField = (value: string | null | undefined): Record<string, unknown> => {
   if (!value) return {};
   const trimmed = value.trim();
@@ -59,24 +62,29 @@ function timeAgo(dateStr?: string): string {
 // Border accent per status — transition handles the animation
 const STATUS_BORDER: Record<JobStatus, string> = {
   ACTIVE: "border-l-[#14a800]",
-  DRAFT:  "border-l-amber-500",
+  DRAFT: "border-l-amber-500",
   CLOSED: "border-l-rose-500",
 };
 
 // Select trigger colour per status
 const STATUS_TRIGGER: Record<JobStatus, string> = {
   ACTIVE: "text-[#14a800] border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-800/40 hover:border-emerald-400",
-  DRAFT:  "text-amber-600 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 hover:border-amber-400",
+  DRAFT: "text-amber-600 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 hover:border-amber-400",
   CLOSED: "text-rose-600 border-rose-200 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-800/40 hover:border-rose-450",
 };
 
-export default function JobCard({ job, onEdit, onStatusChange }: JobCardProps) {
+export default function JobCard({
+  job,
+  onView,
+  onEdit,
+  onStatusChange
+}: JobCardProps) {
   const descData = parseJsonField(job.job_description);
   const reqsData = parseJsonField(job.job_requirements);
 
-  const category    = (descData.job_category as string)  || "";
+  const category = (descData.job_category as string) || "";
   const arrangement = (descData.work_arrangement as string) || (job.work_arrangement as string) || "Remote";
-  const salaryType  = (reqsData.salary_type as string)   || (job.salary_type as string) || "Salary Range";
+  const salaryType = (reqsData.salary_type as string) || (job.salary_type as string) || "Salary Range";
 
   return (
     <Card
@@ -160,7 +168,16 @@ export default function JobCard({ job, onEdit, onStatusChange }: JobCardProps) {
 
           {/* ── Right: actions (fixed width, never shifts) ────── */}
           <div className="flex flex-row md:flex-col items-stretch gap-2 shrink-0 w-full md:w-28 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-zinc-900">
-
+            {/* Preview */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onView(job)}
+              className="h-8 px-3 text-xs gap-1.5 rounded-lg"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              Preview
+            </Button>
             {/* Edit — always visible */}
             <Button
               size="sm"

@@ -24,12 +24,13 @@ interface ApplicationRecord {
   applied_at?: string;
 }
 
-interface DirectusUser {
+interface VsUser {
   user_id: number;
   user_fname: string;
   user_lname: string;
   user_email: string;
   user_position?: string | null;
+  profile_image_url?: string | null;
 }
 
 interface DirectusProfile {
@@ -188,7 +189,7 @@ export async function GET(req: NextRequest) {
       );
       if (usersRes.ok) {
         const usersJson = await usersRes.json();
-        const usersList: DirectusUser[] = usersJson.data ?? [];
+        const usersList: VsUser[] = usersJson.data ?? [];
         usersList.forEach((u) => {
           usersMap[u.user_id] = {
             name: `${u.user_fname} ${u.user_lname}`.trim(),

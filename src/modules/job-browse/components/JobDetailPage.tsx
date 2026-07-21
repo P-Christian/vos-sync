@@ -11,12 +11,11 @@ import {
   Layers,
   HelpCircle,
   ArrowLeft,
-  CheckCircle,
-  ShieldCheck,
+
   Mail,
   Phone,
   Facebook,
-  Linkedin,
+
   Instagram,
   Youtube,
 } from "lucide-react";
@@ -122,7 +121,7 @@ export default function JobDetailPage({ jobId }: Props) {
 
       {/* Main Upwork Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
+
         {/* Left Column: Job Details */}
         <div className="lg:col-span-2 space-y-6 bg-card border rounded-2xl overflow-hidden shadow-xs">
           {/* Cover Banner */}
@@ -300,9 +299,9 @@ export default function JobDetailPage({ jobId }: Props) {
           {/* Card 2: About Client */}
           <div className="bg-card border rounded-2xl p-6 shadow-xs space-y-4">
             <h3 className="text-sm font-bold text-foreground">About the client</h3>
-            
+
             <div className="space-y-4 text-xs">
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-[#14a800]" />
                 <span className="font-semibold text-zinc-700 dark:text-zinc-300">Payment method verified</span>
               </div>
@@ -311,7 +310,7 @@ export default function JobDetailPage({ jobId }: Props) {
                 <span className="font-semibold text-zinc-700 dark:text-zinc-300">Phone number verified</span>
               </div>
               
-              <Separator />
+              <Separator /> */}
 
               {/* Location */}
               <div className="space-y-1">
@@ -353,11 +352,7 @@ export default function JobDetailPage({ jobId }: Props) {
                         <Facebook className="h-4 w-4" />
                       </a>
                     )}
-                    {job.company_linkedin && (
-                      <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400">
-                        <Linkedin className="h-4 w-4" />
-                      </a>
-                    )}
+
                     {job.company_instagram && (
                       <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400">
                         <Instagram className="h-4 w-4" />
