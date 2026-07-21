@@ -76,7 +76,16 @@ export function useApplyJob() {
       cover_letter: prefill.cover_letter,
       expected_salary: prefill.expected_salary,
       portfolio_url: prefill.portfolio_url,
-      screening_answers: (job.screening_questions ?? []).map(() => ""),
+      screening_answers: (job.screening_questions ?? []).map((q) => {
+        if (typeof q === "object" && q !== null) {
+          return {
+            question_id: q.question_id,
+            question_text: q.question_text,
+            answer_text: "",
+          };
+        }
+        return { question_text: String(q), answer_text: "" };
+      }),
     });
 
     setPrefillLoading(false);
@@ -92,7 +101,7 @@ export function useApplyJob() {
   const handleAnswerChange = useCallback((index: number, value: string) => {
     setFormData((prev) => {
       const answers = [...prev.screening_answers];
-      answers[index] = value;
+      answers[index] = { ...answers[index], answer_text: value };
       return { ...prev, screening_answers: answers };
     });
   }, []);

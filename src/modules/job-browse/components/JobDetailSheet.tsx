@@ -260,12 +260,15 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                   <Separator />
                   <Section title={`Screening Questions (${job.screening_questions.length})`}>
                     <div className="space-y-2">
-                      {job.screening_questions.map((q, i) => (
-                        <div key={i} className="flex items-start gap-2 text-sm text-foreground/70 bg-muted/40 rounded-lg p-1">
-                          <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                          <span>{q}</span>
-                        </div>
-                      ))}
+                      {job.screening_questions.map((q, i) => {
+                        const qText = typeof q === "object" && q !== null ? q.question_text : String(q);
+                        return (
+                          <div key={i} className="flex items-start gap-2 text-sm text-foreground/70 bg-muted/40 rounded-lg p-1">
+                            <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                            <span>{qText}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-2">
                       You will answer these questions in the application form.
