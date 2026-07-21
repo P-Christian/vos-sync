@@ -1,6 +1,8 @@
 // src/app/api/freelancer/applications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications";
+import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail } from "@/lib/mail";
+import { createSystemMessage } from "@/lib/messaging/system-message";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,7 +49,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch applications for this user
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=*&limit=200`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at&limit=200`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -105,10 +107,50 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enrich with screening answers from vs_job_application_answer & vs_job_screening_question
+    const appIds = applications.map((a) => a.application_id as number);
+    const screeningMap: Record<number, { question_id: number; question_text: string; answer_text: string }[]> = {};
+    if (appIds.length > 0) {
+      const ansRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application_answer?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,question_id,answer_text&limit=500`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (ansRes.ok) {
+        const ansJson = await ansRes.json();
+        const ansList: { application_id: number; question_id: number; answer_text: string }[] = ansJson.data ?? [];
+        const qIds = [...new Set(ansList.map((a) => a.question_id).filter(Boolean))];
+
+        const qTextMap: Record<number, string> = {};
+        if (qIds.length > 0) {
+          const qRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[question_id][_in]=${qIds.join(",")}&fields=question_id,question_text&limit=500`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (qRes.ok) {
+            const qJson = await qRes.json();
+            const qList: { question_id: number; question_text: string }[] = qJson.data ?? [];
+            qList.forEach((q) => {
+              qTextMap[q.question_id] = q.question_text;
+            });
+          }
+        }
+
+        ansList.forEach((a) => {
+          if (!screeningMap[a.application_id]) screeningMap[a.application_id] = [];
+          screeningMap[a.application_id].push({
+            question_id: a.question_id,
+            question_text: qTextMap[a.question_id] || `Question #${a.question_id}`,
+            answer_text: a.answer_text,
+          });
+        });
+      }
+    }
+
     // Merge all data
     const enriched = applications.map((app) => {
       const job = jobsMap[app.job_id as number] ?? {};
       const companyId = job.company_id as number;
+      const appId = app.application_id as number;
       return {
         ...app,
         job_title: job.job_title ?? null,
@@ -116,6 +158,7 @@ export async function GET(req: NextRequest) {
         job_location: job.job_location ?? null,
         work_arrangement: job.work_arrangement ?? null,
         company_name: companyId ? (companyMap[companyId] ?? null) : null,
+        screening_answers: screeningMap[appId] ?? null,
       };
     });
 
@@ -175,11 +218,10 @@ export async function POST(req: NextRequest) {
       cover_letter: body.cover_letter?.trim() || null,
       expected_salary: body.expected_salary ? Number(body.expected_salary) : null,
       portfolio_url: body.portfolio_url?.trim() || null,
-      screening_answers: body.screening_answers ?? null,
       applied_at: nowPH,
     };
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(payload),
@@ -205,11 +247,131 @@ export async function POST(req: NextRequest) {
       message: "Your application has been received. We will notify you of any updates.",
       action_url: "/vos-sync/freelancer/applications",
     });
+    const createdApp = json.data;
+    const applicationId = createdApp?.application_id;
+
+    if (applicationId && Array.isArray(body.screening_answers) && body.screening_answers.length > 0) {
+      let answersToInsert = body.screening_answers;
+      const needsQuestionIds = answersToInsert.some((a: Record<string, unknown>) => !a.question_id);
+      if (needsQuestionIds) {
+        const qRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[job_id][_eq]=${body.job_id}&fields=question_id,question_text&sort[]=question_id`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (qRes.ok) {
+          const qJson = await qRes.json();
+          const qList: { question_id: number; question_text: string }[] = qJson.data ?? [];
+          answersToInsert = answersToInsert.map((ans: Record<string, unknown>, idx: number) => ({
+            question_id: ans.question_id || qList[idx]?.question_id,
+            answer_text: typeof ans === "string" ? ans : (ans.answer_text as string),
+          }));
+        }
+      }
+
+      for (const ans of answersToInsert) {
+        const qId = (ans as Record<string, unknown>).question_id;
+        const text = ((ans as Record<string, unknown>).answer_text as string)?.trim();
+        if (qId && text) {
+          await fetch(`${DIRECTUS_BASE}/items/vs_job_application_answer`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({
+              application_id: applicationId,
+              question_id: Number(qId),
+              answer_text: text,
+              created_at: nowPH,
+            }),
+          }).catch((e) => console.error("Error inserting screening answer:", e));
+        }
+      }
+    }
+
+    // Dispatch email notification to candidate and employer company
+    try {
+      const userRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}?fields=user_email,user_fname,user_lname`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (userRes.ok) {
+        const u = (await userRes.json()).data;
+        const candidateName = `${u?.user_fname ?? ""} ${u?.user_lname ?? ""}`.trim() || "Candidate";
+        const candidateEmail = u?.user_email ?? "";
+
+        let jobTitle = "Unknown Position";
+        let companyName = "Employer";
+        let companyEmail = "";
+        let companyId: number | null = null;
+
+        const jobRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${body.job_id}?fields=job_title,company_id`, {
+          headers: getHeaders(),
+          cache: "no-store",
+        });
+        if (jobRes.ok) {
+          const jData = (await jobRes.json()).data;
+          if (jData?.job_title) jobTitle = jData.job_title;
+          if (jData?.company_id) {
+            companyId = Number(jData.company_id);
+            const compRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${jData.company_id}?fields=company_name,company_email`, {
+              headers: getHeaders(),
+              cache: "no-store",
+            });
+            if (compRes.ok) {
+              const compData = (await compRes.json()).data;
+              companyName = compData?.company_name || companyName;
+              companyEmail = compData?.company_email || "";
+            }
+          }
+        }
+
+        // 1. Send confirmation email to candidate
+        if (candidateEmail) {
+          await sendApplicationSubmittedEmail(candidateEmail, {
+            candidateName,
+            companyName,
+            jobTitle,
+            appliedAt: nowPH,
+          }).catch((err) => console.error("Candidate application email dispatch error:", err));
+        }
+
+        // 2. Send new application notification email to employer company email
+        if (companyEmail) {
+          await sendNewApplicationReceivedEmail(companyEmail, {
+            companyName,
+            jobTitle,
+            candidateName,
+            candidateEmail,
+            expectedSalary: body.expected_salary ?? null,
+            appliedAt: nowPH,
+            applicationId: Number(applicationId),
+          }).catch((err) => console.error("Employer application alert email error:", err));
+        }
+
+        // 3. Generate System Message for Conversation
+        if (companyId) {
+          const compUserRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id&limit=1`, { headers: getHeaders(), cache: "no-store" });
+          if (compUserRes.ok) {
+            const cuData = (await compUserRes.json()).data;
+            const clientId = cuData?.[0]?.user_id;
+            if (clientId) {
+              await createSystemMessage({
+                clientId: Number(clientId),
+                freelancerId: userId,
+                jobId: Number(body.job_id),
+                text: `${candidateName} applied for "${jobTitle}"`,
+                senderId: userId,
+              }).catch((err) => console.error("Error creating application system message:", err));
+            }
+          }
+        }
+      }
+    } catch (mailErr) {
+      console.error("Error sending application emails:", mailErr);
+    }
 
     return NextResponse.json({
       success: true,
       message: "Application submitted successfully.",
-      application: json.data,
+      application: createdApp,
     });
   } catch (err: unknown) {
     console.error("POST /api/freelancer/applications error:", err);

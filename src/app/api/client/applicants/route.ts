@@ -294,7 +294,7 @@ export async function GET(req: NextRequest) {
     // ------------------------------
 
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?${filterQuery}&sort[]=-applied_at&fields=*&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_job_application?${filterQuery}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at&limit=500`,
       {
         headers: getHeaders(),
         cache: "no-store",
@@ -320,6 +320,8 @@ export async function GET(req: NextRequest) {
       ),
     ];
 
+    const appIds = rawApps.map((a) => a.application_id);
+
     // ------------------------------
     // Bulk fetch
     // ------------------------------
@@ -329,6 +331,7 @@ export async function GET(req: NextRequest) {
       skillsRes,
       workRes,
       resumeRes,
+      interviewsRes,
     ] = await Promise.all([
       fetch(
         `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_position,profile_image_url&limit=500`,
@@ -361,6 +364,14 @@ export async function GET(req: NextRequest) {
           cache: "no-store",
         }
       ),
+
+      fetch(
+        `${DIRECTUS_BASE}/items/vs_interview?filter[application_id][_in]=${appIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,application_id&limit=500`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      ),
     ]);
 
     const users: VsUser[] =
@@ -382,6 +393,11 @@ export async function GET(req: NextRequest) {
       resumeRes.ok
         ? (await resumeRes.json()).data ?? []
         : [];
+
+    const interviewRows: { interview_id: number; application_id: number }[] =
+      interviewsRes.ok
+        ? (await interviewsRes.json()).data ?? []
+        : [];
     
     // ------------------------------
     // Maps
@@ -401,6 +417,12 @@ export async function GET(req: NextRequest) {
     const workMap: Record<number, WorkExperience[]> = {};
 
     const resumeMap: Record<number, number> = {};
+
+    const activeInterviewsMap: Record<number, number> = {};
+
+    interviewRows.forEach((row) => {
+      activeInterviewsMap[row.application_id] = row.interview_id;
+    });
 
     users.forEach((user) => {
       usersMap[user.user_id] = user;
@@ -495,6 +517,9 @@ export async function GET(req: NextRequest) {
             workExperience.length,
             resumeCount
           ),
+
+        active_interview_id:
+          activeInterviewsMap[application.application_id] ?? null,
       };
     });
 

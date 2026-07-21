@@ -244,25 +244,28 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <HelpCircle className="h-3.5 w-3.5" />
                   Employer Questions
                 </div>
-                {job.screening_questions?.map((question, i) => (
-                  <div key={i} className="space-y-1.5 p-3.5 border rounded-xl bg-muted/20">
-                    <Label
-                      htmlFor={`screening-answer-${i}`}
-                      className="text-sm font-semibold leading-snug text-foreground"
-                    >
-                      {question}
-                    </Label>
-                    <Textarea
-                      id={`screening-answer-${i}`}
-                      placeholder="Your answer..."
-                      value={formData.screening_answers[i] ?? ""}
-                      onChange={(e) => handleAnswerChange(i, e.target.value)}
-                      rows={3}
-                      className="resize-none text-sm rounded-xl bg-background"
-                      disabled={saving}
-                    />
-                  </div>
-                ))}
+                {job.screening_questions?.map((question, i) => {
+                  const qText = typeof question === "object" && question !== null ? question.question_text : String(question);
+                  return (
+                    <div key={i} className="space-y-1.5 p-3.5 border rounded-xl bg-muted/20">
+                      <Label
+                        htmlFor={`screening-answer-${i}`}
+                        className="text-sm font-semibold leading-snug text-foreground"
+                      >
+                        {qText}
+                      </Label>
+                      <Textarea
+                        id={`screening-answer-${i}`}
+                        placeholder="Your answer..."
+                        value={formData.screening_answers[i]?.answer_text ?? ""}
+                        onChange={(e) => handleAnswerChange(i, e.target.value)}
+                        rows={3}
+                        className="resize-none text-sm rounded-xl bg-background"
+                        disabled={saving}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -425,14 +428,18 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   {hasScreening && (
                     <div className="p-4 space-y-3 bg-background">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Employer Questions Answers</span>
-                      {job.screening_questions?.map((question, i) => (
-                        <div key={i} className="space-y-1 bg-muted/30 p-3 rounded-xl border">
-                          <p className="font-semibold text-foreground text-xs">{question}</p>
-                          <p className="text-muted-foreground text-xs whitespace-pre-wrap mt-0.5">
-                            {formData.screening_answers[i] || <span className="italic text-zinc-400 text-[11px]">No answer provided</span>}
-                          </p>
-                        </div>
-                      ))}
+                      {job.screening_questions?.map((question, i) => {
+                        const qText = typeof question === "object" && question !== null ? question.question_text : String(question);
+                        const aText = formData.screening_answers[i]?.answer_text;
+                        return (
+                          <div key={i} className="space-y-1 bg-muted/30 p-3 rounded-xl border">
+                            <p className="font-semibold text-foreground text-xs">{qText}</p>
+                            <p className="text-muted-foreground text-xs whitespace-pre-wrap mt-0.5">
+                              {aText || <span className="italic text-zinc-400 text-[11px]">No answer provided</span>}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
     Mail,
     Phone,
@@ -36,6 +37,7 @@ import {
     User2,
     Contact,
     LandPlot,
+    MessageSquare,
 } from "lucide-react";
 import { Applicant, ApplicationStatus, CandidateDetail, STATUS_LABELS } from "../types";
 
@@ -117,21 +119,6 @@ function formatCurrency(value?: number | null): string | null {
     }
 }
 
-function formatAnswerKey(key: string): string {
-    return key.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatAnswerValue(value: unknown): string {
-    if (value === null || value === undefined) return "—";
-    if (typeof value === "object") {
-        try {
-            return JSON.stringify(value);
-        } catch {
-            return String(value);
-        }
-    }
-    return String(value);
-}
 
 function Section({
     icon: Icon,
@@ -204,11 +191,7 @@ export default function ApplicantDetailsModal({
         applicant.profile_completion ??
         0;
 
-    const screeningEntries = detail?.screening_answers
-        ? Object.entries(detail.screening_answers).filter(
-            ([, v]) => v !== null && v !== "" && v !== undefined
-        )
-        : [];
+    const screeningEntries = detail?.screening_answers?.filter((a) => a.answer_text?.trim()) ?? [];
     const visibilities = [
         true, // Profile Metrics (0)
         !!detail, // Contact (1)
@@ -599,10 +582,10 @@ export default function ApplicantDetailsModal({
                                 <AnimatedSection delay={delays[9]}>
                                     <Section icon={BadgeQuestionMark} title="Screening Answers">
                                         <div className="space-y-2">
-                                            {screeningEntries.map(([key, value]) => (
-                                                <div key={key}>
-                                                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{formatAnswerKey(key)}</p>
-                                                    <p className="text-zinc-700 dark:text-zinc-300">{formatAnswerValue(value)}</p>
+                                            {screeningEntries.map((item) => (
+                                                <div key={item.question_id}>
+                                                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{item.question_text}</p>
+                                                    <p className="text-zinc-700 dark:text-zinc-300">{item.answer_text || "—"}</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -650,6 +633,12 @@ export default function ApplicantDetailsModal({
                         Close
                     </Button>
 
+                    <Link href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}>
+                        <Button variant="outline" className="border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50">
+                            <MessageSquare className="h-4 w-4" />
+                            Message Applicant
+                        </Button>
+                    </Link>
 
                     <Button variant="outline" onClick={onUpdateStatus}>
                         Update Status

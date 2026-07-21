@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
     // 4. Fetch vs_job_application records
     let applicantsList: ApplicationRecord[] = [];
     if (jobIds.length > 0) {
-      const appUrl = `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&sort[]=-applied_at&limit=100&fields=*`;
+      const appUrl = `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&sort[]=-applied_at&limit=100&fields=application_id,job_id,user_id,application_status,applied_at`;
       const appRes = await fetch(appUrl, { headers: getHeaders(), cache: "no-store" });
       if (appRes.ok) {
         const appJson = await appRes.json();

@@ -270,12 +270,15 @@ export default function JobDetailPage({ jobId }: Props) {
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Screening Questions ({job.screening_questions.length})</h3>
                   <div className="space-y-2">
-                    {job.screening_questions.map((q, i) => (
-                      <div key={i} className="flex items-start gap-2.5 text-sm text-foreground/70 bg-muted/40 rounded-xl p-4">
-                        <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                        <span>{q}</span>
-                      </div>
-                    ))}
+                    {job.screening_questions.map((q, i) => {
+                      const qText = typeof q === "object" && q !== null ? q.question_text : String(q);
+                      return (
+                        <div key={i} className="flex items-start gap-2.5 text-sm text-foreground/70 bg-muted/40 rounded-xl p-4">
+                          <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                          <span>{qText}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </>

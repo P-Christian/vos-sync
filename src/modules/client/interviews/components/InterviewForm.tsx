@@ -1,26 +1,16 @@
-// src/modules/client/interviews/components/InterviewForm.tsx
 "use client";
 
+// src/modules/client/interviews/components/InterviewForm.tsx
+
 import React from "react";
-import { Input } from "@/components/ui/input";
+import { InterviewFormData, InterviewFormat, INTERVIEW_FORMAT_LABELS } from "../types";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  InterviewFormData,
-  InterviewFormat,
-  INTERVIEW_FORMAT_LABELS,
-} from "../types";
 
 interface InterviewFormProps {
   data: InterviewFormData;
-  onChange: (field: keyof InterviewFormData, value: string) => void;
+  onChange: (field: keyof InterviewFormData, value: string | number) => void;
   errors?: Partial<Record<keyof InterviewFormData, string>>;
   disableApplicationId?: boolean;
 }
@@ -28,138 +18,163 @@ interface InterviewFormProps {
 export default function InterviewForm({
   data,
   onChange,
-  errors,
-  disableApplicationId,
+  errors = {},
+  disableApplicationId = false,
 }: InterviewFormProps) {
   return (
     <div className="space-y-4">
       {/* Application ID */}
-      <div className="space-y-1.5">
-        <Label htmlFor="if-app-id" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Application ID <span className="text-rose-500">*</span>
-        </Label>
-        <Input
-          id="if-app-id"
-          type="number"
-          value={data.application_id}
-          onChange={(e) => onChange("application_id", e.target.value)}
-          placeholder="e.g. 101"
-          disabled={disableApplicationId}
-          className={`h-9 text-sm ${errors?.application_id ? "border-rose-400" : ""}`}
-        />
-        {errors?.application_id && (
-          <p className="text-[11px] text-rose-500">{errors.application_id}</p>
-        )}
-      </div>
-
-      {/* Date & Time */}
-      <div className="grid grid-cols-2 gap-3">
+      {!disableApplicationId && (
         <div className="space-y-1.5">
-          <Label htmlFor="if-date" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Interview Date <span className="text-rose-500">*</span>
+          <Label htmlFor="app-id" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Application ID <span className="text-rose-500">*</span>
           </Label>
           <Input
-            id="if-date"
-            type="date"
-            value={data.interview_date}
-            onChange={(e) => onChange("interview_date", e.target.value)}
-            className={`h-9 text-sm ${errors?.interview_date ? "border-rose-400" : ""}`}
+            id="app-id"
+            value={data.application_id}
+            onChange={(e) => onChange("application_id", e.target.value)}
+            placeholder="e.g. 12"
+            className="h-9 text-sm rounded-lg"
           />
-          {errors?.interview_date && (
-            <p className="text-[11px] text-rose-500">{errors.interview_date}</p>
+          {errors.application_id && (
+            <p className="text-[11px] text-rose-500">{errors.application_id}</p>
           )}
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="if-time" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Interview Time <span className="text-rose-500">*</span>
+      )}
+
+      {/* Scheduled At Datetime Picker & Duration */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="sm:col-span-2 space-y-1.5">
+          <Label htmlFor="sched-at" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Scheduled Date & Time <span className="text-rose-500">*</span>
           </Label>
           <Input
-            id="if-time"
-            type="time"
-            value={data.interview_time}
-            onChange={(e) => onChange("interview_time", e.target.value)}
-            className={`h-9 text-sm ${errors?.interview_time ? "border-rose-400" : ""}`}
+            id="sched-at"
+            type="datetime-local"
+            value={data.scheduled_at}
+            onChange={(e) => onChange("scheduled_at", e.target.value)}
+            className="h-9 text-sm rounded-lg"
           />
-          {errors?.interview_time && (
-            <p className="text-[11px] text-rose-500">{errors.interview_time}</p>
+          {errors.scheduled_at && (
+            <p className="text-[11px] text-rose-500">{errors.scheduled_at}</p>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="duration" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Duration (Mins)
+          </Label>
+          <Input
+            id="duration"
+            type="number"
+            value={data.duration_minutes}
+            onChange={(e) => onChange("duration_minutes", parseInt(e.target.value, 10) || 60)}
+            placeholder="60"
+            className="h-9 text-sm rounded-lg"
+          />
         </div>
       </div>
 
-      {/* Format */}
-      <div className="space-y-1.5">
-        <Label htmlFor="if-format" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Interview Format <span className="text-rose-500">*</span>
-        </Label>
-        <Select
-          value={data.interview_format}
-          onValueChange={(v) => onChange("interview_format", v as InterviewFormat)}
-        >
-          <SelectTrigger
-            id="if-format"
-            className={`h-9 text-sm ${errors?.interview_format ? "border-rose-400" : ""}`}
+      {/* Format & Timezone */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="format" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Interview Format <span className="text-rose-500">*</span>
+          </Label>
+          <select
+            id="format"
+            value={data.interview_format}
+            onChange={(e) => onChange("interview_format", e.target.value as InterviewFormat)}
+            className="w-full h-9 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <SelectValue placeholder="Select format" />
-          </SelectTrigger>
-          <SelectContent>
-            {(Object.entries(INTERVIEW_FORMAT_LABELS) as [InterviewFormat, string][]).map(
-              ([k, v]) => (
-                <SelectItem key={k} value={k} className="text-sm">{v}</SelectItem>
-              )
-            )}
-          </SelectContent>
-        </Select>
-        {errors?.interview_format && (
-          <p className="text-[11px] text-rose-500">{errors.interview_format}</p>
-        )}
+            <option value="">-- Select Format --</option>
+            {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {errors.interview_format && (
+            <p className="text-[11px] text-rose-500">{errors.interview_format}</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="timezone" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Timezone
+          </Label>
+          <Input
+            id="timezone"
+            value={data.timezone}
+            onChange={(e) => onChange("timezone", e.target.value)}
+            placeholder="Asia/Manila"
+            className="h-9 text-sm rounded-lg"
+          />
+        </div>
       </div>
 
-      {/* Meeting Link / Location */}
+      {/* Meeting Link (for ONLINE) */}
       {data.interview_format === "ONLINE" && (
         <div className="space-y-1.5">
-          <Label htmlFor="if-link" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Meeting Link
+          <Label htmlFor="link" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Meeting Link (Google Meet / Zoom / Teams)
           </Label>
           <Input
-            id="if-link"
+            id="link"
             value={data.meeting_link}
             onChange={(e) => onChange("meeting_link", e.target.value)}
-            placeholder="https://meet.google.com/..."
-            className="h-9 text-sm"
+            placeholder="https://meet.google.com/xyz-abc-123"
+            className="h-9 text-sm rounded-lg"
           />
         </div>
       )}
 
+      {/* Meeting Location (for ONSITE) */}
       {data.interview_format === "ONSITE" && (
         <div className="space-y-1.5">
-          <Label htmlFor="if-location" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Meeting Location
+          <Label htmlFor="location" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Office Location / Room
           </Label>
           <Input
-            id="if-location"
+            id="location"
             value={data.meeting_location}
             onChange={(e) => onChange("meeting_location", e.target.value)}
-            placeholder="e.g. 3F Conference Room, Ayala Tower"
-            className="h-9 text-sm"
+            placeholder="e.g. 5th Floor Conference Room A, Building 2"
+            className="h-9 text-sm rounded-lg"
           />
         </div>
       )}
 
-      {/* Notes */}
-      <div className="space-y-1.5">
-        <Label htmlFor="if-notes" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Interview Notes (optional)
-        </Label>
-        <Textarea
-          id="if-notes"
-          value={data.interview_notes}
-          onChange={(e) => onChange("interview_notes", e.target.value)}
-          rows={3}
-          placeholder="Any notes to share with the interviewer or candidate..."
-          className="resize-none text-sm"
-        />
+      {/* Internal Notes & Candidate Notes */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="notes" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Interviewer Notes <span className="text-zinc-400 font-normal">(Internal)</span>
+          </Label>
+          <Textarea
+            id="notes"
+            value={data.interview_notes}
+            onChange={(e) => onChange("interview_notes", e.target.value)}
+            rows={3}
+            placeholder="Focus areas or interviewer instructions..."
+            className="text-xs rounded-lg resize-none"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="cand-notes" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Candidate Notes <span className="text-zinc-400 font-normal">(Shared)</span>
+          </Label>
+          <Textarea
+            id="cand-notes"
+            value={data.candidate_notes}
+            onChange={(e) => onChange("candidate_notes", e.target.value)}
+            rows={3}
+            placeholder="Instructions or requirements shared with candidate..."
+            className="text-xs rounded-lg resize-none"
+          />
+        </div>
       </div>
     </div>
   );
 }
-

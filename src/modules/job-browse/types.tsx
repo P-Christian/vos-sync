@@ -5,6 +5,17 @@ export type WorkArrangement = 'Remote' | 'Hybrid' | 'On-site';
 export type ExperienceLevel = 'ENTRY' | 'MID' | 'SENIOR' | 'MANAGER' | 'EXECUTIVE';
 export type SalaryType = 'Salary Range' | 'Fixed Salary' | 'Hourly Rate';
 
+export interface JobScreeningQuestion {
+  question_id: number;
+  question_text: string;
+}
+
+export interface ScreeningAnswerPayload {
+  question_id?: number;
+  question_text?: string;
+  answer_text: string;
+}
+
 export interface PublicJobPosting {
   job_id: number;
   company_id: number;
@@ -43,7 +54,7 @@ export interface PublicJobPosting {
   // Relations
   skills?: { id: number; skill_name: string }[];
   benefits?: string[];
-  screening_questions?: string[];
+  screening_questions?: (JobScreeningQuestion | string)[];
 }
 
 export interface ApplyFormData {
@@ -51,7 +62,7 @@ export interface ApplyFormData {
   cover_letter: string;
   expected_salary: string;
   portfolio_url: string;
-  screening_answers: string[];
+  screening_answers: ScreeningAnswerPayload[];
 }
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {
