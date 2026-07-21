@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -24,6 +25,9 @@ interface PortalPageHeaderProps {
  * and Bell, HelpCircle, and NavUser on the right.
  */
 export function PortalPageHeader({ user }: PortalPageHeaderProps) {
+    const pathname = usePathname();
+    const isFreelancerPortal = pathname.startsWith("/vos-sync/freelancer");
+
     return (
         <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
             {/* Left: sidebar toggle */}
@@ -36,7 +40,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 <div className="hidden md:block mr-2">
                     <UserSearchBar />
                 </div>
-                <NotificationBell />
+                {isFreelancerPortal && <NotificationBell />}
                 <Button
                     variant="ghost"
                     size="icon"

@@ -15,6 +15,7 @@ import {
     Sun,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -46,7 +47,10 @@ type NavUserProps = {
     settingsUrl?: string
 }
 
-export function NavUser({ user, onLogout, profileUrl, settingsUrl }: NavUserProps) {
+export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: NavUserProps) {
+
+    const contextUser = useUserProfile()
+    const user = contextUser?.name ? contextUser : propUser
 
     const router = useRouter()
     const [loggingOut, setLoggingOut] = React.useState(false)
