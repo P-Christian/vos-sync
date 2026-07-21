@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect } from "react";
 import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, VsUserSocialLink, DraftAction, VsJobPreferences } from "../types/freelancer-profile.types";

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
-export default function SchoolRegisterPage() {
+function SchoolRegisterContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -291,5 +291,20 @@ export default function SchoolRegisterPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function SchoolRegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <SchoolRegisterContent />
+    </Suspense>
   );
 }

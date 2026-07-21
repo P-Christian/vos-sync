@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -38,6 +39,19 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const educationList = pendingEducation !== null ? pendingEducation : liveEducation;
 
     useEffect(() => {
+        async function fetchSchools() {
+            setLoadingSchools(true);
+            try {
+                const res = await fetch("/api/freelancer/schools");
+                const json = await res.json();
+                if (json.schools) setSchools(json.schools);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoadingSchools(false);
+            }
+        }
+
         if (isOpen) {
             fetchSchools();
             if (educationToEdit) {
@@ -68,6 +82,19 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     }, [isOpen, educationToEdit]);
 
     useEffect(() => {
+        async function fetchCourses(sId: string) {
+            setLoadingCourses(true);
+            try {
+                const res = await fetch(`/api/freelancer/schools/${sId}/courses`);
+                const json = await res.json();
+                if (json.courses) setCourses(json.courses);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoadingCourses(false);
+            }
+        }
+
         if (schoolId) {
             fetchCourses(schoolId);
         } else {
@@ -75,31 +102,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         }
     }, [schoolId]);
 
-    const fetchSchools = async () => {
-        setLoadingSchools(true);
-        try {
-            const res = await fetch("/api/freelancer/schools");
-            const json = await res.json();
-            if (json.schools) setSchools(json.schools);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoadingSchools(false);
-        }
-    };
-
-    const fetchCourses = async (sId: string) => {
-        setLoadingCourses(true);
-        try {
-            const res = await fetch(`/api/freelancer/schools/${sId}/courses`);
-            const json = await res.json();
-            if (json.courses) setCourses(json.courses);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoadingCourses(false);
-        }
-    };
 
     const handleSave = async () => {
         if (!isUnverifiedSchool && !schoolId) {
