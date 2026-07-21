@@ -84,7 +84,9 @@ export default function ConversationItem({
       {/* Avatar */}
       <div className="relative shrink-0 mt-0.5">
         {other_party_avatar && !imgError ? (
-          <img
+          <Image
+            width={64}
+            height={64}
             src={other_party_avatar}
             alt={other_party_name}
             onError={() => setImgError(true)}

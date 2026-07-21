@@ -5,6 +5,7 @@
 import React, { useRef, useState, KeyboardEvent } from "react";
 import { Send, Paperclip, X, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface PendingFile {
   file: File;
@@ -107,7 +108,9 @@ export default function MessageInput({
                 className="relative flex items-center gap-2 pl-2.5 pr-8 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 max-w-[200px]"
               >
                 {pf.preview ? (
-                  <img
+                  <Image
+                    width={64}
+                    height={64}
                     src={pf.preview}
                     alt={pf.file.name}
                     className="h-8 w-8 rounded-lg object-cover shrink-0"

@@ -6,6 +6,7 @@ import React from "react";
 import { FileText, ImageIcon, CheckCheck, Info } from "lucide-react";
 import { Message } from "../types";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface Props {
   message: Message;
@@ -109,7 +110,9 @@ export default function MessageBubble({
                         : "border-zinc-200 dark:border-zinc-700"
                     )}
                   >
-                    <img
+                    <Image
+                    width={64}
+                    height={64}
                       src={att.file_path}
                       alt={att.file_name}
                       className="w-full h-auto max-h-48 object-cover"
