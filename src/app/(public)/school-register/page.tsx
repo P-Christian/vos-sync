@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 function SchoolRegisterContent() {
   const searchParams = useSearchParams();
@@ -17,10 +17,10 @@ function SchoolRegisterContent() {
   const [schoolInfo, setSchoolInfo] = useState<{ name: string; email: string } | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [otp, setOtp] = useState('');
-  
+
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -38,7 +38,7 @@ function SchoolRegisterContent() {
       try {
         const res = await fetch(`/api/auth/school-register?token=${token}`);
         const data = await res.json();
-        
+
         if (data.valid) {
           setSchoolInfo({
             name: data.school_name,
@@ -96,11 +96,11 @@ function SchoolRegisterContent() {
       }
 
       toast.success('Account created!', { description: 'Please check your email for the verification code.' });
-      
+
       setUserId(data.userId);
       setStep('otp');
       setLoading(false);
-      
+
     } catch {
       toast.error('Registration failed', { description: 'Network error.' });
       setLoading(false);
@@ -128,7 +128,7 @@ function SchoolRegisterContent() {
 
       toast.success('Account verified!');
       setStep('success');
-      
+
     } catch {
       toast.error('Verification failed', { description: 'Network error.' });
       setLoading(false);
@@ -192,7 +192,7 @@ function SchoolRegisterContent() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-sm border">
-        
+
         {step === 'form' && (
           <>
             <div className="text-center mb-8">
