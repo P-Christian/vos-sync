@@ -5,7 +5,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Briefcase, Clock, CalendarPlus } from "lucide-react";
+import { User, Mail, Briefcase, Clock, CalendarPlus, ChevronRight } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -30,11 +30,28 @@ interface ApplicantCardProps {
   applicant: Applicant;
   onUpdateStatus: (applicant: Applicant) => void;
   onScheduleInterview: (applicant: Applicant) => void;
+  onViewDetails: (applicant: Applicant) => void;
 }
 
-export default function ApplicantCard({ applicant, onUpdateStatus, onScheduleInterview }: ApplicantCardProps) {
+export default function ApplicantCard({
+  applicant,
+  onUpdateStatus,
+  onScheduleInterview,
+  onViewDetails,
+}: ApplicantCardProps) {
   return (
-    <Card className="hover:shadow-lg transition-all duration-200 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={() => onViewDetails(applicant)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onViewDetails(applicant);
+        }
+      }}
+      className="hover:shadow-lg hover:border-primary/30 transition-all duration-200 border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+    >
       <CardContent className="p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -56,18 +73,33 @@ export default function ApplicantCard({ applicant, onUpdateStatus, onScheduleInt
                   {applicant.applicant_email}
                 </span>
               )}
+
               {applicant.job_title && (
                 <span className="flex items-center gap-1">
                   <Briefcase className="h-3 w-3" />
                   {applicant.job_title}
                 </span>
               )}
-              {applicant.experience && (
-                <span className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {applicant.experience}
-                </span>
-              )}
+
+              <span className="flex items-center gap-1">
+                <User className="h-3 w-3" />
+                {applicant.experience_years} yrs exp
+              </span>
+
+              <span className="flex items-center gap-1">
+                <Briefcase className="h-3 w-3" />
+                {applicant.work_experience_count} jobs
+              </span>
+
+              <span className="flex items-center gap-1">
+                📄 {applicant.resume_count} resume
+                {applicant.resume_count !== 1 ? "s" : ""}
+              </span>
+
+              <span className="flex items-center gap-1">
+                ✨ {applicant.profile_completion}% profile
+              </span>
+
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Applied {timeAgo(applicant.applied_at)}
@@ -78,7 +110,10 @@ export default function ApplicantCard({ applicant, onUpdateStatus, onScheduleInt
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onUpdateStatus(applicant)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateStatus(applicant);
+              }}
               className="h-8 px-3 text-xs rounded-lg"
             >
               Update Status
@@ -86,17 +121,20 @@ export default function ApplicantCard({ applicant, onUpdateStatus, onScheduleInt
             {applicant.application_status !== "REJECTED" && applicant.application_status !== "HIRED" && (
               <Button
                 size="sm"
-                onClick={() => onScheduleInterview(applicant)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onScheduleInterview(applicant);
+                }}
                 className="h-8 px-3 text-xs rounded-lg gap-1 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
               >
                 <CalendarPlus className="h-3.5 w-3.5" />
                 Schedule Interview
               </Button>
             )}
+            <ChevronRight className="hidden sm:block h-4 w-4 text-zinc-300 dark:text-zinc-600 shrink-0" />
           </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-
