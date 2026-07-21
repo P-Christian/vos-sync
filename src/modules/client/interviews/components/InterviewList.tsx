@@ -3,7 +3,7 @@
 // src/modules/client/interviews/components/InterviewList.tsx
 
 import React from "react";
-import { Interview, InterviewStatus } from "../types";
+import { Interview } from "../types";
 import InterviewStatusBadge from "./InterviewStatusBadge";
 import { Button } from "@/components/ui/button";
 import {
