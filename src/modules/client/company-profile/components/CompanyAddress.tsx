@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/client/company-profile/components/CompanyAddress.tsx
 "use client";
 

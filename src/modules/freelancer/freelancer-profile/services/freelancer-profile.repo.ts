@@ -10,7 +10,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_employee_education.*,vs_employee_education.school_id.*,vs_employee_education.school_course_id.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*,social_links.*,vs_user_social_links.*`;
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}&fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,work_experience.*,work_experience.media.*,work_experience.vs_work_experience_media.*,work_experience.skills.*,work_experience.vs_work_experience_skills.*,work_experience.skills.skill_id.*,work_experience.vs_work_experience_skills.skill_id.*,vs_work_experience.*,vs_work_experience.media.*,vs_work_experience.vs_work_experience_media.*,vs_work_experience.skills.*,vs_work_experience.vs_work_experience_skills.*,vs_work_experience.skills.skill_id.*,vs_work_experience.vs_work_experience_skills.skill_id.*,education.*,vs_employee_education.*,vs_employee_education.school_id.*,vs_employee_education.school_course_id.*,certifications.*,vs_certifications.*,skills.*,skills.skill_id.*,vs_user_skills_map.*,vs_user_skills_map.skill_id.*,resumes.*,vs_job_seeker_resumes.*,social_links.*,vs_user_social_links.*,vs_job_preferences.*`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -45,6 +45,9 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 id: edu.employee_education_id || edu.id,
                 user_id: edu.user_id,
                 school_id: typeof edu.school_id === 'object' ? edu.school_id?.school_id : edu.school_id,
+                school_name_raw: edu.school_name_raw,
+                course_name_raw: edu.course_name_raw,
+                education_status: edu.education_status,
                 school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
                 school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
                 course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
@@ -63,6 +66,10 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
 
         if (user.vs_user_social_links && !user.social_links) {
             user.social_links = user.vs_user_social_links;
+        }
+
+        if (user.vs_job_preferences && !user.job_preferences) {
+            user.job_preferences = user.vs_job_preferences;
         }
 
         // Fallback: If social_links is still undefined or not returned via the relation, fetch it directly
@@ -86,6 +93,30 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
             } catch (err) {
                 console.error("Failed to fetch social links directly", err);
                 user.social_links = [];
+            }
+        }
+
+        // Fallback: If job_preferences is still undefined or not returned via the relation, fetch it directly
+        if (!user.job_preferences) {
+            try {
+                const prefsUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_preferences?filter[user_id][_eq]=${user.user_id}`;
+                const prefsRes = await fetch(prefsUrl, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    cache: "no-store"
+                });
+                if (prefsRes.ok) {
+                    const prefsJson = await prefsRes.json();
+                    user.job_preferences = prefsJson.data || [];
+                } else {
+                    user.job_preferences = [];
+                }
+            } catch (err) {
+                console.error("Failed to fetch job preferences directly", err);
+                user.job_preferences = [];
             }
         }
 
@@ -197,6 +228,9 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                             id: edu.employee_education_id || edu.id,
                             user_id: edu.user_id,
                             school_id: typeof edu.school_id === 'object' ? edu.school_id?.school_id : edu.school_id,
+                            school_name_raw: edu.school_name_raw,
+                            course_name_raw: edu.course_name_raw,
+                            education_status: edu.education_status,
                             school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
                             school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
                             course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
@@ -806,4 +840,83 @@ export async function upsertJobSeekerProfileInDirectus(userId: number, profileId
 
     const json = await res.json();
     return json.data;
+}
+
+export async function upsertJobPreferencesInDirectus(userId: number, data: any) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    // 1. Check if preferences exist
+    const checkUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_preferences?filter[user_id][_eq]=${userId}`;
+    const checkRes = await fetch(checkUrl, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        cache: "no-store"
+    });
+
+    if (!checkRes.ok) {
+        throw new Error(`Failed to check existing job preferences: HTTP ${checkRes.status}`);
+    }
+
+    const checkData = await checkRes.json();
+    const existing = checkData.data?.[0];
+
+    // 2. Insert or Update
+    const method = existing ? "PATCH" : "POST";
+    const url = existing
+        ? `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_preferences/${existing.id}`
+        : `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_preferences`;
+        
+    const payload = existing ? data : { user_id: userId, ...data };
+
+    const res = await fetch(url, {
+        method,
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to upsert job preferences: HTTP ${res.status} - ${errorText}`);
+    }
+
+    return await res.json();
+}
+
+export async function updateJobSeekerProfileCompletion(profileId: number, percent: number, status: string) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile/${profileId}`;
+
+    const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            profile_completion_percent: percent,
+            profile_status: status
+        })
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to update profile completion: HTTP ${res.status} - ${errorText}`);
+    }
 }

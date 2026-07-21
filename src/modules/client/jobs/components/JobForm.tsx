@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/client/jobs/components/JobForm.tsx
 "use client";
 

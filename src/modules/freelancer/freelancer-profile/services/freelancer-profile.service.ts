@@ -3,6 +3,7 @@
 import * as jose from "jose";
 import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
 import { FreelancerProfile } from "../types/freelancer-profile.types";
+import { createSchoolRequestRepo } from "@/modules/vos-admin/request-management/services/request.repo";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
@@ -103,12 +104,31 @@ export async function addEducationService(userId: number, payload: any) {
     const data = {
         user_id: userId,
         school_id: payload.school_id,
+        school_name_raw: payload.school_name_raw || null,
+        course_name_raw: payload.course_name_raw || null,
+        education_status: payload.education_status || 'Verified',
         school_course_id: payload.school_course_id || null,
         start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
         end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
-    return await addEducationToDirectus(data);
+    const result = await addEducationToDirectus(data);
+
+    // Auto-create a school request when employee submits an unverified school
+    if (data.education_status === 'Pending' && data.school_name_raw) {
+        try {
+            await createSchoolRequestRepo({
+                requested_by: userId,
+                requested_school_name: data.school_name_raw,
+                request_status: 'Pending'
+            });
+        } catch (err) {
+            // Non-blocking: log error but don't fail the education save
+            console.error("[addEducationService] Failed to auto-create school request:", err);
+        }
+    }
+
+    return result;
 }
 
 export async function updateEducationService(id: number, userId: number, payload: any) {
@@ -116,12 +136,31 @@ export async function updateEducationService(id: number, userId: number, payload
 
     const data = {
         school_id: payload.school_id,
+        school_name_raw: payload.school_name_raw || null,
+        course_name_raw: payload.course_name_raw || null,
+        education_status: payload.education_status || 'Verified',
         school_course_id: payload.school_course_id || null,
         start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
         end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
     };
 
-    return await updateEducationInDirectus(id, data);
+    const result = await updateEducationInDirectus(id, data);
+
+    // Auto-create a school request when employee updates to an unverified school
+    if (data.education_status === 'Pending' && data.school_name_raw) {
+        try {
+            await createSchoolRequestRepo({
+                requested_by: userId,
+                requested_school_name: data.school_name_raw,
+                request_status: 'Pending'
+            });
+        } catch (err) {
+            // Non-blocking: log error but don't fail the education update
+            console.error("[updateEducationService] Failed to auto-create school request:", err);
+        }
+    }
+
+    return result;
 }
 
 export async function deleteEducationService(id: number, userId: number) {
@@ -194,3 +233,80 @@ export async function updatePersonalInfoService(userId: number, payload: any) {
 
     return await updateUserInDirectus(userId, data);
 }
+
+export async function saveJobPreferencesService(userId: number, payload: any) {
+    const { upsertJobPreferencesInDirectus } = await import("./freelancer-profile.repo");
+
+    const data = {
+        job_type: payload.job_type,
+        work_setup: payload.work_setup,
+        preferred_location: payload.preferred_location,
+        salary_range_min: payload.salary_range_min,
+        salary_range_max: payload.salary_range_max,
+        availability: payload.availability,
+        preferred_industry: payload.preferred_industry,
+    };
+
+    return await upsertJobPreferencesInDirectus(userId, data);
+}
+
+export function computeProfileCompletion(profile: FreelancerProfile): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
+    let completedSections = 0;
+
+    // 1. Personal Info
+    if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) {
+        completedSections++;
+    }
+
+    // 2. Contact Info
+    if (profile.user_contact) {
+        completedSections++;
+    }
+
+    // 3. Address
+    if (profile.user_province && profile.user_city) {
+        completedSections++;
+    }
+
+    // 4. Professional Summary
+    if (profile.job_seeker_profile?.[0]?.professional_summary) {
+        completedSections++;
+    }
+
+    // 5. Skills
+    if (profile.skills && profile.skills.length > 0) {
+        completedSections++;
+    }
+
+    // 6. Work Experience
+    if (profile.work_experience && profile.work_experience.length > 0) {
+        completedSections++;
+    }
+
+    // 7. Education
+    if (profile.education && profile.education.length > 0) {
+        completedSections++;
+    }
+
+    // 8. Job Preferences
+    const prefs = profile.job_preferences?.[0];
+    if (prefs && prefs.job_type && prefs.availability) {
+        completedSections++;
+    }
+
+    const percent = Math.round((completedSections / 8) * 100);
+
+    let status: 'not_started' | 'draft' | 'complete' | 'admin_verified' = 'not_started';
+    const currentStatus = profile.job_seeker_profile?.[0]?.profile_status;
+
+    if (currentStatus === 'admin_verified') {
+        status = 'admin_verified';
+    } else if (percent === 100) {
+        status = 'complete';
+    } else if (percent > 0) {
+        status = 'draft';
+    }
+
+    return { percent, status };
+}
+

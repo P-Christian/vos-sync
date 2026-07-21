@@ -6,9 +6,13 @@ import {
   createSchoolRepo,
   updateSchoolRepo,
   createSchoolCourseRepo,
-  updateSchoolCourseRepo
+  updateSchoolCourseRepo,
+  fetchSchoolAdminsRepo,
+  fetchAllSchoolsForDropdownRepo,
+  removeSchoolAdminRepo,
+  createSchoolAdminJunction
 } from './school.repo';
-import { VsSchool, VsSchoolCourse, SchoolWithStats } from '../types/school.types';
+import { VsSchool, VsSchoolCourse, SchoolWithStats, VsSchoolAdminRecord } from '../types/school.types';
 
 export async function getSchoolList(status?: string, search?: string): Promise<SchoolWithStats[]> {
   return fetchSchoolsRepo(status, search);
@@ -50,6 +54,32 @@ export async function updateSchool(id: number, data: Partial<VsSchool>, adminId:
 export async function toggleSchoolStatus(id: number, currentStatus: string, adminId: number): Promise<VsSchool> {
   const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
   return updateSchool(id, { school_status: newStatus }, adminId);
+}
+
+export async function toggleSchoolCourseStatus(courseId: number, currentStatus: string): Promise<VsSchoolCourse> {
+  const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+  return updateSchoolCourseRepo(courseId, { course_status: newStatus as "Active" | "Inactive" });
+}
+
+export async function getSchoolAdmins(schoolId: number): Promise<VsSchoolAdminRecord[]> {
+  return fetchSchoolAdminsRepo(schoolId);
+}
+
+export async function getAllSchoolsForDropdown(): Promise<Partial<VsSchool>[]> {
+  return fetchAllSchoolsForDropdownRepo();
+}
+
+export async function assignSchoolAdminJunction(schoolId: number, userId: number, assignedBy: number): Promise<VsSchoolAdminRecord> {
+  return createSchoolAdminJunction({
+    school_id: schoolId,
+    user_id: userId,
+    assigned_by: assignedBy,
+    is_active: true
+  });
+}
+
+export async function removeSchoolAdmin(schoolAdminId: number): Promise<void> {
+  return removeSchoolAdminRepo(schoolAdminId);
 }
 
 export async function createCourse(schoolId: number, data: Partial<VsSchoolCourse>, adminId: number): Promise<VsSchoolCourse> {

@@ -17,7 +17,7 @@ export const createSchoolSchema = z.object({
   province: z.string().min(1, 'Province is required'),
   postal_code: z.string().optional(),
   country: z.string().default('Philippines'),
-  school_status: z.enum(['Active', 'Inactive']).default('Active'),
+  school_status: z.enum(['Draft', 'Pending', 'Active', 'Inactive']).default('Draft'),
 });
 
 export const updateSchoolSchema = createSchoolSchema.partial();

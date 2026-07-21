@@ -7,17 +7,19 @@ import { ArrowLeft, Building2, MapPin, Mail, Phone, Globe } from "lucide-react";
 import { useSchoolDetail } from "../hooks/useSchoolDetail";
 import { SchoolStatusBadge } from "./SchoolStatusBadge";
 import { SchoolCoursesTab } from "./SchoolCoursesTab";
+import { SchoolAdminsTab } from "./SchoolAdminsTab";
 import { SchoolTableSkeleton } from "./SchoolTableSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
-  const { school, courses, loading, fetchSchoolDetail, addCourse, updateCourseStatus } = useSchoolDetail();
+  const { school, courses, admins, loading, saving, fetchSchoolDetail, fetchAdmins, addCourse, updateCourseStatus, removeAdmin, approveSchool } = useSchoolDetail();
 
   useEffect(() => {
     fetchSchoolDetail(schoolId);
-  }, [fetchSchoolDetail, schoolId]);
+    fetchAdmins(schoolId);
+  }, [fetchSchoolDetail, fetchAdmins, schoolId]);
 
   if (loading && !school) {
     return <div className="p-6"><SchoolTableSkeleton /></div>;
@@ -60,12 +62,29 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
             <span>{school.school_type}</span>
           </div>
         </div>
+        {school.school_status === 'Pending' && (
+          <div className="flex items-center">
+            <Button 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={saving}
+              onClick={async () => {
+                const success = await approveSchool(schoolId);
+                if (success) {
+                  // alert / toast handled by hook if we want, or we can just let it reload
+                }
+              }}
+            >
+              Approve School
+            </Button>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="courses">Courses ({courses.length})</TabsTrigger>
+          <TabsTrigger value="admins">Administrators ({admins?.length || 0})</TabsTrigger>
           <TabsTrigger value="students" disabled>Students</TabsTrigger>
         </TabsList>
         
@@ -122,6 +141,16 @@ export function SchoolProfilePage({ schoolId }: { schoolId: number }) {
             courses={courses} 
             onAddCourse={(data) => addCourse(schoolId, data)} 
             onToggleStatus={(courseId, status) => updateCourseStatus(schoolId, courseId, status)} 
+          />
+        </TabsContent>
+
+        <TabsContent value="admins" className="mt-6">
+          <SchoolAdminsTab 
+            schoolId={schoolId} 
+            schoolName={school.school_name}
+            schoolEmail={school.school_email}
+            admins={admins} 
+            onRemoveAdmin={(adminId) => removeAdmin(schoolId, adminId)} 
           />
         </TabsContent>
       </Tabs>

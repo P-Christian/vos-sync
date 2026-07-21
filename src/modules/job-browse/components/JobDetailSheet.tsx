@@ -30,6 +30,7 @@ import {
   Linkedin,
   Instagram,
   Youtube,
+  Bookmark,
 } from "lucide-react";
 import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
 
@@ -39,6 +40,8 @@ interface Props {
   onClose: () => void;
   onApply: (job: PublicJobPosting) => void;
   appliedJobIds?: number[];
+  bookmarkedJobIds?: number[];
+  onToggleBookmark?: (jobId: number) => void;
 }
 
 function formatSalary(job: PublicJobPosting): string {
@@ -76,10 +79,11 @@ function getImageUrl(value: string | null | undefined): string {
   return `/api/client/assets/${value}`;
 }
 
-export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = [] }: Props) {
+export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = [], bookmarkedJobIds = [], onToggleBookmark }: Props) {
   if (!job) return null;
 
   const alreadyApplied = appliedJobIds.includes(job.job_id);
+  const isBookmarked = bookmarkedJobIds.includes(job.job_id);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -344,12 +348,26 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
         </ScrollArea>
 
         {/* Sticky Apply Button */}
-        <div className="px-6 py-4 border-t bg-background shrink-0">
+        <div className="px-6 py-4 border-t bg-background shrink-0 flex gap-3">
+          {onToggleBookmark && (
+            <Button
+              variant="outline"
+              className={`h-10 px-4 rounded-xl font-medium gap-2 transition-colors ${
+                isBookmarked 
+                  ? "border-primary text-primary hover:bg-primary/5" 
+                  : "text-foreground border-zinc-200 dark:border-zinc-800"
+              }`}
+              onClick={() => onToggleBookmark(job.job_id)}
+            >
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+              {isBookmarked ? "Saved" : "Save Job"}
+            </Button>
+          )}
           <Button
             id="job-detail-apply-btn"
             onClick={() => onApply(job)}
             disabled={alreadyApplied}
-            className="w-full h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
           >
             <Send className="h-4 w-4" />
             {alreadyApplied ? "Already Applied" : "Apply Now"}

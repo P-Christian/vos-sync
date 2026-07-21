@@ -9,9 +9,11 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
 import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
+import { NotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
+import { UserSearchBar } from "@/modules/shared/search/components/UserSearchBar";
+import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
 
 export default async function FreelancerDashboardPage() {
     const cookieStore = await cookies();
@@ -21,12 +23,12 @@ export default async function FreelancerDashboardPage() {
     const user = {
         name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
         email: profile?.user_email || "guest@example.com",
-        avatar: "",
+        avatar: profile?.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}` : "",
     };
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 overflow-hidden">
+            <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16">
                 <div className="flex h-full min-w-0 items-center gap-2 px-3 sm:px-4 overflow-hidden">
                     <SidebarTrigger className="-ml-1 shrink-0" />
                     <Separator orientation="vertical" className="hidden sm:block mr-2 data-[orientation=vertical]:h-4 shrink-0" />
@@ -46,7 +48,11 @@ export default async function FreelancerDashboardPage() {
                         </Breadcrumb>
                     </div>
                 </div>
-                <div className="flex h-full items-center px-2 sm:px-4 shrink-0 max-w-[48vw] sm:max-w-none overflow-hidden">
+                <div className="flex h-full items-center px-2 sm:px-4 shrink-0 max-w-[48vw] sm:max-w-none gap-2">
+                    <div className="hidden md:block mr-2">
+                        <UserSearchBar />
+                    </div>
+                    <NotificationBell />
                     <NavUser user={user} />
                 </div>
             </header>

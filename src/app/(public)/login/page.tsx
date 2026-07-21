@@ -16,7 +16,17 @@ function normalizeLoginErrorMessage(rawMsg: string, httpStatus?: number) {
     const msg = String(rawMsg || "")
     const m = msg.toLowerCase()
 
-    // ✅ Invalid credentials (401)
+    // ✅ Pass through detailed lockout and attempt messages
+    if (
+        m.includes("account is locked") || 
+        m.includes("account locked") || 
+        m.includes("account is blocked") || 
+        (m.includes("invalid") && m.includes("remaining"))
+    ) {
+        return msg
+    }
+
+    // ✅ Generic Invalid credentials (401)
     if (
         httpStatus === 401 ||
         m.includes("http 401") ||
@@ -112,12 +122,15 @@ function LoginForm() {
             toast.success("Signed in", { description: "Welcome back." })
 
             let defaultPath = "/main-dashboard"
-            if (data?.role_id === 1) {
+            const roleId = Number(data?.role_id);
+            if (roleId === 1) {
                 defaultPath = "/vos-sync/freelancer/dashboard"
-            } else if (data?.role_id === 2) {
+            } else if (roleId === 2) {
                 defaultPath = "/vos-sync/client/dashboard"
-            } else if (data?.role_id === 3) {
+            } else if (roleId === 3) {
                 defaultPath = "/vos-sync/vos-admin"
+            } else if (roleId === 4) {
+                defaultPath = "/vos-sync/school-admin"
             }
 
             const next = searchParams.get("next") || defaultPath
@@ -228,7 +241,7 @@ function LoginForm() {
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
                                     <label className="text-sm font-medium text-foreground block" htmlFor="password">Password</label>
-                                    <Link className="text-sm text-primary hover:underline" href="#">Forgot password?</Link>
+                                    <Link className="text-sm text-primary hover:underline" href="/forgot-password">Forgot password?</Link>
                                 </div>
                                 <div className="relative">
                                     <Input 

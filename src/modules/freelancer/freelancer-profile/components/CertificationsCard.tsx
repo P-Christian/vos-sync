@@ -21,8 +21,17 @@ export function CertificationsCard() {
         <div className="bg-background rounded-lg border shadow-sm p-6">
             <div className="flex items-center justify-between mb-6 relative">
                 <div className="flex items-center gap-2">
-                    <Award className="h-5 w-5 text-blue-600" />
+                    <Award className="h-5 w-5 text-primary" />
                     <h3 className="font-semibold text-foreground">Certifications</h3>
+                    {certificationsList.length > 0 ? (
+                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                    ) : (
+                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground">
+                            <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     {pendingCertifications !== null && (
@@ -45,8 +54,8 @@ export function CertificationsCard() {
             <div className="space-y-4">
                 {certificationsList.map((cert) => (
                     <div key={cert.id} className="flex gap-4">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
-                            <Award className="h-5 w-5 text-blue-600" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+                            <Award className="h-5 w-5 text-primary" />
                         </div>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between">

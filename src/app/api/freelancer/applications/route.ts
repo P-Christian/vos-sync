@@ -1,5 +1,6 @@
 // src/app/api/freelancer/applications/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -192,6 +193,18 @@ export async function POST(req: NextRequest) {
         { status: res.status }
       );
     }
+
+    // Trigger notification
+    await createNotification({
+      event_type: "application_submitted",
+      recipient_user_id: userId,
+      entity_type: "job_application",
+      entity_id: json.data?.application_id,
+      category: "Application Updates",
+      title: "Application Submitted!",
+      message: "Your application has been received. We will notify you of any updates.",
+      action_url: "/vos-sync/freelancer/applications",
+    });
 
     return NextResponse.json({
       success: true,

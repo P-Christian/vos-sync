@@ -2,11 +2,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { VsSchoolCourse, SchoolWithStats } from "../types/school.types";
+import { VsSchoolCourse, SchoolWithStats, VsSchoolAdminRecord, CreateSchoolAdminPayload } from "../types/school.types";
 
 export function useSchoolDetail() {
   const [school, setSchool] = useState<SchoolWithStats | null>(null);
   const [courses, setCourses] = useState<VsSchoolCourse[]>([]);
+  const [admins, setAdmins] = useState<VsSchoolAdminRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -96,9 +97,93 @@ export function useSchoolDetail() {
     }
   }, []);
 
+  const fetchAdmins = useCallback(async (schoolId: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/vos-admin/schools/${schoolId}/admins`);
+      const json = await res.json();
+      if (res.ok) {
+        setAdmins(json ?? []);
+      }
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const createAdmin = useCallback(async (payload: CreateSchoolAdminPayload) => {
+    setSaving(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const res = await fetch(`/api/vos-admin/school-admins`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to assign admin.");
+      
+      setSuccessMessage("Admin assigned successfully.");
+      return true;
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const removeAdmin = useCallback(async (schoolId: number, adminId: number) => {
+    setSaving(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const res = await fetch(`/api/vos-admin/schools/${schoolId}/admins/${adminId}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to remove admin.");
+      
+      setAdmins(prev => prev.filter(a => a.school_admin_id !== adminId));
+      setSuccessMessage("Admin removed successfully.");
+      return true;
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const approveSchool = useCallback(async (schoolId: number) => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/vos-admin/schools/${schoolId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ school_status: "Active" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to approve school.");
+      
+      setSchool((prev) => prev ? { ...prev, school_status: "Active" } : null);
+      setSuccessMessage("School approved successfully.");
+      return true;
+    } catch (err: unknown) {
+      setError((err as Error).message || "An error occurred.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   return {
     school,
     courses,
+    admins,
     loading,
     saving,
     error,
@@ -106,6 +191,10 @@ export function useSchoolDetail() {
     fetchSchoolDetail,
     addCourse,
     updateCourseStatus,
+    fetchAdmins,
+    createAdmin,
+    removeAdmin,
+    approveSchool,
     clearMessages: () => { setError(""); setSuccessMessage(""); },
   };
 }

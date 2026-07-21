@@ -1,6 +1,6 @@
 // src/modules/vos-admin/school-management/types/school.types.ts
 
-export type SchoolStatus = 'Active' | 'Inactive';
+export type SchoolStatus = 'Draft' | 'Pending' | 'Active' | 'Inactive';
 export type SchoolType = 'University' | 'College' | 'Technical/Vocational' | 'Other';
 
 export interface VsSchool {
@@ -40,4 +40,26 @@ export interface VsSchoolCourse {
   created_at: string;
   updated_by: number | null;
   updated_at: string | null;
+}
+
+export interface VsSchoolAdminRecord {
+  school_admin_id: number;
+  school_id: number;
+  user_id: number;
+  is_active: boolean;
+  assigned_by: number | null;
+  created_at: string;
+  // Joined from vs_user
+  user_fname?: string;
+  user_lname?: string;
+  user_email?: string;
+}
+
+export interface CreateSchoolAdminPayload {
+  school_id: number;
+  user_fname: string;
+  user_lname: string;
+  user_email: string;
+  user_contact: string;
+  password?: string;
 }

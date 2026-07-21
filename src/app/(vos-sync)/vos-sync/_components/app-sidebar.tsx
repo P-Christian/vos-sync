@@ -58,17 +58,19 @@ const data = {
     ],
 };
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, Bookmark } from "lucide-react";
 
 export function AppSidebar({
     className,
     ...props
 }: React.ComponentProps<typeof Sidebar>) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const portal = searchParams.get("portal");
 
-    if (pathname.startsWith("/vos-sync/freelancer")) {
+    if (pathname.startsWith("/vos-sync/freelancer") || portal === "freelancer") {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "FREELANCER PORTAL",
@@ -77,17 +79,14 @@ export function AppSidebar({
                 { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
                 { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
-                { label: "Profile", href: "/vos-sync/freelancer/profile", icon: User },
+                { label: "Saved Jobs", href: "/vos-sync/freelancer/bookmarks", icon: Bookmark },
             ],
-            footerLinks: [
-                { label: "Settings", href: "/vos-sync/settings", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={FREELANCER_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/client")) {
+    if (pathname.startsWith("/vos-sync/client") || portal === "client") {
         const CLIENT_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "CLIENT PORTAL",
@@ -99,15 +98,26 @@ export function AppSidebar({
                 { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
             ],
-            footerLinks: [
-                { label: "Settings", href: "/vos-sync/settings", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/vos-admin")) {
+    if (pathname.startsWith("/vos-sync/school-admin") || portal === "school-admin") {
+        const SCHOOL_DASHBOARD_SIDEBAR_CONFIG: SidebarConfig = {
+            title: "VOS Sync",
+            subtitle: "SCHOOL ADMIN",
+            homeUrl: "/vos-sync/school-admin",
+            navItems: [
+                { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
+                { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
+            ],
+            footerLinks: [],
+        };
+        return <DashboardSidebar config={SCHOOL_DASHBOARD_SIDEBAR_CONFIG} {...props} />;
+    }
+
+    if (pathname.startsWith("/vos-sync/vos-admin") || portal === "vos-admin") {
         const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "VOS Sync ADMIN",
@@ -117,10 +127,7 @@ export function AppSidebar({
                 { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
             ],
-            footerLinks: [
-                { label: "Settings", href: "#", icon: User },
-                { label: "Logout", href: "/login", icon: User },
-            ],
+            footerLinks: [],
         };
         return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;
     }

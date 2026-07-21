@@ -23,6 +23,15 @@ export function ProfessionalSummaryCard() {
                 <div className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Professional Summary</h2>
+                    {summary ? (
+                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </div>
+                    ) : (
+                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground">
+                            <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
+                        </div>
+                    )}
                 </div>
                 <Button 
                     variant="ghost" 

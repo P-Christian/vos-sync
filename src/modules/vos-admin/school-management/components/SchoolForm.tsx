@@ -47,7 +47,7 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
       city_municipality: initialData?.city_municipality || "",
       province: initialData?.province || "",
       address_line: initialData?.address_line || "",
-      school_status: initialData?.school_status || "Active",
+      school_status: initialData?.school_status || "Draft",
       school_description: initialData?.school_description || "",
     },
   });
@@ -64,7 +64,7 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
           city_municipality: initialData.city_municipality || "",
           province: initialData.province || "",
           address_line: initialData.address_line || "",
-          school_status: initialData.school_status || "Active",
+          school_status: initialData.school_status || "Draft",
           school_description: initialData.school_description || "",
         });
       } else {
@@ -77,7 +77,7 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
           city_municipality: "",
           province: "",
           address_line: "",
-          school_status: "Active",
+          school_status: "Draft",
           school_description: "",
         });
       }
@@ -163,6 +163,8 @@ export function SchoolForm({ open, onOpenChange, onSubmit, initialData }: Props)
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="Active">Active</SelectItem>
                         <SelectItem value="Inactive">Inactive</SelectItem>
                       </SelectContent>

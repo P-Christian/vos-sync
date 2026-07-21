@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/client/registration/components/AddressInfoStep.tsx
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";

@@ -118,6 +118,8 @@ export default function SignupPage() {
         router.push('/vos-sync/client/dashboard');
       } else if (data?.role_id === 3) {
         router.push('/vos-sync/vos-admin');
+      } else if (data?.role_id === 4) {
+        router.push('/vos-sync/school-admin');
       } else {
         router.push('/main-dashboard');
       }

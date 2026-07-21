@@ -29,6 +29,22 @@ export interface VsJobSeekerProfile {
     profile_visibility: string;
     expected_salary: number | null;
     updated_at: string;
+    profile_completion_percent?: number;
+    profile_status?: 'not_started' | 'draft' | 'complete' | 'admin_verified';
+}
+
+export interface VsJobPreferences {
+    id?: number;
+    user_id: number;
+    job_type: string | null;
+    work_setup: string | null;
+    preferred_location: string | null;
+    salary_range_min: number | null;
+    salary_range_max: number | null;
+    availability: string | null;
+    preferred_industry: string | null;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface VsJobSeekerResume {
@@ -70,7 +86,10 @@ export interface VsEducation {
     id?: number;
     employee_education_id?: number;
     user_id: number;
-    school_id: number;
+    school_id: number | null;
+    school_name_raw?: string | null;
+    course_name_raw?: string | null;
+    education_status?: 'Verified' | 'Pending' | 'Unverified';
     school_course_id: number | null;
     start_date?: string | null;
     end_date?: string | null;
@@ -114,6 +133,7 @@ export interface FreelancerProfile {
     
     // Relational fields fetched via Directus
     job_seeker_profile?: VsJobSeekerProfile[];
+    job_preferences?: VsJobPreferences[];
     social_links?: VsUserSocialLink[];
     work_experience?: VsWorkExperience[];
     education?: VsEducation[];

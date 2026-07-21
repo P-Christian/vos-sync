@@ -6,6 +6,7 @@ import { ProfessionalSummaryCard } from "./components/ProfessionalSummaryCard";
 import { CoreSkillsCard } from "./components/CoreSkillsCard";
 import { WorkExperienceCard } from "./components/WorkExperienceCard";
 import { EducationalBackgroundCard } from "./components/EducationalBackgroundCard";
+import { JobPreferencesCard } from "./components/JobPreferencesCard";
 import { CertificationsCard } from "./components/CertificationsCard";
 import { ResumeSidebar } from "./components/ResumeSidebar";
 
@@ -20,6 +21,7 @@ export function FreelancerProfilePage() {
                     <CoreSkillsCard />
                     <WorkExperienceCard />
                     <EducationalBackgroundCard />
+                    <JobPreferencesCard />
                     <CertificationsCard />
                 </div>
                 
