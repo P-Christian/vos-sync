@@ -25,7 +25,7 @@ export interface InterviewTemplateData {
   candidateNotes?: string | null;
 }
 
-export interface InterviewReminderTemplateData extends InterviewTemplateData {}
+export type InterviewReminderTemplateData = InterviewTemplateData;
 
 export interface ApplicationTemplateData {
   candidateName: string;

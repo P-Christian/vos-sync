@@ -17,6 +17,7 @@ import {
   XCircle,
   CheckCircle2,
 } from "lucide-react";
+import Image from "next/image";
 
 interface InterviewListProps {
   interviews: Interview[];
@@ -31,9 +32,11 @@ function CandidateAvatar({ name, avatar }: { name?: string; avatar?: string | nu
 
   if (avatar && !imgError) {
     return (
-      <img
+      <Image
         src={avatar}
         alt={name || "Candidate"}
+        width={64}
+        height={64}
         onError={() => setImgError(true)}
         className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0 mt-0.5"
       />

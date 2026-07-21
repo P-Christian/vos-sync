@@ -6,6 +6,7 @@ import React from "react";
 import { Archive, ArchiveRestore, Briefcase } from "lucide-react";
 import { Conversation } from "../types";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface Props {
   conversation: Conversation;
@@ -83,9 +84,11 @@ export default function ConversationItem({
       {/* Avatar */}
       <div className="relative shrink-0 mt-0.5">
         {other_party_avatar && !imgError ? (
-          <img
+          <Image
             src={other_party_avatar}
             alt={other_party_name}
+            width={64}
+            height={64}
             onError={() => setImgError(true)}
             className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900"
           />

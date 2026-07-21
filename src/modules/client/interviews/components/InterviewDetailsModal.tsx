@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import InterviewStatusBadge from "./InterviewStatusBadge";
 import ScreeningAnswersView from "./ScreeningAnswersView";
 import { Calendar, Clock, Video, MapPin, Star, Globe } from "lucide-react";
+import Image from "next/image";
 
 interface InterviewDetailsModalProps {
   interview: Interview | null;
@@ -27,9 +28,11 @@ function CandidateAvatar({ name, avatar }: { name?: string; avatar?: string | nu
 
   if (avatar && !imgError) {
     return (
-      <img
+      <Image
         src={avatar}
         alt={name || "Candidate"}
+        width={64}
+        height={64}
         onError={() => setImgError(true)}
         className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0"
       />

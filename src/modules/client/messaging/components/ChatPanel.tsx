@@ -13,6 +13,7 @@ import {
 import { Conversation, Message } from "../types";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -99,9 +100,11 @@ export default function ChatPanel({
 
         {/* Avatar */}
         {other_party_avatar && !imgError ? (
-          <img
+          <Image
             src={other_party_avatar}
             alt={other_party_name}
+            width={50}
+            height={50}
             onError={() => setImgError(true)}
             className="h-9 w-9 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0"
           />

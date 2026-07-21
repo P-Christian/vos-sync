@@ -6,6 +6,7 @@ import React from "react";
 import { Archive, ArchiveRestore, Briefcase } from "lucide-react";
 import { Conversation } from "../types";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface Props {
   conversation: Conversation;
