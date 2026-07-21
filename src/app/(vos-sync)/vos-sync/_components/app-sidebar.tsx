@@ -8,6 +8,9 @@ import {
     Bot,
     ClipboardList,
     ShoppingCart,
+    Bell,
+    Settings2,
+    MessageSquare,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -80,6 +83,7 @@ export function AppSidebar({
                 { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
                 { label: "Saved Jobs", href: "/vos-sync/freelancer/bookmarks", icon: Bookmark },
+                { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
             ],
             footerLinks: [],
         };
@@ -97,6 +101,12 @@ export function AppSidebar({
                 { label: "Manage Jobs", href: "/vos-sync/client/jobs", icon: Briefcase },
                 { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
+                { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
+                { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },
+                { label: "Settings", href: "/vos-sync/client/settings", icon: Settings2 },
+
+
+
             ],
             footerLinks: [],
         };
