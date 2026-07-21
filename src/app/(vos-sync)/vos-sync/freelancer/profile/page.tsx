@@ -13,7 +13,7 @@ export default async function FreelancerProfileRoute() {
     const user = {
         name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
         email: profile?.user_email || "guest@example.com",
-        avatar: "",
+        avatar: profile?.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}` : "",
     };
 
     return (

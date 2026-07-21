@@ -36,13 +36,15 @@ export function ProfilePageHeader() {
                     </span>
                 )}
             </div>
-            <Button 
-                onClick={handleSave} 
-                disabled={isSaving || !hasPendingChanges}
-            >
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSaving ? "Saving..." : "Save Changes"}
-            </Button>
+            {hasPendingChanges && (
+                <Button 
+                    onClick={handleSave} 
+                    disabled={isSaving}
+                >
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSaving ? "Saving..." : "Save Changes"}
+                </Button>
+            )}
         </div>
     );
 }

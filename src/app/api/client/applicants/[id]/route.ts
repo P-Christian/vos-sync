@@ -1,6 +1,7 @@
 
 // src/app/api/client/applicants/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -525,6 +526,21 @@ export async function PATCH(
         { error: json.errors?.[0]?.message ?? "Failed to update application status." },
         { status: res.status }
       );
+    }
+
+    // Trigger notification
+    const jobseekerId = json.data?.user_id;
+    if (jobseekerId) {
+      await createNotification({
+        event_type: "application_status_changed",
+        recipient_user_id: jobseekerId,
+        entity_type: "job_application",
+        entity_id: Number(id),
+        category: "Application Updates",
+        title: "Application Status Updated",
+        message: `Your application status has been updated to: ${body.application_status}.`,
+        action_url: "/vos-sync/freelancer/applications",
+      });
     }
 
     return NextResponse.json({
