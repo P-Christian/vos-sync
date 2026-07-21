@@ -1,6 +1,8 @@
 // src/app/api/client/interviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { sendHiringEmail, sendRejectionEmail } from "@/lib/mail";
+import { sendHiringEmail, sendRejectionEmail, sendInterviewRescheduledEmail } from "@/lib/mail";
+import { createSystemMessage } from "@/lib/messaging/system-message";
+import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -90,6 +92,97 @@ export async function PATCH(
           { error: "Failed to update interview details." },
           { status: res.status }
         );
+      }
+
+      if (payload?.interview_status === "RESCHEDULED") {
+        try {
+          const updatedIvRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=*`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (updatedIvRes.ok) {
+            const ivData = (await updatedIvRes.json()).data;
+            if (ivData?.application_id) {
+              const appRes = await fetch(
+                `${DIRECTUS_BASE}/items/vs_job_application/${ivData.application_id}?fields=user_id,job_id`,
+                { headers: getHeaders(), cache: "no-store" }
+              );
+              if (appRes.ok) {
+                const appData = (await appRes.json()).data;
+                const candidateUserId = appData?.user_id;
+
+                if (candidateUserId) {
+                  const userRes = await fetch(
+                    `${DIRECTUS_BASE}/items/vs_user/${candidateUserId}?fields=user_email,user_fname,user_lname`,
+                    { headers: getHeaders(), cache: "no-store" }
+                  );
+                  if (userRes.ok) {
+                    const candidate = (await userRes.json()).data;
+
+                    if (candidate?.user_email) {
+                      let jobTitle = "Unknown Role";
+                      let companyName = "Employer";
+
+                      if (appData.job_id) {
+                        const jobRes = await fetch(
+                          `${DIRECTUS_BASE}/items/vs_job_posting/${appData.job_id}?fields=job_title,company_id`,
+                          { headers: getHeaders(), cache: "no-store" }
+                        );
+                        if (jobRes.ok) {
+                          const jobData = (await jobRes.json()).data;
+                          if (jobData?.job_title) jobTitle = jobData.job_title;
+                          if (jobData?.company_id) {
+                            const compRes = await fetch(
+                              `${DIRECTUS_BASE}/items/vs_company/${jobData.company_id}?fields=company_name`,
+                              { headers: getHeaders(), cache: "no-store" }
+                            );
+                            if (compRes.ok) {
+                              companyName = (await compRes.json()).data?.company_name || companyName;
+                            }
+                          }
+                        }
+                      }
+
+                      await sendInterviewRescheduledEmail(candidate.user_email, {
+                        candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
+                        companyName,
+                        jobTitle,
+                        scheduledAt: ivData.scheduled_at,
+                        timezone: ivData.timezone || "Asia/Manila",
+                        durationMinutes: ivData.duration_minutes || 60,
+                        interviewFormat: ivData.interview_format || "ONLINE",
+                        meetingLink: ivData.meeting_link || null,
+                        meetingLocation: ivData.meeting_location || null,
+                        candidateNotes: ivData.candidate_notes || null,
+                      }).catch((e) => console.error("Error sending reschedule email:", e));
+
+                      await createSystemMessage({
+                        clientId: userId,
+                        freelancerId: candidateUserId,
+                        jobId: appData.job_id ?? null,
+                        text: `Interview rescheduled for ${ivData.scheduled_at}.`,
+                        senderId: userId,
+                      }).catch((e) => console.error("Error sending reschedule system message:", e));
+
+                      await createNotification({
+                        event_type: "interview_rescheduled",
+                        recipient_user_id: candidateUserId,
+                        entity_type: "vs_interview",
+                        entity_id: interviewId,
+                        category: "INTERVIEW",
+                        title: "Interview Rescheduled",
+                        message: `Your interview with ${companyName} has been rescheduled to ${ivData.scheduled_at}.`,
+                        action_url: "/vos-sync/freelancer/applications",
+                      }).catch((e) => console.error("Error sending reschedule notification:", e));
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (rescheduleErr) {
+          console.error("Error during reschedule notification pipeline:", rescheduleErr);
+        }
       }
 
       return NextResponse.json({ success: true });
