@@ -1,5 +1,5 @@
 import React from "react";
-import { User, MapPin, Globe, Briefcase, Mail } from "lucide-react";
+import { User, Globe, Briefcase, Mail } from "lucide-react";
 import { PublicFreelancerProfile } from "../services/public-profile.service";
 
 interface Props {
@@ -15,6 +15,7 @@ export function PublicProfileRender({ profile }: Props) {
         <div className="px-8 pb-8 pt-0 flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-12 relative z-10">
           <div className="h-24 w-24 rounded-full border-4 border-background bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-md">
             {profile.avatar_url ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
               <img src={profile.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
             ) : (
               <User className="h-10 w-10 text-muted-foreground" />

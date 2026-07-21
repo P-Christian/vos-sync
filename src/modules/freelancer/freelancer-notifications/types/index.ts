@@ -5,7 +5,7 @@ export interface NotificationEvent {
   recipient_user_id: number;
   entity_type?: string | null;
   entity_id?: number | null;
-  payload?: Record<string, any> | null;
+  payload?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -17,6 +17,7 @@ export interface FreelancerNotification {
   title: string;
   message: string;
   action_url?: string | null;
+  action_data: Record<string, unknown> | null;
   is_read: boolean | number;
   created_at: string;
 }

@@ -79,48 +79,55 @@ export async function GET(req: NextRequest) {
     const users = json.data || [];
 
     // Filter based on role and visibility
-    const publicUsers = users
-      .filter((u: any) => {
-        // If it's a client (role_id = 2), they don't have a job seeker profile, just return them
-        if (u.role_id === 2) return true;
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const filteredUsers = users.filter((u: any) => {
+      // Must be freelancer or client
+      if (u.role_id !== 1 && u.role_id !== 2) return false;
+      
+      // If Freelancer
+      if (u.role_id === 1) {
+        const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
+        const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
+        const profile = profiles[0];
+        if (!profile) return false;
 
-        // If it's a freelancer, check their job seeker profile visibility
-        const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
-        const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
-        
-        return profiles.some((p: any) => {
-          if (!p) return false;
-          const vis = (p.profile_visibility || "").toLowerCase();
-          
-          if (vis === "public") return true;
-          // If profile is recruiters only, allow if the caller is a Client (role 2)
-          if (vis === "recruiters only" && callerRole === 2) return true;
-          
-          return false;
-        });
-      })
-      .map((u: any) => {
-        const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
-        const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
-        const publicProfile = profiles.find((p: any) => {
-          if (!p) return false;
-          const vis = (p.profile_visibility || "").toLowerCase();
-          return vis === "public" || (vis === "recruiters only" && callerRole === 2);
-        });
-        
-        return {
-          user_id: u.user_id,
-          user_fname: u.user_fname,
-          user_lname: u.user_lname,
-          user_email: u.user_email,
-          role_id: u.role_id,
-          headline: publicProfile?.professional_headline || "",
-        };
-      });
+        const vis = (profile.profile_visibility || "").toLowerCase();
+        if (vis === "public") return true;
+        if (vis === "recruiters only") {
+          return callerRole === 2; // only clients can see
+        }
+        return false;
+      }
+      
+      // If Client
+      return u.role_id === 2;
+    });
+
+    const publicUsers = filteredUsers.map((u: any) => {
+      let headline = "";
+      const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
+      const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
+      
+      if (u.role_id === 1) {
+        headline = profiles[0]?.professional_headline || "Freelancer";
+      } else if (u.role_id === 2) {
+        headline = "Client";
+      }
+
+      return {
+        user_id: u.user_id,
+        user_fname: u.user_fname,
+        user_lname: u.user_lname,
+        user_email: u.user_email,
+        role_id: u.role_id,
+        headline,
+      };
+    });
+    /* eslint-enable @typescript-eslint/no-explicit-any */
 
     return NextResponse.json({ results: publicUsers });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("GET /api/shared/users/search error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Internal server error" }, { status: 500 });
   }
 }

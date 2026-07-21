@@ -92,7 +92,8 @@ export function UserSearchBar() {
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                         {user.avatar_url ? (
-                          <img src={user.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={user.avatar_url} alt="Avatar" className="h-full w-full rounded-full object-cover" />
                         ) : (
                           <User className="h-4 w-4" />
                         )}

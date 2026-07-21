@@ -61,6 +61,7 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
 
     const rawProfiles = user.job_seeker_profile || user.vs_job_seeker_profile || [];
     const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const publicProfile = profiles.find((p: any) => {
       if (!p) return false;
       const vis = p.profile_visibility?.toLowerCase() || "";

@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
     const notifications = json.data ?? [];
     
     // Count unread
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const unreadCount = notifications.filter((n: any) => n.is_read === false || n.is_read === 0).length;
 
     return NextResponse.json({ notifications, unreadCount });

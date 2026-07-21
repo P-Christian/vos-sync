@@ -24,8 +24,8 @@ export function useUserSearch(query: string) {
         if (!res.ok) throw new Error(data.error || "Search failed");
         
         setResults(data.results || []);
-      } catch (err: any) {
-        setError(err.message || "An error occurred during search.");
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "An error occurred during search.");
         setResults([]);
       } finally {
         setIsLoading(false);

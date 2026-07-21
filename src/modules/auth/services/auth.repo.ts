@@ -143,7 +143,7 @@ export async function updateFailedAttempts(userId: string | number, attempts: nu
 
     const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
 
-    const body: any = {
+    const body: Record<string, unknown> = {
         failed_attempts: attempts,
         update_at: new Date().toISOString()
     };
@@ -218,7 +218,7 @@ export async function clearResetToken(userId: string | number, newHashedPassword
 
     const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
 
-    const body: any = {
+    const body: Record<string, unknown> = {
         reset_token_id: null,
         reset_token_hash: null,
         reset_token_expiry: null,

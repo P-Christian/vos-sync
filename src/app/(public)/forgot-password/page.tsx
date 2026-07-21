@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { KeyRound, Mail, ShieldCheck, Briefcase, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
 
-import { cn } from "@/lib/utils"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -69,7 +69,7 @@ function ForgotPasswordForm() {
                 setUserId(data.userId)
             }
             setStep("OTP")
-        } catch (error) {
+        } catch {
             toast.error("Network error", { description: "Please try again later." })
         } finally {
             setLoading(false)
@@ -116,7 +116,7 @@ function ForgotPasswordForm() {
 
             toast.success("Password updated", { description: "You can now sign in with your new password." })
             router.replace("/login")
-        } catch (error) {
+        } catch {
             toast.error("Network error", { description: "Please try again later." })
         } finally {
             setLoading(false)
