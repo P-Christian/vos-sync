@@ -3,9 +3,10 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Briefcase, Clock, CalendarPlus, ChevronRight } from "lucide-react";
+import { User, Mail, Briefcase, Clock, CalendarPlus, ChevronRight, MessageSquare } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
@@ -30,6 +31,7 @@ interface ApplicantCardProps {
   applicant: Applicant;
   onUpdateStatus: (applicant: Applicant) => void;
   onScheduleInterview: (applicant: Applicant) => void;
+  onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
 }
 
@@ -37,6 +39,7 @@ export default function ApplicantCard({
   applicant,
   onUpdateStatus,
   onScheduleInterview,
+  onViewScheduledInterview,
   onViewDetails,
 }: ApplicantCardProps) {
   return (
@@ -107,6 +110,20 @@ export default function ApplicantCard({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 text-xs rounded-lg gap-1.5 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-medium"
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                Message
+              </Button>
+            </Link>
+
             <Button
               size="sm"
               variant="outline"
@@ -118,18 +135,36 @@ export default function ApplicantCard({
             >
               Update Status
             </Button>
-            {applicant.application_status !== "REJECTED" && applicant.application_status !== "HIRED" && (
+
+            {applicant.active_interview_id ? (
               <Button
                 size="sm"
+                variant="outline"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onScheduleInterview(applicant);
+                  if (onViewScheduledInterview && applicant.active_interview_id) {
+                    onViewScheduledInterview(applicant.active_interview_id);
+                  }
                 }}
-                className="h-8 px-3 text-xs rounded-lg gap-1 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
+                className="h-8 px-3 text-xs rounded-lg gap-1.5 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50 font-medium shadow-sm"
               >
-                <CalendarPlus className="h-3.5 w-3.5" />
-                Schedule Interview
+                <CalendarPlus className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                View Scheduled Interview
               </Button>
+            ) : (
+              applicant.application_status !== "REJECTED" && applicant.application_status !== "HIRED" && (
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onScheduleInterview(applicant);
+                  }}
+                  className="h-8 px-3 text-xs rounded-lg gap-1 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
+                >
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  Schedule Interview
+                </Button>
+              )
             )}
             <ChevronRight className="hidden sm:block h-4 w-4 text-zinc-300 dark:text-zinc-600 shrink-0" />
           </div>

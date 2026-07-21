@@ -73,22 +73,24 @@ async function getJobBenefits(jobIds: number[]): Promise<Record<number, string[]
   return result;
 }
 
-async function getJobScreeningQuestions(jobIds: number[]): Promise<Record<number, string[]>> {
-  const result: Record<number, string[]> = {};
+async function getJobScreeningQuestions(
+  jobIds: number[]
+): Promise<Record<number, { question_id: number; question_text: string }[]>> {
+  const result: Record<number, { question_id: number; question_text: string }[]> = {};
   jobIds.forEach((id) => { result[id] = []; });
   if (jobIds.length === 0) return result;
 
   try {
     const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,question_text&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[job_id][_in]=${jobIds.join(",")}&fields=question_id,job_id,question_text&limit=500`,
       { headers: getHeaders(), cache: "no-store" }
     );
     if (!res.ok) return result;
     const json = await res.json();
-    const questions: { job_id: number; question_text: string }[] = json.data ?? [];
+    const questions: { question_id: number; job_id: number; question_text: string }[] = json.data ?? [];
     questions.forEach((q) => {
       if (!result[q.job_id]) result[q.job_id] = [];
-      result[q.job_id].push(q.question_text);
+      result[q.job_id].push({ question_id: q.question_id, question_text: q.question_text });
     });
   } catch (err) {
     console.error("Error fetching screening questions:", err);

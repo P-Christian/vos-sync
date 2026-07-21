@@ -35,6 +35,7 @@ export interface Applicant {
   applied_at?: string;
   status_updated_at?: string;
   profile_image_url?: string | null;
+  active_interview_id?: number | null;
 }
 
 export interface WorkExperienceItem {
@@ -92,6 +93,12 @@ export interface SocialLink {
   url: string;
 }
 
+export interface ScreeningAnswer {
+  question_id: number;
+  question_text: string;
+  answer_text: string;
+}
+
 export interface CandidateDetail {
   application_id: number;
 
@@ -123,7 +130,7 @@ export interface CandidateDetail {
 
   expected_salary?: number | null;
 
-  screening_answers?: Record<string, unknown> | null;
+  screening_answers?: ScreeningAnswer[] | null;
 
   client_notes?: string | null;
 

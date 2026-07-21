@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useApplicants } from "./hooks/useApplicants";
 import ApplicantList from "./components/ApplicantList";
 import ApplicantFilters from "./components/ApplicantFilters";
@@ -89,15 +90,14 @@ export default function ApplicantsModule() {
     setInterviewDialogOpen(true);
   };
 
-  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: string) => {
+  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: string | number) => {
     setInterviewFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveInterview = async () => {
     // Basic frontend validation
     const errors: Partial<Record<keyof InterviewFormData, string>> = {};
-    if (!interviewFormData.interview_date) errors.interview_date = "Interview date is required.";
-    if (!interviewFormData.interview_time) errors.interview_time = "Interview time is required.";
+    if (!interviewFormData.scheduled_at) errors.scheduled_at = "Scheduled Date & Time is required.";
     if (!interviewFormData.interview_format) errors.interview_format = "Interview format is required.";
 
     if (Object.keys(errors).length > 0) {
@@ -110,6 +110,12 @@ export default function ApplicantsModule() {
       setInterviewDialogOpen(false);
       fetchApplicants(); // refresh applicant list to show new scheduled status
     }
+  };
+
+  const router = useRouter();
+
+  const handleViewScheduledInterview = (interviewId: number) => {
+    router.push(`/vos-sync/client/interviews?interview_id=${interviewId}`);
   };
 
   return (
@@ -171,6 +177,7 @@ export default function ApplicantsModule() {
               applicants={applicants}
               onUpdateStatus={handleUpdateStatus}
               onScheduleInterview={handleOpenSchedule}
+              onViewScheduledInterview={handleViewScheduledInterview}
               onViewDetails={handleViewDetails}
             />
           )}
