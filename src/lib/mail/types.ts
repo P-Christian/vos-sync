@@ -5,6 +5,11 @@ export interface MailPayload {
   subject: string;
   html: string;
   text?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 }
 
 export interface OtpTemplateData {

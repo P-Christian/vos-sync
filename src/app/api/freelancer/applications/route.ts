@@ -1,7 +1,7 @@
 // src/app/api/freelancer/applications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications";
-import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail } from "@/lib/mail";
+import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 
 export const runtime = "nodejs";
@@ -191,16 +191,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "job_id is required." }, { status: 400 });
     }
 
-    // Check for duplicate application
+    // Check for active duplicate application (excluding HIRED or REJECTED)
     const dupCheck = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${body.job_id}&filter[user_id][_eq]=${userId}&fields=application_id&limit=1`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${body.job_id}&filter[user_id][_eq]=${userId}&filter[application_status][_nin]=HIRED,REJECTED&fields=application_id&limit=1`,
       { headers: getHeaders(), cache: "no-store" }
     );
     if (dupCheck.ok) {
       const dupJson = await dupCheck.json();
       if ((dupJson.data ?? []).length > 0) {
         return NextResponse.json(
-          { error: "You have already applied to this job." },
+          { error: "You already have an active application for this job." },
           { status: 409 }
         );
       }
@@ -234,6 +234,21 @@ export async function POST(req: NextRequest) {
         { error: json.errors?.[0]?.message ?? "Failed to submit application." },
         { status: res.status }
       );
+    }
+
+    // Save custom resume record if user attached a new resume
+    if (body.custom_resume?.file_path) {
+      await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          file_name: body.custom_resume.file_name || "Resume.pdf",
+          file_path: body.custom_resume.file_path,
+          file_url: body.custom_resume.file_path,
+          is_primary: true,
+        }),
+      }).catch((e) => console.error("Error creating custom resume record:", e));
     }
 
     // Trigger notification
@@ -323,27 +338,40 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 1. Send confirmation email to candidate
+        // 1. Send confirmation email to candidate (if enabled)
         if (candidateEmail) {
-          await sendApplicationSubmittedEmail(candidateEmail, {
-            candidateName,
-            companyName,
-            jobTitle,
-            appliedAt: nowPH,
-          }).catch((err) => console.error("Candidate application email dispatch error:", err));
+          const candidateEmailEnabled = await isEmailEnabledForUser(userId, "APPLICATION_STATUS_UPDATED");
+          if (candidateEmailEnabled) {
+            await sendApplicationSubmittedEmail(candidateEmail, {
+              candidateName,
+              companyName,
+              jobTitle,
+              appliedAt: nowPH,
+            }).catch((err) => console.error("Candidate application email dispatch error:", err));
+          }
         }
 
-        // 2. Send new application notification email to employer company email
-        if (companyEmail) {
-          await sendNewApplicationReceivedEmail(companyEmail, {
-            companyName,
-            jobTitle,
-            candidateName,
-            candidateEmail,
-            expectedSalary: body.expected_salary ?? null,
-            appliedAt: nowPH,
-            applicationId: Number(applicationId),
-          }).catch((err) => console.error("Employer application alert email error:", err));
+        // 2. Send new application notification email to employer company (if enabled)
+        if (companyEmail && companyId) {
+          const compUserRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id&limit=1`, { headers: getHeaders(), cache: "no-store" });
+          let employerUserId: number | null = null;
+          if (compUserRes.ok) {
+            const cuData = (await compUserRes.json()).data;
+            employerUserId = cuData?.[0]?.user_id ? Number(cuData[0].user_id) : null;
+          }
+
+          const employerEmailEnabled = await isEmailEnabledForUser(employerUserId, "APPLICATION_RECEIVED");
+          if (employerEmailEnabled) {
+            await sendNewApplicationReceivedEmail(companyEmail, {
+              companyName,
+              jobTitle,
+              candidateName,
+              candidateEmail,
+              expectedSalary: body.expected_salary ?? null,
+              appliedAt: nowPH,
+              applicationId: Number(applicationId),
+            }).catch((err) => console.error("Employer application alert email error:", err));
+          }
         }
 
         // 3. Generate System Message for Conversation
@@ -359,6 +387,8 @@ export async function POST(req: NextRequest) {
                 jobId: Number(body.job_id),
                 text: `${candidateName} applied for "${jobTitle}"`,
                 senderId: userId,
+                systemEventType: "APPLICATION_SUBMITTED",
+                applicationId: Number(applicationId),
               }).catch((err) => console.error("Error creating application system message:", err));
             }
           }

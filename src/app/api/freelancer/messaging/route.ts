@@ -37,15 +37,21 @@ function getUserIdFromToken(token: string): number | null {
 function formatAvatarUrl(url?: string | null): string | null {
   if (!url || !url.trim()) return null;
   const trimmed = url.trim();
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
-    return trimmed;
-  }
-  if (trimmed.startsWith("/api/freelancer/assets/")) {
-    return trimmed;
-  }
+
+  // Already proxied — use as-is
+  if (trimmed.startsWith("/api/freelancer/assets/")) return trimmed;
+
+  // data: URI — use as-is
+  if (trimmed.startsWith("data:")) return trimmed;
+
+  // Full Directus URL (https://directus.host/assets/UUID) — extract UUID and proxy it
+  const assetsMatch = trimmed.match(/\/assets\/([^/?#]+)/);
+  if (assetsMatch?.[1]) return `/api/freelancer/assets/${assetsMatch[1]}`;
+
+  // Bare UUID or path segment — use last segment
   const parts = trimmed.split("/");
   const fileId = parts[parts.length - 1];
-  return `/api/freelancer/assets/${fileId}`;
+  return fileId ? `/api/freelancer/assets/${fileId}` : null;
 }
 
 // ─── GET — List conversations for the authenticated freelancer ─────────────

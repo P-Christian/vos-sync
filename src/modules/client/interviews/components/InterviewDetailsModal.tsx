@@ -56,18 +56,18 @@ export default function InterviewDetailsModal({
 
   const formattedDate = interview.scheduled_at
     ? new Date(interview.scheduled_at).toLocaleDateString("en-PH", {
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
     : "—";
 
   const formattedTime = interview.scheduled_at
     ? new Date(interview.scheduled_at).toLocaleTimeString("en-PH", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      hour: "2-digit",
+      minute: "2-digit",
+    })
     : "—";
 
   return (
@@ -144,15 +144,20 @@ export default function InterviewDetailsModal({
               <div className="text-xs">
                 <span className="text-zinc-400">Meeting Link: </span>
                 <a
-                  href={interview.meeting_link}
+                  href={
+                    interview.meeting_link.startsWith('http://') || interview.meeting_link.startsWith('https://')
+                      ? interview.meeting_link
+                      : `https://${interview.meeting_link}`
+                  }
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="text-indigo-600 dark:text-indigo-400 underline font-mono break-all"
                 >
                   {interview.meeting_link}
                 </a>
               </div>
             )}
+
 
             {interview.meeting_location && (
               <div className="text-xs text-zinc-700 dark:text-zinc-300">

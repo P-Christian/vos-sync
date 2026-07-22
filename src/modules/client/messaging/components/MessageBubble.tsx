@@ -3,10 +3,11 @@
 // src/modules/client/messaging/components/MessageBubble.tsx
 
 import React from "react";
-import { FileText, ImageIcon, CheckCheck, Info } from "lucide-react";
+import { FileText, ImageIcon, CheckCheck } from "lucide-react";
 import { Message } from "../types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 
 interface Props {
   message: Message;
@@ -51,13 +52,8 @@ export default function MessageBubble({
         {showDateDivider && dateLabel && (
           <DateDivider label={dateLabel} />
         )}
-        <div className="flex justify-center my-3">
-          <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-            <Info className="h-3 w-3 text-zinc-400 shrink-0" />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400 text-center">
-              {message_content}
-            </span>
-          </div>
+        <div className="flex justify-center my-3 px-4">
+          <SystemMessageRenderer message={message} />
         </div>
       </>
     );

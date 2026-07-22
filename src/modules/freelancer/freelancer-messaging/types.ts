@@ -4,6 +4,21 @@ export type ConversationType = "JOB_APPLICATION" | "DIRECT_MESSAGE" | "SUPPORT";
 export type ConversationStatus = "ACTIVE" | "ARCHIVED" | "BLOCKED";
 export type MessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
 
+export type SystemEventType =
+  | "APPLICATION_SUBMITTED"
+  | "APPLICATION_STATUS_CHANGED"
+  | "INTERVIEW_SCHEDULED"
+  | "INTERVIEW_UPDATED"
+  | "HIRED";
+
+export interface SystemMessageData {
+  system_message_id: number;
+  message_id: number;
+  event_type: SystemEventType;
+  application_id?: number | null;
+  interview_id?: number | null;
+}
+
 export interface Conversation {
   conversation_id: number;
   job_id: number | null;
@@ -37,6 +52,7 @@ export interface Message {
   created_at: string;
   is_deleted: boolean;
   attachments: MessageAttachment[];
+  system_message?: SystemMessageData | null;
 }
 
 export interface MessageAttachment {

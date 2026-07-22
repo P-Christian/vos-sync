@@ -57,12 +57,21 @@ export interface PublicJobPosting {
   screening_questions?: (JobScreeningQuestion | string)[];
 }
 
+export interface CustomFileAttachment {
+  file_name: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
+}
+
 export interface ApplyFormData {
   job_id: number;
   cover_letter: string;
   expected_salary: string;
   portfolio_url: string;
   screening_answers: ScreeningAnswerPayload[];
+  custom_resume?: CustomFileAttachment | null;
+  cover_letter_file?: CustomFileAttachment | null;
 }
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {

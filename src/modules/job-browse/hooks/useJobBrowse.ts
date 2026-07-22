@@ -36,7 +36,9 @@ export function useJobBrowse() {
       if (appsRes.ok) {
         const appsJson = await appsRes.json();
         const apps = appsJson.applications ?? [];
-        const ids = apps.map((app: { job_id: number }) => Number(app.job_id));
+        const ids = apps
+          .filter((app: { application_status?: string }) => app.application_status !== "HIRED" && app.application_status !== "REJECTED")
+          .map((app: { job_id: number }) => Number(app.job_id));
         setAppliedJobIds(ids);
       }
     } catch (err: unknown) {
