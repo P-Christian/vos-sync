@@ -52,6 +52,11 @@ export default function VerifyIdentityPage() {
         return match ? match.status : 'not_submitted';
     };
 
+    const getRejectionNote = (type: string) => {
+        const match = verifications.find(v => v.type === type && v.status === 'rejected');
+        return match ? match.rejection_note || undefined : undefined;
+    };
+
     const renderStatusBadge = (status: string) => {
         switch (status) {
             case 'approved':
@@ -120,12 +125,6 @@ export default function VerifyIdentityPage() {
                             >
                                 {getVerificationStatus('gov_id') === 'rejected' ? 'Resubmit' : (getVerificationStatus('gov_id') === 'approved' ? 'Verified' : 'Submit ID')}
                             </Button>
-                            {getVerificationStatus('gov_id') === 'rejected' && (
-                                <p className="text-xs text-red-500 mt-2 flex items-start gap-1">
-                                    <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                                    {verifications.find(v => v.type === 'gov_id' && v.status === 'rejected')?.rejection_note || 'Your submission was rejected. Please try again.'}
-                                </p>
-                            )}
                         </CardContent>
                     </Card>
 
@@ -150,12 +149,6 @@ export default function VerifyIdentityPage() {
                             >
                                 {getVerificationStatus('address') === 'rejected' ? 'Resubmit' : (getVerificationStatus('address') === 'approved' ? 'Verified' : 'Submit Address')}
                             </Button>
-                            {getVerificationStatus('address') === 'rejected' && (
-                                <p className="text-xs text-red-500 mt-2 flex items-start gap-1">
-                                    <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
-                                    {verifications.find(v => v.type === 'address' && v.status === 'rejected')?.rejection_note || 'Your submission was rejected. Please try again.'}
-                                </p>
-                            )}
                         </CardContent>
                     </Card>
 
@@ -188,11 +181,13 @@ export default function VerifyIdentityPage() {
                     isOpen={activeModal === 'gov_id'}
                     onClose={() => setActiveModal(null)}
                     onSuccess={fetchData}
+                    rejectionNote={getRejectionNote('gov_id')}
                 />
                 <AddressModal
                     isOpen={activeModal === 'address'}
                     onClose={() => setActiveModal(null)}
                     onSuccess={fetchData}
+                    rejectionNote={getRejectionNote('address')}
                 />
                 <MobileVerificationModal
                     isOpen={activeModal === 'mobile_number'}

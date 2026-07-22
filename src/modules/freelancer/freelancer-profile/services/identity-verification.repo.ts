@@ -114,3 +114,48 @@ export async function approveMobileVerification(userId: number, mobileNumber: st
     
     return true;
 }
+
+export async function deleteExistingVerification(userId: number, type: string): Promise<void> {
+    const { baseUrl, token } = getDirectusConfig();
+    
+    // Fetch existing verifications for this type
+    const checkUrl = `${baseUrl}/items/vs_identity_verifications?filter[user_id][_eq]=${userId}&filter[type][_eq]=${type}`;
+    const checkRes = await fetch(checkUrl, {
+        headers: { "Authorization": `Bearer ${token}` },
+        cache: "no-store"
+    });
+    
+    if (!checkRes.ok) return;
+    const checkData = await checkRes.json();
+    if (!checkData.data || checkData.data.length === 0) return;
+    
+    for (const record of checkData.data) {
+        // Delete the record first to remove foreign key constraints on the files
+        const recordDelRes = await fetch(`${baseUrl}/items/vs_identity_verifications/${record.id}`, {
+            method: "DELETE",
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        
+        if (!recordDelRes.ok) {
+            console.error(`Failed to delete record ${record.id}`, await recordDelRes.text());
+            continue; // Skip deleting files if we couldn't delete the record
+        }
+
+        // Now delete the associated files safely
+        const fileIds = [
+            record.gov_id_front_image_uuid,
+            record.gov_id_selfie_image_uuid,
+            record.address_doc_image_uuid
+        ].filter(Boolean);
+        
+        for (const fileId of fileIds) {
+            const fileDelRes = await fetch(`${baseUrl}/files/${fileId}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!fileDelRes.ok) {
+                console.error(`Failed to delete file ${fileId}`, await fileDelRes.text());
+            }
+        }
+    }
+}

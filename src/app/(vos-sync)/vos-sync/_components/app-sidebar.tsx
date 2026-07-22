@@ -136,6 +136,7 @@ export function AppSidebar({
                 { label: "Dashboard", href: "/vos-sync/vos-admin", icon: LayoutDashboard },
                 { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
+                { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
             ],
             footerLinks: [],
         };

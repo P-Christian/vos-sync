@@ -9,9 +9,10 @@ interface AddressModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    rejectionNote?: string;
 }
 
-export default function AddressModal({ isOpen, onClose, onSuccess }: AddressModalProps) {
+export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote }: AddressModalProps) {
     const [addressDoc, setAddressDoc] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,6 +58,12 @@ export default function AddressModal({ isOpen, onClose, onSuccess }: AddressModa
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    {rejectionNote && (
+                        <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-md text-sm">
+                            <strong className="font-semibold">Previous Submission Rejected: </strong>
+                            {rejectionNote}
+                        </div>
+                    )}
                     <div className="grid gap-2">
                         <label className="text-sm font-medium">Proof of Address Document</label>
                         <Input 

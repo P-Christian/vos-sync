@@ -10,9 +10,10 @@ interface GovIdModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    rejectionNote?: string;
 }
 
-export default function GovIdModal({ isOpen, onClose, onSuccess }: GovIdModalProps) {
+export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }: GovIdModalProps) {
     const [idType, setIdType] = useState<string>("");
     const [frontId, setFrontId] = useState<File | null>(null);
     const [selfieId, setSelfieId] = useState<File | null>(null);
@@ -68,6 +69,12 @@ export default function GovIdModal({ isOpen, onClose, onSuccess }: GovIdModalPro
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    {rejectionNote && (
+                        <div className="bg-red-50 text-red-600 border border-red-200 p-3 rounded-md text-sm">
+                            <strong className="font-semibold">Previous Submission Rejected: </strong>
+                            {rejectionNote}
+                        </div>
+                    )}
                     <div className="grid gap-2">
                         <label className="text-sm font-medium">ID Type</label>
                         <Select value={idType} onValueChange={setIdType}>

@@ -2,14 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { createVerificationSubmission, approveMobileVerification, IdentityVerification } from "./identity-verification.repo";
+import { createVerificationSubmission, approveMobileVerification, deleteExistingVerification, IdentityVerification } from "./identity-verification.repo";
 import { getFreelancerProfile } from "./freelancer-profile.service";
 
 export async function uploadVerificationDocumentAction(userId: number, formData: FormData) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
     // We can use the same folder id or just default
-    const FOLDER_ID = '1cd008d3-4d24-4da5-bcd5-adf0b9e99d69'; // Using the same as profile image for now
+    const FOLDER_ID = 'e81cc874-8036-4655-8bbb-1524a194866b';
 
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
@@ -55,6 +55,10 @@ export async function submitIdentityVerificationAction(payload: Partial<Identity
         if (!token) throw new Error("Unauthorized");
         const profile = await getFreelancerProfile(token);
         if (!profile) throw new Error("Unauthorized");
+        if (!payload.type) throw new Error("Verification type is required");
+
+        // Delete any existing verification record and associated files for this type
+        await deleteExistingVerification(profile.user_id, payload.type);
 
         await createVerificationSubmission({
             ...payload,
