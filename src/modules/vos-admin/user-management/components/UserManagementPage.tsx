@@ -144,12 +144,12 @@ export function UserManagementPage() {
         <p className="text-muted-foreground mt-1">Review user accounts, view complete information, and approve/reject identity documents.</p>
       </div>
 
-      <Card className="p-6 bg-white border shadow-sm rounded-xl">
+      <Card className="p-6 bg-white dark:bg-zinc-900 border dark:border-zinc-800 shadow-sm rounded-xl">
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold">User Accounts</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-white">
+              <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
                 <SelectValue placeholder="Filter by Role" />
               </SelectTrigger>
               <SelectContent>

@@ -88,7 +88,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
           <div className="space-y-4">
             <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Personal Details</h3>
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center font-bold text-lg text-slate-700">
+              <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-lg text-slate-700 dark:text-slate-300">
                 {user.user_fname?.[0]}{user.user_lname?.[0]}
               </div>
               <div>
@@ -124,9 +124,9 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
               <p className="text-xs font-semibold text-muted-foreground uppercase">Status</p>
               <div className="flex gap-2 items-center mt-1">
                 {user.is_blocked ? (
-                  <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">Blocked</span>
+                  <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-400">Blocked</span>
                 ) : (
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Active</span>
+                  <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:text-green-400">Active</span>
                 )}
               </div>
             </div>
@@ -137,15 +137,15 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
         <div className="py-6 space-y-6">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Identity Documents Verification</h3>
           {verifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 text-zinc-400 border border-dashed rounded-lg bg-zinc-50/50">
+            <div className="flex flex-col items-center justify-center py-6 text-zinc-400 border border-dashed dark:border-zinc-700 rounded-lg bg-zinc-50/50 dark:bg-zinc-800/50">
               <FileText className="h-8 w-8 mb-2" />
               <p className="text-sm">No identity verification documents submitted yet.</p>
             </div>
           ) : (
             <div className="space-y-8">
               {verifications.map((v) => (
-                <div key={v.id} className="border rounded-xl p-4 md:p-6 bg-zinc-50/50 space-y-4">
-                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b pb-3">
+                <div key={v.id} className="border dark:border-zinc-700 rounded-xl p-4 md:p-6 bg-zinc-50/50 dark:bg-zinc-800/50 space-y-4">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b dark:border-zinc-700 pb-3">
                     <div>
                       <span className="font-bold text-zinc-800 dark:text-zinc-100 uppercase text-sm tracking-wide">
                         {v.type === "gov_id" ? `GOVERNMENT ID (${v.gov_id_type || "Unknown"})` : v.type.replace("_", " ")}
@@ -162,7 +162,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                     {v.gov_id_front_image_uuid && (
                       <div className="space-y-1">
                         <span className="text-xs font-semibold text-muted-foreground">ID Card (Front)</span>
-                        <div className="border rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center h-48 relative group">
+                        <div className="border dark:border-zinc-700 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center h-48 relative group">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getImageUrl(v.gov_id_front_image_uuid)}
@@ -176,7 +176,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                     {v.gov_id_selfie_image_uuid && (
                       <div className="space-y-1">
                         <span className="text-xs font-semibold text-muted-foreground">Selfie Image</span>
-                        <div className="border rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center h-48 relative">
+                        <div className="border dark:border-zinc-700 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center h-48 relative">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getImageUrl(v.gov_id_selfie_image_uuid)}
@@ -190,7 +190,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                     {v.address_doc_image_uuid && (
                       <div className="space-y-1 col-span-1 sm:col-span-2">
                         <span className="text-xs font-semibold text-muted-foreground">Address Document</span>
-                        <div className="border rounded-lg overflow-hidden bg-zinc-100 flex items-center justify-center h-48 relative">
+                        <div className="border dark:border-zinc-700 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center h-48 relative">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getImageUrl(v.address_doc_image_uuid)}
@@ -204,7 +204,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                   </div>
 
                   {v.rejection_note && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-800 text-sm flex gap-2 items-start">
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-lg text-red-800 dark:text-red-400 text-sm flex gap-2 items-start">
                       <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       <div>
                         <span className="font-semibold">Rejection Note:</span> {v.rejection_note}
@@ -221,7 +221,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                           placeholder="Rejection note (required for rejection)"
                           value={rejectionNotes[v.id] || ""}
                           onChange={(e) => setRejectionNotes(prev => ({ ...prev, [v.id]: e.target.value }))}
-                          className="bg-white border text-sm"
+                          className="bg-white dark:bg-zinc-900 border dark:border-zinc-700 text-sm"
                         />
                         <div className="flex gap-2 justify-end">
                           <Button
