@@ -1,0 +1,78 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { uploadVerificationDocumentAction, submitIdentityVerificationAction } from "@/modules/freelancer/freelancer-profile/services/identity-verification.actions";
+import { toast } from "sonner";
+
+interface AddressModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+export default function AddressModal({ isOpen, onClose, onSuccess }: AddressModalProps) {
+    const [addressDoc, setAddressDoc] = useState<File | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!addressDoc) {
+            toast.error("Please upload a document.");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            
+            const formData = new FormData();
+            formData.append("file", addressDoc);
+            const uploadRes = await uploadVerificationDocumentAction(0 /* placeholder */, formData);
+            
+            if (!uploadRes.success) throw new Error(uploadRes.error);
+
+            const submitRes = await submitIdentityVerificationAction({
+                type: 'address',
+                address_doc_image_uuid: uploadRes.fileId
+            });
+
+            if (!submitRes.success) throw new Error(submitRes.error);
+
+            toast.success("Address document submitted successfully for review.");
+            onSuccess();
+            onClose();
+        } catch (error: any) {
+            toast.error(error.message || "Failed to submit Address verification.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Address Verification</DialogTitle>
+                    <DialogDescription>
+                        Upload a recent utility bill, bank statement, or other official document showing your name and current address.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <label className="text-sm font-medium">Proof of Address Document</label>
+                        <Input 
+                            type="file" 
+                            accept="image/*,application/pdf" 
+                            onChange={(e) => setAddressDoc(e.target.files?.[0] || null)} 
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting}>
+                        {isSubmitting ? "Submitting..." : "Submit"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}

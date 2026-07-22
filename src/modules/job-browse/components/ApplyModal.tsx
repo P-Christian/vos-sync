@@ -17,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, Loader2, Send, HelpCircle, ArrowLeft, ArrowRight, Mail, Phone, MapPin, Paperclip } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2, Send, HelpCircle, ArrowLeft, ArrowRight, Mail, Phone, MapPin, Paperclip, Shield } from "lucide-react";
 import { PublicJobPosting } from "../types";
 import { useApplyJob } from "../hooks/useApplyJob";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -36,6 +38,8 @@ function getInitials(fname?: string | null, lname?: string | null): string {
 }
 
 export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
+  const user = useUserProfile();
+  
   const {
     formData,
     saving,
@@ -48,6 +52,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
     handleAnswerChange,
     submitApplication,
     reset,
+    idProofScore,
+    canApply,
   } = useApplyJob();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -111,7 +117,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             <div className="absolute top-3 left-3 right-3 h-0.5 bg-zinc-200 dark:bg-zinc-800 -z-10" />
             {/* Active progress line */}
             <div
-              className="absolute top-3 left-3 h-0.5 bg-[#14a800] transition-all duration-300 -z-10"
+              className="absolute top-3 left-3 h-0.5 bg-primary transition-all duration-300 -z-10"
               style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
             />
 
@@ -124,9 +130,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${
                       isCompleted
-                        ? "bg-[#14a800] border-[#14a800] text-white"
+                        ? "bg-primary border-primary text-primary-foreground"
                         : isActive
-                        ? "bg-background border-[#14a800] text-[#14a800]"
+                        ? "bg-background border-primary text-primary"
                         : "bg-background border-zinc-300 dark:border-zinc-700 text-zinc-400"
                     }`}
                   >
@@ -134,7 +140,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   </div>
                   <span
                     className={`text-[8px] font-semibold text-center hidden sm:block ${
-                      isActive ? "text-[#14a800] font-bold" : "text-muted-foreground"
+                      isActive ? "text-primary font-bold" : "text-muted-foreground"
                     }`}
                   >
                     {step.label}
@@ -174,11 +180,36 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {/* STEP 1: Documents */}
             {stepInfo.id === "documents" && (
               <div className="space-y-6">
+                {!canApply && idProofScore !== null && (
+                  <div className="flex flex-col gap-2 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-xl">
+                    <div className="flex items-center gap-3 text-amber-800 dark:text-amber-300">
+                      <Shield className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      <h4 className="font-semibold text-sm">ID Proof verification required</h4>
+                    </div>
+                    <p className="text-xs text-amber-700 dark:text-amber-400/80 ml-8">
+                      Your ID Proof score is {idProofScore}%. You need at least 80% to apply for jobs.
+                    </p>
+                    <div className="ml-8 mt-1">
+                      <Button 
+                        size="sm" 
+                        variant="default"
+                        className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white border-0"
+                        onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
+                      >
+                        Verify Identity <ArrowRight className="ml-1 w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* User card matching image */}
                 <div className="p-4 bg-[#0a192f] text-white rounded-2xl flex items-center gap-4 relative overflow-hidden shadow-md">
-                  <div className="w-14 h-14 bg-rose-200 text-[#0a192f] rounded-2xl flex items-center justify-center text-xl font-bold font-mono">
-                    {profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}
-                  </div>
+                  <Avatar className="w-14 h-14 rounded-2xl">
+                    <AvatarImage src={user.avatar || ""} alt={user.name} className="object-cover" />
+                    <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-bold font-mono text-xl">
+                      {profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <h3 className="font-bold text-sm tracking-wide">
                       {profileData ? `${profileData.user_fname} ${profileData.user_lname}` : "Loading name..."}
@@ -199,7 +230,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     </div>
                   </div>
                   {/* Decorative shape */}
-                  <div className="absolute right-0 bottom-0 w-16 h-16 bg-rose-500 rounded-full translate-x-4 translate-y-4 opacity-70" />
+                  <div className="absolute right-0 bottom-0 w-16 h-16 bg-primary rounded-full translate-x-4 translate-y-4 opacity-70" />
                 </div>
 
                 {/* Resumé */}
@@ -211,7 +242,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <p className="text-xs font-semibold text-foreground truncate">
                         {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
                       </p>
-                      <p className="text-[10px] text-[#14a800] font-medium">Resumé attached from profile</p>
+                      <p className="text-[10px] text-primary font-medium">Resumé attached from profile</p>
                     </div>
                   </div>
                 </div>
@@ -365,8 +396,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {/* STEP 4: Review and submit */}
             {stepInfo.id === "review" && (
               <div className="space-y-5">
-                <div className="p-4 bg-[#14a800]/5 border border-[#14a800]/25 rounded-xl space-y-1">
-                  <h4 className="text-xs font-bold text-[#14a800] uppercase tracking-wider">Review Your Application</h4>
+                <div className="p-4 bg-primary/5 border border-primary/25 rounded-xl space-y-1">
+                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Review Your Application</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Ensure all your application details are accurate before submitting.
                   </p>
@@ -470,7 +501,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-4"
+                disabled={currentStep === 1 && !canApply}
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />
@@ -480,7 +512,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 id="apply-submit-btn"
                 onClick={handleSubmit}
                 disabled={saving || !!successMessage}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-5"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
               >
                 {saving ? (
                   <>
