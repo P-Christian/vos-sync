@@ -1,6 +1,8 @@
 
 // src/app/api/client/applicants/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail } from "@/lib/mail";
+import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 
 export const runtime = "nodejs";
@@ -98,7 +100,7 @@ export async function GET(
     // ---------------------------------------------------
 
     const applicationRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application/${id}`,
+      `${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at`,
       {
         headers: getHeaders(),
         cache: "no-store",
@@ -376,17 +378,36 @@ skills = (skillsJson.data as Skill[] ?? []).map(
     // SCREENING ANSWERS
     // ---------------------------------------------------
 
-    let screeningAnswers = null;
+    let screeningAnswers: { question_id: number; question_text: string; answer_text: string }[] | null = null;
+    const ansRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_application_answer?filter[application_id][_eq]=${application.application_id}&fields=question_id,answer_text&limit=100`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (ansRes.ok) {
+      const ansJson = await ansRes.json();
+      const ansList: { question_id: number; answer_text: string }[] = ansJson.data ?? [];
+      const qIds = [...new Set(ansList.map((a) => a.question_id).filter(Boolean))];
 
-    if (application.screening_answers) {
-      try {
-        screeningAnswers =
-          typeof application.screening_answers === "string"
-            ? JSON.parse(application.screening_answers)
-            : application.screening_answers;
-      } catch {
-        screeningAnswers = application.screening_answers;
+      const qTextMap: Record<number, string> = {};
+      if (qIds.length > 0) {
+        const qRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[question_id][_in]=${qIds.join(",")}&fields=question_id,question_text&limit=100`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (qRes.ok) {
+          const qJson = await qRes.json();
+          const qList: { question_id: number; question_text: string }[] = qJson.data ?? [];
+          qList.forEach((q) => {
+            qTextMap[q.question_id] = q.question_text;
+          });
+        }
       }
+
+      screeningAnswers = ansList.map((a) => ({
+        question_id: a.question_id,
+        question_text: qTextMap[a.question_id] || `Question #${a.question_id}`,
+        answer_text: a.answer_text,
+      }));
     }
 
     // ---------------------------------------------------
@@ -483,6 +504,9 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const token =
+      req.headers.get("authorization")?.replace("Bearer ", "") ||
+      req.cookies.get("vos_access_token")?.value;
     const body = await req.json().catch(() => null);
 
     if (!body?.application_status) {
@@ -513,7 +537,7 @@ export async function PATCH(
 
     if (body.client_notes !== undefined) payload.client_notes = body.client_notes;
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,application_status,status_updated_at,client_notes`, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify(payload),
@@ -541,6 +565,94 @@ export async function PATCH(
         message: `Your application status has been updated to: ${body.application_status}.`,
         action_url: "/vos-sync/freelancer/applications",
       });
+    }
+
+    // Fetch application details to resolve candidate & job for email notification
+    try {
+      const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,user_id,job_id`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (appRes.ok) {
+        const appData = (await appRes.json()).data;
+        if (appData?.user_id) {
+          const userRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${appData.user_id}?fields=user_email,user_fname,user_lname`, {
+            headers: getHeaders(),
+            cache: "no-store",
+          });
+          if (userRes.ok) {
+            const candidate = (await userRes.json()).data;
+            if (candidate?.user_email) {
+              let jobTitle = "Unknown Position";
+              let companyName = "Employer";
+
+              if (appData.job_id) {
+                const jobRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${appData.job_id}?fields=job_title,company_id`, {
+                  headers: getHeaders(),
+                  cache: "no-store",
+                });
+                if (jobRes.ok) {
+                  const jData = (await jobRes.json()).data;
+                  if (jData?.job_title) jobTitle = jData.job_title;
+                  if (jData?.company_id) {
+                    const compRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${jData.company_id}?fields=company_name`, {
+                      headers: getHeaders(),
+                      cache: "no-store",
+                    });
+                    if (compRes.ok) {
+                      companyName = (await compRes.json()).data?.company_name || companyName;
+                    }
+                  }
+                }
+              }
+
+              const candidateName = `${candidate.user_fname} ${candidate.user_lname}`.trim();
+              const notes = typeof body.client_notes === "string" ? body.client_notes : null;
+
+              if (body.application_status === "SHORTLISTED") {
+                await sendShortlistedEmail(candidate.user_email, {
+                  candidateName,
+                  companyName,
+                  jobTitle,
+                }).catch((e) => console.error("Shortlisted mail error:", e));
+              } else if (body.application_status === "HIRED") {
+                await sendHiringEmail(candidate.user_email, {
+                  candidateName,
+                  companyName,
+                  jobTitle,
+                  notes,
+                }).catch((e) => console.error("Hiring mail error:", e));
+              } else if (body.application_status === "REJECTED") {
+                await sendRejectionEmail(candidate.user_email, {
+                  candidateName,
+                  companyName,
+                  jobTitle,
+                  notes,
+                }).catch((e) => console.error("Rejection mail error:", e));
+              }
+
+              // Create System Message for Conversation
+              const requesterId = token ? getUserIdFromToken(token) : null;
+              if (requesterId && appData.user_id) {
+                const systemText =
+                  body.application_status === "HIRED"
+                    ? "Client hired you."
+                    : `Application status changed: ${body.application_status}`;
+
+                await createSystemMessage({
+                  clientId: requesterId,
+                  freelancerId: appData.user_id,
+                  jobId: appData.job_id ?? null,
+                  text: systemText,
+                  senderId: requesterId,
+                }).catch((e) => console.error("Status change system message error:", e));
+              }
+            }
+          }
+        }
+      }
+    } catch (mailErr) {
+      console.error("Error dispatching status update email:", mailErr);
     }
 
     return NextResponse.json({

@@ -1,17 +1,33 @@
-// src/modules/client/interviews/hooks/useInterviews.ts
 "use client";
 
-import { useState, useCallback } from "react";
-import { Interview, InterviewFormData, InterviewStatus } from "../types";
+// src/modules/client/interviews/hooks/useInterviews.ts
 
-const EMPTY_FORM: InterviewFormData = {
+import { useCallback, useMemo, useState } from "react";
+import {
+  Interview,
+  InterviewFormData,
+  EvaluationFormData,
+  InterviewStatus,
+} from "../types";
+import {
+  fetchInterviews,
+  createInterviewSchedule,
+  updateInterviewDetails,
+  submitInterviewEvaluation,
+} from "../providers/InterviewsProvider";
+
+import { toast } from "sonner";
+
+export const EMPTY_FORM: InterviewFormData = {
   application_id: "",
-  interview_date: "",
-  interview_time: "",
+  scheduled_at: "",
+  duration_minutes: 60,
+  timezone: "Asia/Manila",
   interview_format: "",
   meeting_link: "",
   meeting_location: "",
   interview_notes: "",
+  candidate_notes: "",
 };
 
 export function useInterviews() {
@@ -21,75 +37,82 @@ export function useInterviews() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const fetchInterviews = useCallback(async (status?: InterviewStatus | "ALL") => {
+  const [filterStatus, setFilterStatus] = useState<InterviewStatus | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+
+  const loadInterviews = useCallback(async (status?: InterviewStatus | "ALL") => {
     setLoading(true);
     setError("");
     try {
-      const q = status && status !== "ALL" ? `?status=${status}` : "";
-      const res = await fetch(`/api/client/interviews${q}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to load interviews.");
-      setInterviews(json.interviews ?? []);
+      const data = await fetchInterviews(status);
+      setInterviews(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "An error occurred.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createInterview = useCallback(async (formData: InterviewFormData) => {
+  const createInterview = useCallback(async (data: InterviewFormData) => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
     try {
-      const res = await fetch("/api/client/interviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          application_id: formData.application_id ? Number(formData.application_id) : null,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to schedule interview.");
-      if (json.interview)
-        setInterviews((prev) => [json.interview as Interview, ...prev]);
-      setSuccessMessage("Interview scheduled successfully.");
+      await createInterviewSchedule(data);
+      const msg = "Interview scheduled successfully.";
+      setSuccessMessage(msg);
+      toast.success(msg);
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "Failed to schedule interview.";
+      setError(msg);
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
     }
   }, []);
 
-  const updateInterviewStatus = useCallback(
+  const updateStatus = useCallback(
     async (
       interviewId: number,
       status: InterviewStatus,
-      notes?: string
+      extra?: Partial<InterviewFormData> & { cancel_reason?: string }
     ) => {
       setSaving(true);
       setError("");
+      setSuccessMessage("");
       try {
-        const res = await fetch(`/api/client/interviews/${interviewId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ interview_status: status, interview_notes: notes }),
+        await updateInterviewDetails(interviewId, {
+          interview_status: status,
+          ...extra,
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || "Failed to update interview.");
         setInterviews((prev) =>
-          prev.map((iv) =>
-            iv.interview_id === interviewId
-              ? { ...iv, interview_status: status }
-              : iv
+          prev.map((item) =>
+            item.interview_id === interviewId
+              ? {
+                  ...item,
+                  interview_status: status,
+                  scheduled_at: extra?.scheduled_at ?? item.scheduled_at,
+                  duration_minutes: extra?.duration_minutes ?? item.duration_minutes,
+                  timezone: extra?.timezone ?? item.timezone,
+                  meeting_link: extra?.meeting_link ?? item.meeting_link,
+                  meeting_location: extra?.meeting_location ?? item.meeting_location,
+                  cancel_reason: extra?.cancel_reason ?? item.cancel_reason,
+                }
+              : item
           )
         );
+        const msg = `Interview status updated to ${status}.`;
+        setSuccessMessage(msg);
+        toast.success(msg);
         return true;
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An error occurred.");
+        const msg = err instanceof Error ? err.message : "Failed to update interview.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -98,17 +121,84 @@ export function useInterviews() {
     []
   );
 
+  const saveEvaluation = useCallback(async (payload: EvaluationFormData) => {
+    setSaving(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      await submitInterviewEvaluation(payload);
+      setInterviews((prev) =>
+        prev.map((item) =>
+          item.interview_id === payload.interview_id
+            ? {
+                ...item,
+                evaluation_score: payload.evaluation_score,
+                feedback: payload.feedback,
+                interview_status: "COMPLETED",
+                application_status:
+                  payload.decision === "HIRED"
+                    ? "HIRED"
+                    : payload.decision === "REJECTED"
+                    ? "REJECTED"
+                    : item.application_status,
+              }
+            : item
+        )
+      );
+      const msg = "Evaluation recorded successfully.";
+      setSuccessMessage(msg);
+      toast.success(msg);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save evaluation.";
+      setError(msg);
+      toast.error(msg);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const filteredInterviews = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return interviews.filter((item) => {
+      const matchesStatus =
+        filterStatus === "ALL" || item.interview_status === filterStatus;
+      if (!matchesStatus) return false;
+      if (!query) return true;
+
+      return (
+        item.applicant_name?.toLowerCase().includes(query) ||
+        item.job_title?.toLowerCase().includes(query) ||
+        item.meeting_location?.toLowerCase().includes(query)
+      );
+    });
+  }, [interviews, filterStatus, search]);
+
   return {
-    interviews,
+    interviews: filteredInterviews,
+    rawInterviews: interviews,
+
     loading,
     saving,
     error,
     successMessage,
-    fetchInterviews,
+
+    filterStatus,
+    setFilterStatus,
+    search,
+    setSearch,
+
+    loadInterviews,
     createInterview,
-    updateInterviewStatus,
+    updateStatus,
+    saveEvaluation,
+
+    clearMessages: () => {
+      setError("");
+      setSuccessMessage("");
+    },
+
     EMPTY_FORM,
-    clearMessages: () => { setError(""); setSuccessMessage(""); },
   };
 }
-

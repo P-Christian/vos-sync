@@ -1,0 +1,161 @@
+"use client";
+
+// src/modules/client/settings/SettingsModule.tsx
+
+import React, { useEffect, useState } from "react";
+import { useSettings } from "./hooks/useSettings";
+import AccountSettings from "./components/AccountSettings";
+import SecuritySettings from "./components/SecuritySettings";
+import TeamSettings from "./components/TeamSettings";
+import NotificationSettings from "./components/NotificationSettings";
+import IntegrationSettings from "./components/IntegrationSettings";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Settings2,
+  User,
+  Shield,
+  Users,
+  Bell,
+  Blocks,
+  AlertCircle,
+  CheckCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type SettingsTab = "account" | "security" | "team" | "notifications" | "integrations";
+
+const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "account", label: "Account Profile", icon: User },
+  { id: "security", label: "Security & Auth", icon: Shield },
+  { id: "team", label: "Team & Roles", icon: Users },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "integrations", label: "Integrations", icon: Blocks },
+];
+
+export default function SettingsModule() {
+  const {
+    user,
+    team,
+    loading,
+    teamLoading,
+    saving,
+    error,
+    successMessage,
+    loadProfile,
+    saveProfile,
+    changePassword,
+    loadTeam,
+    modifyTeamRole,
+    clearMessages,
+  } = useSettings();
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  const handleTabChange = (tab: SettingsTab) => {
+    clearMessages();
+    setActiveTab(tab);
+  };
+
+  return (
+    <div className="space-y-6 client-page-transition">
+      <style>{`
+        @keyframes page-entry {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .client-page-transition {
+          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+            <Settings2 className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Employer Settings</h1>
+            <p className="text-sm text-zinc-300 mt-1">
+              Manage account preferences, password security, team roles, and platform integrations.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Feedback Messages */}
+      {error && (
+        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
+          <CheckCircle className="h-4 w-4 shrink-0" />
+          {successMessage}
+        </div>
+      )}
+
+      {/* Tabs & Module Body */}
+      <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+        <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                    activeTab === tab.id
+                      ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                      : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          {loading && activeTab === "account" ? (
+            <div className="flex items-center justify-center py-12 gap-3">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              <span className="text-sm text-zinc-400">Loading settings...</span>
+            </div>
+          ) : (
+            <>
+              {activeTab === "account" && (
+                <AccountSettings user={user} saving={saving} onSave={saveProfile} />
+              )}
+              {activeTab === "security" && (
+                <SecuritySettings saving={saving} onChangePassword={changePassword} />
+              )}
+              {activeTab === "team" && (
+                <TeamSettings
+                  team={team}
+                  loading={teamLoading}
+                  saving={saving}
+                  onLoadTeam={loadTeam}
+                  onModifyRole={modifyTeamRole}
+                />
+              )}
+              {activeTab === "notifications" && <NotificationSettings />}
+              {activeTab === "integrations" && <IntegrationSettings />}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

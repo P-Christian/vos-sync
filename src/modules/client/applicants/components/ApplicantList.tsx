@@ -10,6 +10,7 @@ interface ApplicantListProps {
   applicants: Applicant[];
   onUpdateStatus: (applicant: Applicant) => void;
   onScheduleInterview: (applicant: Applicant) => void;
+  onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
 }
 
@@ -17,6 +18,7 @@ export default function ApplicantList({
   applicants,
   onUpdateStatus,
   onScheduleInterview,
+  onViewScheduledInterview,
   onViewDetails,
 }: ApplicantListProps) {
   if (applicants.length === 0) {
@@ -41,6 +43,7 @@ export default function ApplicantList({
           applicant={a}
           onUpdateStatus={onUpdateStatus}
           onScheduleInterview={onScheduleInterview}
+          onViewScheduledInterview={onViewScheduledInterview}
           onViewDetails={onViewDetails}
         />
       ))}

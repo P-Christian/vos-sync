@@ -49,7 +49,9 @@ export default async function InterviewsPage() {
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <PortalPageHeader user={headerUser} />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
-        <InterviewsModule />
+        <React.Suspense fallback={<div className="p-8 text-center text-xs text-zinc-400">Loading interview workspace...</div>}>
+          <InterviewsModule />
+        </React.Suspense>
       </main>
     </div>
   );
