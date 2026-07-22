@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,22 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, Loader2, Send, HelpCircle, ArrowLeft, ArrowRight, Mail, Phone, MapPin, Paperclip } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Send,
+  HelpCircle,
+  ArrowLeft,
+  ArrowRight,
+  Mail,
+  Phone,
+  MapPin,
+  Paperclip,
+  Upload,
+  X,
+  FileText,
+} from "lucide-react";
 import { PublicJobPosting } from "../types";
 import { useApplyJob } from "../hooks/useApplyJob";
 
@@ -46,11 +61,18 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
     loadPrefill,
     handleFieldChange,
     handleAnswerChange,
+    uploadDocument,
     submitApplication,
     reset,
   } = useApplyJob();
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingCoverFile, setUploadingCoverFile] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load pre-fill whenever the modal opens with a new job
   useEffect(() => {
@@ -62,7 +84,40 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const handleClose = () => {
     reset();
     setCurrentStep(1);
+    setUploadError("");
     onClose();
+  };
+
+  const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingResume(true);
+    setUploadError("");
+    try {
+      const uploaded = await uploadDocument(file);
+      handleFieldChange("custom_resume", uploaded);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload custom resume.");
+    } finally {
+      setUploadingResume(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
+  };
+
+  const handleCoverFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCoverFile(true);
+    setUploadError("");
+    try {
+      const uploaded = await uploadDocument(file);
+      handleFieldChange("cover_letter_file", uploaded);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload cover letter document.");
+    } finally {
+      setUploadingCoverFile(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async () => {
@@ -164,10 +219,10 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             )}
 
             {/* Error */}
-            {error && (
+            {(error || uploadError) && (
               <div className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
+                {error || uploadError}
               </div>
             )}
 
@@ -204,22 +259,96 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
                 {/* Resumé */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Resumé</h3>
-                  <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-muted/20">
-                    <Paperclip className="h-5 w-5 text-zinc-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate">
-                        {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
-                      </p>
-                      <p className="text-[10px] text-[#14a800] font-medium">Resumé attached from profile</p>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground">Resumé</h3>
+                    <input
+                      ref={resumeInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={handleResumeFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || uploadingResume}
+                      onClick={() => resumeInputRef.current?.click()}
+                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                    >
+                      {uploadingResume ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      {formData.custom_resume ? "Change Uploaded Resumé" : "Upload / Change Resumé"}
+                    </Button>
                   </div>
+
+                  {formData.custom_resume ? (
+                    <div className="flex items-center gap-3 p-3.5 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20">
+                      <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {formData.custom_resume.file_name}
+                        </p>
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                          Custom Resumé attached for this application
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFieldChange("custom_resume", null)}
+                        className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        title="Revert to profile resume"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-muted/20">
+                      <Paperclip className="h-5 w-5 text-zinc-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
+                        </p>
+                        <p className="text-[10px] text-[#14a800] font-medium">Resumé attached from profile</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Cover Letter */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Cover letter</h3>
-                  <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground">Cover letter</h3>
+                    <input
+                      ref={coverFileInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={handleCoverFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || uploadingCoverFile}
+                      onClick={() => coverFileInputRef.current?.click()}
+                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                    >
+                      {uploadingCoverFile ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Paperclip className="h-3.5 w-3.5" />
+                      )}
+                      {formData.cover_letter_file ? "Change Attachment" : "Attach Document"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
                     <Textarea
                       id="apply-cover-letter"
                       placeholder="Tell the employer why you're a great fit for this role..."
@@ -229,8 +358,32 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       className="resize-none text-sm rounded-xl"
                       disabled={saving}
                     />
+
+                    {formData.cover_letter_file && (
+                      <div className="flex items-center gap-3 p-3 border border-emerald-200 dark:border-emerald-800 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20">
+                        <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {formData.cover_letter_file.file_name}
+                          </p>
+                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            Document attached to cover letter
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFieldChange("cover_letter_file", null)}
+                          className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
                     <p className="text-[10px] text-muted-foreground">
-                      Pre-filled from your professional summary in your profile. You can edit it.
+                      Pre-filled from your professional summary in your profile. You can edit the text, attach a file, or both.
                     </p>
                   </div>
                 </div>
@@ -395,15 +548,28 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         RESUMÉ
                       </Badge>
                       <span className="text-foreground text-xs font-medium">
-                        {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
+                        {formData.custom_resume?.file_name || profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
                       </span>
+                      {formData.custom_resume && (
+                        <Badge variant="outline" className="text-[9px] border-indigo-200 text-indigo-600">
+                          Custom
+                        </Badge>
+                      )}
                     </div>
-                    {formData.cover_letter && (
+                    {(formData.cover_letter || formData.cover_letter_file) && (
                       <div className="space-y-1 mt-1.5">
                         <span className="text-[9px] font-semibold text-muted-foreground block">Cover Letter</span>
-                        <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 p-3 rounded-xl border line-clamp-4 whitespace-pre-line text-[11px]">
-                          {formData.cover_letter}
-                        </p>
+                        {formData.cover_letter && (
+                          <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 p-3 rounded-xl border line-clamp-4 whitespace-pre-line text-[11px]">
+                            {formData.cover_letter}
+                          </p>
+                        )}
+                        {formData.cover_letter_file && (
+                          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium pt-1">
+                            <FileText className="h-3.5 w-3.5 shrink-0" />
+                            <span>Attached document: {formData.cover_letter_file.file_name}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

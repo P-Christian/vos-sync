@@ -1,6 +1,6 @@
 // src/app/api/client/interviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { sendHiringEmail, sendRejectionEmail, sendInterviewRescheduledEmail } from "@/lib/mail";
+import { sendHiringEmail, sendRejectionEmail, sendInterviewRescheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 
@@ -143,18 +143,21 @@ export async function PATCH(
                         }
                       }
 
-                      await sendInterviewRescheduledEmail(candidate.user_email, {
-                        candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
-                        companyName,
-                        jobTitle,
-                        scheduledAt: ivData.scheduled_at,
-                        timezone: ivData.timezone || "Asia/Manila",
-                        durationMinutes: ivData.duration_minutes || 60,
-                        interviewFormat: ivData.interview_format || "ONLINE",
-                        meetingLink: ivData.meeting_link || null,
-                        meetingLocation: ivData.meeting_location || null,
-                        candidateNotes: ivData.candidate_notes || null,
-                      }).catch((e) => console.error("Error sending reschedule email:", e));
+                      const rescheduleEmailEnabled = await isEmailEnabledForUser(candidateUserId, "INTERVIEW_RESCHEDULED");
+                      if (rescheduleEmailEnabled) {
+                        await sendInterviewRescheduledEmail(candidate.user_email, {
+                          candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
+                          companyName,
+                          jobTitle,
+                          scheduledAt: ivData.scheduled_at,
+                          timezone: ivData.timezone || "Asia/Manila",
+                          durationMinutes: ivData.duration_minutes || 60,
+                          interviewFormat: ivData.interview_format || "ONLINE",
+                          meetingLink: ivData.meeting_link || null,
+                          meetingLocation: ivData.meeting_location || null,
+                          candidateNotes: ivData.candidate_notes || null,
+                        }).catch((e) => console.error("Error sending reschedule email:", e));
+                      }
 
                       await createSystemMessage({
                         clientId: userId,
@@ -162,6 +165,8 @@ export async function PATCH(
                         jobId: appData.job_id ?? null,
                         text: `Interview rescheduled for ${ivData.scheduled_at}.`,
                         senderId: userId,
+                        systemEventType: "INTERVIEW_UPDATED",
+                        interviewId: interviewId ?? null,
                       }).catch((e) => console.error("Error sending reschedule system message:", e));
 
                       await createNotification({
@@ -275,20 +280,23 @@ export async function PATCH(
                     }
 
                     const candidateName = `${candidate.user_fname} ${candidate.user_lname}`.trim();
-                    if (decision === "HIRED") {
-                      await sendHiringEmail(candidate.user_email, {
-                        candidateName,
-                        companyName,
-                        jobTitle,
-                        notes: feedbackText || null,
-                      }).catch((e) => console.error("Hiring mail error:", e));
-                    } else if (decision === "REJECTED") {
-                      await sendRejectionEmail(candidate.user_email, {
-                        candidateName,
-                        companyName,
-                        jobTitle,
-                        notes: feedbackText || null,
-                      }).catch((e) => console.error("Rejection mail error:", e));
+                    const statusEmailEnabled = await isEmailEnabledForUser(applicationObj.user_id, "APPLICATION_STATUS_UPDATED");
+                    if (statusEmailEnabled) {
+                      if (decision === "HIRED") {
+                        await sendHiringEmail(candidate.user_email, {
+                          candidateName,
+                          companyName,
+                          jobTitle,
+                          notes: feedbackText || null,
+                        }).catch((e) => console.error("Hiring mail error:", e));
+                      } else if (decision === "REJECTED") {
+                        await sendRejectionEmail(candidate.user_email, {
+                          candidateName,
+                          companyName,
+                          jobTitle,
+                          notes: feedbackText || null,
+                        }).catch((e) => console.error("Rejection mail error:", e));
+                      }
                     }
                   }
                 }

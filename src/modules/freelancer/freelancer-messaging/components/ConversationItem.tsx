@@ -85,10 +85,10 @@ export default function ConversationItem({
       <div className="relative shrink-0 mt-0.5">
         {other_party_avatar && !imgError ? (
           <Image
-            width={64}
-            height={64}
             src={other_party_avatar}
             alt={other_party_name}
+            width={64}
+            height={64}
             onError={() => setImgError(true)}
             className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900"
           />
@@ -97,8 +97,8 @@ export default function ConversationItem({
             className={cn(
               "h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ring-2 ring-white dark:ring-zinc-900",
               isActive
-                ? "bg-emerald-600 text-white"
-                : "bg-gradient-to-br from-emerald-500 to-teal-600 text-white"
+                ? "bg-indigo-600 text-white"
+                : "bg-gradient-to-br from-indigo-500 to-violet-600 text-white"
             )}
           >
             {getInitials(other_party_name)}

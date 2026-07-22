@@ -32,7 +32,7 @@ export default function InterviewEvaluationModal({
   onClose,
   onSubmitEvaluation,
 }: InterviewEvaluationModalProps) {
-  const [score, setScore] = useState<number>(interview?.evaluation_score || 4);
+  const [score, setScore] = useState<number>(interview?.evaluation_score || 0);
   const [feedbackText, setFeedbackText] = useState<string>(interview?.feedback || "");
   const [decision, setDecision] = useState<"HIRED" | "REJECTED" | "NO_ACTION">("NO_ACTION");
 

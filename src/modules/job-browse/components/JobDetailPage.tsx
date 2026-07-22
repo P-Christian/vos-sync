@@ -74,7 +74,12 @@ export default function JobDetailPage({ jobId }: Props) {
         if (appsRes.ok) {
           const appsJson = await appsRes.json();
           const apps = appsJson.applications ?? [];
-          const exists = apps.some((app: { job_id: number }) => Number(app.job_id) === jobId);
+          const exists = apps.some(
+            (app: { job_id: number; application_status?: string }) =>
+              Number(app.job_id) === jobId &&
+              app.application_status !== "HIRED" &&
+              app.application_status !== "REJECTED"
+          );
           setAlreadyApplied(exists);
         }
       } catch (err: unknown) {

@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus, Phone, ShieldCheck, Mail, CheckCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus, Phone, ShieldCheck, Mail, CheckCircle, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardModule({ userName }: { userName?: string }) {
@@ -79,7 +79,73 @@ export default function DashboardModule({ userName }: { userName?: string }) {
     );
   }
 
-  const { company, stats, recentJobs, recentApplicants } = data;
+  if (data.onboardingRequired) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-4 space-y-6">
+        <Card className="border-0 shadow-2xl bg-gradient-to-br from-white via-zinc-50/50 to-indigo-50/30 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900 rounded-3xl overflow-hidden relative">
+          <div className="absolute right-0 top-0 h-48 w-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+          <CardContent className="p-8 sm:p-10 space-y-6 relative z-10">
+            <div className="flex items-center gap-4">
+
+              <div>
+
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 tracking-tight">
+                  Welcome to VOS Sync
+                </h2>
+              </div>
+            </div>
+
+            <p className="text-zinc-600 dark:text-zinc-300 text-sm leading-relaxed">
+              Complete your company profile to unlock dashboard insights, manage job postings, and connect with top talent.
+            </p>
+
+            <div className="space-y-3 bg-white dark:bg-zinc-900/80 p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                Setup Checklist
+              </h4>
+              <ul className="space-y-3 text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                <li className="flex items-center gap-2.5">
+                  <Circle className="h-4 w-4 text-zinc-400 shrink-0" />
+                  Verify your company details
+                </li>
+
+                <li className="flex items-center gap-2.5">
+                  <Circle className="h-4 w-4 text-zinc-400 shrink-0" />
+                  Complete your organization profile
+                </li>
+
+                <li className="flex items-center gap-2.5">
+                  <Circle className="h-4 w-4 text-zinc-400 shrink-0" />
+                  Post your first job
+                </li>
+              </ul>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <Button
+                onClick={() => router.push("/vos-sync/client/company-profile")}
+                className="w-full sm:w-auto h-11 px-8 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-md transition-all duration-300 transform active:scale-95"
+              >
+                Complete Profile
+              </Button>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="w-full sm:w-auto h-11 px-6 text-sm font-medium rounded-xl border-zinc-200 dark:border-zinc-800"
+              >
+                <LogOut className="h-4 w-4 mr-2" /> Logout
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const company = data.company ?? ({} as any);
+  const stats = data.stats ?? { activeJobs: 0, hiredCount: 0, pendingInterviews: 0, totalApplicants: 0, totalJobs: 0 };
+  const recentJobs = data.recentJobs ?? [];
+  const recentApplicants = data.recentApplicants ?? [];
 
   // Filter computations
   const filteredJobs = recentJobs.filter((job) => {
@@ -233,7 +299,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
                   Phone number verified
                 </h3>
               ) : (
-                <h3 
+                <h3
                   onClick={() => router.push("/vos-sync/client/company-profile")}
                   className="text-base font-bold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer decoration-2"
                 >
@@ -241,8 +307,8 @@ export default function DashboardModule({ userName }: { userName?: string }) {
                 </h3>
               )}
               <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
-                {company.company_contact 
-                  ? `Successfully verified phone: ${company.company_contact}` 
+                {company.company_contact
+                  ? `Successfully verified phone: ${company.company_contact}`
                   : "Confirm it's you, to be able to publish your first job post."}
               </p>
             </div>
@@ -261,7 +327,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
                   Company profile verified
                 </h3>
               ) : (
-                <h3 
+                <h3
                   onClick={() => router.push("/vos-sync/client/company-profile")}
                   className="text-base font-bold text-zinc-800 dark:text-zinc-200 hover:underline cursor-pointer decoration-2"
                 >
@@ -269,8 +335,8 @@ export default function DashboardModule({ userName }: { userName?: string }) {
                 </h3>
               )}
               <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
-                {isVerified 
-                  ? "Your organization is verified. All hiring capabilities are unlocked." 
+                {isVerified
+                  ? "Your organization is verified. All hiring capabilities are unlocked."
                   : "Verification officers are currently reviewing your company profile. Keep it completed."}
               </p>
             </div>
@@ -382,11 +448,11 @@ export default function DashboardModule({ userName }: { userName?: string }) {
               Recent Candidates ({filteredApplicants.length})
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="jobs" className="outline-none">
             <RecentJobs jobs={filteredJobs} />
           </TabsContent>
-          
+
           <TabsContent value="applicants" className="outline-none">
             <RecentApplicants applicants={filteredApplicants} />
           </TabsContent>

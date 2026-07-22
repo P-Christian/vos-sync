@@ -72,14 +72,72 @@ export async function GET(req: NextRequest) {
     const json = await res.json();
     const rawPrefs: Record<string, unknown>[] = json.data ?? [];
 
-    const preferences = rawPrefs.map((p) => ({
-      preference_id: p.preference_id,
-      user_id: p.user_id,
-      category: p.category,
-      email_enabled: p.email_enabled === 1 || p.email_enabled === true,
-      in_app_enabled: p.in_app_enabled === 1 || p.in_app_enabled === true,
-      updated_at: p.updated_at ?? null,
-    }));
+    const existingMap = new Map<string, { preference_id?: number; email_enabled: boolean; in_app_enabled: boolean; updated_at?: string | null }>();
+    rawPrefs.forEach((p) => {
+      const cat = String(p.category ?? "");
+      if (cat) {
+        existingMap.set(cat, {
+          preference_id: Number(p.preference_id),
+          email_enabled: p.email_enabled === 1 || p.email_enabled === true,
+          in_app_enabled: p.in_app_enabled === 1 || p.in_app_enabled === true,
+          updated_at: (p.updated_at as string) ?? null,
+        });
+      }
+    });
+
+    // Known categories list
+    const knownCategories: { category: string; defaultEmail: boolean; defaultInApp: boolean }[] = [
+      { category: "APPLICATION_RECEIVED", defaultEmail: true, defaultInApp: true },
+      { category: "APPLICATION_WITHDRAWN", defaultEmail: true, defaultInApp: true },
+      { category: "APPLICATION_STATUS_UPDATED", defaultEmail: true, defaultInApp: true },
+      { category: "MESSAGE_RECEIVED", defaultEmail: true, defaultInApp: true },
+      { category: "UNREAD_MESSAGE_REMINDER", defaultEmail: true, defaultInApp: true },
+      { category: "INTERVIEW_SCHEDULED", defaultEmail: true, defaultInApp: true },
+      { category: "INTERVIEW_RESCHEDULED", defaultEmail: true, defaultInApp: true },
+      { category: "INTERVIEW_CANCELLED", defaultEmail: true, defaultInApp: true },
+      { category: "INTERVIEW_REMINDER", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_APPROVED", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_REJECTED", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_EXPIRED", defaultEmail: true, defaultInApp: true },
+      { category: "TEAM_ACTIVITY", defaultEmail: true, defaultInApp: true },
+      { category: "PRODUCT_UPDATES", defaultEmail: false, defaultInApp: true },
+      { category: "MARKETING_UPDATES", defaultEmail: false, defaultInApp: false },
+    ];
+
+    const preferences = knownCategories.map((kc) => {
+      const existing = existingMap.get(kc.category);
+      if (existing) {
+        return {
+          preference_id: existing.preference_id,
+          user_id: userId,
+          category: kc.category,
+          email_enabled: existing.email_enabled,
+          in_app_enabled: existing.in_app_enabled,
+          updated_at: existing.updated_at ?? null,
+        };
+      }
+      return {
+        user_id: userId,
+        category: kc.category,
+        email_enabled: kc.defaultEmail,
+        in_app_enabled: kc.defaultInApp,
+        updated_at: null,
+      };
+    });
+
+    // Also include any custom/legacy categories from DB that are not in knownCategories
+    existingMap.forEach((val, key) => {
+      if (!knownCategories.some((kc) => kc.category === key)) {
+        preferences.push({
+          preference_id: val.preference_id,
+          user_id: userId,
+          category: key,
+          email_enabled: val.email_enabled,
+          in_app_enabled: val.in_app_enabled,
+          updated_at: val.updated_at ?? null,
+        });
+      }
+    });
 
     return NextResponse.json({ preferences });
   } catch (err: unknown) {

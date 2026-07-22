@@ -3,6 +3,7 @@ import { ShortlistedTemplateData } from "../types";
 
 export function shortlistedTemplate(data: ShortlistedTemplateData) {
   const { candidateName, companyName, jobTitle } = data;
+  const hostUrl = process.env.HOST_URL || "http://localhost:3010";
 
   return {
     subject: `You've Been Shortlisted: ${jobTitle} at ${companyName}`,
@@ -26,7 +27,7 @@ export function shortlistedTemplate(data: ShortlistedTemplateData) {
         </div>
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          Keep your notifications on and check your <a href="http://localhost:3010/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a> for updates.
+          Keep your notifications on and check your <a href="${hostUrl}/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a> for updates.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">

@@ -1,7 +1,7 @@
 
 // src/app/api/client/applicants/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail } from "@/lib/mail";
+import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 
@@ -609,26 +609,29 @@ export async function PATCH(
               const candidateName = `${candidate.user_fname} ${candidate.user_lname}`.trim();
               const notes = typeof body.client_notes === "string" ? body.client_notes : null;
 
-              if (body.application_status === "SHORTLISTED") {
-                await sendShortlistedEmail(candidate.user_email, {
-                  candidateName,
-                  companyName,
-                  jobTitle,
-                }).catch((e) => console.error("Shortlisted mail error:", e));
-              } else if (body.application_status === "HIRED") {
-                await sendHiringEmail(candidate.user_email, {
-                  candidateName,
-                  companyName,
-                  jobTitle,
-                  notes,
-                }).catch((e) => console.error("Hiring mail error:", e));
-              } else if (body.application_status === "REJECTED") {
-                await sendRejectionEmail(candidate.user_email, {
-                  candidateName,
-                  companyName,
-                  jobTitle,
-                  notes,
-                }).catch((e) => console.error("Rejection mail error:", e));
+              const statusEmailEnabled = await isEmailEnabledForUser(appData.user_id, "APPLICATION_STATUS_UPDATED");
+              if (statusEmailEnabled) {
+                if (body.application_status === "SHORTLISTED") {
+                  await sendShortlistedEmail(candidate.user_email, {
+                    candidateName,
+                    companyName,
+                    jobTitle,
+                  }).catch((e) => console.error("Shortlisted mail error:", e));
+                } else if (body.application_status === "HIRED") {
+                  await sendHiringEmail(candidate.user_email, {
+                    candidateName,
+                    companyName,
+                    jobTitle,
+                    notes,
+                  }).catch((e) => console.error("Hiring mail error:", e));
+                } else if (body.application_status === "REJECTED") {
+                  await sendRejectionEmail(candidate.user_email, {
+                    candidateName,
+                    companyName,
+                    jobTitle,
+                    notes,
+                  }).catch((e) => console.error("Rejection mail error:", e));
+                }
               }
 
               // Create System Message for Conversation
@@ -639,12 +642,19 @@ export async function PATCH(
                     ? "Client hired you."
                     : `Application status changed: ${body.application_status}`;
 
+                const statusEventType =
+                  body.application_status === "HIRED"
+                    ? "HIRED"
+                    : "APPLICATION_STATUS_CHANGED";
+
                 await createSystemMessage({
                   clientId: requesterId,
                   freelancerId: appData.user_id,
                   jobId: appData.job_id ?? null,
                   text: systemText,
                   senderId: requesterId,
+                  systemEventType: statusEventType,
+                  applicationId: appData.application_id ?? null,
                 }).catch((e) => console.error("Status change system message error:", e));
               }
             }

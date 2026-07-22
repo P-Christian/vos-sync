@@ -151,9 +151,30 @@ export async function GET(
       }
     }
 
+    // Batch-fetch vs_system_message for SYSTEM-type messages
+    const systemMsgIds = messages
+      .filter((m) => m.message_type === "SYSTEM")
+      .map((m) => m.message_id as number);
+
+    const systemMsgMap: Record<number, Record<string, unknown>> = {};
+
+    if (systemMsgIds.length > 0) {
+      const smRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_system_message?filter[message_id][_in]=${systemMsgIds.join(",")}&fields=system_message_id,message_id,event_type,application_id,interview_id&limit=200`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (smRes.ok) {
+        const smJson = await smRes.json();
+        for (const sm of (smJson.data ?? []) as Record<string, unknown>[]) {
+          systemMsgMap[sm.message_id as number] = sm;
+        }
+      }
+    }
+
     const enriched = messages.map((msg) => ({
       ...msg,
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
+      system_message: systemMsgMap[msg.message_id as number] ?? null,
     }));
 
     return NextResponse.json({ messages: enriched });

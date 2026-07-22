@@ -47,10 +47,12 @@ export interface Applicant {
 }
 
 export interface DashboardData {
-  company: CompanyInfo;
-  stats: DashboardStats;
-  recentJobs: JobPosting[];
-  recentApplicants: Applicant[];
+  onboardingRequired?: boolean;
+  message?: string;
+  company?: CompanyInfo;
+  stats?: DashboardStats;
+  recentJobs?: JobPosting[];
+  recentApplicants?: Applicant[];
 }
 
 export interface FilterState {

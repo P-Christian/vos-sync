@@ -198,7 +198,7 @@ export default function MessagingModule({
 
       {/* ── Main Chat Layout ────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-        <div className="flex h-[640px]">
+        <div className="flex h-[calc(100vh-280px)] min-h-[500px]">
           {/* Conversation List — hidden on mobile when chat is open */}
           <div
             className={cn(
@@ -244,7 +244,10 @@ export default function MessagingModule({
                 />
               </div>
             ) : (
-              <EmptyState />
+              // Add the w-full wrapper here
+              <div className="w-full">
+                <EmptyState />
+              </div>
             )}
           </div>
         </div>
