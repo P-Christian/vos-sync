@@ -92,10 +92,10 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
             // Default wiring: clear HttpOnly cookie via Next route
             await fetch("/api/auth/logout", { method: "POST" })
         } finally {
-            // Always redirect to login + refresh UI
-            router.replace("/login")
-            router.refresh()
-            setLoggingOut(false)
+            // Hide the body to prevent bfcache flash on back navigation
+            document.body.style.display = 'none';
+            // Always redirect to login (hard refresh to clear client-side cache)
+            window.location.href = "/login"
         }
     }, [loggingOut, onLogout, router])
 

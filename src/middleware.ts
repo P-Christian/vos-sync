@@ -49,8 +49,34 @@ export async function middleware(req: NextRequest) {
 
     try {
         const secret = new TextEncoder().encode(JWT_SECRET);
-        await jose.jwtVerify(token, secret);
-        return NextResponse.next();
+        const { payload } = await jose.jwtVerify(token, secret);
+        
+        const userRoleName = typeof payload.role_name === 'string' ? payload.role_name.toUpperCase() : "";
+        const pathLower = pathname.toLowerCase();
+        
+        let isAuthorized = true;
+
+        if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER") {
+            isAuthorized = false;
+        } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN") {
+            isAuthorized = false;
+        } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT") {
+            isAuthorized = false;
+        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN") {
+            isAuthorized = false;
+        }
+
+        if (!isAuthorized) {
+            console.warn(`[Middleware] Unauthorized access detected for role_name: ${userRoleName || 'UNKNOWN'} to path: ${pathname}.`);
+            return redirectToLogin(req);
+        }
+
+        const response = NextResponse.next();
+        
+        // Prevent browser caching (bfcache) so the back button forces a new request to middleware
+        response.headers.set('Cache-Control', 'no-store, max-age=0');
+        
+        return response;
     } catch (err) {
         console.error("[Middleware] JWT verification failed:", err);
         return redirectToLogin(req);

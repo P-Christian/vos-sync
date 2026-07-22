@@ -6,6 +6,7 @@ import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/se
 
 import { AppSidebar } from "@/app/(vos-sync)/vos-sync/_components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { BfCacheBuster } from "@/components/shared/BfCacheBuster";
 
 function decodeJwtPayload(token: string): Record<string, any> | null {
     try {
@@ -54,6 +55,7 @@ export default async function DashboardLayout({
 
     return (
         <UserProfileProvider user={userProfile}>
+            <BfCacheBuster />
             <SidebarProvider>
             <Suspense fallback={<div className="w-64 border-r bg-sidebar" />}>
                 <AppSidebar />
