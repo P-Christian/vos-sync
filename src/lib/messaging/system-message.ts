@@ -21,11 +21,16 @@ export interface CreateSystemMessageParams {
   jobId?: number | null;
   text: string;
   senderId?: number;
+  /** When provided, also inserts a row into vs_system_message */
+  systemEventType?: string;
+  applicationId?: number | null;
+  interviewId?: number | null;
 }
 
 /**
  * Creates or retrieves a conversation between clientId and freelancerId,
- * then posts a SYSTEM message into vs_message and updates vs_conversation.last_message_at.
+ * posts a SYSTEM message into vs_message, optionally writes structured
+ * event metadata into vs_system_message, and updates last_message_at.
  */
 export async function createSystemMessage({
   clientId,
@@ -33,7 +38,11 @@ export async function createSystemMessage({
   jobId,
   text,
   senderId,
+  systemEventType,
+  applicationId,
+  interviewId,
 }: CreateSystemMessageParams): Promise<void> {
+  
   if (!DIRECTUS_BASE) return;
 
   try {
@@ -85,7 +94,7 @@ export async function createSystemMessage({
     // 3. Insert SYSTEM message into vs_message
     const effectiveSenderId = senderId ?? clientId;
 
-    await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
+    const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
@@ -97,6 +106,24 @@ export async function createSystemMessage({
         is_deleted: false,
       }),
     });
+
+    // 3b. Insert structured event into vs_system_message (if event type provided)
+    if (systemEventType && msgRes.ok) {
+      const msgJson = await msgRes.json();
+      const messageId = msgJson.data?.message_id ?? null;
+      if (messageId) {
+        await fetch(`${DIRECTUS_BASE}/items/vs_system_message`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            message_id: messageId,
+            event_type: systemEventType,
+            application_id: applicationId ?? null,
+            interview_id: interviewId ?? null,
+          }),
+        }).catch((e) => console.error("Error inserting vs_system_message:", e));
+      }
+    }
 
     // 4. Update vs_conversation last_message_at
     await fetch(`${DIRECTUS_BASE}/items/vs_conversation/${conversationId}`, {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,24 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, Loader2, Send, HelpCircle, ArrowLeft, ArrowRight, Mail, Phone, MapPin, Paperclip, Shield } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  Send,
+  HelpCircle,
+  ArrowLeft,
+  ArrowRight,
+  Mail,
+  Phone,
+  MapPin,
+  Paperclip,
+  Upload,
+  X,
+  FileText,
+} from "lucide-react";
 import { PublicJobPosting } from "../types";
 import { useApplyJob } from "../hooks/useApplyJob";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -38,8 +51,6 @@ function getInitials(fname?: string | null, lname?: string | null): string {
 }
 
 export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
-  const user = useUserProfile();
-  
   const {
     formData,
     saving,
@@ -50,13 +61,18 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
     loadPrefill,
     handleFieldChange,
     handleAnswerChange,
+    uploadDocument,
     submitApplication,
     reset,
-    idProofScore,
-    canApply,
   } = useApplyJob();
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingCoverFile, setUploadingCoverFile] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const resumeInputRef = useRef<HTMLInputElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load pre-fill whenever the modal opens with a new job
   useEffect(() => {
@@ -68,7 +84,40 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const handleClose = () => {
     reset();
     setCurrentStep(1);
+    setUploadError("");
     onClose();
+  };
+
+  const handleResumeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingResume(true);
+    setUploadError("");
+    try {
+      const uploaded = await uploadDocument(file);
+      handleFieldChange("custom_resume", uploaded);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload custom resume.");
+    } finally {
+      setUploadingResume(false);
+      if (resumeInputRef.current) resumeInputRef.current.value = "";
+    }
+  };
+
+  const handleCoverFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCoverFile(true);
+    setUploadError("");
+    try {
+      const uploaded = await uploadDocument(file);
+      handleFieldChange("cover_letter_file", uploaded);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload cover letter document.");
+    } finally {
+      setUploadingCoverFile(false);
+      if (coverFileInputRef.current) coverFileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = async () => {
@@ -117,7 +166,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             <div className="absolute top-3 left-3 right-3 h-0.5 bg-zinc-200 dark:bg-zinc-800 -z-10" />
             {/* Active progress line */}
             <div
-              className="absolute top-3 left-3 h-0.5 bg-primary transition-all duration-300 -z-10"
+              className="absolute top-3 left-3 h-0.5 bg-[#14a800] transition-all duration-300 -z-10"
               style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
             />
 
@@ -130,9 +179,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${
                       isCompleted
-                        ? "bg-primary border-primary text-primary-foreground"
+                        ? "bg-[#14a800] border-[#14a800] text-white"
                         : isActive
-                        ? "bg-background border-primary text-primary"
+                        ? "bg-background border-[#14a800] text-[#14a800]"
                         : "bg-background border-zinc-300 dark:border-zinc-700 text-zinc-400"
                     }`}
                   >
@@ -140,7 +189,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   </div>
                   <span
                     className={`text-[8px] font-semibold text-center hidden sm:block ${
-                      isActive ? "text-primary font-bold" : "text-muted-foreground"
+                      isActive ? "text-[#14a800] font-bold" : "text-muted-foreground"
                     }`}
                   >
                     {step.label}
@@ -170,46 +219,21 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             )}
 
             {/* Error */}
-            {error && (
+            {(error || uploadError) && (
               <div className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                {error}
+                {error || uploadError}
               </div>
             )}
 
             {/* STEP 1: Documents */}
             {stepInfo.id === "documents" && (
               <div className="space-y-6">
-                {!canApply && idProofScore !== null && (
-                  <div className="flex flex-col gap-2 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/30 rounded-xl">
-                    <div className="flex items-center gap-3 text-amber-800 dark:text-amber-300">
-                      <Shield className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-                      <h4 className="font-semibold text-sm">ID Proof verification required</h4>
-                    </div>
-                    <p className="text-xs text-amber-700 dark:text-amber-400/80 ml-8">
-                      Your ID Proof score is {idProofScore}%. You need at least 80% to apply for jobs.
-                    </p>
-                    <div className="ml-8 mt-1">
-                      <Button 
-                        size="sm" 
-                        variant="default"
-                        className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white border-0"
-                        onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
-                      >
-                        Verify Identity <ArrowRight className="ml-1 w-3 h-3" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 {/* User card matching image */}
                 <div className="p-4 bg-[#0a192f] text-white rounded-2xl flex items-center gap-4 relative overflow-hidden shadow-md">
-                  <Avatar className="w-14 h-14 rounded-2xl">
-                    <AvatarImage src={user.avatar || ""} alt={user.name} className="object-cover" />
-                    <AvatarFallback className="rounded-2xl bg-primary/20 text-primary font-bold font-mono text-xl">
-                      {profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="w-14 h-14 bg-rose-200 text-[#0a192f] rounded-2xl flex items-center justify-center text-xl font-bold font-mono">
+                    {profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}
+                  </div>
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <h3 className="font-bold text-sm tracking-wide">
                       {profileData ? `${profileData.user_fname} ${profileData.user_lname}` : "Loading name..."}
@@ -230,27 +254,101 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     </div>
                   </div>
                   {/* Decorative shape */}
-                  <div className="absolute right-0 bottom-0 w-16 h-16 bg-primary rounded-full translate-x-4 translate-y-4 opacity-70" />
+                  <div className="absolute right-0 bottom-0 w-16 h-16 bg-rose-500 rounded-full translate-x-4 translate-y-4 opacity-70" />
                 </div>
 
                 {/* Resumé */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Resumé</h3>
-                  <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-muted/20">
-                    <Paperclip className="h-5 w-5 text-zinc-400 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-foreground truncate">
-                        {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
-                      </p>
-                      <p className="text-[10px] text-primary font-medium">Resumé attached from profile</p>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground">Resumé</h3>
+                    <input
+                      ref={resumeInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={handleResumeFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || uploadingResume}
+                      onClick={() => resumeInputRef.current?.click()}
+                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                    >
+                      {uploadingResume ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="h-3.5 w-3.5" />
+                      )}
+                      {formData.custom_resume ? "Change Uploaded Resumé" : "Upload / Change Resumé"}
+                    </Button>
                   </div>
+
+                  {formData.custom_resume ? (
+                    <div className="flex items-center gap-3 p-3.5 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20">
+                      <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {formData.custom_resume.file_name}
+                        </p>
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                          Custom Resumé attached for this application
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleFieldChange("custom_resume", null)}
+                        className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        title="Revert to profile resume"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-muted/20">
+                      <Paperclip className="h-5 w-5 text-zinc-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">
+                          {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
+                        </p>
+                        <p className="text-[10px] text-[#14a800] font-medium">Resumé attached from profile</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Cover Letter */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-foreground">Cover letter</h3>
-                  <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground">Cover letter</h3>
+                    <input
+                      ref={coverFileInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={handleCoverFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={saving || uploadingCoverFile}
+                      onClick={() => coverFileInputRef.current?.click()}
+                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                    >
+                      {uploadingCoverFile ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Paperclip className="h-3.5 w-3.5" />
+                      )}
+                      {formData.cover_letter_file ? "Change Attachment" : "Attach Document"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
                     <Textarea
                       id="apply-cover-letter"
                       placeholder="Tell the employer why you're a great fit for this role..."
@@ -260,8 +358,32 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       className="resize-none text-sm rounded-xl"
                       disabled={saving}
                     />
+
+                    {formData.cover_letter_file && (
+                      <div className="flex items-center gap-3 p-3 border border-emerald-200 dark:border-emerald-800 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20">
+                        <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            {formData.cover_letter_file.file_name}
+                          </p>
+                          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            Document attached to cover letter
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleFieldChange("cover_letter_file", null)}
+                          className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+
                     <p className="text-[10px] text-muted-foreground">
-                      Pre-filled from your professional summary in your profile. You can edit it.
+                      Pre-filled from your professional summary in your profile. You can edit the text, attach a file, or both.
                     </p>
                   </div>
                 </div>
@@ -399,8 +521,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {/* STEP 4: Review and submit */}
             {stepInfo.id === "review" && (
               <div className="space-y-5">
-                <div className="p-4 bg-primary/5 border border-primary/25 rounded-xl space-y-1">
-                  <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Review Your Application</h4>
+                <div className="p-4 bg-[#14a800]/5 border border-[#14a800]/25 rounded-xl space-y-1">
+                  <h4 className="text-xs font-bold text-[#14a800] uppercase tracking-wider">Review Your Application</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Ensure all your application details are accurate before submitting.
                   </p>
@@ -426,15 +548,28 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         RESUMÉ
                       </Badge>
                       <span className="text-foreground text-xs font-medium">
-                        {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
+                        {formData.custom_resume?.file_name || profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
                       </span>
+                      {formData.custom_resume && (
+                        <Badge variant="outline" className="text-[9px] border-indigo-200 text-indigo-600">
+                          Custom
+                        </Badge>
+                      )}
                     </div>
-                    {formData.cover_letter && (
+                    {(formData.cover_letter || formData.cover_letter_file) && (
                       <div className="space-y-1 mt-1.5">
                         <span className="text-[9px] font-semibold text-muted-foreground block">Cover Letter</span>
-                        <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 p-3 rounded-xl border line-clamp-4 whitespace-pre-line text-[11px]">
-                          {formData.cover_letter}
-                        </p>
+                        {formData.cover_letter && (
+                          <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 p-3 rounded-xl border line-clamp-4 whitespace-pre-line text-[11px]">
+                            {formData.cover_letter}
+                          </p>
+                        )}
+                        {formData.cover_letter_file && (
+                          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium pt-1">
+                            <FileText className="h-3.5 w-3.5 shrink-0" />
+                            <span>Attached document: {formData.cover_letter_file.file_name}</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -508,8 +643,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={currentStep === 1 && !canApply}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-4"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />
@@ -519,7 +653,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 id="apply-submit-btn"
                 onClick={handleSubmit}
                 disabled={saving || !!successMessage}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-5"
               >
                 {saving ? (
                   <>

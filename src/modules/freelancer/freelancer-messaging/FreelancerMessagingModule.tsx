@@ -168,7 +168,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
 
       {/* Main Layout */}
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-        <div className="flex h-[640px]">
+        <div className="flex h-[calc(100vh-330px)] min-h-[500px]">
           <div
             className={cn(
               "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",
@@ -212,7 +212,9 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
                 />
               </div>
             ) : (
+              <div className="w-full">
               <EmptyState />
+            </div>
             )}
           </div>
         </div>

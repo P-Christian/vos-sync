@@ -88,6 +88,8 @@ export function useApplyJob() {
       cover_letter: prefill.cover_letter,
       expected_salary: prefill.expected_salary,
       portfolio_url: prefill.portfolio_url,
+      custom_resume: null,
+      cover_letter_file: null,
       screening_answers: (job.screening_questions ?? []).map((q) => {
         if (typeof q === "object" && q !== null) {
           return {
@@ -104,7 +106,7 @@ export function useApplyJob() {
   }, []);
 
   const handleFieldChange = useCallback(
-    (field: keyof Omit<ApplyFormData, "screening_answers">, value: string) => {
+    (field: keyof Omit<ApplyFormData, "screening_answers">, value: any) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
     []
@@ -118,19 +120,46 @@ export function useApplyJob() {
     });
   }, []);
 
+  const uploadDocument = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/freelancer/messaging/upload", {
+      method: "POST",
+      body: formData,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || "Failed to upload document.");
+    return {
+      file_name: json.file_name || file.name,
+      file_path: json.file_path,
+      file_size: json.file_size || file.size,
+      mime_type: json.mime_type || file.type,
+    };
+  }, []);
+
   const submitApplication = useCallback(async (): Promise<boolean> => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
     try {
+      let finalCoverLetter = formData.cover_letter?.trim() || "";
+      if (formData.cover_letter_file) {
+        const fileLinkText = `[Cover Letter Document: ${formData.cover_letter_file.file_name}](${formData.cover_letter_file.file_path})`;
+        finalCoverLetter = finalCoverLetter
+          ? `${finalCoverLetter}\n\n${fileLinkText}`
+          : fileLinkText;
+      }
+
       const res = await fetch("/api/freelancer/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           job_id: formData.job_id,
-          cover_letter: formData.cover_letter || null,
+          cover_letter: finalCoverLetter || null,
           expected_salary: formData.expected_salary ? Number(formData.expected_salary) : null,
           portfolio_url: formData.portfolio_url || null,
+          custom_resume: formData.custom_resume || null,
           screening_answers:
             formData.screening_answers.length > 0 ? formData.screening_answers : null,
         }),
@@ -148,7 +177,7 @@ export function useApplyJob() {
   }, [formData]);
 
   const reset = useCallback(() => {
-    setFormData({ job_id: 0, ...EMPTY_FORM, screening_answers: [] });
+    setFormData({ job_id: 0, ...EMPTY_FORM, custom_resume: null, cover_letter_file: null, screening_answers: [] });
     setProfileData(null);
     setError("");
     setSuccessMessage("");
@@ -166,6 +195,7 @@ export function useApplyJob() {
     loadPrefill,
     handleFieldChange,
     handleAnswerChange,
+    uploadDocument,
     submitApplication,
     reset,
   };

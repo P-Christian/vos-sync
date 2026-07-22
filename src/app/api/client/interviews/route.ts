@@ -1,7 +1,7 @@
 // src/app/api/client/interviews/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { sendInterviewScheduledEmail } from "@/lib/mail";
+import { sendInterviewScheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 
 export const runtime = "nodejs";
@@ -418,18 +418,21 @@ export async function POST(req: NextRequest) {
                   }
                 }
 
-                await sendInterviewScheduledEmail(candidate.user_email, {
-                  candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
-                  companyName,
-                  jobTitle,
-                  scheduledAt,
-                  timezone: body.timezone || "Asia/Manila",
-                  durationMinutes: Number(body.duration_minutes) || 60,
-                  interviewFormat: body.interview_format || "ONLINE",
-                  meetingLink: body.meeting_link?.trim() || null,
-                  meetingLocation: body.meeting_location?.trim() || null,
-                  candidateNotes: body.candidate_notes?.trim() || null,
-                }).catch((mailErr) => console.error("Email send error:", mailErr));
+                const emailEnabled = await isEmailEnabledForUser(appData.user_id, "INTERVIEW_SCHEDULED");
+                if (emailEnabled) {
+                  await sendInterviewScheduledEmail(candidate.user_email, {
+                    candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
+                    companyName,
+                    jobTitle,
+                    scheduledAt,
+                    timezone: body.timezone || "Asia/Manila",
+                    durationMinutes: Number(body.duration_minutes) || 60,
+                    interviewFormat: body.interview_format || "ONLINE",
+                    meetingLink: body.meeting_link?.trim() || null,
+                    meetingLocation: body.meeting_location?.trim() || null,
+                    candidateNotes: body.candidate_notes?.trim() || null,
+                  }).catch((mailErr) => console.error("Email send error:", mailErr));
+                }
               }
             }
           } catch (mailDispatchErr) {
@@ -442,6 +445,8 @@ export async function POST(req: NextRequest) {
             jobId: appData.job_id ?? null,
             text: `Interview scheduled for ${scheduledAt}.`,
             senderId: userId,
+            systemEventType: "INTERVIEW_SCHEDULED",
+            interviewId: json.data?.interview_id ?? null,
           }).catch((err) => console.error("Error creating interview system message:", err));
         } catch (notifErr) {
           console.error("Notification dispatch error:", notifErr);

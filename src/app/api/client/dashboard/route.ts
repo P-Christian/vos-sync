@@ -97,10 +97,11 @@ export async function GET(req: NextRequest) {
     const companyId = linkJson.data?.[0]?.company_id;
 
     if (!companyId) {
-      return NextResponse.json(
-        { error: "No company associated with this account." },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: true,
+        onboardingRequired: true,
+        message: "Complete your company profile to access dashboard metrics.",
+      });
     }
 
     // 2. Fetch vs_company record — only query fields confirmed in Directus schema
@@ -124,6 +125,13 @@ export async function GET(req: NextRequest) {
     const companyUrl = `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=${VS_COMPANY_FIELDS}`;
     const companyRes = await fetch(companyUrl, { headers: getHeaders(), cache: "no-store" });
     if (!companyRes.ok) {
+      if (companyRes.status === 404) {
+        return NextResponse.json({
+          success: true,
+          onboardingRequired: true,
+          message: "Complete your company profile to access dashboard metrics.",
+        });
+      }
       return NextResponse.json({ error: "Failed to fetch company profile details." }, { status: companyRes.status });
     }
     const companyJson = await companyRes.json();
