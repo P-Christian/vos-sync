@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     const uploadJson = await uploadRes.json();
     const fileData = uploadJson.data;
 
-    const fileUrl = `${DIRECTUS_BASE}/assets/${fileData.id}`;
+    const fileUrl = `/api/assets/${fileData.id}`;
 
     return NextResponse.json({
       file_id: fileData.id,

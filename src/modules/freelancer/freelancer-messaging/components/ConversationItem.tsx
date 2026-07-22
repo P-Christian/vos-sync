@@ -68,6 +68,10 @@ export default function ConversationItem({
     archived_by_freelancer,
   } = conversation;
 
+  React.useEffect(() => {
+    setImgError(false);
+  }, [other_party_avatar]);
+
   return (
     <div
       role="button"
@@ -89,6 +93,7 @@ export default function ConversationItem({
             alt={other_party_name}
             width={64}
             height={64}
+            unoptimized
             onError={() => setImgError(true)}
             className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900"
           />

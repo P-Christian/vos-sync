@@ -85,6 +85,10 @@ export default function ChatPanel({
     conversation_type,
   } = conversation;
 
+  React.useEffect(() => {
+    setImgError(false);
+  }, [other_party_avatar]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -104,6 +108,7 @@ export default function ChatPanel({
             alt={other_party_name}
             width={50}
             height={50}
+            unoptimized
             onError={() => setImgError(true)}
             className="h-9 w-9 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0"
           />
