@@ -6,7 +6,7 @@ import KpiCards from "./components/KpiCards";
 import RecentJobs from "./components/RecentJobs";
 import RecentApplicants from "./components/RecentApplicants";
 import DashboardFilters from "./components/DashboardFilters";
-import { DashboardData, FilterState } from "./types";
+import { DashboardData, FilterState, CompanyInfo } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -142,7 +142,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
     );
   }
 
-  const company = data.company ?? ({} as any);
+  const company = data.company ?? ({} as CompanyInfo);
   const stats = data.stats ?? { activeJobs: 0, hiredCount: 0, pendingInterviews: 0, totalApplicants: 0, totalJobs: 0 };
   const recentJobs = data.recentJobs ?? [];
   const recentApplicants = data.recentApplicants ?? [];

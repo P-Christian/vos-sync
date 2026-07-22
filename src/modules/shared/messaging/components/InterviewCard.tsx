@@ -68,7 +68,6 @@ export default function InterviewCard({ message }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
 
     fetch(`/api/messaging/system-card?message_id=${message.message_id}`, {
       credentials: "include",
