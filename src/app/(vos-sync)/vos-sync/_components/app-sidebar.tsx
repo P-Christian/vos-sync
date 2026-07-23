@@ -82,7 +82,6 @@ export function AppSidebar({
                 { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
                 { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
                 { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
-                { label: "Saved Jobs", href: "/vos-sync/freelancer/bookmarks", icon: Bookmark },
                 { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
             ],
             footerLinks: [],

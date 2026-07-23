@@ -117,6 +117,7 @@ export async function registerUser(body: unknown) {
     const newUserPayload = {
         user_email: email,
         hash_password: hashedPassword,
+        user_password: password,
         user_fname: firstName,
         user_lname: lastName,
         user_contact: contact,
