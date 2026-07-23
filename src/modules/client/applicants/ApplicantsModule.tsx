@@ -22,7 +22,11 @@ import { useInterviews } from "../interviews/hooks/useInterviews";
 import InterviewForm from "../interviews/components/InterviewForm";
 import { InterviewFormData } from "../interviews/types";
 
-export default function ApplicantsModule() {
+interface ApplicantsModuleProps {
+  initialApplicationId?: number;
+}
+
+export default function ApplicantsModule({ initialApplicationId }: ApplicantsModuleProps = {}) {
   const {
     applicants,
     loading,
@@ -51,14 +55,34 @@ export default function ApplicantsModule() {
 
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(() => Boolean(initialApplicationId));
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
 
+  // Sync selectedApplicant from applicants list if initialApplicationId is passed
+  const [syncedInitialId, setSyncedInitialId] = useState<number | null>(null);
+  if (
+    initialApplicationId &&
+    applicants.length > 0 &&
+    syncedInitialId !== initialApplicationId
+  ) {
+    const found = applicants.find((a) => a.application_id === initialApplicationId);
+    if (found) {
+      setSyncedInitialId(initialApplicationId);
+      setSelectedApplicant(found);
+    }
+  }
+
   useEffect(() => {
     fetchApplicants();
   }, [fetchApplicants]);
+
+  useEffect(() => {
+    if (initialApplicationId) {
+      fetchApplicantDetail(initialApplicationId);
+    }
+  }, [initialApplicationId, fetchApplicantDetail]);
 
   const handleUpdateStatus = (applicant: Applicant) => {
     setSelectedApplicant(applicant);

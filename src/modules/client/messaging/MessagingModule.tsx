@@ -30,6 +30,7 @@ export default function MessagingModule({
     error: convsError,
     loadConversations,
     openOrCreateConversation,
+    clearUnreadCount,
     archive,
     clearError: clearConvsError,
   } = useConversations();
@@ -68,7 +69,8 @@ export default function MessagingModule({
       conversation_type: initialJobId ? "JOB_APPLICATION" : "DIRECT_MESSAGE",
     }).then((conv) => {
       if (conv) {
-        setActiveConversation(conv);
+        clearUnreadCount(conv.conversation_id);
+        setActiveConversation({ ...conv, unread_count: 0 });
         loadMessages(conv.conversation_id);
         setMobileShowChat(true);
       }
@@ -78,13 +80,14 @@ export default function MessagingModule({
 
   const handleSelectConversation = useCallback(
     (conv: Conversation) => {
+      clearUnreadCount(conv.conversation_id);
       if (activeConversation?.conversation_id === conv.conversation_id) return;
       clearMessages();
-      setActiveConversation(conv);
+      setActiveConversation({ ...conv, unread_count: 0 });
       loadMessages(conv.conversation_id);
       setMobileShowChat(true);
     },
-    [activeConversation, clearMessages, loadMessages]
+    [activeConversation, clearMessages, clearUnreadCount, loadMessages]
   );
 
   const handleRefreshConversations = useCallback(() => {

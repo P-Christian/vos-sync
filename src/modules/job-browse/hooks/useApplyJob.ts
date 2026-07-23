@@ -63,9 +63,6 @@ export function useApplyJob() {
           setProfileData(profile);
 
           const innerProfile = profile.job_seeker_profile?.[0] || profile.job_seeker_profile || {};
-          if (innerProfile.professional_summary) {
-            prefill.cover_letter = innerProfile.professional_summary;
-          }
           if (innerProfile.expected_salary != null) {
             prefill.expected_salary = String(innerProfile.expected_salary);
           }

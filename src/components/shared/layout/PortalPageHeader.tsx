@@ -6,7 +6,8 @@ import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
-import { NotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
+import { NotificationBell as FreelancerNotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
+import { ClientNotificationBell } from "@/modules/client/notifications/components/ClientNotificationBellWrapper";
 import { UserSearchBar } from "@/modules/shared/search/components/UserSearchBar";
 
 type PortalPageHeaderUser = {
@@ -26,7 +27,7 @@ interface PortalPageHeaderProps {
  */
 export function PortalPageHeader({ user }: PortalPageHeaderProps) {
     const pathname = usePathname();
-    const isFreelancerPortal = pathname.startsWith("/vos-sync/freelancer");
+    const isClientRoute = pathname?.startsWith("/vos-sync/client");
 
     return (
         <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
@@ -40,7 +41,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 <div className="hidden md:block mr-2">
                     <UserSearchBar />
                 </div>
-                {isFreelancerPortal && <NotificationBell />}
+                {isClientRoute ? <ClientNotificationBell /> : <FreelancerNotificationBell />}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -56,3 +57,4 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
         </header>
     );
 }
+

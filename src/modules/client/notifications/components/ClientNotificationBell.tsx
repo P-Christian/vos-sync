@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NotificationDropdown } from "./NotificationDropdown";
+import { ClientNotificationDropdown } from "./ClientNotificationDropdown";
 import { useNotifications } from "../hooks/useNotifications";
 import { cn } from "@/lib/utils";
 
-export function NotificationBell() {
+export function ClientNotificationBell() {
   const [open, setOpen] = useState(false);
-  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
+  const { notifications, unreadCount, loading, markRead } = useNotifications();
 
   return (
     <div className="relative inline-block">
@@ -43,16 +43,16 @@ export function NotificationBell() {
 
       {open && (
         <>
-          {/* Invisible overlay to close dropdown when clicking outside */}
+          {/* Overlay to close dropdown when clicking outside */}
           <div
             className="fixed inset-0 z-40"
             onClick={() => setOpen(false)}
           />
-          <NotificationDropdown
+          <ClientNotificationDropdown
             notifications={notifications}
-            isLoading={isLoading}
+            isLoading={loading}
             onClose={() => setOpen(false)}
-            onMarkAsRead={markAsRead}
+            onMarkRead={markRead}
           />
         </>
       )}

@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
         : Promise.resolve([]),
       jobIds.length > 0
         ? fetch(
-            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title&limit=${jobIds.length}`,
+            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,company_id,company_id.company_logo&limit=${jobIds.length}`,
             { headers: getHeaders(), cache: "no-store" }
           )
             .then((r) => r.json())
@@ -223,10 +223,16 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const avatarRaw =
+        (client?.profile_image_url as string) ||
+        ((job?.company_id as Record<string, unknown> | undefined)?.company_logo as string) ||
+        (job?.company_logo as string) ||
+        null;
+
       return {
         ...conv,
         other_party_name: otherPartyName,
-        other_party_avatar: formatAvatarUrl(client?.profile_image_url as string),
+        other_party_avatar: formatAvatarUrl(avatarRaw),
         other_party_email: (client?.user_email as string) ?? null,
         job_title: (job?.job_title as string) ?? null,
         unread_count: unreadMap.get(cid) ?? 0,

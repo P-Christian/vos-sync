@@ -29,23 +29,21 @@ export function useNotifications() {
   }, []);
 
   const markAsRead = useCallback(async (notificationId: number) => {
+    // 1. Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.notification_id === notificationId ? { ...n, is_read: true } : n
+      )
+    );
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+
     try {
       const res = await fetch(`/api/freelancer/notifications/${notificationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();
-      
-      if (res.ok && data.success) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.notification_id === notificationId ? { ...n, is_read: true } : n
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-        return true;
-      }
-      return false;
+      return res.ok && data.success;
     } catch (err) {
       console.error("Error marking notification as read", err);
       return false;

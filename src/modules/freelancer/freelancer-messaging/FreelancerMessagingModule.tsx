@@ -22,6 +22,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
     loading: convsLoading,
     error: convsError,
     loadConversations,
+    clearUnreadCount,
     archive,
     clearError: clearConvsError,
   } = useConversations();
@@ -51,13 +52,14 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
 
   const handleSelectConversation = useCallback(
     (conv: Conversation) => {
+      clearUnreadCount(conv.conversation_id);
       if (activeConversation?.conversation_id === conv.conversation_id) return;
       clearMessages();
-      setActiveConversation(conv);
+      setActiveConversation({ ...conv, unread_count: 0 });
       loadMessages(conv.conversation_id);
       setMobileShowChat(true);
     },
-    [activeConversation, clearMessages, loadMessages]
+    [activeConversation, clearMessages, clearUnreadCount, loadMessages]
   );
 
   const handleRefreshConversations = useCallback(() => {

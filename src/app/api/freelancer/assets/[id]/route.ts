@@ -53,7 +53,10 @@ export async function GET(
       responseHeaders["Content-Length"] = contentLength;
     }
 
-    return new NextResponse(res.body, {
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    return new NextResponse(buffer, {
       status: 200,
       headers: responseHeaders,
     });
