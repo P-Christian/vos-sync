@@ -1,5 +1,4 @@
 import React from "react";
-import { Bookmark } from "lucide-react";
 
 export const BookmarkHeader: React.FC = () => {
   return (

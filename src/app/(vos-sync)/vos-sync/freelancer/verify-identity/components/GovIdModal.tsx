@@ -52,8 +52,9 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
             toast.success("Government ID submitted successfully for review.");
             onSuccess();
             onClose();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to submit Government ID.");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to submit Government ID.";
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }
@@ -82,7 +83,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                                 <SelectValue placeholder="Select ID Type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="driver_license">Driver's License</SelectItem>
+                                <SelectItem value="driver_license">Driver&apos;s License</SelectItem>
                                 <SelectItem value="passport">Passport</SelectItem>
                                 <SelectItem value="national_id">National ID (PhilSys)</SelectItem>
                                 <SelectItem value="postal_id">Postal ID</SelectItem>

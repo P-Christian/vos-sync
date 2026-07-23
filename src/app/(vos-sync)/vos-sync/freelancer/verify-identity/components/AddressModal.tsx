@@ -41,8 +41,9 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
             toast.success("Address document submitted successfully for review.");
             onSuccess();
             onClose();
-        } catch (error: any) {
-            toast.error(error.message || "Failed to submit Address verification.");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to submit Address verification.";
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }

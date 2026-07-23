@@ -57,7 +57,9 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("tab") === "saved") {
-        setActiveTab("bookmarks");
+        Promise.resolve().then(() => {
+          setActiveTab("bookmarks");
+        });
       }
     }
   }, []);

@@ -28,8 +28,9 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
             if (!res.success) throw new Error(res.error);
             setStep(2);
             toast.success("OTP sent! (Use 123456 for testing)");
-        } catch (error: any) {
-            toast.error(error.message || "Failed to send OTP.");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to send OTP.";
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }
@@ -49,8 +50,9 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
             onClose();
             // reset state for next time
             setTimeout(() => { setStep(1); setMobileNumber(""); setOtp(""); }, 500);
-        } catch (error: any) {
-            toast.error(error.message || "Invalid OTP.");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Invalid OTP.";
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }

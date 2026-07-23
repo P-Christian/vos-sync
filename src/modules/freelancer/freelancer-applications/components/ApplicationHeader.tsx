@@ -1,8 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Filter, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,

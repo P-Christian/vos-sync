@@ -46,7 +46,7 @@ export function UserSearchBar() {
   };
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative w-full" ref={wrapperRef}>
       <div className="relative flex items-center">
         <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
         <input
@@ -58,7 +58,7 @@ export function UserSearchBar() {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Search freelancers..."
-          className="h-9 w-48 sm:w-64 rounded-full border border-input bg-background/50 pl-9 pr-8 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="h-9 w-full rounded-full border border-input bg-background/50 pl-9 pr-8 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         />
         {query && (
           <button

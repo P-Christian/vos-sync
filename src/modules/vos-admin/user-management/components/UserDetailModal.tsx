@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { VsUser, IdentityVerification } from "../types/user.types";
+import { VsUser } from "../types/user.types";
 import { UserStatusBadge } from "./UserStatusBadge";
 import { Shield, Mail, Phone, MapPin, User, FileText, Check, X, AlertTriangle } from "lucide-react";
 

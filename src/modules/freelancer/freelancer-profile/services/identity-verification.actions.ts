@@ -68,9 +68,10 @@ export async function submitIdentityVerificationAction(payload: Partial<Identity
 
         revalidatePath("/(vos-sync)/vos-sync/freelancer/verify-identity");
         return { success: true };
-    } catch (error: any) {
+    } catch (error) {
         console.error("submitIdentityVerificationAction Error:", error);
-        return { success: false, error: error.message || "Failed to submit verification" };
+        const message = error instanceof Error ? error.message : "Failed to submit verification";
+        return { success: false, error: message };
     }
 }
 
@@ -87,8 +88,9 @@ export async function sendMobileOtpAction(mobileNumber: string) {
         console.log(`Simulated sending OTP to ${mobileNumber} for user ${profile.user_id}`);
 
         return { success: true, message: "OTP sent successfully" };
-    } catch (error: any) {
-        return { success: false, error: error.message || "Failed to send OTP" };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to send OTP";
+        return { success: false, error: message };
     }
 }
 
@@ -109,7 +111,8 @@ export async function verifyMobileOtpAction(mobileNumber: string, otp: string) {
 
         revalidatePath("/(vos-sync)/vos-sync/freelancer/verify-identity");
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message || "Failed to verify OTP" };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to verify OTP";
+        return { success: false, error: message };
     }
 }

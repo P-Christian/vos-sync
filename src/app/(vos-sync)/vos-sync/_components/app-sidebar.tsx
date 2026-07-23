@@ -63,7 +63,7 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, Bookmark, LogOut } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut } from "lucide-react";
 
 export function AppSidebar({
     className,

@@ -8,14 +8,14 @@ import { AppSidebar } from "@/app/(vos-sync)/vos-sync/_components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BfCacheBuster } from "@/components/shared/BfCacheBuster";
 
-function decodeJwtPayload(token: string): Record<string, any> | null {
+function decodeJwtPayload(token: string): Record<string, string> | null {
     try {
         const parts = token.split(".");
         if (parts.length < 2) return null;
         const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
         const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
         const json = Buffer.from(padded, "base64").toString("utf8");
-        return JSON.parse(json);
+        return JSON.parse(json) as Record<string, string>;
     } catch {
         return null;
     }

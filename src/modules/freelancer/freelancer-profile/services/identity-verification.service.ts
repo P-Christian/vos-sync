@@ -1,5 +1,4 @@
-import { fetchUserVerifications, IdentityVerification } from "./identity-verification.repo";
-import { FreelancerProfile } from "../types/freelancer-profile.types";
+import { fetchUserVerifications } from "./identity-verification.repo";
 import { getFreelancerProfile } from "./freelancer-profile.service";
 
 export interface IdProofScoreBreakdown {

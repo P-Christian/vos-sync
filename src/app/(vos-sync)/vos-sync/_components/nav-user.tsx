@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
     ChevronsUpDown,
     LogOut,
@@ -52,7 +52,7 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
     const contextUser = useUserProfile()
     const user = contextUser?.name ? contextUser : propUser
 
-    const router = useRouter()
+
     const [loggingOut, setLoggingOut] = React.useState(false)
 
     // ✅ theme toggle support
@@ -97,7 +97,7 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
             // Always redirect to login (hard refresh to clear client-side cache)
             window.location.href = "/login"
         }
-    }, [loggingOut, onLogout, router])
+    }, [loggingOut, onLogout])
 
     // Compute dynamic URLs based on current portal path
     let defaultProfileUrl = "#"

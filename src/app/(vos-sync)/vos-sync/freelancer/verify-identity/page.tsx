@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, FileText, Smartphone, MapPin, CheckCircle2, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Shield, FileText, Smartphone, MapPin, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 import { IdentityVerification } from "@/modules/freelancer/freelancer-profile/services/identity-verification.repo";
 import { IdProofScoreResult } from "@/modules/freelancer/freelancer-profile/services/identity-verification.service";
@@ -16,13 +16,13 @@ export default function VerifyIdentityPage() {
     const user = useUserProfile();
     const [verifications, setVerifications] = useState<IdentityVerification[]>([]);
     const [scoreData, setScoreData] = useState<IdProofScoreResult | null>(null);
-    const [loading, setLoading] = useState(true);
+
 
     const [activeModal, setActiveModal] = useState<'gov_id' | 'address' | 'mobile_number' | null>(null);
 
     const fetchData = async () => {
+        await Promise.resolve();
         try {
-            setLoading(true);
             const [verifsRes, scoreRes] = await Promise.all([
                 fetch("/api/freelancer/verifications"),
                 fetch("/api/freelancer/id-proof-score")
@@ -38,13 +38,13 @@ export default function VerifyIdentityPage() {
             }
         } catch (error) {
             console.error("Error fetching verification data:", error);
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
+        Promise.resolve().then(() => {
+            fetchData();
+        });
     }, []);
 
     const getVerificationStatus = (type: string) => {

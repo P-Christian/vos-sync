@@ -63,7 +63,7 @@ export async function fetchUsersRepo(
 
   // Let's also fetch verification status summaries for these users to display in the table
   const userIds = users.map((u: VsUser) => u.user_id);
-  let verificationsMap: Record<number, IdentityVerification[]> = {};
+  const verificationsMap: Record<number, IdentityVerification[]> = {};
 
   if (userIds.length > 0) {
     const verifUrl = `${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_in]=${userIds.join(',')}&limit=-1`;
