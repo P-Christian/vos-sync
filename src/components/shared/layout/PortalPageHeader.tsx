@@ -28,6 +28,7 @@ interface PortalPageHeaderProps {
 export function PortalPageHeader({ user }: PortalPageHeaderProps) {
     const pathname = usePathname();
     const isClientRoute = pathname?.startsWith("/vos-sync/client");
+    const isFreelancerRoute = pathname?.startsWith("/vos-sync/freelancer");
 
     return (
         <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
@@ -41,7 +42,8 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 <div className="hidden md:block mr-2">
                     <UserSearchBar />
                 </div>
-                {isClientRoute ? <ClientNotificationBell /> : <FreelancerNotificationBell />}
+                {isClientRoute && <ClientNotificationBell />}
+                {isFreelancerRoute && <FreelancerNotificationBell />}
                 <Button
                     variant="ghost"
                     size="icon"
