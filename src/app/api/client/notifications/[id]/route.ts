@@ -70,7 +70,7 @@ export async function PATCH(
 
     // Verify the notification belongs to this user before updating
     const checkRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification/${notificationId}?fields=notification_id,user_id`,
+      `${DIRECTUS_BASE}/items/vs_employer_notification/${notificationId}?fields=notification_id,user_id`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -93,7 +93,7 @@ export async function PATCH(
 
     // Mark as read
     const patchRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification/${notificationId}`,
+      `${DIRECTUS_BASE}/items/vs_employer_notification/${notificationId}`,
       {
         method: "PATCH",
         headers: getHeaders(),

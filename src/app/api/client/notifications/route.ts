@@ -60,15 +60,15 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") ?? "50", 10);
     const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
-    // Build filter query against vs_freelancer_notification
+    // Build filter query against vs_employer_notification
     let filterQuery = `filter[user_id][_eq]=${userId}`;
     if (unreadOnly) {
       filterQuery += `&filter[is_read][_eq]=0`;
     }
 
-    // Fetch notifications + join event data via Directus relational fields
+    // Fetch notifications flat — no relational join to avoid Directus config dependency
     const notifRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=notification_id,user_id,event_id,category,title,message,action_url,is_read,created_at,event_id.event_type,event_id.entity_type,event_id.entity_id`,
+      `${DIRECTUS_BASE}/items/vs_employer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=notification_id,user_id,event_id,category,title,message,action_url,is_read,created_at`,
       {
         headers: getHeaders(),
         cache: "no-store",
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
     if (!notifRes.ok) {
       const text = await notifRes.text();
-      console.error("Directus notifications fetch error:", text);
+      console.error("[Employer notifications] Directus fetch error:", text);
       return NextResponse.json(
         { error: "Failed to fetch notifications." },
         { status: notifRes.status }
@@ -87,33 +87,22 @@ export async function GET(req: NextRequest) {
     const notifJson = await notifRes.json();
     const rawData: Record<string, unknown>[] = notifJson.data ?? [];
 
-    // Normalize the nested event join fields
-    const notifications = rawData.map((n) => {
-      const event = n.event_id as Record<string, unknown> | null;
-      return {
-        notification_id: n.notification_id,
-        user_id: n.user_id,
-        event_id: typeof event === "object" && event !== null
-          ? (event.event_id ?? null)
-          : n.event_id,
-        category: n.category,
-        title: n.title,
-        message: n.message,
-        action_url: n.action_url ?? null,
-        is_read: n.is_read === 1 || n.is_read === true,
-        created_at: n.created_at,
-        // from event join
-        event_type: typeof event === "object" && event !== null
-          ? (event.event_type ?? null)
-          : null,
-        entity_type: typeof event === "object" && event !== null
-          ? (event.entity_type ?? null)
-          : null,
-        entity_id: typeof event === "object" && event !== null
-          ? (event.entity_id ?? null)
-          : null,
-      };
-    });
+    // Normalize — all display info (title, message, category) is already on the notification row
+    const notifications = rawData.map((n) => ({
+      notification_id: n.notification_id,
+      user_id: n.user_id,
+      event_id: typeof n.event_id === "number" ? n.event_id : null,
+      category: n.category,
+      title: n.title,
+      message: n.message,
+      action_url: n.action_url ?? null,
+      is_read: n.is_read === 1 || n.is_read === true,
+      created_at: n.created_at,
+      // event fields not available without join — set to null for now
+      event_type: null,
+      entity_type: null,
+      entity_id: null,
+    }));
 
     return NextResponse.json({ notifications });
   } catch (err: unknown) {
@@ -153,7 +142,7 @@ export async function PATCH(req: NextRequest) {
 
     // Fetch all unread notification IDs for this user
     const listRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification?filter[user_id][_eq]=${userId}&filter[is_read][_eq]=0&fields=notification_id&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_employer_notification?filter[user_id][_eq]=${userId}&filter[is_read][_eq]=0&fields=notification_id&limit=500`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -168,7 +157,7 @@ export async function PATCH(req: NextRequest) {
 
     // Bulk update via Directus batch update
     const patchRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification`,
+      `${DIRECTUS_BASE}/items/vs_employer_notification`,
       {
         method: "PATCH",
         headers: getHeaders(),
