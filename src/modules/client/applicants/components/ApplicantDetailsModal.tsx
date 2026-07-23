@@ -38,8 +38,90 @@ import {
     Contact,
     LandPlot,
     MessageSquare,
+    FileText,
+    Eye,
+    DownloadIcon,
+    Globe,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+
+const DocumentViewer = dynamic(
+    () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),
+    { ssr: false }
+);
+
+interface ParsedCoverLetter {
+    text: string;
+    document?: {
+        fileName: string;
+        fileUrl: string;
+    } | null;
+}
+
+function parseCoverLetter(raw?: string | null): ParsedCoverLetter {
+    if (!raw) return { text: "" };
+    const linkRegex = /\[(?:Cover Letter Document:\s*)?([^\]]+)\]\(([^)]+)\)/i;
+    const match = raw.match(linkRegex);
+    if (match) {
+        const fileName = match[1].trim();
+        let fileUrl = match[2].trim();
+        const assetsMatch = fileUrl.match(/\/assets\/([a-zA-Z0-9-]+)/);
+        if (assetsMatch?.[1]) {
+            fileUrl = `/api/assets/${assetsMatch[1]}`;
+        }
+        const text = raw.replace(match[0], "").trim();
+        return { text, document: { fileName, fileUrl } };
+    }
+    return { text: raw.trim() };
+}
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+    faFacebook,
+    faLinkedin,
+    faInstagram,
+    faYoutube,
+    faXTwitter,
+    faGithub,
+} from "@fortawesome/free-brands-svg-icons";
+import { faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { cn } from "@/lib/utils";
 import { Applicant, ApplicationStatus, CandidateDetail, STATUS_LABELS } from "../types";
+
+function formatSocialHandle(url?: string | null): string {
+    if (!url) return "";
+    const clean = url.trim().replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
+    const parts = clean.split("/").filter(Boolean);
+    if (parts.length > 1) {
+        return parts[parts.length - 1];
+    }
+    return clean.replace(/^\//, "");
+}
+
+function getSocialIcon(platformStr?: string | null, urlStr?: string | null) {
+    const p = (platformStr || "").toLowerCase();
+    const u = (urlStr || "").toLowerCase();
+
+    if (p.includes("facebook") || u.includes("facebook.com") || u.includes("fb.com")) {
+        return { icon: faFacebook, color: "text-[#1877F2]" };
+    }
+    if (p.includes("linkedin") || u.includes("linkedin.com")) {
+        return { icon: faLinkedin, color: "text-[#0A66C2]" };
+    }
+    if (p.includes("instagram") || u.includes("instagram.com") || u.includes("instagr.am")) {
+        return { icon: faInstagram, color: "text-[#E4405F]" };
+    }
+    if (p.includes("youtube") || u.includes("youtube.com") || u.includes("youtu.be")) {
+        return { icon: faYoutube, color: "text-[#FF0000]" };
+    }
+    if (p.includes("twitter") || p.includes("x.com") || p === "x" || u.includes("twitter.com") || u.includes("x.com")) {
+        return { icon: faXTwitter, color: "text-zinc-900 dark:text-white" };
+    }
+    if (p.includes("github") || u.includes("github.com")) {
+        return { icon: faGithub, color: "text-zinc-800 dark:text-zinc-200" };
+    }
+    return { icon: faGlobe, color: "text-indigo-500" };
+}
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
     APPLIED: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400",
@@ -173,22 +255,38 @@ export default function ApplicantDetailsModal({
     onScheduleInterview,
 }: ApplicantDetailsModalProps) {
     const [imageLoaded, setImageLoaded] = React.useState(false);
-    if (!applicant) return null;
+    const [previewDoc, setPreviewDoc] = React.useState<{ fileName: string; fileUrl: string } | null>(null);
 
+    const activeApplicant: Applicant | null = applicant || (detail ? {
+        application_id: detail.application_id,
+        user_id: detail.user_id,
+        job_id: detail.job_id,
+        job_title: detail.job_title,
+        applicant_name: detail.applicant_name,
+        applicant_email: detail.applicant_email,
+        profile_image_url: detail.profile_image,
+        application_status: detail.application_status,
+        applied_at: detail.applied_at,
+        experience_years: detail.experience_years,
+        work_experience_count: detail.work_experience_count,
+        resume_count: detail.resume_count,
+        skills: detail.skills,
+    } as Applicant : null);
 
+    if (!activeApplicant && !loading) return null;
 
-    const name = applicant.applicant_name ?? `Applicant #${applicant.application_id}`;
-    const status: ApplicationStatus = detail?.application_status ?? applicant.application_status;
-    const jobTitle = detail?.job_title ?? applicant.job_title ?? "—";
+    const name = activeApplicant?.applicant_name ?? (detail?.application_id ? `Applicant #${detail.application_id}` : "Applicant Details");
+    const status: ApplicationStatus = detail?.application_status ?? activeApplicant?.application_status ?? "APPLIED";
+    const jobTitle = detail?.job_title ?? activeApplicant?.job_title ?? "—";
 
-    const appliedAt = detail?.applied_at ?? applicant.applied_at;
+    const appliedAt = detail?.applied_at ?? activeApplicant?.applied_at;
     const canSchedule = status !== "REJECTED" && status !== "HIRED";
     const expectedSalary = formatCurrency(detail?.expected_salary ?? null);
-    const profileImage = detail?.profile_image ?? applicant.profile_image_url;
+    const profileImage = detail?.profile_image ?? activeApplicant?.profile_image_url;
 
     const profileCompletion =
         detail?.profile_completion ??
-        applicant.profile_completion ??
+        activeApplicant?.profile_completion ??
         0;
 
     const screeningEntries = detail?.screening_answers?.filter((a) => a.answer_text?.trim()) ?? [];
@@ -241,7 +339,7 @@ export default function ApplicantDetailsModal({
                                 )}
                             </div>
                             <motion.div
-                                key={applicant.application_id}
+                                key={activeApplicant?.application_id || "detail"}
                                 className="min-w-0 flex-1"
                                 initial={{
                                     opacity: 0,
@@ -313,7 +411,7 @@ export default function ApplicantDetailsModal({
 
                                     <p className="text-lg font-semibold">
                                         {detail?.experience_years ??
-                                            applicant.experience_years} yrs
+                                            activeApplicant?.experience_years ?? 0} yrs
                                     </p>
                                 </div>
 
@@ -325,7 +423,7 @@ export default function ApplicantDetailsModal({
 
                                     <p className="text-lg font-semibold">
                                         {detail?.work_experience_count ??
-                                            applicant.work_experience_count}
+                                            activeApplicant?.work_experience_count ?? 0}
                                     </p>
                                 </div>
 
@@ -337,7 +435,7 @@ export default function ApplicantDetailsModal({
 
                                     <p className="text-lg font-semibold">
                                         {detail?.resume_count ??
-                                            applicant.resume_count}
+                                            activeApplicant?.resume_count ?? 0}
                                     </p>
                                 </div>
 
@@ -370,28 +468,25 @@ export default function ApplicantDetailsModal({
                             {/* Contact */}
                             <AnimatedSection delay={delays[1]}>
                                 <Section icon={Contact} title="Contact">
-                                    <div className="space-y-1 px-2">
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs px-2">
                                         <div className="flex items-center gap-1.5">
-                                            <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-
-                                            <span className="break-all">
+                                            <Mail className="h-3.5 w-3.5 shrink-0 text-indigo-500" />
+                                            <span className="break-all font-medium">
                                                 {detail.applicant_email || "—"}
                                             </span>
                                         </div>
 
                                         {detail.applicant_phone && (
                                             <div className="flex items-center gap-1.5">
-                                                <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-
-                                                {detail.applicant_phone}
+                                                <Phone className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                                <span className="font-medium">{detail.applicant_phone}</span>
                                             </div>
                                         )}
 
                                         {detail.location && (
                                             <div className="flex items-center gap-1.5">
-                                                <MapPin className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-
-                                                {detail.location}
+                                                <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                                <span className="font-medium">{detail.location}</span>
                                             </div>
                                         )}
                                     </div>
@@ -415,56 +510,108 @@ export default function ApplicantDetailsModal({
                             )}
 
                             {/* Cover letter */}
-                            {detail.cover_letter && (
-                                <AnimatedSection delay={delays[3]}>
-                                    <Section icon={LetterText} title="Cover Letter">
-                                        <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400 px-2">{detail.cover_letter}</p>
-                                    </Section>
-                                </AnimatedSection>
-                            )}
-
-                            {/* Resume, portfolio, salary */}
-                            {(
-                                detail.portfolio_url ||
-                                detail.resumes?.length ||
-                                expectedSalary
-                            ) && (
-                                    <AnimatedSection delay={delays[4]}>
-                                        <Section icon={Banknote} title="Expected Salary">
-                                            <div className="flex flex-wrap gap-2">
-                                                {detail.resumes?.map((resume) => (
-                                                    <a
-                                                        key={resume.file_url}
-                                                        href={resume.file_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                                                    >
-                                                        <Download className="h-3.5 w-3.5" />
-                                                        {resume.file_name || "Resume"}
-                                                    </a>
-                                                ))}
-                                                {detail.portfolio_url && (
-                                                    <a
-                                                        href={detail.portfolio_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                                                    >
-                                                        <ExternalLink className="h-3.5 w-3.5" />
-                                                        Portfolio
-                                                    </a>
+                            {detail.cover_letter && (() => {
+                                const parsed = parseCoverLetter(detail.cover_letter);
+                                if (!parsed.text && !parsed.document) return null;
+                                return (
+                                    <AnimatedSection delay={delays[3]}>
+                                        <Section icon={LetterText} title="Cover Letter">
+                                            <div className="space-y-3 px-2">
+                                                {parsed.text && (
+                                                    <p className="whitespace-pre-line text-zinc-600 dark:text-zinc-400">{parsed.text}</p>
                                                 )}
-                                                {expectedSalary && (
-                                                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                                        <Wallet className="h-3.5 w-3.5" />
-                                                        {expectedSalary} expected
-                                                    </span>
+                                                {parsed.document && (
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPreviewDoc({ fileName: parsed.document!.fileName, fileUrl: parsed.document!.fileUrl })}
+                                                            className="inline-flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/30 text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/50 transition-colors shadow-sm text-left flex-1 min-w-0"
+                                                        >
+                                                            <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                            <div className="flex flex-col min-w-0 flex-1">
+                                                                <span className="truncate max-w-xs text-xs font-bold">{parsed.document.fileName}</span>
+                                                                <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Click to preview document </span>
+                                                            </div>
+                                                            <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
+                                                        </button>
+                                                        <a
+                                                            href={parsed.document.fileUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/70 transition-colors shrink-0"
+                                                            title="Download Cover Letter"
+                                                        >
+                                                            <DownloadIcon className="h-4 w-4" />
+                                                        </a>
+                                                    </div>
                                                 )}
                                             </div>
                                         </Section>
                                     </AnimatedSection>
-                                )}
+                                );
+                            })()}
+
+                            {/* Resumé Documents */}
+                            {detail.resumes && detail.resumes.length > 0 && (
+                                <AnimatedSection delay={delays[4]}>
+                                    <Section icon={FileText} title="Resumé Documents">
+                                        <div className="space-y-3 px-2">
+                                            {detail.resumes.map((resume, idx) => (
+                                                <div key={resume.file_url || idx} className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreviewDoc({ fileName: resume.file_name || "Resume.pdf", fileUrl: resume.file_url })}
+                                                        className="inline-flex items-center gap-3 px-3.5 py-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-xs font-semibold text-indigo-800 dark:text-indigo-300 hover:bg-indigo-100/70 dark:hover:bg-indigo-900/50 transition-colors shadow-sm text-left flex-1 min-w-0"
+                                                    >
+                                                        <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                                                        <div className="flex flex-col min-w-0 flex-1">
+                                                            <span className="truncate max-w-xs text-xs font-bold">{resume.file_name || "Resume.pdf"}</span>
+                                                            <span className="text-[10px] font-normal text-indigo-600 dark:text-indigo-400">Click to preview document</span>
+                                                        </div>
+                                                        <Eye className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0 ml-1" />
+                                                    </button>
+                                                    <a
+                                                        href={resume.file_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-800/60 bg-indigo-50/60 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100/70 transition-colors shrink-0"
+                                                        title="Download Resume"
+                                                    >
+                                                        <DownloadIcon className="h-4 w-4" />
+                                                    </a>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </Section>
+                                </AnimatedSection>
+                            )}
+
+                            {/* Portfolio & Salary */}
+                            {(detail.portfolio_url || expectedSalary) && (
+                                <AnimatedSection delay={delays[4]}>
+                                    <Section icon={Banknote} title="Compensation & Portfolio">
+                                        <div className="flex flex-wrap gap-2 px-2">
+                                            {detail.portfolio_url && (
+                                                <a
+                                                    href={detail.portfolio_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+                                                >
+                                                    <ExternalLink className="h-3.5 w-3.5" />
+                                                    Portfolio
+                                                </a>
+                                            )}
+                                            {expectedSalary && (
+                                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                                                    <Wallet className="h-3.5 w-3.5" />
+                                                    {expectedSalary} expected
+                                                </span>
+                                            )}
+                                        </div>
+                                    </Section>
+                                </AnimatedSection>
+                            )}
 
                             {/* Skills */}
                             {detail.skills.length > 0 && (
@@ -592,22 +739,44 @@ export default function ApplicantDetailsModal({
                                     </Section>
                                 </AnimatedSection>
                             )}
-                            {detail.social_links?.length > 0 && (
+
+                            {/* Social Media Links */}
+                            {detail.social_links && detail.social_links.length > 0 && (
                                 <AnimatedSection delay={delays[10]}>
-                                    <Section icon={Mail} title="Contact">
-                                        <div className="flex flex-wrap gap-2">
-                                            {detail.social_links.map((link, index) => (
-                                                <a
-                                                    key={index}
-                                                    href={link.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs"
-                                                >
-                                                    <ExternalLink className="h-3 w-3" />
-                                                    {link.platform}
-                                                </a>
-                                            ))}
+                                    <Section icon={Globe} title="Social Media Links">
+                                        <div className="flex flex-wrap gap-2  pt-1">
+                                            {detail.social_links.map((link, index) => {
+                                                const platformStr = link.platform || link.platform_name || "";
+                                                const urlStr = link.profile_url || link.url || "";
+                                                const iconInfo = getSocialIcon(platformStr, urlStr);
+                                                const displayHandle = formatSocialHandle(urlStr);
+
+                                                const href = urlStr.startsWith("http")
+                                                    ? urlStr
+                                                    : `https://${urlStr}`;
+
+                                                return (
+                                                    <a
+                                                        key={index}
+                                                        href={href}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="inline-flex py-1 px-2 items-center rounded-full bg-white border border-zinc-200 dark:border-zinc-800 text-sm font-medium text-zinc-800 dark:text-zinc-200 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all"
+                                                    >
+                                                        <FontAwesomeIcon
+                                                            icon={iconInfo.icon}
+                                                            className={cn(
+                                                                
+                                                                iconInfo.color
+                                                            )}
+                                                        />
+
+                                                        <span className="truncate text-[12px]">
+                                                            {displayHandle || href || "Link"}
+                                                        </span>
+                                                    </a>
+                                                );
+                                            })}
                                         </div>
                                     </Section>
                                 </AnimatedSection>
@@ -633,7 +802,7 @@ export default function ApplicantDetailsModal({
                         Close
                     </Button>
 
-                    <Link href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}>
+                    <Link href={`/vos-sync/client/messaging?freelancer_id=${activeApplicant?.user_id ?? ''}&job_id=${activeApplicant?.job_id ?? ''}`}>
                         <Button variant="outline" className="border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-900/50">
                             <MessageSquare className="h-4 w-4" />
                             Message Applicant
@@ -655,6 +824,51 @@ export default function ApplicantDetailsModal({
                 </DialogFooter>
 
             </DialogContent>
-        </Dialog >
+
+            {/* Nested Document Preview Modal on Top */}
+            <Dialog open={!!previewDoc} onOpenChange={(openState) => !openState && setPreviewDoc(null)}>
+                <DialogContent className="!w-[96vw] !max-w-[1600px] sm:!max-w-[1600px] !h-[92vh] p-0 flex flex-col z-[100] gap-0 overflow-hidden">
+                    <DialogHeader className="px-6 py-4 border-b flex flex-row items-center justify-between space-y-0 bg-background shrink-0">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
+                            <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <DialogTitle className="text-base font-bold truncate">
+                                {previewDoc?.fileName || "Document Preview"}
+                            </DialogTitle>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            {previewDoc?.fileUrl && (
+                                <>
+                                    <a
+                                        href={previewDoc.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                    >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                        Open Original
+                                    </a>
+                                    <a
+                                        href={previewDoc.fileUrl}
+                                        download={previewDoc.fileName}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14a800] hover:bg-[#118f00] text-white text-xs font-medium transition-colors"
+                                    >
+                                        <Download className="h-3.5 w-3.5" />
+                                        Download
+                                    </a>
+                                </>
+                            )}
+                        </div>
+                    </DialogHeader>
+                    <div className="flex-1 bg-zinc-100 dark:bg-zinc-900 overflow-hidden relative">
+                        {previewDoc?.fileUrl && (
+                            <DocumentViewer
+                                fileUrl={previewDoc.fileUrl}
+                                fileName={previewDoc.fileName}
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </Dialog>
     );
 }

@@ -1,6 +1,7 @@
 // src/app/api/freelancer/applications/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications";
+import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 
@@ -371,6 +372,27 @@ export async function POST(req: NextRequest) {
               appliedAt: nowPH,
               applicationId: Number(applicationId),
             }).catch((err) => console.error("Employer application alert email error:", err));
+          }
+        }
+
+        // 2b. Employer in-app notification — fire independently of email (companyId is enough)
+        if (companyId) {
+          const compUserRes2 = await fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id&limit=1`, { headers: getHeaders(), cache: "no-store" });
+          if (compUserRes2.ok) {
+            const cu2Data = (await compUserRes2.json()).data;
+            const employerUserId2: number | null = cu2Data?.[0]?.user_id ? Number(cu2Data[0].user_id) : null;
+            if (employerUserId2) {
+              await createEmployerNotification({
+                event_type: "APPLICATION_RECEIVED",
+                recipient_user_id: employerUserId2,
+                entity_type: "job_application",
+                entity_id: Number(applicationId),
+                category: "APPLICATION_RECEIVED",
+                title: "New Application Received",
+                message: `${candidateName} applied for "${jobTitle}".`,
+                action_url: `/vos-sync/client/applicants/${applicationId}`,
+              }).catch((err: unknown) => console.error("[Employer in-app] APPLICATION_RECEIVED error:", err));
+            }
           }
         }
 

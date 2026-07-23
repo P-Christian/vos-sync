@@ -22,7 +22,11 @@ import { useInterviews } from "../interviews/hooks/useInterviews";
 import InterviewForm from "../interviews/components/InterviewForm";
 import { InterviewFormData } from "../interviews/types";
 
-export default function ApplicantsModule() {
+interface ApplicantsModuleProps {
+  initialApplicationId?: number;
+}
+
+export default function ApplicantsModule({ initialApplicationId }: ApplicantsModuleProps = {}) {
   const {
     applicants,
     loading,
@@ -59,6 +63,22 @@ export default function ApplicantsModule() {
   useEffect(() => {
     fetchApplicants();
   }, [fetchApplicants]);
+
+  useEffect(() => {
+    if (initialApplicationId) {
+      fetchApplicantDetail(initialApplicationId);
+      setDetailOpen(true);
+    }
+  }, [initialApplicationId, fetchApplicantDetail]);
+
+  useEffect(() => {
+    if (initialApplicationId && applicants.length > 0) {
+      const found = applicants.find((a) => a.application_id === initialApplicationId);
+      if (found) {
+        setSelectedApplicant(found);
+      }
+    }
+  }, [initialApplicationId, applicants]);
 
   const handleUpdateStatus = (applicant: Applicant) => {
     setSelectedApplicant(applicant);

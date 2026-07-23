@@ -88,9 +88,11 @@ export interface ResumeFile {
 }
 
 export interface SocialLink {
-  platform: string;
-
-  url: string;
+  id?: number;
+  platform?: string;
+  platform_name?: string;
+  profile_url?: string;
+  url?: string;
 }
 
 export interface ScreeningAnswer {

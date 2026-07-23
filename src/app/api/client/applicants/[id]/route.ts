@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
+import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
+import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -321,12 +323,30 @@ export async function GET(
       ? await resumeRes.json()
       : { data: [] };
 
-    const resumes = resumeJson.data ?? [];
+    const resumes = (resumeJson.data ?? []).sort((a: any, b: any) => Number(b.id || 0) - Number(a.id || 0));
 
-const primaryResume =
-  (resumes as Resume[]).find((r) => r.is_primary) ||
-  resumes[0] ||
-  null;
+    const latestResumes = resumes.slice(0, 1);
+
+    const formattedResumes = (latestResumes as any[]).map((r) => {
+      let file_url = r.file_path || r.file_url || r.url || "";
+      if (r.file_id || r.file) {
+        file_url = `/api/assets/${r.file_id || r.file}`;
+      } else if (file_url.includes("/assets/")) {
+        const match = file_url.match(/\/assets\/([a-zA-Z0-9-]+)/);
+        if (match?.[1]) file_url = `/api/assets/${match[1]}`;
+      } else if (r.id) {
+        file_url = `/api/assets/${r.id}`;
+      }
+      return {
+        file_name: r.file_name || r.name || "Resume.pdf",
+        file_url,
+      };
+    });
+
+    const primaryResume =
+      (resumes as Resume[]).find((r) => r.is_primary) ||
+      resumes[0] ||
+      null;
 
     // ---------------------------------------------------
     // SOCIAL LINKS
@@ -336,7 +356,18 @@ const primaryResume =
       ? await socialRes.json()
       : { data: [] };
 
-    const socialLinks = socialJson.data ?? [];
+    const rawSocials = socialJson.data ?? [];
+    const socialLinks = rawSocials.map((s: any) => {
+      const linkUrl = s.profile_url || s.url || s.link || "";
+      const platformName = s.platform_name || s.platform || "Link";
+      return {
+        id: s.id,
+        platform: platformName,
+        platform_name: platformName,
+        profile_url: linkUrl,
+        url: linkUrl,
+      };
+    });
 
     // ---------------------------------------------------
     // SKILLS
@@ -462,6 +493,8 @@ skills = (skillsJson.data as Skill[] ?? []).map(
 
       resume: primaryResume,
 
+      resumes: formattedResumes,
+
       skills,
 
       social_links: socialLinks,
@@ -552,7 +585,7 @@ export async function PATCH(
       );
     }
 
-    // Trigger notification
+    // Trigger freelancer notification
     const jobseekerId = json.data?.user_id;
     if (jobseekerId) {
       await createNotification({
@@ -565,6 +598,28 @@ export async function PATCH(
         message: `Your application status has been updated to: ${body.application_status}.`,
         action_url: "/vos-sync/freelancer/applications",
       });
+    }
+
+    // Trigger employer in-app notification for status changes
+    const requestingEmployerId = token ? getUserIdFromToken(token) : null;
+    if (requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED"].includes(body.application_status)) {
+      const employerInAppEnabled = await isInAppEnabledForUser(requestingEmployerId, "APPLICATION_STATUS_UPDATED");
+      if (employerInAppEnabled) {
+        const statusLabel =
+          body.application_status === "SHORTLISTED" ? "shortlisted" :
+          body.application_status === "HIRED" ? "hired" :
+          "rejected";
+        await createEmployerNotification({
+          event_type: `APPLICATION_${body.application_status}`,
+          recipient_user_id: requestingEmployerId,
+          entity_type: "job_application",
+          entity_id: Number(id),
+          category: "APPLICATION_STATUS_UPDATED",
+          title: `Applicant ${body.application_status === "HIRED" ? "Hired" : body.application_status.charAt(0) + body.application_status.slice(1).toLowerCase()}`,
+          message: `You have ${statusLabel} an applicant for this position.`,
+          action_url: `/vos-sync/client/applicants/${id}`,
+        }).catch((err: unknown) => console.error("[Employer notification] Status update error:", err));
+      }
     }
 
     // Fetch application details to resolve candidate & job for email notification

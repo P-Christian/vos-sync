@@ -3,6 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendInterviewScheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
+import { createFreelancerNotification } from "@/lib/notifications/services/freelancer-notifications";
+import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
+import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -353,37 +356,34 @@ export async function POST(req: NextRequest) {
       // Dispatch candidate notification event
       if (appData?.user_id) {
         try {
-          const eventRes = await fetch(`${DIRECTUS_BASE}/items/vs_notification_event`, {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify({
+          // Notify candidate (freelancer) via vs_freelancer_notification
+          const candidateInAppEnabled = await isInAppEnabledForUser(appData.user_id, "INTERVIEW_SCHEDULED");
+          if (candidateInAppEnabled) {
+            await createFreelancerNotification({
               event_type: "INTERVIEW_SCHEDULED",
               recipient_user_id: appData.user_id,
               entity_type: "vs_interview",
               entity_id: json.data?.interview_id,
-              created_at: nowPH,
-            }),
-          });
+              category: "INTERVIEW_SCHEDULED",
+              title: "Interview Scheduled!",
+              message: `An interview has been scheduled for ${scheduledAt}.`,
+              action_url: "/vos-sync/freelancer/applications",
+            }).catch((err: unknown) => console.error("[Freelancer notification] Interview scheduled error:", err));
+          }
 
-          if (eventRes.ok) {
-            const eventJson = await eventRes.json();
-            const eventId = eventJson.data?.event_id;
-            if (eventId) {
-              await fetch(`${DIRECTUS_BASE}/items/vs_freelancer_notification`, {
-                method: "POST",
-                headers: getHeaders(),
-                body: JSON.stringify({
-                  user_id: appData.user_id,
-                  event_id: eventId,
-                  category: "INTERVIEW",
-                  title: "Interview Scheduled!",
-                  message: `An interview has been scheduled for ${scheduledAt}.`,
-                  action_url: "/vos-sync/freelancer/applications",
-                  is_read: 0,
-                  created_at: nowPH,
-                }),
-              });
-            }
+          // Notify employer (self-notification) via vs_employer_notification
+          const employerInAppEnabled = await isInAppEnabledForUser(userId, "INTERVIEW_SCHEDULED");
+          if (employerInAppEnabled) {
+            await createEmployerNotification({
+              event_type: "INTERVIEW_SCHEDULED",
+              recipient_user_id: userId,
+              entity_type: "vs_interview",
+              entity_id: json.data?.interview_id,
+              category: "INTERVIEW_SCHEDULED",
+              title: "Interview Scheduled",
+              message: `You scheduled an interview for ${scheduledAt}.`,
+              action_url: "/vos-sync/client/interviews",
+            }).catch((err: unknown) => console.error("[Employer notification] Interview scheduled error:", err));
           }
           // Send Gmail invitation to applicant
           try {
