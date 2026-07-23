@@ -57,19 +57,28 @@ export async function GET(
     }
 
     const convRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_conversation/${conversationId}?fields=conversation_id,client_id,freelancer_id`,
+      `${DIRECTUS_BASE}/items/vs_conversation?filter[conversation_id][_eq]=${conversationId}&fields=conversation_id,client_id,freelancer_id`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
     if (!convRes.ok) {
+      const errText = await convRes.text();
+      console.error("Directus conversation lookup error:", errText);
       return NextResponse.json(
-        { error: "Conversation not found." },
-        { status: 404 }
+        { error: "Failed to fetch conversation details." },
+        { status: convRes.status }
       );
     }
 
     const convJson = await convRes.json();
-    const conv = convJson.data;
+    const conv = Array.isArray(convJson.data) ? convJson.data[0] : convJson.data;
+
+    if (!conv) {
+      return NextResponse.json(
+        { error: `Conversation #${conversationId} not found.` },
+        { status: 404 }
+      );
+    }
 
     if (conv.client_id !== userId && conv.freelancer_id !== userId) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
@@ -219,19 +228,28 @@ export async function POST(
     }
 
     const convRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_conversation/${conversationId}?fields=conversation_id,client_id,freelancer_id,status`,
+      `${DIRECTUS_BASE}/items/vs_conversation?filter[conversation_id][_eq]=${conversationId}&fields=conversation_id,client_id,freelancer_id,status`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
     if (!convRes.ok) {
+      const errText = await convRes.text();
+      console.error("Directus conversation lookup error (POST):", errText);
       return NextResponse.json(
-        { error: "Conversation not found." },
-        { status: 404 }
+        { error: "Failed to fetch conversation details." },
+        { status: convRes.status }
       );
     }
 
     const convJson = await convRes.json();
-    const conv = convJson.data;
+    const conv = Array.isArray(convJson.data) ? convJson.data[0] : convJson.data;
+
+    if (!conv) {
+      return NextResponse.json(
+        { error: `Conversation #${conversationId} not found.` },
+        { status: 404 }
+      );
+    }
 
     if (conv.client_id !== userId && conv.freelancer_id !== userId) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });

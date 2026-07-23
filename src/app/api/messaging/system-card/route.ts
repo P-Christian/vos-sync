@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
       }
 
       const appRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_job_application/${application_id}?fields=application_id,user_id,job_id,application_status,expected_salary,applied_at,cover_letter,portfolio_url`,
+        `${DIRECTUS_BASE}/items/vs_job_application/${application_id}?fields=*`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (!appRes.ok) {
@@ -162,14 +162,14 @@ export async function GET(req: NextRequest) {
 
         applicantUserId
           ? fetch(
-              `${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_eq]=${applicantUserId}&fields=id,file_name,file_path,is_primary`,
+              `${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_eq]=${applicantUserId}`,
               { headers: getHeaders(), cache: "no-store" }
             ).then((r) => (r.ok ? r.json() : { data: [] }))
           : Promise.resolve({ data: [] }),
 
         applicantUserId
           ? fetch(
-              `${DIRECTUS_BASE}/items/vs_user_social_links?filter[user_id][_eq]=${applicantUserId}&fields=id,platform_name,url`,
+              `${DIRECTUS_BASE}/items/vs_user_social_links?filter[user_id][_eq]=${applicantUserId}&fields=id,platform_name,profile_url,url`,
               { headers: getHeaders(), cache: "no-store" }
             ).then((r) => (r.ok ? r.json() : { data: [] }))
           : Promise.resolve({ data: [] }),
@@ -177,7 +177,11 @@ export async function GET(req: NextRequest) {
 
       const u = userRes.data;
       const j = jobRes.data;
-      const resumes = resumeRes.data ?? [];
+      const resumes = (resumeRes.data ?? []).sort((a: any, b: any) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return Number(b.id || 0) - Number(a.id || 0);
+      });
       const socialLinks = socialRes.data ?? [];
 
       const applicantName = `${u?.user_fname ?? ""} ${u?.user_lname ?? ""}`.trim() || "Unknown Applicant";
@@ -189,8 +193,50 @@ export async function GET(req: NextRequest) {
       const salaryMin = j?.salary_min ?? null;
       const salaryMax = j?.salary_max ?? null;
 
-      const primaryResume =
-        resumes.find((r: { is_primary?: boolean }) => r.is_primary) || resumes[0] || null;
+      let resumeObj: { file_name: string; file_path: string } | null = null;
+      const r = resumes[0] || null;
+
+      if (r) {
+        const rawPath =
+          (r.file_path as string) ||
+          (r.file_url as string) ||
+          (r.url as string) ||
+          (r.file_id as string) ||
+          (r.file as string) ||
+          (r.id ? String(r.id) : "");
+
+        const fileName = (r.file_name as string) || (r.name as string) || "Resume.pdf";
+        const formatted = formatAvatarUrl(rawPath) || (rawPath ? `/api/assets/${rawPath}` : null);
+
+        if (formatted) {
+          resumeObj = {
+            file_name: fileName,
+            file_path: formatted,
+          };
+        }
+      }
+
+      // Check custom_resume on application record as fallback
+      if (!resumeObj && app) {
+        const appResume = app.custom_resume || app.resume_file || app.resume_url || app.resume_path || app.resume;
+        if (appResume) {
+          if (typeof appResume === "object") {
+            const fName = appResume.file_name || appResume.name || "Resume.pdf";
+            const fPath = appResume.file_path || appResume.file_url || appResume.url;
+            if (fPath) {
+              resumeObj = {
+                file_name: fName,
+                file_path: formatAvatarUrl(fPath) || fPath,
+              };
+            }
+          } else if (typeof appResume === "string" && appResume.trim()) {
+            resumeObj = {
+              file_name: "Resume.pdf",
+              file_path: formatAvatarUrl(appResume) || appResume,
+            };
+          }
+        }
+      }
 
       return NextResponse.json({
         event_type,
@@ -207,15 +253,10 @@ export async function GET(req: NextRequest) {
         job_title: jobTitle,
         salary_min: salaryMin,
         salary_max: salaryMax,
-        resume: primaryResume
-          ? {
-              file_name: primaryResume.file_name || "Resume.pdf",
-              file_path: formatAvatarUrl(primaryResume.file_path) || primaryResume.file_path,
-            }
-          : null,
-        social_links: socialLinks.map((s: { platform_name?: string; url?: string }) => ({
+        resume: resumeObj,
+        social_links: socialLinks.map((s: { platform_name?: string; profile_url?: string; url?: string }) => ({
           platform_name: s.platform_name || "Link",
-          url: s.url || "#",
+          url: s.profile_url || s.url || "#",
         })),
       });
     }

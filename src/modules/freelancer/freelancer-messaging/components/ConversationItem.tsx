@@ -109,11 +109,25 @@ export default function ConversationItem({
             {getInitials(other_party_name)}
           </div>
         )}
-        {unread_count > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white">
+        {/* Animated Unread Badge */}
+        <span
+          className={cn(
+            "absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 flex items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white shadow-sm transition-all duration-300 ease-out origin-center pointer-events-none",
+            unread_count > 0
+              ? "scale-100 opacity-100"
+              : "scale-0 opacity-0"
+          )}
+        >
+          {unread_count > 0 && (
+            <span className="absolute inset-0 rounded-full bg-rose-500 animate-ping opacity-75" />
+          )}
+          <span
+            key={unread_count}
+            className="relative z-10 inline-block animate-in zoom-in-50 fade-in duration-200 origin-center"
+          >
             {unread_count > 9 ? "9+" : unread_count}
           </span>
-        )}
+        </span>
       </div>
 
       {/* Content */}

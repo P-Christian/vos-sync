@@ -20,13 +20,19 @@ import {
   Eye,
 } from "lucide-react";
 import { Message } from "@/modules/client/messaging/types";
-import { DocumentViewer } from "@/components/DocumentViewer";
+import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+const DocumentViewer = dynamic(
+  () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),
+  { ssr: false }
+);
 
 interface ParsedCoverLetter {
   text: string;
@@ -122,6 +128,12 @@ function formatSalary(min: number | null, max: number | null): string | null {
 }
 
 export default function ApplicationCard({ message }: Props) {
+  const pathname = usePathname();
+  const isFreelancer = pathname?.includes("/freelancer/");
+  const viewDetailsUrl = isFreelancer
+    ? "/vos-sync/freelancer/applications"
+    : "/vos-sync/client/applicants";
+
   const [data, setData] = useState<ApplicationCardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
@@ -172,7 +184,7 @@ export default function ApplicationCard({ message }: Props) {
   const statusColor = STATUS_COLORS[data.application_status] ?? "bg-zinc-100 text-zinc-600";
   const hasCoverLetter = Boolean(data.cover_letter?.trim());
   const hasSocials = Boolean(data.social_links && data.social_links.length > 0);
-  const hasResume = Boolean(data.resume?.file_path);
+  const hasResume = Boolean(data.resume?.file_path || data.resume?.file_name);
   const hasPortfolio = Boolean(data.portfolio_url?.trim());
 
   return (
@@ -400,7 +412,7 @@ export default function ApplicationCard({ message }: Props) {
 
       {/* Footer — Full View link */}
       <a
-        href="/vos-sync/client/applicants"
+        href={viewDetailsUrl}
         className="flex items-center justify-center gap-1.5 py-2.5 border-t border-inherit text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-white/40 dark:hover:bg-zinc-800/40 transition"
       >
         View Full Application Details
