@@ -55,10 +55,24 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
 
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(() => Boolean(initialApplicationId));
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
+
+  // Sync selectedApplicant from applicants list if initialApplicationId is passed
+  const [syncedInitialId, setSyncedInitialId] = useState<number | null>(null);
+  if (
+    initialApplicationId &&
+    applicants.length > 0 &&
+    syncedInitialId !== initialApplicationId
+  ) {
+    const found = applicants.find((a) => a.application_id === initialApplicationId);
+    if (found) {
+      setSyncedInitialId(initialApplicationId);
+      setSelectedApplicant(found);
+    }
+  }
 
   useEffect(() => {
     fetchApplicants();
@@ -67,18 +81,8 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
   useEffect(() => {
     if (initialApplicationId) {
       fetchApplicantDetail(initialApplicationId);
-      setDetailOpen(true);
     }
   }, [initialApplicationId, fetchApplicantDetail]);
-
-  useEffect(() => {
-    if (initialApplicationId && applicants.length > 0) {
-      const found = applicants.find((a) => a.application_id === initialApplicationId);
-      if (found) {
-        setSelectedApplicant(found);
-      }
-    }
-  }, [initialApplicationId, applicants]);
 
   const handleUpdateStatus = (applicant: Applicant) => {
     setSelectedApplicant(applicant);

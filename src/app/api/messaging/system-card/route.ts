@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
 
       const u = userRes.data;
       const j = jobRes.data;
-      const resumes = (resumeRes.data ?? []).sort((a: any, b: any) => {
+      const resumes = ((resumeRes.data ?? []) as Array<{ id?: number | string; is_primary?: boolean; [key: string]: unknown }>).sort((a, b) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
         return Number(b.id || 0) - Number(a.id || 0);

@@ -56,7 +56,6 @@ export default function ConversationItem({
   onSelect,
   onArchive,
 }: Props) {
-  const [imgError, setImgError] = React.useState(false);
   const {
     conversation_id,
     other_party_name = "Unknown Employer",
@@ -68,9 +67,13 @@ export default function ConversationItem({
     archived_by_freelancer,
   } = conversation;
 
-  React.useEffect(() => {
+  const [imgError, setImgError] = React.useState(false);
+  const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
+
+  if (other_party_avatar !== prevAvatar) {
+    setPrevAvatar(other_party_avatar);
     setImgError(false);
-  }, [other_party_avatar]);
+  }
 
   return (
     <div

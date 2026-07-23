@@ -28,7 +28,23 @@ interface WorkExperience {
 interface Resume {
   id: number;
   is_primary?: boolean | null;
+  file_path?: string | null;
+  file_url?: string | null;
+  url?: string | null;
+  file_id?: string | number | null;
+  file?: string | number | null;
+  file_name?: string | null;
+  name?: string | null;
   [key: string]: unknown;
+}
+
+interface SocialLinkItem {
+  id: number;
+  platform_name?: string | null;
+  platform?: string | null;
+  profile_url?: string | null;
+  url?: string | null;
+  link?: string | null;
 }
 
 interface SkillMap {
@@ -323,11 +339,11 @@ export async function GET(
       ? await resumeRes.json()
       : { data: [] };
 
-    const resumes = (resumeJson.data ?? []).sort((a: any, b: any) => Number(b.id || 0) - Number(a.id || 0));
+    const resumes = (resumeJson.data as Resume[] ?? []).sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
 
     const latestResumes = resumes.slice(0, 1);
 
-    const formattedResumes = (latestResumes as any[]).map((r) => {
+    const formattedResumes = latestResumes.map((r) => {
       let file_url = r.file_path || r.file_url || r.url || "";
       if (r.file_id || r.file) {
         file_url = `/api/assets/${r.file_id || r.file}`;
@@ -344,7 +360,7 @@ export async function GET(
     });
 
     const primaryResume =
-      (resumes as Resume[]).find((r) => r.is_primary) ||
+      resumes.find((r) => r.is_primary) ||
       resumes[0] ||
       null;
 
@@ -356,8 +372,8 @@ export async function GET(
       ? await socialRes.json()
       : { data: [] };
 
-    const rawSocials = socialJson.data ?? [];
-    const socialLinks = rawSocials.map((s: any) => {
+    const rawSocials = (socialJson.data as SocialLinkItem[] ?? []);
+    const socialLinks = rawSocials.map((s) => {
       const linkUrl = s.profile_url || s.url || s.link || "";
       const platformName = s.platform_name || s.platform || "Link";
       return {

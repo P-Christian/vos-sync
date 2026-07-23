@@ -71,12 +71,6 @@ export default function ChatPanel({
   onBack,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [imgError, setImgError] = React.useState(false);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
   const {
     other_party_name = "Employer",
     other_party_avatar,
@@ -85,9 +79,17 @@ export default function ChatPanel({
     conversation_type,
   } = conversation;
 
-  React.useEffect(() => {
+  const [imgError, setImgError] = React.useState(false);
+  const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
+
+  if (other_party_avatar !== prevAvatar) {
+    setPrevAvatar(other_party_avatar);
     setImgError(false);
-  }, [other_party_avatar]);
+  }
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
 
   return (
     <div className="flex flex-col h-full">

@@ -6,6 +6,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, AlertCircle, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 // Configure pdfjs worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -136,11 +137,14 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
           </Button>
         </div>
         <div className="flex-1 overflow-auto p-4 flex items-center justify-center">
-          <img
+          <Image
             src={proxiedUrl}
             alt={fileName}
+            width={1200}
+            height={800}
+            unoptimized
             style={{ transform: `scale(${zoom})`, transformOrigin: "center center" }}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-md transition-transform duration-150 ease-out"
+            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-md transition-transform duration-150 ease-out"
           />
         </div>
       </div>
