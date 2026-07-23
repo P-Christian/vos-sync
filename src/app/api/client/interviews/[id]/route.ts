@@ -31,6 +31,30 @@ function getUserIdFromToken(token: string): number | null {
   } catch { return null; }
 }
 
+export function formatInterviewDateTime(dateTimeStr: string): string {
+  try {
+    const dateObj = new Date(dateTimeStr.replace(" ", "T"));
+    if (isNaN(dateObj.getTime())) return dateTimeStr;
+    
+    const formattedDate = dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    
+    const formattedTime = dateObj.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+    
+    return `${formattedDate} at ${formattedTime}`;
+  } catch {
+    return dateTimeStr;
+  }
+}
+
 // ─── PATCH — Update interview status, details, evaluation ratings, or cancel ──
 
 export async function PATCH(
@@ -176,7 +200,7 @@ export async function PATCH(
                         entity_id: interviewId,
                         category: "INTERVIEW",
                         title: "Interview Rescheduled",
-                        message: `Your interview with ${companyName} has been rescheduled to ${ivData.scheduled_at}.`,
+                        message: `Your interview with ${companyName} has been rescheduled to ${formatInterviewDateTime(ivData.scheduled_at)}.`,
                         action_url: "/vos-sync/freelancer/applications",
                       }).catch((e) => console.error("Error sending reschedule notification:", e));
                     }

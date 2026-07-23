@@ -586,7 +586,7 @@ export async function PATCH(
 
     if (body.client_notes !== undefined) payload.client_notes = body.client_notes;
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,application_status,status_updated_at,client_notes`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,application_status,status_updated_at,client_notes,user_id`, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify(payload),

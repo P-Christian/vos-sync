@@ -56,17 +56,18 @@ export default function JobBrowseModule() {
 
       <div className="job-browse-page space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-              <div className="p-2.5 bg-primary/10 rounded-xl">
-                <Briefcase className="h-6 w-6 text-primary" />
-              </div>
-              Find Work
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 ml-[52px]">
-              {allJobs.length} active job{allJobs.length !== 1 ? "s" : ""} available
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-teal-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+              <Briefcase className="h-7 w-7" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Find Work</h1>
+              <p className="text-sm text-zinc-300 mt-1">
+                {allJobs.length} active job{allJobs.length !== 1 ? "s" : ""} available
+              </p>
+            </div>
           </div>
         </div>
 

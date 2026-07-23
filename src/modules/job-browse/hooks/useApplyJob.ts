@@ -28,6 +28,8 @@ export function useApplyJob() {
   const [successMessage, setSuccessMessage] = useState("");
   const [prefillLoading, setPrefillLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
+  const [idProofScore, setIdProofScore] = useState<number | null>(null);
+  const [canApply, setCanApply] = useState<boolean>(true);
 
   // Load freelancer profile data to pre-fill the form
   const loadPrefill = useCallback(async (job: PublicJobPosting) => {
@@ -43,7 +45,17 @@ export function useApplyJob() {
     };
 
     try {
-      const profileRes = await fetch("/api/freelancer/profile");
+      const [profileRes, scoreRes] = await Promise.all([
+        fetch("/api/freelancer/profile"),
+        fetch("/api/freelancer/id-proof-score")
+      ]);
+
+      if (scoreRes.ok) {
+        const scoreData = await scoreRes.json();
+        setIdProofScore(scoreData.score);
+        setCanApply(scoreData.can_apply);
+      }
+
       if (profileRes.ok) {
         const profileJson = await profileRes.json();
         if (profileJson.ok && profileJson.data) {
@@ -175,6 +187,8 @@ export function useApplyJob() {
     successMessage,
     prefillLoading,
     profileData,
+    idProofScore,
+    canApply,
     loadPrefill,
     handleFieldChange,
     handleAnswerChange,

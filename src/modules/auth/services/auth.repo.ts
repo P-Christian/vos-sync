@@ -243,3 +243,30 @@ export async function clearResetToken(userId: string | number, newHashedPassword
     if (!res.ok) throw new Error(`Failed to clear reset token: HTTP ${res.status}`);
     return (await res.json()).data;
 }
+
+export async function getRoleById(roleId: string | number) {
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_roles/${roleId}`;
+
+    const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json"
+        },
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to fetch role by ID: HTTP ${res.status}`);
+    }
+
+    const json = await res.json();
+    return json.data;
+}

@@ -114,7 +114,7 @@ export function CourseRequestsTab({ requests, onCreate, onReview }: Props) {
 
   return (
     <div className="space-y-4 pt-4">
-      <Card className="p-6 border-0 shadow-sm bg-white rounded-xl">
+      <Card className="p-6 border-0 shadow-sm bg-white dark:bg-zinc-900 rounded-xl">
         <DataTable 
           columns={columns} 
           data={requests} 

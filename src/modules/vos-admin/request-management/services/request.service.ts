@@ -28,7 +28,7 @@ export async function reviewSchoolRequest(id: number, data: ReviewAction, adminI
   const payload: Partial<VsSchoolRequest> = {
     request_status: data.action,
     reviewed_by: adminId,
-    reviewed_at: new Date().toISOString(),
+    reviewed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " "), // PH Time
   };
 
   if (data.action === 'Approved') {
@@ -68,7 +68,7 @@ export async function reviewCourseRequest(id: number, data: ReviewAction, adminI
   const payload: Partial<VsCourseRequest> = {
     request_status: data.action,
     reviewed_by: adminId,
-    reviewed_at: new Date().toISOString(),
+    reviewed_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " "), // PH Time
   };
 
   if (data.action === 'Approved') {

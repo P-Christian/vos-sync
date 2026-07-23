@@ -56,6 +56,18 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
     const pathname = usePathname();
 
+    const handleFooterClick = async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        if (href === "/logout") {
+            e.preventDefault();
+            try {
+                await fetch("/api/auth/logout", { method: "POST" });
+            } finally {
+                document.body.style.display = 'none';
+                window.location.href = "/login";
+            }
+        }
+    };
+
     return (
         <Sidebar
             {...props}
@@ -145,7 +157,7 @@ export function DashboardSidebar({
                     {config.footerLinks.map((item, index) => (
                         <SidebarMenuItem key={index}>
                             <SidebarMenuButton asChild className="text-muted-foreground hover:text-foreground">
-                                <Link href={item.href}>
+                                <Link href={item.href} onClick={(e) => handleFooterClick(e, item.href)}>
                                     <item.icon className="size-4 shrink-0" />
                                     <span>{item.label}</span>
                                 </Link>

@@ -16,8 +16,8 @@ async function verifySchoolAdminRole() {
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
         
-        // Ensure role_id is 4 for School Admin
-        if (Number(payload.role_id) !== 4) {
+        // Ensure role_name is SCHOOL_ADMIN for School Admin
+        if (typeof payload.role_name !== 'string' || payload.role_name.toUpperCase() !== "SCHOOL_ADMIN") {
             return { isAdmin: false, user: null };
         }
 
