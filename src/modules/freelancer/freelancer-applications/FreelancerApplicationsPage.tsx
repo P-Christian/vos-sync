@@ -14,7 +14,7 @@ import { useFreelancerBookmarks } from './hooks/useFreelancerBookmarks';
 import { BookmarkList } from './components/BookmarkList';
 import { BookmarkHeader } from './components/BookmarkHeader';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, ClipboardList } from 'lucide-react';
 
 interface FreelancerApplicationsPageProps {
   defaultTab?: "applications" | "bookmarks";
@@ -68,8 +68,24 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
   }, [fetchApplications, fetchBookmarks]);
 
   return (
-    <div className="w-full p-6 sm:p-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <div className="w-full p-6 sm:p-8 space-y-6">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-teal-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+            <ClipboardList className="h-7 w-7" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">Applications & Saved Jobs</h1>
+            <p className="text-sm text-zinc-300 mt-1">
+              Track your active job applications and manage bookmarked opportunities.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "applications" | "bookmarks")} className="w-full">
         <TabsList className="mb-6 bg-muted/60 p-1 border">
           <TabsTrigger value="applications" className="px-4 py-2 font-semibold">
             Job Applications

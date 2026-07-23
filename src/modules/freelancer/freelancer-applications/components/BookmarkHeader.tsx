@@ -3,15 +3,10 @@ import { Bookmark } from "lucide-react";
 
 export const BookmarkHeader: React.FC = () => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b pb-4">
       <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 rounded-xl">
-            <Bookmark className="h-6 w-6 text-primary" />
-          </div>
-          Saved Jobs
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1 ml-[52px]">
+        <h2 className="text-lg font-bold text-foreground">Saved Jobs</h2>
+        <p className="text-xs text-muted-foreground">
           View and manage the job postings you have bookmarked.
         </p>
       </div>

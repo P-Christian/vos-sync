@@ -24,17 +24,12 @@ export const ApplicationHeader: React.FC<Props> = ({
   onFilterChange 
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
-      <div className="flex items-start gap-3">
-        <div className="p-2.5 bg-primary/10 rounded-xl shrink-0">
-          <FileText className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-1">Application History</h1>
-          <p className="text-muted-foreground text-sm">
-            Track your journey across {totalOpportunities} active opportunit{totalOpportunities === 1 ? 'y' : 'ies'}.
-          </p>
-        </div>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 border-b pb-4">
+      <div>
+        <h2 className="text-lg font-bold text-foreground">Application History</h2>
+        <p className="text-muted-foreground text-xs">
+          Track your journey across {totalOpportunities} active opportunit{totalOpportunities === 1 ? 'y' : 'ies'}.
+        </p>
       </div>
       <div className="flex gap-2 items-center">
         <Select value={filterStatus} onValueChange={(val) => onFilterChange(val as ApplicationStatus | "ALL")}>

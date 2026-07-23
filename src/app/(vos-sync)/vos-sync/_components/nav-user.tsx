@@ -105,10 +105,10 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
 
     if (pathname.startsWith("/vos-sync/freelancer")) {
         defaultProfileUrl = "/vos-sync/freelancer/profile"
-        defaultSettingsUrl = "/vos-sync/settings?portal=freelancer"
+        defaultSettingsUrl = "/vos-sync/freelancer/settings"
     } else if (pathname.startsWith("/vos-sync/client")) {
         defaultProfileUrl = "/vos-sync/client/company-profile"
-        defaultSettingsUrl = "/vos-sync/settings?portal=client"
+        defaultSettingsUrl = "/vos-sync/client/settings"
     } else if (pathname.startsWith("/vos-sync/school-admin")) {
         defaultProfileUrl = "/vos-sync/school-admin/profile"
         defaultSettingsUrl = "/vos-sync/settings?portal=school-admin"
