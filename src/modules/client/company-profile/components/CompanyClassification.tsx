@@ -9,13 +9,16 @@ import { Loader2 } from "lucide-react";
 import { EditableCompanyFields } from "../types";
 
 interface CompanyClassificationProps {
-  data: Partial<EditableCompanyFields>;
-  onChange: (field: keyof EditableCompanyFields, value: string | number | null | undefined) => void;
+  data: Partial<EditableCompanyFields & { custom_industry_name?: string }>;
+  onChange: (
+    field: keyof EditableCompanyFields | "custom_industry_name",
+    value: string | number | boolean | null | undefined
+  ) => void;
   readOnly?: boolean;
 }
 
 interface IndustryItem {
-  industry_id: number;
+  industry_id: number | string;
   industry_name: string;
 }
 
@@ -72,9 +75,44 @@ export default function CompanyClassification({
     loadMasterData();
   }, []);
 
-  const selectedIndustryName = industries.find(
-    (i) => i.industry_id === Number(data.industry_id)
-  )?.industry_name || "—";
+  const sortedIndustries = [...industries].sort((a, b) =>
+    a.industry_name.localeCompare(b.industry_name)
+  );
+
+  const hasOthersInList = sortedIndustries.some(
+    (i) => i.industry_name.trim().toLowerCase() === "others"
+  );
+
+  const industryOptions = [
+    ...sortedIndustries.map((i) => ({ value: String(i.industry_id), label: i.industry_name })),
+    ...(!hasOthersInList ? [{ value: "OTHERS", label: "Others" }] : []),
+  ];
+
+  const orgTypeOptions = [...orgTypes]
+    .sort((a, b) => a.organization_type_name.localeCompare(b.organization_type_name))
+    .map((t) => ({ value: String(t.organization_type_id), label: t.organization_type_name }));
+
+  const sizeOptions = [...sizes]
+    .sort((a, b) => a.company_size_name.localeCompare(b.company_size_name))
+    .map((s) => ({ value: String(s.company_size_id), label: s.company_size_name }));
+
+  const isOthersSelected = (val: string | number | null | undefined) => {
+    if (!val) return false;
+    if (String(val).toUpperCase() === "OTHERS") return true;
+    const match = industries.find((i) => String(i.industry_id) === String(val));
+    return match?.industry_name?.trim().toLowerCase() === "others";
+  };
+
+  const currentIsOthers = isOthersSelected(data.industry_id);
+
+  const foundIndustry = industries.find(
+    (i) => String(i.industry_id) === String(data.industry_id)
+  );
+
+  const selectedIndustryName =
+    foundIndustry?.industry_name ||
+    (data.custom_industry_name?.trim() ? data.custom_industry_name.trim() : null) ||
+    (currentIsOthers ? "Others" : "—");
 
   const selectedOrgTypeName = orgTypes.find(
     (o) => o.organization_type_id === Number(data.organization_type_id)
@@ -131,13 +169,30 @@ export default function CompanyClassification({
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
           <SearchableSelect
-            options={industries.map((i) => ({ value: String(i.industry_id), label: i.industry_name }))}
+            options={industryOptions}
             value={data.industry_id ? String(data.industry_id) : ""}
-            onValueChange={(v) => onChange("industry_id", Number(v))}
+            onValueChange={(v) => {
+              onChange("industry_id", v);
+            }}
             disabled={loading}
             placeholder="Select industry"
             className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
           />
+
+          {currentIsOthers && (
+            <div className="pt-1.5 space-y-1">
+              <Label htmlFor="cp-custom-industry" className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                Specify Industry Name <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                id="cp-custom-industry"
+                value={data.custom_industry_name ?? ""}
+                onChange={(e) => onChange("custom_industry_name", e.target.value)}
+                placeholder="Type your industry name..."
+                className="h-8 text-xs border-emerald-300 focus:border-emerald-500 rounded-lg"
+              />
+            </div>
+          )}
         </div>
 
         <div className="space-y-1.5">
@@ -146,7 +201,7 @@ export default function CompanyClassification({
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
           <SearchableSelect
-            options={orgTypes.map((t) => ({ value: String(t.organization_type_id), label: t.organization_type_name }))}
+            options={orgTypeOptions}
             value={data.organization_type_id ? String(data.organization_type_id) : ""}
             onValueChange={(v) => onChange("organization_type_id", Number(v))}
             disabled={loading}
@@ -161,7 +216,7 @@ export default function CompanyClassification({
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
           <SearchableSelect
-            options={sizes.map((s) => ({ value: String(s.company_size_id), label: s.company_size_name }))}
+            options={sizeOptions}
             value={data.company_size_id ? String(data.company_size_id) : ""}
             onValueChange={(v) => onChange("company_size_id", Number(v))}
             disabled={loading}
@@ -183,8 +238,6 @@ export default function CompanyClassification({
             className="h-9 text-sm"
           />
         </div>
-
-
 
         <div className="space-y-1.5">
           <Label htmlFor="cp-tags" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
