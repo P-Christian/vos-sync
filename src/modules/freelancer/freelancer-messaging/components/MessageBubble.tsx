@@ -2,12 +2,24 @@
 
 // src/modules/freelancer/freelancer-messaging/components/MessageBubble.tsx
 
-import React from "react";
-import { FileText, ImageIcon, CheckCheck } from "lucide-react";
+import React, { useState } from "react";
+import { FileText, ImageIcon, CheckCheck, Download, Eye } from "lucide-react";
 import { Message } from "../types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
+import dynamic from "next/dynamic";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const DocumentViewer = dynamic(
+  () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),
+  { ssr: false }
+);
 
 interface Props {
   message: Message;
@@ -43,6 +55,11 @@ export default function MessageBubble({
 }: Props) {
   const { message_type, message_content, created_at, attachments, is_edited } =
     message;
+
+  const [previewDoc, setPreviewDoc] = useState<{
+    fileName: string;
+    fileUrl: string;
+  } | null>(null);
 
   if (message_type === "SYSTEM") {
     return (
@@ -90,49 +107,56 @@ export default function MessageBubble({
           {attachments?.map((att) => (
             <div key={att.attachment_id}>
               {isImageType(att.mime_type) ? (
-                <a
-                  href={att.file_path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
+                <div
+                  className={cn(
+                    "rounded-2xl overflow-hidden shadow-sm border max-w-[220px] group relative",
+                    isOwn
+                      ? "border-emerald-500/30"
+                      : "border-zinc-200 dark:border-zinc-700"
+                  )}
                 >
-                  <div
-                    className={cn(
-                      "rounded-2xl overflow-hidden shadow-sm border max-w-[220px]",
-                      isOwn
-                        ? "border-emerald-500/30"
-                        : "border-zinc-200 dark:border-zinc-700"
-                    )}
-                  >
-                    <Image
-                      width={64}
-                      height={64}
-                      src={att.file_path}
-                      alt={att.file_name}
-                      className="w-full h-auto max-h-48 object-cover"
-                    />
-                    {att.file_name && (
-                      <div
-                        className={cn(
-                          "px-3 py-1.5 text-[10px] flex items-center gap-1",
-                          isOwn
-                            ? "bg-emerald-600 text-emerald-100"
-                            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500"
-                        )}
-                      >
+                  <Image
+                    width={220}
+                    height={192}
+                    unoptimized
+                    src={att.file_path}
+                    alt={att.file_name}
+                    className="w-full h-auto max-h-48 object-cover cursor-pointer"
+                    onClick={() =>
+                      setPreviewDoc({
+                        fileName: att.file_name,
+                        fileUrl: att.file_path,
+                      })
+                    }
+                  />
+                  {att.file_name && (
+                    <div
+                      className={cn(
+                        "px-3 py-1.5 text-[10px] flex items-center justify-between gap-1",
+                        isOwn
+                          ? "bg-emerald-600 text-emerald-100"
+                          : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500"
+                      )}
+                    >
+                      <div className="flex items-center gap-1 min-w-0">
                         <ImageIcon className="h-3 w-3 shrink-0" />
                         <span className="truncate">{att.file_name}</span>
                       </div>
-                    )}
-                  </div>
-                </a>
+                      <a
+                        href={att.file_path}
+                        download={att.file_name}
+                        title="Download Image"
+                        className="hover:opacity-80 p-0.5"
+                      >
+                        <Download className="h-3 w-3 shrink-0" />
+                      </a>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <a
-                  href={att.file_path}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <div
                   className={cn(
-                    "flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl border shadow-sm transition-opacity hover:opacity-80 max-w-[220px]",
+                    "flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-sm max-w-[240px]",
                     isOwn
                       ? "bg-emerald-500 border-emerald-400/40 text-white rounded-br-md"
                       : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-bl-md"
@@ -141,29 +165,48 @@ export default function MessageBubble({
                   <div
                     className={cn(
                       "p-1.5 rounded-lg shrink-0",
-                      isOwn
-                        ? "bg-white/20"
-                        : "bg-zinc-100 dark:bg-zinc-700"
+                      isOwn ? "bg-white/20" : "bg-zinc-100 dark:bg-zinc-700"
                     )}
                   >
                     <FileText className="h-3.5 w-3.5" />
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium truncate">{att.file_name}</p>
                     {att.file_size && (
                       <p
                         className={cn(
                           "text-[10px]",
-                          isOwn
-                            ? "text-emerald-200"
-                            : "text-zinc-400"
+                          isOwn ? "text-emerald-200" : "text-zinc-400"
                         )}
                       >
                         {formatFileSize(att.file_size)}
                       </p>
                     )}
                   </div>
-                </a>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPreviewDoc({
+                          fileName: att.file_name,
+                          fileUrl: att.file_path,
+                        })
+                      }
+                      title="Preview Document"
+                      className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <a
+                      href={att.file_path}
+                      download={att.file_name}
+                      title="Download Document"
+                      className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                </div>
               )}
             </div>
           ))}
@@ -187,6 +230,38 @@ export default function MessageBubble({
           </div>
         </div>
       </div>
+
+      {/* Attachment Document Preview Modal */}
+      <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>
+        <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-3.5 border-b shrink-0 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0 pr-4">
+              <FileText className="h-4 w-4 text-[#14a800] shrink-0" />
+              <DialogTitle className="text-sm font-bold truncate">
+                {previewDoc?.fileName}
+              </DialogTitle>
+            </div>
+            {previewDoc && (
+              <a
+                href={previewDoc.fileUrl}
+                download={previewDoc.fileName}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white text-xs font-semibold shrink-0 transition"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Download
+              </a>
+            )}
+          </DialogHeader>
+          <div className="flex-1 bg-zinc-100 dark:bg-zinc-950 overflow-hidden relative">
+            {previewDoc && (
+              <DocumentViewer
+                fileUrl={previewDoc.fileUrl}
+                fileName={previewDoc.fileName}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

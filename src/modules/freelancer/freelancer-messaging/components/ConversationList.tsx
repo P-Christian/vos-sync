@@ -59,11 +59,21 @@ export default function ConversationList({
             <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
               Messages
             </span>
-            {totalUnread > 0 && (
-              <span className="h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold">
+            <span
+              className={cn(
+                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
+                totalUnread > 0
+                  ? "scale-100 opacity-100 max-w-[60px]"
+                  : "scale-0 opacity-0 max-w-0 px-0 min-w-0 overflow-hidden border-0"
+              )}
+            >
+              <span
+                key={totalUnread}
+                className="inline-block animate-in zoom-in-50 fade-in duration-200 origin-center"
+              >
                 {totalUnread}
               </span>
-            )}
+            </span>
           </div>
           <div className="flex items-center gap-1">
             <button

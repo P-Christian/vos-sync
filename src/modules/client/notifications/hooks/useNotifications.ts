@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 // src/modules/client/notifications/hooks/useNotifications.ts
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Notification, NotificationPreference } from "../types";
 import {
   fetchNotifications,
@@ -44,16 +45,22 @@ export function useNotifications() {
     []
   );
 
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
   // ─── Mark single read ─────────────────────────────────────────────────
 
   const markRead = useCallback(async (notificationId: number) => {
+    // 1. Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.notification_id === notificationId ? { ...n, is_read: true } : n
+      )
+    );
+
     try {
       await markNotificationRead(notificationId);
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.notification_id === notificationId ? { ...n, is_read: true } : n
-        )
-      );
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to mark as read."
@@ -64,12 +71,13 @@ export function useNotifications() {
   // ─── Mark all read ────────────────────────────────────────────────────
 
   const markAllRead = useCallback(async () => {
+    // 1. Optimistic update
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setSaving(true);
     setError("");
 
     try {
       await markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to mark all as read."

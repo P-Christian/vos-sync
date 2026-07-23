@@ -88,3 +88,12 @@ export async function createNotification(params: CreateNotificationParams) {
     return false;
   }
 }
+
+// ⚠️  Integration — Use `@/lib/notifications` (the folder) for scalability.
+
+// export type { CreateFreelancerNotificationParams as CreateNotificationParams } from "./notifications/types";
+// export type { CreateEmployerNotificationParams } from "./notifications/types";
+// export { createFreelancerNotification as createNotification } from "./notifications/services/freelancer-notifications";
+// export { createFreelancerNotification } from "./notifications/services/freelancer-notifications";
+// export { createEmployerNotification } from "./notifications/services/employer-notifications";
+// export { isInAppEnabledForUser } from "./notifications/preference-check";

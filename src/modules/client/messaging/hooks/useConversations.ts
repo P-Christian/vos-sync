@@ -92,12 +92,23 @@ export function useConversations() {
     []
   );
 
+  const clearUnreadCount = useCallback((conversationId: number) => {
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.conversation_id === conversationId
+          ? { ...c, unread_count: 0 }
+          : c
+      )
+    );
+  }, []);
+
   return {
     conversations,
     loading,
     error,
     loadConversations,
     openOrCreateConversation,
+    clearUnreadCount,
     archive,
     clearError: () => setError(""),
   };

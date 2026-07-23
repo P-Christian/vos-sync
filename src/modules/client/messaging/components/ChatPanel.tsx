@@ -70,13 +70,6 @@ export default function ChatPanel({
   onBack,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [imgError, setImgError] = React.useState(false);
-
-  // Auto scroll to bottom on new message
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
-
   const {
     other_party_name = "Freelancer",
     other_party_avatar,
@@ -84,6 +77,19 @@ export default function ChatPanel({
     job_title,
     conversation_type,
   } = conversation;
+
+  const [imgError, setImgError] = React.useState(false);
+  const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
+
+  if (other_party_avatar !== prevAvatar) {
+    setPrevAvatar(other_party_avatar);
+    setImgError(false);
+  }
+
+  // Auto scroll to bottom on new message
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
 
   return (
     <div className="flex flex-col h-full">
@@ -105,6 +111,7 @@ export default function ChatPanel({
             alt={other_party_name}
             width={50}
             height={50}
+            unoptimized
             onError={() => setImgError(true)}
             className="h-9 w-9 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0"
           />

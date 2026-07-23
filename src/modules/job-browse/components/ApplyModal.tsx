@@ -383,7 +383,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     )}
 
                     <p className="text-[10px] text-muted-foreground">
-                      Pre-filled from your professional summary in your profile. You can edit the text, attach a file, or both.
+                      Write a cover letter tailored to this role. You can also attach a document, or both.
                     </p>
                   </div>
                 </div>
