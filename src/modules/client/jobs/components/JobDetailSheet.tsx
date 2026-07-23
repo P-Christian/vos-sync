@@ -86,6 +86,75 @@ const parseJsonField = (value: string | null | undefined): Record<string, unknow
   return {};
 };
 
+const renderInlineMarkdown = (str: string) => {
+  const parts = str.split(/(\*\*.*?\*\*|<b>.*?<\/b>|<strong>.*?<\/strong>)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+      return (
+        <strong key={idx} className="font-bold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("<b>") && part.endsWith("</b>") && part.length >= 7) {
+      return (
+        <strong key={idx} className="font-bold text-foreground">
+          {part.slice(3, -4)}
+        </strong>
+      );
+    }
+    if (part.startsWith("<strong>") && part.endsWith("</strong>") && part.length >= 17) {
+      return (
+        <strong key={idx} className="font-bold text-foreground">
+          {part.slice(8, -9)}
+        </strong>
+      );
+    }
+    return part;
+  });
+};
+
+function renderFormattedContent(text: string | null | undefined) {
+  if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
+  if (/<(b|strong|ul|ol|li|p|div|br)\b[^>]*>/i.test(text)) {
+    return (
+      <div
+        className="text-sm text-foreground/80 leading-relaxed space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold"
+        dangerouslySetInnerHTML={{ __html: text }}
+      />
+    );
+  }
+  const blocks = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  return (
+    <div className="space-y-2.5">
+      {blocks.map((block, bIdx) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        const isList =
+          lines.length > 0 &&
+          (lines.every((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line)) ||
+            (lines.length > 1 && lines.some((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line))));
+
+        if (isList) {
+          return (
+            <ul key={bIdx} className="space-y-1.5 list-disc pl-4 text-sm text-foreground/80 leading-relaxed">
+              {lines.map((line, lIdx) => {
+                const cleaned = line.replace(/^[-*•\d+\.]\s*/, "");
+                return <li key={lIdx}>{renderInlineMarkdown(cleaned)}</li>;
+              })}
+            </ul>
+          );
+        } else {
+          return (
+            <p key={bIdx} className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+              {renderInlineMarkdown(block)}
+            </p>
+          );
+        }
+      })}
+    </div>
+  );
+}
+
 export function JobDetailSheet({ job, open, onClose }: Props) {
   if (!job) return null;
 
@@ -212,9 +281,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
 
               {/* Job Description */}
               <Section title="Job Description">
-                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                  {descriptionText}
-                </p>
+                {renderFormattedContent(descriptionText)}
               </Section>
 
               {/* Responsibilities */}
@@ -222,9 +289,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                 <>
                   <Separator />
                   <Section title="Responsibilities">
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                      {responsibilitiesText}
-                    </p>
+                    {renderFormattedContent(responsibilitiesText)}
                   </Section>
                 </>
               )}
@@ -234,9 +299,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                 <>
                   <Separator />
                   <Section title="Qualifications">
-                    <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
-                      {qualificationsText}
-                    </p>
+                    {renderFormattedContent(qualificationsText)}
                   </Section>
                 </>
               )}
