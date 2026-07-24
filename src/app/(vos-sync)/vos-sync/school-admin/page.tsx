@@ -1,26 +1,20 @@
-"use client";
+import * as React from "react";
+import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
+import { getHeaderUserFromToken } from "@/modules/school-admin/services/token-helper";
+import { SchoolAdminDashboardClient } from "@/modules/school-admin/components/SchoolAdminDashboardClient";
 
-import { useEffect } from "react";
-import { useSchoolAdmin } from "@/modules/school-admin/hooks/useSchoolAdmin";
-import { SchoolAdminDashboard } from "@/modules/school-admin/components/SchoolAdminDashboard";
-import { SchoolAdminProfile } from "@/modules/school-admin/components/SchoolAdminProfile";
-import { SchoolAdminSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export default function SchoolAdminPage() {
-  const { school, loading, fetchMySchool, updateSchool } = useSchoolAdmin();
-
-  useEffect(() => {
-    fetchMySchool();
-  }, [fetchMySchool]);
-
-  if (loading || !school) {
-    return <SchoolAdminSkeleton />;
-  }
+export default async function SchoolAdminDashboardRoute() {
+  const user = await getHeaderUserFromToken();
 
   return (
-    <div className="flex flex-col min-h-full pb-10">
-      <SchoolAdminDashboard school={school} />
-      <SchoolAdminProfile school={school} onUpdate={updateSchool} />
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+      <PortalPageHeader user={user} />
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
+        <SchoolAdminDashboardClient />
+      </main>
     </div>
   );
 }

@@ -124,8 +124,11 @@ export function AppSidebar({
             navItems: [
                 { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
+                { label: "Settings", href: "/vos-sync/school-admin/settings", icon: Settings2 },
             ],
-            footerLinks: [],
+            footerLinks: [
+                { label: "Log out", href: "/logout", icon: LogOut },
+            ],
         };
         return <DashboardSidebar config={SCHOOL_DASHBOARD_SIDEBAR_CONFIG} {...props} />;
     }
