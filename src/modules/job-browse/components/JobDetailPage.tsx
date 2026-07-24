@@ -19,6 +19,7 @@ import {
   Instagram,
   Youtube,
   Bookmark,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
 import { ApplyModal } from "./ApplyModal";
 import { useFreelancerBookmarks } from "../../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
+import ReferModal from "../../freelancer/freelancer-referrals/components/ReferModal";
 
 interface Props {
   jobId: number;
@@ -52,6 +54,7 @@ export default function JobDetailPage({ jobId }: Props) {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [referModalOpen, setReferModalOpen] = useState(false);
 
   const { bookmarkedJobIds, toggleBookmark, fetchBookmarks } = useFreelancerBookmarks();
   const isBookmarked = bookmarkedJobIds.includes(jobId);
@@ -316,6 +319,14 @@ export default function JobDetailPage({ jobId }: Props) {
               <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
               {isBookmarked ? "Saved" : "Save Job"}
             </Button>
+            <Button
+              variant="outline"
+              className="w-full h-10 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800"
+              onClick={() => setReferModalOpen(true)}
+            >
+              <Share2 className="h-4 w-4" />
+              Refer a Friend
+            </Button>
           </div>
 
           {/* Card 2: About Client */}
@@ -427,6 +438,14 @@ export default function JobDetailPage({ jobId }: Props) {
         open={applyModalOpen}
         onClose={() => setApplyModalOpen(false)}
         onSuccess={() => router.push("/vos-sync/freelancer/applications")}
+      />
+
+      {/* Refer Modal */}
+      <ReferModal
+        jobId={jobId}
+        jobTitle={job.job_title}
+        open={referModalOpen}
+        onClose={() => setReferModalOpen(false)}
       />
     </div>
   );

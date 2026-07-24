@@ -70,6 +70,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverFile, setUploadingCoverFile] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [referrerName, setReferrerName] = useState<string | null>(null);
 
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +79,17 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   useEffect(() => {
     if (open && job) {
       loadPrefill(job);
+      
+      // Check for active referral claim
+      setReferrerName(null);
+      fetch(`/api/freelancer/referrals/check-claim?job_id=${job.job_id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.claimed) {
+            setReferrerName(data.referrer_name);
+          }
+        })
+        .catch((err) => console.error("Error checking claim:", err));
     }
   }, [open, job, loadPrefill]);
 
@@ -166,7 +178,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             <div className="absolute top-3 left-3 right-3 h-0.5 bg-zinc-200 dark:bg-zinc-800 -z-10" />
             {/* Active progress line */}
             <div
-              className="absolute top-3 left-3 h-0.5 bg-[#14a800] transition-all duration-300 -z-10"
+              className="absolute top-3 left-3 h-0.5 bg-primary transition-all duration-300 -z-10"
               style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
             />
 
@@ -179,9 +191,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${
                       isCompleted
-                        ? "bg-[#14a800] border-[#14a800] text-white"
+                        ? "bg-primary border-primary text-white"
                         : isActive
-                        ? "bg-background border-[#14a800] text-[#14a800]"
+                        ? "bg-background border-primary text-primary"
                         : "bg-background border-zinc-300 dark:border-zinc-700 text-zinc-400"
                     }`}
                   >
@@ -189,7 +201,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   </div>
                   <span
                     className={`text-[8px] font-semibold text-center hidden sm:block ${
-                      isActive ? "text-[#14a800] font-bold" : "text-muted-foreground"
+                      isActive ? "text-primary font-bold" : "text-muted-foreground"
                     }`}
                   >
                     {step.label}
@@ -223,6 +235,14 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <div className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error || uploadError}
+              </div>
+            )}
+
+            {/* Referral Connected */}
+            {referrerName && (
+              <div className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium">
+                <span className="text-base">🔗</span>
+                <span>Referral Connected: Accepted invitation from <strong>{referrerName}</strong>. This referral will be locked in when you submit.</span>
               </div>
             )}
 
@@ -643,7 +663,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-4"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />
@@ -653,7 +673,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 id="apply-submit-btn"
                 onClick={handleSubmit}
                 disabled={saving || !!successMessage}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-5"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
               >
                 {saving ? (
                   <>

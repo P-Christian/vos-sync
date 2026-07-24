@@ -339,6 +339,15 @@ export async function POST(req: NextRequest) {
     const createdApp = json.data;
     const applicationId = createdApp?.application_id;
 
+    if (applicationId) {
+      try {
+        const { handleApplicationSubmissionReferral } = await import("@/modules/freelancer/freelancer-referrals/services/referral.service");
+        await handleApplicationSubmissionReferral(Number(applicationId), userId, Number(body.job_id));
+      } catch (err) {
+        console.error("Failed to run referral association on application submit:", err);
+      }
+    }
+
     if (applicationId && Array.isArray(body.screening_answers) && body.screening_answers.length > 0) {
       let answersToInsert = body.screening_answers;
       const needsQuestionIds = answersToInsert.some((a: Record<string, unknown>) => !a.question_id);
