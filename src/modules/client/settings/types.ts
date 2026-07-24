@@ -6,10 +6,19 @@ export interface UserProfile {
   user_fname: string;
   user_mname?: string | null;
   user_lname: string;
+  suffix_name?: string | null;
+  nickname?: string | null;
   user_contact: string;
   user_position?: string | null;
   user_department?: number | string | null;
+  user_province?: string | null;
+  user_city?: string | null;
+  user_brgy?: string | null;
+  gender?: string | null;
+  user_bday?: string | null;
+  civil_status?: string | null;
   profile_image_url?: string | null;
+  user_image?: string | null;
   role: string;
 }
 

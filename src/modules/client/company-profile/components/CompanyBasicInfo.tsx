@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EditableCompanyFields } from "../types";
 import { Facebook, Linkedin, Instagram, Youtube, Upload, Image as ImageIcon, Loader2, Building2 } from "lucide-react";
 
+import ImageCropModal from "./ImageCropModal";
+
 interface CompanyBasicInfoProps {
   data: Partial<EditableCompanyFields>;
   onChange: (field: keyof EditableCompanyFields, value: string) => void;
@@ -37,10 +39,9 @@ function extractSocialHandle(url: string | null | undefined): string {
   const trimmed = url.trim().replace(/\/$/, "");
   const lastSlashIndex = trimmed.lastIndexOf("/");
   if (lastSlashIndex !== -1) {
-    const segment = trimmed.substring(lastSlashIndex + 1);
-    return `/${segment}`;
+    return trimmed.substring(lastSlashIndex + 1);
   }
-  return `/${trimmed}`;
+  return trimmed.replace(/^\//, "");
 }
 
 export default function CompanyBasicInfo({
@@ -53,16 +54,40 @@ export default function CompanyBasicInfo({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "company_logo" | "company_cover") => {
+  const [cropModalState, setCropModalState] = useState<{
+    isOpen: boolean;
+    imageSrc: string | null;
+    type: "company_logo" | "company_cover";
+  }>({
+    isOpen: false,
+    imageSrc: null,
+    type: "company_logo",
+  });
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, field: "company_logo" | "company_cover") => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalState({
+        isOpen: true,
+        imageSrc: reader.result as string,
+        type: field,
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCroppedUpload = async (croppedFile: File) => {
+    const field = cropModalState.type;
     if (field === "company_logo") setUploadingLogo(true);
     else setUploadingCover(true);
 
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", croppedFile);
 
       const res = await fetch("/api/client/upload", {
         method: "POST",
@@ -75,6 +100,7 @@ export default function CompanyBasicInfo({
 
       const uploadedFile = await res.json();
       onChange(field, uploadedFile.id);
+      setCropModalState((prev) => ({ ...prev, isOpen: false, imageSrc: null }));
     } catch (err) {
       console.error(err);
       alert("Failed to upload image. Please try again.");
@@ -96,7 +122,7 @@ export default function CompanyBasicInfo({
           {/* Banner & Logo Visualizer (Read Only) */}
           <div className="relative mb-14">
             {/* Cover image container */}
-            <div className="group h-80 w-full bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800">
+            <div className="group w-full aspect-[3/1] bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800">
               {data.company_cover ? (
                 <img
                   src={getImageUrl(data.company_cover)}
@@ -220,7 +246,7 @@ export default function CompanyBasicInfo({
           {/* Cover image editor */}
           <div 
             onClick={() => coverInputRef.current?.click()}
-            className="group h-80 w-full bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 cursor-pointer transition-all hover:brightness-95"
+            className="group w-full aspect-[3/1] bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 cursor-pointer transition-all hover:brightness-95"
           >
             {data.company_cover ? (
               <img
@@ -248,7 +274,7 @@ export default function CompanyBasicInfo({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, "company_cover")}
+              onChange={(e) => handleFileSelect(e, "company_cover")}
             />
           </div>
 
@@ -281,7 +307,7 @@ export default function CompanyBasicInfo({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => handleFileUpload(e, "company_logo")}
+              onChange={(e) => handleFileSelect(e, "company_logo")}
             />
           </div>
         </div>
@@ -455,6 +481,15 @@ export default function CompanyBasicInfo({
           </div>
         </div>
       </div>
+
+      <ImageCropModal
+        isOpen={cropModalState.isOpen}
+        imageSrc={cropModalState.imageSrc}
+        type={cropModalState.type}
+        onCancel={() => setCropModalState((prev) => ({ ...prev, isOpen: false, imageSrc: null }))}
+        onConfirm={handleCroppedUpload}
+        uploading={cropModalState.type === "company_logo" ? uploadingLogo : uploadingCover}
+      />
     </div>
   );
 }

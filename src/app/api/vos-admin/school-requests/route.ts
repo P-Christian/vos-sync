@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { getSchoolRequests, createSchoolRequest, createSchoolRequestSchema } from "@/modules/vos-admin/request-management";
+import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 
 import { cookies } from "next/headers";
 
@@ -46,6 +47,18 @@ export async function POST(req: NextRequest) {
     const parsed = createSchoolRequestSchema.parse(body);
 
     const request = await createSchoolRequest(parsed, adminId);
+
+    createAuditRecordRepo({
+      event_type: "SCHOOL_REGISTER",
+      event_category: "SCHOOL",
+      action: "REGISTER",
+      status: "SUCCESS",
+      actor_type: "ADMIN",
+      actor_user_id: adminId,
+      resource_type: "vs_school_request",
+      reason: `School registration request created for ${parsed.requested_school_name || 'School'}`,
+    });
+
     return NextResponse.json({ request }, { status: 201 });
   } catch (error: unknown) {
     return NextResponse.json({ error: (error as Error).message }, { status: 400 });

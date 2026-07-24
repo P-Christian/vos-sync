@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     }
 
     const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_user/${userId}?fields=user_id,user_email,user_fname,user_mname,user_lname,user_contact,user_position,user_department,profile_image_url,role`,
+      `${DIRECTUS_BASE}/items/vs_user/${userId}?fields=user_id,user_email,user_fname,user_mname,user_lname,suffix_name,nickname,user_contact,user_position,user_department,user_province,user_city,user_brgy,gender,user_bday,civil_status,profile_image_url,user_image,role`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -103,13 +103,28 @@ export async function PATCH(req: NextRequest) {
     const payload = body?.payload;
 
     if (type === "PROFILE") {
-      const updateData = {
-        user_fname: payload?.user_fname,
-        user_mname: payload?.user_mname,
-        user_lname: payload?.user_lname,
-        user_contact: payload?.user_contact,
-        user_position: payload?.user_position,
+      const cleanVal = (val: unknown) => {
+        if (val === undefined) return undefined;
+        if (typeof val === "string" && val.trim() === "") return null;
+        return val;
       };
+
+      const updateData: Record<string, unknown> = {};
+      if (payload?.user_fname !== undefined) updateData.user_fname = payload.user_fname;
+      if (payload?.user_mname !== undefined) updateData.user_mname = cleanVal(payload.user_mname);
+      if (payload?.user_lname !== undefined) updateData.user_lname = payload.user_lname;
+      if (payload?.suffix_name !== undefined) updateData.suffix_name = cleanVal(payload.suffix_name);
+      if (payload?.nickname !== undefined) updateData.nickname = cleanVal(payload.nickname);
+      if (payload?.user_contact !== undefined) updateData.user_contact = payload.user_contact;
+      if (payload?.user_position !== undefined) updateData.user_position = cleanVal(payload.user_position);
+      if (payload?.user_province !== undefined) updateData.user_province = cleanVal(payload.user_province);
+      if (payload?.user_city !== undefined) updateData.user_city = cleanVal(payload.user_city);
+      if (payload?.user_brgy !== undefined) updateData.user_brgy = cleanVal(payload.user_brgy);
+      if (payload?.gender !== undefined) updateData.gender = cleanVal(payload.gender);
+      if (payload?.user_bday !== undefined) updateData.user_bday = cleanVal(payload.user_bday);
+      if (payload?.civil_status !== undefined) updateData.civil_status = cleanVal(payload.civil_status);
+      if (payload?.profile_image_url !== undefined) updateData.profile_image_url = cleanVal(payload.profile_image_url);
+      if (payload?.user_image !== undefined) updateData.user_image = cleanVal(payload.user_image);
 
       const res = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
         method: "PATCH",

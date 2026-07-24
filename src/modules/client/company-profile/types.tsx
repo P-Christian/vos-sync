@@ -21,7 +21,7 @@ export interface CompanyProfile {
   company_vision?: string | null;
   company_culture?: string | null;
   company_benefits?: string | null;
-  industry_id?: number | null;
+  industry_id?: number | string | null;
   organization_type_id?: number | null;
   company_size_id?: number | null;
   year_established?: number | null;

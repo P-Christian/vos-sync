@@ -63,7 +63,7 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2 } from "lucide-react";
 
 export function AppSidebar({
     className,
@@ -140,6 +140,8 @@ export function AppSidebar({
                 { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
+                { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
+                { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
             ],
             footerLinks: [],
         };
