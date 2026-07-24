@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { reviewIdentityDocument } from "@/modules/vos-admin/user-management";
+import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 import { cookies } from "next/headers";
 
 const JWT_SECRET = new TextEncoder().encode(
@@ -42,6 +43,18 @@ export async function POST(req: NextRequest) {
       adminId,
       rejectionNote
     );
+
+    createAuditRecordRepo({
+      event_type: status === 'approved' ? "IDENTITY_VERIFICATION_APPROVED" : "IDENTITY_VERIFICATION_REJECTED",
+      event_category: "USER",
+      action: status === 'approved' ? "VERIFY" : "REJECT",
+      status: "SUCCESS",
+      actor_type: "ADMIN",
+      actor_user_id: adminId,
+      resource_type: "vs_identity_verifications",
+      resource_id: String(verificationId),
+      reason: rejectionNote || `Identity document ${status} by admin #${adminId}`,
+    });
 
     return NextResponse.json({ verification });
   } catch (error: unknown) {

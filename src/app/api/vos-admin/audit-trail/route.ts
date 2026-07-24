@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { fetchAuditLogsRepo, fetchAuditKPIsRepo, AuditFilters } from "@/modules/vos-admin/audit-trail";
+import { fetchAuditLogsRepo, fetchAuditKPIsRepo, createAuditRecordRepo, AuditFilters } from "@/modules/vos-admin/audit-trail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,6 +63,16 @@ export async function GET(req: NextRequest) {
 
     // CSV export mode
     if (isExport) {
+      createAuditRecordRepo({
+        event_type: "AUDIT_EXPORT",
+        event_category: "ADMIN",
+        action: "EXPORT",
+        status: "SUCCESS",
+        actor_type: "ADMIN",
+        actor_user_id: auth.adminId,
+        reason: `Exported ${records.length} audit records to CSV`,
+      });
+
       const headers = [
         "Audit ID",
         "Timestamp",
