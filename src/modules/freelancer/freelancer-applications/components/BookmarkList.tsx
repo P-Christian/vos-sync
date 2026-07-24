@@ -60,9 +60,10 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
   const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
 
   useEffect(() => {
+    const currentTimeouts = timeoutsRef.current;
     return () => {
       // Execute any pending removals immediately on unmount
-      Object.entries(timeoutsRef.current).forEach(([jobIdStr, timer]) => {
+      Object.entries(currentTimeouts).forEach(([jobIdStr, timer]) => {
         clearTimeout(timer);
         onRemoveBookmark(Number(jobIdStr));
       });

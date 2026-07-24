@@ -252,7 +252,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                   <Section title={`Screening Questions (${job.screening_questions.length})`}>
                     <div className="space-y-2">
                       {job.screening_questions.map((q, i) => {
-                        const qText = typeof q === "object" && q !== null ? (q as any).question_text : String(q);
+                        const qText = typeof q === "object" && q !== null ? (q as { question_text?: string }).question_text || "" : String(q);
                         return (
                           <div key={i} className="flex items-start gap-2 text-sm text-foreground/70 bg-muted/40 rounded-lg p-1">
                             <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />

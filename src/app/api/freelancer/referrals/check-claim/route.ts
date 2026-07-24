@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
       claimed: true,
       referrer_name: referrerName
     });
-  } catch (err: any) {
-    return NextResponse.json({ claimed: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "An error occurred";
+    return NextResponse.json({ claimed: false, error: errorMsg }, { status: 500 });
   }
 }

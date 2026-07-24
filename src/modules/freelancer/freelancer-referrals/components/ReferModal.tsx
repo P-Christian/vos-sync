@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/freelancer/freelancer-referrals/components/ReferModal.tsx
 "use client";
 
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Copy, Check, Share2, Mail, Link as LinkIcon } from "lucide-react";
+import { Copy, Check } from "lucide-react";
 
 interface ReferModalProps {
   jobId: number;
@@ -25,9 +26,9 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
   // Reset state on close or open
   React.useEffect(() => {
     if (open) {
-      setEmail("");
-      setReferralLink("");
-      setCopied(false);
+      setEmail((prev) => prev !== "" ? "" : prev);
+      setReferralLink((prev) => prev !== "" ? "" : prev);
+      setCopied((prev) => prev !== false ? false : prev);
     }
   }, [open]);
 
@@ -58,8 +59,9 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
       } else {
         toast.success("Link generated!", { description: "You can copy and share the link manually." });
       }
-    } catch (err: any) {
-      toast.error("Referral creation failed", { description: err.message });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      toast.error("Referral creation failed", { description: errorMsg });
     } finally {
       setLoading(false);
     }

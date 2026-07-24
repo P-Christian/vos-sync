@@ -74,7 +74,8 @@ export async function POST(
     await logReferralHistory(Number(id), referral.status, "REVOKED", `user:${userId}`, "Revoked by Referrer");
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "An error occurred";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

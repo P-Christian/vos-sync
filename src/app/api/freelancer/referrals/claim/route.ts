@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({ success: true, claim });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? "Failed to claim referral." }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to claim referral.";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

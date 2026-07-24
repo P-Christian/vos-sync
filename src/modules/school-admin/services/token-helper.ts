@@ -17,7 +17,7 @@ export async function getHeaderUserFromToken() {
   const token = cookieStore.get("vos_access_token")?.value ?? null;
   const p = token ? decodeJwtPayload(token) : null;
   
-  const pickString = (obj: any, keys: string[]) => {
+  const pickString = (obj: Record<string, unknown> | null, keys: string[]) => {
     for (const k of keys) {
       const v = obj?.[k];
       if (typeof v === "string" && v.trim()) return v.trim();

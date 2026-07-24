@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/app/(public)/referral/[token]/ReferralLandingClient.tsx
 "use client";
 
@@ -12,7 +13,23 @@ import { Separator } from "@/components/ui/separator";
 import { Briefcase, MapPin, User, Check, LogIn } from "lucide-react";
 
 interface ReferralLandingClientProps {
-  referral: any;
+  referral: {
+    referral_id: number;
+    job_id: {
+      job_id: number;
+      job_title: string;
+      work_arrangement?: string;
+      job_type?: string;
+      job_location?: string;
+      job_description?: string;
+    };
+    referrer_user_id?: {
+      user_fname?: string;
+      user_lname?: string;
+    };
+    status: string;
+    expires_at: string;
+  };
   token: string;
   isLoggedIn: boolean;
 }
@@ -26,12 +43,14 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
 
   React.useEffect(() => {
     // Sync login state with server prop and fallback to check cookies
-    if (isLoggedInFromServer) {
-      setIsLoggedIn(true);
-    } else {
-      const match = document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/);
-      setIsLoggedIn(!!match);
-    }
+    const hasToken = typeof document !== "undefined" && !!document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/);
+    const resolvedLogged = isLoggedInFromServer || hasToken;
+    setIsLoggedIn((prev) => {
+      if (prev !== resolvedLogged) {
+        return resolvedLogged;
+      }
+      return prev;
+    });
   }, [isLoggedInFromServer]);
 
   const handleAccept = async () => {
@@ -68,8 +87,9 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
 
       toast.success("Referral associated!", { description: "You can now apply for this job." });
       setClaimCompleted(true);
-    } catch (err: any) {
-      toast.error("Referral Claim Error", { description: err.message });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      toast.error("Referral Claim Error", { description: errorMsg });
     } finally {
       setLoading(false);
     }

@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { ApplicationItem, ApplicationStatus, STATUS_LABELS, PublicJobPosting } from '../types';
 import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { JobDetailSheet } from './JobDetailSheet';
 import CompanyPreviewModal from './CompanyPreviewModal';
 import { CompanyProfile } from '../types';
@@ -165,6 +164,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           >
             <div className={`w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0 overflow-hidden ${isClickable ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
               {app.company_details?.company_logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img 
                   src={app.company_details.company_logo.startsWith("http") ? app.company_details.company_logo : `/api/client/assets/${app.company_details.company_logo}`} 
                   alt={app.company_name ?? ""} 
@@ -261,6 +261,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
                   >
                     <div className={`w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0 overflow-hidden ${!!selectedApp.company_details ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
                       {selectedApp.company_details?.company_logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img 
                           src={selectedApp.company_details.company_logo.startsWith("http") ? selectedApp.company_details.company_logo : `/api/client/assets/${selectedApp.company_details.company_logo}`} 
                           alt={selectedApp.company_name ?? ""} 

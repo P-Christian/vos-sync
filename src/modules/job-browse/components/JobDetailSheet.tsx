@@ -82,11 +82,12 @@ function getImageUrl(value: string | null | undefined): string {
 }
 
 export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = [], bookmarkedJobIds = [], onToggleBookmark }: Props) {
+  const [referModalOpen, setReferModalOpen] = React.useState(false);
+
   if (!job) return null;
 
   const alreadyApplied = appliedJobIds.includes(job.job_id);
   const isBookmarked = bookmarkedJobIds.includes(job.job_id);
-  const [referModalOpen, setReferModalOpen] = React.useState(false);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>

@@ -120,8 +120,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, ...result });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? "Failed to create referral." }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "Failed to create referral.";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }
 
@@ -147,7 +148,8 @@ export async function GET(req: NextRequest) {
 
     const json = await res.json();
     return NextResponse.json({ referrals: json.data || [] });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : "An error occurred";
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

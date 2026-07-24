@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -81,7 +81,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
       loadPrefill(job);
       
       // Check for active referral claim
-      setReferrerName(null);
+      if (referrerName !== null) {
+        setReferrerName(null);
+      }
       fetch(`/api/freelancer/referrals/check-claim?job_id=${job.job_id}`)
         .then((res) => res.json())
         .then((data) => {
@@ -91,7 +93,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
         })
         .catch((err) => console.error("Error checking claim:", err));
     }
-  }, [open, job, loadPrefill]);
+  }, [open, job, loadPrefill, referrerName]);
 
   const handleClose = () => {
     reset();

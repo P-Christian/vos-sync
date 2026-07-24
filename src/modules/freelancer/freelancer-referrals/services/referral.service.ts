@@ -80,7 +80,7 @@ export async function createReferralRecord(userId: number, jobId: number, recipi
   const now = new Date();
   const expiresAt = new Date(now.getTime() + policy.expiry_days * 24 * 60 * 60 * 1000);
 
-  const payload: Record<string, any> = {
+  const payload: Record<string, unknown> = {
     job_id: jobId,
     referrer_user_id: userId,
     token_hash: hash,
@@ -107,7 +107,7 @@ export async function createReferralRecord(userId: number, jobId: number, recipi
   const created = (await res.json()).data;
   
   // Log history
-  await logReferralHistory(created.referral_id, "None", payload.status, "system", "Creation");
+  await logReferralHistory(created.referral_id, "None", payload.status as string, "system", "Creation");
 
   return {
     referral: created,
@@ -132,7 +132,7 @@ export async function claimReferralRecord(referralId: number, candidateUserId: n
     headers: getHeaders(),
     cache: "no-store"
   });
-  let refData: any = null;
+  let refData: { referrer_user_id?: number; job_id?: { job_title?: string } } | null = null;
   if (refRes.ok) {
     refData = (await refRes.json()).data;
     if (refData && refData.referrer_user_id === candidateUserId) {

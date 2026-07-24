@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/app/(vos-sync)/vos-sync/freelancer/referrals/page.tsx
 "use client";
 
@@ -17,29 +18,43 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Share2, Ban, Copy, Check, Clock, Link as LinkIcon } from "lucide-react";
+import { Ban, Copy, Check } from "lucide-react";
+
+interface ReferralItem {
+  referral_id: number;
+  job_id?: {
+    job_id: number;
+    job_title: string;
+  };
+  display_hint?: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+  token_hash: string;
+}
 
 export default function MyReferralsPage() {
-  const [referrals, setReferrals] = React.useState<any[]>([]);
+  const [referrals, setReferrals] = React.useState<ReferralItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copiedId, setCopiedId] = React.useState<number | null>(null);
 
-  const fetchReferrals = async () => {
+  const fetchReferrals = React.useCallback(async () => {
     try {
       const res = await fetch("/api/freelancer/referrals");
       if (!res.ok) throw new Error("Failed to load referrals");
       const data = await res.json();
       setReferrals(data.referrals || []);
-    } catch (err: any) {
-      toast.error("Error loading referrals", { description: err.message });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      toast.error("Error loading referrals", { description: errorMsg });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   React.useEffect(() => {
     fetchReferrals();
-  }, []);
+  }, [fetchReferrals]);
 
   const handleCopyLink = (referralId: number, tokenHash: string) => {
     // Note: Since plain token is not stored, we generate/use a share link.
@@ -67,8 +82,9 @@ export default function MyReferralsPage() {
 
       toast.success("Referral Revoked");
       fetchReferrals();
-    } catch (err: any) {
-      toast.error("Revocation failed", { description: err.message });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      toast.error("Revocation failed", { description: errorMsg });
     }
   };
 
@@ -129,7 +145,7 @@ export default function MyReferralsPage() {
             <CardHeader>
               <CardTitle>My Shared Links</CardTitle>
               <CardDescription>
-                A list of referrals you have created. You can revoke invitations that haven't been claimed yet.
+                A list of referrals you have created. You can revoke invitations that haven&apos;t been claimed yet.
               </CardDescription>
             </CardHeader>
             <CardContent>
