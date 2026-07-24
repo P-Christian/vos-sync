@@ -4,6 +4,7 @@ import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
+import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -341,7 +342,6 @@ export async function POST(req: NextRequest) {
 
     if (applicationId) {
       try {
-        const { handleApplicationSubmissionReferral } = await import("@/modules/freelancer/freelancer-referrals/services/referral.service");
         await handleApplicationSubmissionReferral(Number(applicationId), userId, Number(body.job_id));
       } catch (err) {
         console.error("Failed to run referral association on application submit:", err);

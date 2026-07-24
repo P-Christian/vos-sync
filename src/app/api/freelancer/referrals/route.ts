@@ -1,6 +1,7 @@
-// src/app/api/freelancer/referrals/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createReferralRecord } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
+import { sendMail } from "@/lib/mail";
+import { createNotification } from "@/lib/notifications";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -50,7 +51,6 @@ export async function POST(req: NextRequest) {
 
     // If an email is supplied, send the invite via SMTP
     if (recipient_email) {
-      const { sendMail } = await import("@/lib/mail");
       const jobRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${job_id}?fields=job_title,company_id.company_name`, {
         headers: getHeaders(),
         cache: "no-store",
@@ -90,6 +90,33 @@ export async function POST(req: NextRequest) {
           </div>
         `,
       }).catch((err) => console.error("Referral SMTP invite email error:", err));
+
+      // Check if recipient is a registered freelancer/user
+      try {
+        const recipientRes = await fetch(`${DIRECTUS_BASE}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(recipient_email.trim().toLowerCase())}&fields=user_id`, {
+          headers: getHeaders(),
+          cache: "no-store",
+        });
+        if (recipientRes.ok) {
+          const recJson = await recipientRes.json();
+          const recData = recJson.data || [];
+          if (recData.length > 0) {
+            const recipientUserId = Number(recData[0].user_id);
+            await createNotification({
+              event_type: "referral_received",
+              recipient_user_id: recipientUserId,
+              entity_type: "job_referral",
+              entity_id: result.referral.referral_id,
+              category: "Referrals",
+              title: "New Job Referral Opportunity",
+              message: `${referrerName} has referred you to the position: ${jobTitle}. Click to review details and accept.`,
+              action_url: `/referral/${result.token}`,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to notify recipient user in-app:", err);
+      }
     }
 
     return NextResponse.json({ success: true, ...result });

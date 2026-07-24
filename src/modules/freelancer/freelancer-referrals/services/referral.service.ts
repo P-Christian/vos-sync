@@ -1,5 +1,6 @@
-// src/modules/freelancer/freelancer-referrals/services/referral.service.ts
 import crypto from "crypto";
+import { sendMail } from "@/lib/mail";
+import { createNotification } from "@/lib/notifications";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -127,12 +128,13 @@ export async function getReferralByToken(token: string) {
 
 export async function claimReferralRecord(referralId: number, candidateUserId: number, jobId: number, consentVersion: string) {
   // Check self referral
-  const refRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_referral/${referralId}?fields=referrer_user_id`, {
+  const refRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_referral/${referralId}?fields=referrer_user_id,job_id.job_title`, {
     headers: getHeaders(),
     cache: "no-store"
   });
+  let refData: any = null;
   if (refRes.ok) {
-    const refData = (await refRes.json()).data;
+    refData = (await refRes.json()).data;
     if (refData && refData.referrer_user_id === candidateUserId) {
       throw new Error("Self-referral is not allowed.");
     }
@@ -169,6 +171,34 @@ export async function claimReferralRecord(referralId: number, candidateUserId: n
   });
 
   await logReferralHistory(referralId, "SENT", "CLAIMED", `user:${candidateUserId}`, "Consent Bound");
+
+  // Send in-app notification to referrer
+  if (refData && refData.referrer_user_id) {
+    try {
+      let candidateName = "A candidate";
+      const candRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${candidateUserId}?fields=user_fname,user_lname`, {
+        headers: getHeaders(),
+        cache: "no-store"
+      });
+      if (candRes.ok) {
+        const cand = (await candRes.json()).data;
+        candidateName = `${cand?.user_fname ?? ""} ${cand?.user_lname ?? ""}`.trim() || candidateName;
+      }
+
+      await createNotification({
+        event_type: "referral_claimed",
+        recipient_user_id: Number(refData.referrer_user_id),
+        entity_type: "job_referral",
+        entity_id: referralId,
+        category: "Referral Updates",
+        title: "Referral Invitation Accepted!",
+        message: `${candidateName} has accepted your referral invite for the position ${refData.job_id?.job_title || "Opportunity"}.`,
+        action_url: "/vos-sync/freelancer/referrals",
+      });
+    } catch (err) {
+      console.error("Failed to send claim in-app notification to referrer:", err);
+    }
+  }
 
   return claim;
 }
@@ -257,8 +287,6 @@ export async function handleApplicationSubmissionReferral(applicationId: number,
 
     // 5. Send SMTP email notification to the referrer
     if (referrer.user_email) {
-      const { sendMail } = await import("@/lib/mail");
-      
       const candidateRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${candidateUserId}?fields=user_fname,user_lname`, {
         headers: getHeaders(),
         cache: "no-store"
@@ -283,6 +311,22 @@ export async function handleApplicationSubmissionReferral(applicationId: number,
           </div>
         `,
       }).catch((err) => console.error("Referral application SMTP notification error:", err));
+
+      // Trigger in-app notification to referrer
+      try {
+        await createNotification({
+          event_type: "referral_applied",
+          recipient_user_id: referrer.user_id,
+          entity_type: "job_referral",
+          entity_id: referralId,
+          category: "Referral Updates",
+          title: "Referral Candidate Applied!",
+          message: `${candidateName} has submitted their application for the position ${referral.job_id?.job_title || "Vacancy"}.`,
+          action_url: "/vos-sync/freelancer/referrals",
+        });
+      } catch (err) {
+        console.error("Failed to send application in-app notification to referrer:", err);
+      }
     }
 
   } catch (err) {
