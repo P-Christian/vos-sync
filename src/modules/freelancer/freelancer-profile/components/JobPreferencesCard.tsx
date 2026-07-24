@@ -72,13 +72,25 @@ export function JobPreferencesCard() {
                 <div className="space-y-1">
                     <p className="text-sm font-medium text-muted-foreground">Salary Range</p>
                     <p className="text-sm">
-                        {preferences.salary_range_min && preferences.salary_range_max
-                            ? `₱${preferences.salary_range_min.toLocaleString()} - ₱${preferences.salary_range_max.toLocaleString()}`
-                            : preferences.salary_range_min 
-                                ? `From ₱${preferences.salary_range_min.toLocaleString()}`
-                                : preferences.salary_range_max
-                                    ? `Up to ₱${preferences.salary_range_max.toLocaleString()}`
-                                    : 'Not specified'}
+                        {(() => {
+                            const currencySymbols: Record<string, string> = {
+                                PHP: "₱",
+                                USD: "$",
+                                EUR: "€",
+                                GBP: "£",
+                                AUD: "A$",
+                                SGD: "S$",
+                                JPY: "¥"
+                            };
+                            const symbol = currencySymbols[preferences.currency || "PHP"] || "₱";
+                            return preferences.salary_range_min && preferences.salary_range_max
+                                ? `${symbol}${preferences.salary_range_min.toLocaleString()} - ${symbol}${preferences.salary_range_max.toLocaleString()}`
+                                : preferences.salary_range_min 
+                                    ? `From ${symbol}${preferences.salary_range_min.toLocaleString()}`
+                                    : preferences.salary_range_max
+                                        ? `Up to ${symbol}${preferences.salary_range_max.toLocaleString()}`
+                                        : 'Not specified';
+                        })()}
                     </p>
                 </div>
                 

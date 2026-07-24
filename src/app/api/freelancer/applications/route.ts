@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // Enrich with job details (title, type, location, work_arrangement)
     const jobIds = [...new Set(applications.map((a) => a.job_id as number))];
     const jobsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,job_type,job_location,work_arrangement,experience_level,company_id&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,job_description,job_type,job_location,work_arrangement,experience_level,company_id&limit=500`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -93,17 +93,26 @@ export async function GET(req: NextRequest) {
           .filter(Boolean)
       ),
     ];
-    const companyMap: Record<number, string> = {};
+    const companyMap: Record<number, Record<string, unknown>> = {};
     if (companyIds.length > 0) {
+      const companyFields = [
+        "company_id", "company_name", "company_legal_name", "company_email", "company_contact",
+        "company_website", "company_description", "company_mission", "company_vision", "company_culture",
+        "company_benefits", "industry_id", "company_size_id", "year_established", "company_province",
+        "company_city", "company_brgy", "company_address", "company_zipCode", "registration_no",
+        "company_tin", "company_logo", "company_cover", "company_facebook", "company_linkedin",
+        "company_instagram", "company_x", "company_youtube", "company_tags", "verification_status",
+        "is_public", "is_active"
+      ].join(",");
       const compRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name&limit=200`,
+        `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&filter[is_public][_eq]=true&fields=${companyFields}&limit=200`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (compRes.ok) {
         const compJson = await compRes.json();
         const companies: Record<string, unknown>[] = compJson.data ?? [];
         companies.forEach((c) => {
-          companyMap[c.company_id as number] = c.company_name as string;
+          companyMap[c.company_id as number] = c;
         });
       }
     }
@@ -172,14 +181,18 @@ export async function GET(req: NextRequest) {
       const job = jobsMap[app.job_id as number] ?? {};
       const companyId = job.company_id as number;
       const appId = app.application_id as number;
+      const company = companyId ? companyMap[companyId] : null;
       return {
         ...app,
         job_title: job.job_title ?? null,
+        job_description: job.job_description ?? null,
         job_type: job.job_type ?? null,
         job_location: job.job_location ?? null,
         work_arrangement: job.work_arrangement ?? null,
         experience_level: job.experience_level ?? null,
-        company_name: companyId ? (companyMap[companyId] ?? null) : null,
+        company_id: companyId ?? null,
+        company_name: company?.company_name ?? null,
+        company_details: company ?? null,
         screening_answers: screeningMap[appId] ?? null,
         resume: app.resume_id ? (resumeMap[app.resume_id as number] ?? null) : null,
       };

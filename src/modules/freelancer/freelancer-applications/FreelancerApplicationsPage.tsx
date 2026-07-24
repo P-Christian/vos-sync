@@ -5,10 +5,6 @@ import { useFreelancerApplications } from './hooks/useFreelancerApplications';
 import { ApplicationHeader } from './components/ApplicationHeader';
 import { ApplicationSummaryCards } from './components/ApplicationSummaryCards';
 import { ApplicationTable } from './components/ApplicationTable';
-import { ApplicationTips } from './components/ApplicationTips';
-import { AIPromotionCard } from './components/AIPromotionCard';
-
-// Imports for the merged Bookmarks view
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useFreelancerBookmarks } from './hooks/useFreelancerBookmarks';
 import { BookmarkList } from './components/BookmarkList';
@@ -151,20 +147,14 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             </div>
           ) : (
             <div className="mb-8">
-              <BookmarkList bookmarks={filteredBookmarks} onRemoveBookmark={removeBookmark} />
+              <BookmarkList 
+                bookmarks={filteredBookmarks} 
+                onRemoveBookmark={removeBookmark} 
+              />
             </div>
           )}
         </TabsContent>
       </Tabs>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <ApplicationTips />
-        </div>
-        <div className="md:col-span-1">
-          <AIPromotionCard />
-        </div>
-      </div>
     </div>
   );
 };

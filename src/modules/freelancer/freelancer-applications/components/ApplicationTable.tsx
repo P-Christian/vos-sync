@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ApplicationItem, ApplicationStatus, STATUS_LABELS } from '../types';
-import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign } from 'lucide-react';
+import { ApplicationItem, ApplicationStatus, STATUS_LABELS, PublicJobPosting } from '../types';
+import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { JobDetailSheet } from './JobDetailSheet';
+import CompanyPreviewModal from './CompanyPreviewModal';
+import { CompanyProfile } from '../types';
 import { DataTable } from './NewDataTable';
 import { ColumnDef } from '@tanstack/react-table';
 import {
@@ -89,6 +93,36 @@ function getInitials(name?: string): string {
 
 export const ApplicationTable: React.FC<Props> = ({ applications }) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
+  const [originalJob, setOriginalJob] = useState<PublicJobPosting | null>(null);
+  const [isJobSheetOpen, setIsJobSheetOpen] = useState(false);
+  const [loadingJob, setLoadingJob] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyProfile | null>(null);
+  const [isCompanyOpen, setIsCompanyOpen] = useState(false);
+
+  const handleOpenJobPost = async (jobId: number) => {
+    try {
+      setLoadingJob(true);
+      const res = await fetch("/api/freelancer/jobs");
+      if (res.ok) {
+        const data = await res.json();
+        const jobs: PublicJobPosting[] = data.jobs || [];
+        const found = jobs.find(j => j.job_id === jobId);
+        if (found) {
+          setOriginalJob(found);
+          setIsJobSheetOpen(true);
+        } else {
+          alert("Could not find the original job post. It might have been closed or deleted.");
+        }
+      } else {
+        alert("Failed to load original job post.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error loading job post.");
+    } finally {
+      setLoadingJob(false);
+    }
+  };
 
   const handleWithdraw = (app: ApplicationItem) => {
     // Placeholder for withdraw action
@@ -117,12 +151,32 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
       header: 'Company',
       cell: ({ row }) => {
         const app = row.original;
+        const isClickable = !!app.company_details;
         return (
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0">
-              {getInitials(app.company_name)}
+          <div 
+            className={`flex items-center gap-2.5 ${isClickable ? 'group cursor-pointer' : ''}`}
+            onClick={(e) => {
+              if (isClickable) {
+                e.stopPropagation();
+                setSelectedCompany(app.company_details ?? null);
+                setIsCompanyOpen(true);
+              }
+            }}
+          >
+            <div className={`w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0 overflow-hidden ${isClickable ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
+              {app.company_details?.company_logo ? (
+                <img 
+                  src={app.company_details.company_logo.startsWith("http") ? app.company_details.company_logo : `/api/client/assets/${app.company_details.company_logo}`} 
+                  alt={app.company_name ?? ""} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                getInitials(app.company_name)
+              )}
             </div>
-            <span className="text-sm text-foreground">{app.company_name ?? '—'}</span>
+            <span className={`text-sm text-foreground ${isClickable ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
+              {app.company_name ?? '—'}
+            </span>
           </div>
         );
       },
@@ -194,14 +248,47 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           <div className="p-6 overflow-y-auto space-y-6">
             {selectedApp && (
               <>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0">
-                    {getInitials(selectedApp.company_name)}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div 
+                    className={`flex items-center gap-4 ${!!selectedApp.company_details ? 'group cursor-pointer' : ''}`}
+                    onClick={(e) => {
+                      if (selectedApp.company_details) {
+                        e.stopPropagation();
+                        setSelectedCompany(selectedApp.company_details ?? null);
+                        setIsCompanyOpen(true);
+                      }
+                    }}
+                  >
+                    <div className={`w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0 overflow-hidden ${!!selectedApp.company_details ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
+                      {selectedApp.company_details?.company_logo ? (
+                        <img 
+                          src={selectedApp.company_details.company_logo.startsWith("http") ? selectedApp.company_details.company_logo : `/api/client/assets/${selectedApp.company_details.company_logo}`} 
+                          alt={selectedApp.company_name ?? ""} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        getInitials(selectedApp.company_name)
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{selectedApp.job_title ?? '—'}</h3>
+                      <p className={`text-sm text-muted-foreground ${!!selectedApp.company_details ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
+                        {selectedApp.company_name ?? '—'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{selectedApp.job_title ?? '—'}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedApp.company_name ?? '—'}</p>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="shrink-0"
+                    disabled={loadingJob}
+                    onClick={() => handleOpenJobPost(selectedApp.job_id)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {loadingJob ? "Loading..." : "View Original Job Post"}
+                    </span>
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1 border-b border-border/50 pb-6">
@@ -226,6 +313,15 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
                     </span>
                   )}
                 </div>
+
+                {selectedApp.job_description && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Job Description</p>
+                    <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto">
+                      {selectedApp.job_description}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
@@ -373,6 +469,18 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <JobDetailSheet 
+        job={originalJob}
+        open={isJobSheetOpen}
+        onClose={() => setIsJobSheetOpen(false)}
+      />
+
+      <CompanyPreviewModal 
+        company={selectedCompany}
+        open={isCompanyOpen}
+        onClose={() => setIsCompanyOpen(false)}
+      />
     </>
   );
 };

@@ -29,15 +29,15 @@ export function useFreelancerApplications() {
   // Computed summary KPIs
   const summary: ApplicationSummary = useMemo(() => {
     const total = allApplications.length;
-    const interviewing = allApplications.filter(
-      (a) => a.application_status === "INTERVIEW_SCHEDULED"
+    const pendingApplications = allApplications.filter(
+      (a) => a.application_status === "APPLIED"
     ).length;
     const hired = allApplications.filter((a) => a.application_status === "HIRED").length;
     const successRate = total > 0 ? Math.round((hired / total) * 100) : 0;
 
     return {
       totalApplied: total,
-      interviewing,
+      pendingApplications,
       activeOffers: hired,
       successRate,
     };

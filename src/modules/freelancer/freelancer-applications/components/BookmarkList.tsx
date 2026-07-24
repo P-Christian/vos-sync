@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { BookmarkedJob } from "../types";
 import { MapPin, Briefcase, Clock, Building2, ChevronRight, Wifi, Users, Bookmark, BookmarkMinus } from "lucide-react";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   bookmarks: BookmarkedJob[];
-  onRemoveBookmark: (jobId: number) => void;
+  onRemoveBookmark: (jobId: number) => Promise<boolean> | void;
 }
 
 function formatSalary(job: BookmarkedJob): string {
@@ -56,7 +56,40 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 };
 
 export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) => {
-  if (bookmarks.length === 0) {
+  const [locallyRemovedIds, setLocallyRemovedIds] = useState<number[]>([]);
+  const timeoutsRef = useRef<Record<number, NodeJS.Timeout>>({});
+
+  useEffect(() => {
+    return () => {
+      // Execute any pending removals immediately on unmount
+      Object.entries(timeoutsRef.current).forEach(([jobIdStr, timer]) => {
+        clearTimeout(timer);
+        onRemoveBookmark(Number(jobIdStr));
+      });
+    };
+  }, [onRemoveBookmark]);
+
+  const handleLocalRemove = (jobId: number) => {
+    setLocallyRemovedIds((prev) => [...prev, jobId]);
+
+    const timer = setTimeout(async () => {
+      delete timeoutsRef.current[jobId];
+      await onRemoveBookmark(jobId);
+      setLocallyRemovedIds((prev) => prev.filter((id) => id !== jobId));
+    }, 5000);
+
+    timeoutsRef.current[jobId] = timer;
+  };
+
+  const handleUndo = (jobId: number) => {
+    if (timeoutsRef.current[jobId]) {
+      clearTimeout(timeoutsRef.current[jobId]);
+      delete timeoutsRef.current[jobId];
+    }
+    setLocallyRemovedIds((prev) => prev.filter((id) => id !== jobId));
+  };
+
+  if (bookmarks.length === 0 && locallyRemovedIds.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
         <div className="p-4 bg-muted/40 rounded-2xl">
@@ -80,6 +113,33 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {bookmarks.map((job) => {
+        const isLocallyRemoved = locallyRemovedIds.includes(job.job_id);
+
+        if (isLocallyRemoved) {
+          return (
+            <div
+              key={job.bookmark_id}
+              className="border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 flex flex-col items-center justify-center text-center bg-zinc-50/50 dark:bg-zinc-900/20 min-h-[220px]"
+            >
+              <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                <BookmarkMinus className="h-5 w-5 text-muted-foreground animate-pulse" />
+                <p className="text-sm font-semibold text-foreground">Saved job removed</p>
+                <p className="text-xs text-muted-foreground max-w-[200px] truncate">
+                  &quot;{job.job_title}&quot; was removed.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleUndo(job.job_id)}
+                className="mt-3 w-28 text-xs font-semibold rounded-xl bg-background hover:bg-muted shadow-xs"
+              >
+                Undo
+              </Button>
+            </div>
+          );
+        }
+
         const ArrangeIcon = arrangementIcon[job.work_arrangement ?? ""] ?? Briefcase;
 
         return (
@@ -117,7 +177,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
                 className="absolute top-0 right-0 h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRemoveBookmark(job.job_id);
+                  handleLocalRemove(job.job_id);
                 }}
                 title="Remove Bookmark"
               >

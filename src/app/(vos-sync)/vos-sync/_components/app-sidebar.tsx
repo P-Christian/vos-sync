@@ -140,8 +140,11 @@ export function AppSidebar({
                 { label: "School List", href: "/vos-sync/vos-admin/schools", icon: GraduationCap },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
+                { label: "Settings", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
             ],
-            footerLinks: [],
+            footerLinks: [
+                { label: "Log out", href: "/logout", icon: LogOut },
+            ],
         };
         return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;
     }
