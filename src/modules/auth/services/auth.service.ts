@@ -185,6 +185,8 @@ export async function confirmOTP(userId: string | number, code: string) {
     const token = await new jose.SignJWT({ 
         sub: String(user.user_id),
         email: user.user_email,
+        user_fname: user.user_fname,
+        user_lname: user.user_lname,
         role: user.role,
         role_name: cleanRoleName,
         role_id: user.role_id
