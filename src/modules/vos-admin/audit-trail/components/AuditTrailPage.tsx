@@ -8,6 +8,7 @@ import { AuditKPICards } from './AuditKPICards';
 import { AuditFilters } from './AuditFilters';
 import { AuditTable } from './AuditTable';
 import { AuditDetailModal } from './AuditDetailModal';
+import { AuditSettingsModal } from './AuditSettingsModal';
 import { Card } from '@/components/ui/card';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 
@@ -26,10 +27,11 @@ const DEFAULT_FILTERS: AuditFiltersType = {
 };
 
 export function AuditTrailPage() {
-  const { records, total, kpis, loading, error, fetchAuditLogs, exportCSV } = useAuditTrail();
+  const { records, total, kpis, config, loading, error, fetchAuditLogs, fetchAuditConfig, saveAuditConfig, exportCSV } = useAuditTrail();
   const [filters, setFilters] = useState<AuditFiltersType>(DEFAULT_FILTERS);
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const loadData = useCallback(() => {
@@ -38,7 +40,8 @@ export function AuditTrailPage() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    fetchAuditConfig();
+  }, [loadData, fetchAuditConfig]);
 
   const handleFilterChange = (newFilters: Partial<AuditFiltersType>) => {
     setFilters((prev) => ({
@@ -88,6 +91,7 @@ export function AuditTrailPage() {
           onFilterChange={handleFilterChange}
           onReset={handleReset}
           onExportCSV={handleExportCSV}
+          onOpenSettings={() => setSettingsOpen(true)}
           isExporting={isExporting}
         />
 
@@ -121,8 +125,17 @@ export function AuditTrailPage() {
           setSelectedRecord(null);
         }}
       />
+
+      {/* Audit Settings Customization Modal */}
+      <AuditSettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        config={config}
+        onSaveConfig={saveAuditConfig}
+      />
     </div>
   );
 }
 
 export default AuditTrailPage;
+

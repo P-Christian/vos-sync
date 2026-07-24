@@ -6,13 +6,14 @@ import { AuditFilters as AuditFiltersType } from '../types/audit.types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Download } from 'lucide-react';
+import { Search, RotateCcw, Download, SlidersHorizontal } from 'lucide-react';
 
 interface AuditFiltersProps {
   filters: AuditFiltersType;
   onFilterChange: (newFilters: Partial<AuditFiltersType>) => void;
   onReset: () => void;
   onExportCSV: () => void;
+  onOpenSettings?: () => void;
   isExporting?: boolean;
 }
 
@@ -20,28 +21,49 @@ const CATEGORIES = [
   { value: "ALL", label: "All Categories" },
   { value: "AUTHENTICATION", label: "Authentication" },
   { value: "USER", label: "User Management" },
-  { value: "COMPANY", label: "Company" },
-  { value: "SCHOOL", label: "School" },
-  { value: "JOB", label: "Job" },
-  { value: "APPLICATION", label: "Application" },
+  { value: "COMPANY", label: "Company Verification" },
+  { value: "EMPLOYEE", label: "Employee Actions" },
+  { value: "SCHOOL", label: "School Actions" },
+  { value: "JOB", label: "Job Module" },
+  { value: "APPLICATION", label: "Application Module" },
   { value: "MESSAGE", label: "Message" },
   { value: "NOTIFICATION", label: "Notification" },
-  { value: "ADMIN", label: "Admin" },
+  { value: "ADMIN", label: "Administrative" },
   { value: "SYSTEM", label: "System" },
 ];
 
 const ACTIONS = [
   { value: "ALL", label: "All Actions" },
-  { value: "CREATE", label: "CREATE" },
-  { value: "UPDATE", label: "UPDATE" },
+  { value: "CREATE", label: "CREATE / REGISTER" },
+  { value: "UPDATE", label: "UPDATE / EDIT" },
   { value: "DELETE", label: "DELETE" },
   { value: "LOGIN", label: "LOGIN" },
   { value: "LOGOUT", label: "LOGOUT" },
+  { value: "FAILED_LOGIN", label: "FAILED LOGIN" },
+  { value: "LOCKOUT", label: "LOCKOUT" },
   { value: "VERIFY", label: "VERIFY" },
-  { value: "REJECT", label: "REJECT" },
-  { value: "EXPORT", label: "EXPORT" },
+  { value: "OTP_VERIFY", label: "OTP VERIFY" },
+  { value: "PASSWORD_RESET", label: "PASSWORD RESET" },
+  { value: "ACCOUNT_RECOVERY", label: "ACCOUNT RECOVERY" },
+  { value: "ROLE_ASSIGN", label: "ROLE ASSIGN" },
+  { value: "ROLE_REVOKE", label: "ROLE REVOKE" },
+  { value: "PERMISSION_CHANGE", label: "PERMISSION CHANGE" },
   { value: "SUBMIT", label: "SUBMIT" },
-  { value: "PUBLISH", label: "PUBLISH" },
+  { value: "REJECT", label: "REJECT" },
+  { value: "DOC_UPLOAD", label: "DOCUMENT UPLOAD" },
+  { value: "DOC_DELETE", label: "DOCUMENT DELETE" },
+  { value: "OVERRIDE", label: "VERIFICATION OVERRIDE" },
+  { value: "PUBLISH", label: "PUBLISH PROFILE" },
+  { value: "POST", label: "JOB POSTED" },
+  { value: "CLOSE", label: "JOB CLOSED" },
+  { value: "SCHEDULE", label: "INTERVIEW SCHEDULED" },
+  { value: "OFFER_SENT", label: "OFFER SENT" },
+  { value: "EXPORT", label: "EXPORT" },
+  { value: "SEARCH", label: "SEARCH" },
+  { value: "VIEW_AUDIT", label: "VIEW AUDIT" },
+  { value: "RETENTION_CHANGE", label: "RETENTION CHANGE" },
+  { value: "LEGAL_HOLD", label: "LEGAL HOLD" },
+  { value: "CONFIG_CHANGE", label: "CONFIG CHANGE" },
 ];
 
 const STATUSES = [
@@ -72,6 +94,7 @@ export function AuditFilters({
   onFilterChange,
   onReset,
   onExportCSV,
+  onOpenSettings,
   isExporting,
 }: AuditFiltersProps) {
   return (
@@ -89,6 +112,17 @@ export function AuditFilters({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenSettings && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenSettings}
+              className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Audit Settings
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

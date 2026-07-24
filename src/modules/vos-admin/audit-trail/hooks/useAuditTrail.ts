@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { AuditRecord, AuditFilters, AuditKPIData } from '../types/audit.types';
+import { AuditRecord, AuditFilters, AuditKPIData, AuditCategoryConfig, DEFAULT_AUDIT_CONFIG } from '../types/audit.types';
 
 export function useAuditTrail() {
   const [records, setRecords] = useState<AuditRecord[]>([]);
@@ -13,6 +13,7 @@ export function useAuditTrail() {
     deniedAccess: 0,
     adminActions: 0,
   });
+  const [config, setConfig] = useState<AuditCategoryConfig>(DEFAULT_AUDIT_CONFIG);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +54,39 @@ export function useAuditTrail() {
     }
   }, []);
 
+  const fetchAuditConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/vos-admin/audit-trail/config');
+      const json = await res.json();
+      if (res.ok && json.config) {
+        setConfig(json.config);
+      }
+    } catch (err: unknown) {
+      console.warn("Failed to load audit config:", err);
+    }
+  }, []);
+
+  const saveAuditConfig = useCallback(async (newConfig: AuditCategoryConfig): Promise<boolean> => {
+    setError(null);
+    try {
+      const res = await fetch('/api/vos-admin/audit-trail/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: newConfig }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to save audit settings');
+
+      if (json.config) {
+        setConfig(json.config);
+      }
+      return true;
+    } catch (err: unknown) {
+      setError((err as Error).message);
+      return false;
+    }
+  }, []);
+
   const exportCSV = useCallback(async (filters: AuditFilters) => {
     try {
       const params = new URLSearchParams();
@@ -90,9 +124,13 @@ export function useAuditTrail() {
     records,
     total,
     kpis,
+    config,
     loading,
     error,
     fetchAuditLogs,
+    fetchAuditConfig,
+    saveAuditConfig,
     exportCSV,
   };
 }
+

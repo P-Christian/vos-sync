@@ -1,8 +1,13 @@
 // src/modules/vos-admin/audit-trail/services/audit.repo.ts
-import { AuditRecord, AuditFilters, AuditKPIData } from '../types/audit.types';
+import { AuditRecord, AuditFilters, AuditKPIData, AuditCategoryConfig, DEFAULT_AUDIT_CONFIG } from '../types/audit.types';
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+// Memory cache for audit config to avoid HTTP overhead on every audit log write
+let cachedAuditConfig: AuditCategoryConfig | null = null;
+let lastConfigFetchTime = 0;
+const CONFIG_CACHE_TTL_MS = 30 * 1000; // 30 seconds
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -178,3 +183,188 @@ export async function fetchAuditKPIsRepo(): Promise<AuditKPIData> {
     return { todayEvents: 0, failedEvents: 0, deniedAccess: 0, adminActions: 0 };
   }
 }
+
+export async function fetchAuditConfigRepo(): Promise<AuditCategoryConfig> {
+  const now = Date.now();
+  if (cachedAuditConfig && now - lastConfigFetchTime < CONFIG_CACHE_TTL_MS) {
+    return cachedAuditConfig;
+  }
+
+  try {
+    if (!DIRECTUS_BASE) return DEFAULT_AUDIT_CONFIG;
+    const url = `${DIRECTUS_BASE}/items/vs_audit_config?limit=-1`;
+    const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+    if (res.ok) {
+      const json = await res.json();
+      const rows: Array<{ audit_config_id: number; event_category: string; event_type: string; is_enabled: number | boolean }> = json.data || [];
+
+      if (rows.length > 0) {
+        const categories: Record<string, boolean> = { ...(DEFAULT_AUDIT_CONFIG.categories || {}) };
+        const actions: Record<string, Record<string, boolean>> = { ...(DEFAULT_AUDIT_CONFIG.actions || {}) };
+
+        rows.forEach((r) => {
+          const cat = r.event_category;
+          const act = r.event_type;
+          const enabled = Boolean(r.is_enabled);
+
+          if (act === '__CATEGORY__') {
+            categories[cat] = enabled;
+          } else {
+            if (!actions[cat]) actions[cat] = {};
+            actions[cat][act] = enabled;
+          }
+        });
+
+        cachedAuditConfig = { categories, actions };
+        lastConfigFetchTime = Date.now();
+        return cachedAuditConfig;
+      }
+    }
+  } catch (err) {
+    console.warn("[fetchAuditConfigRepo] Fallback to default config:", err);
+  }
+
+  return cachedAuditConfig || DEFAULT_AUDIT_CONFIG;
+}
+
+export async function updateAuditConfigRepo(
+  newConfig: AuditCategoryConfig,
+  adminId?: number
+): Promise<AuditCategoryConfig> {
+  try {
+    if (!DIRECTUS_BASE) return newConfig;
+    const url = `${DIRECTUS_BASE}/items/vs_audit_config`;
+
+    // Fetch existing configuration rows
+    const checkRes = await fetch(`${url}?limit=-1`, { headers: getHeaders(), cache: "no-store" });
+    const existingMap: Record<string, number> = {};
+
+    if (checkRes.ok) {
+      const json = await checkRes.json();
+      const rows: Array<{ audit_config_id: number; event_category: string; event_type: string }> = json.data || [];
+      rows.forEach((r) => {
+        const key = `${r.event_category}::${r.event_type}`;
+        existingMap[key] = r.audit_config_id;
+      });
+    }
+
+    // Process actions
+    const actionsMap = newConfig.actions || {};
+    const categoriesMap = newConfig.categories || {};
+
+    const promises: Promise<Response>[] = [];
+
+    // Category master toggles
+    Object.entries(categoriesMap).forEach(([catKey, isEnabled]) => {
+      const dbKey = `${catKey}::__CATEGORY__`;
+      const existingId = existingMap[dbKey];
+      const payload = {
+        event_category: catKey,
+        event_type: '__CATEGORY__',
+        is_enabled: isEnabled ? 1 : 0,
+        updated_by: adminId || null,
+        description: `Master switch for ${catKey}`,
+      };
+
+      if (existingId) {
+        promises.push(
+          fetch(`${url}/${existingId}`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(payload),
+          })
+        );
+      } else {
+        promises.push(
+          fetch(url, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ ...payload, created_by: adminId || null }),
+          })
+        );
+      }
+    });
+
+    // Individual action toggles
+    Object.entries(actionsMap).forEach(([catKey, actMap]) => {
+      Object.entries(actMap).forEach(([actKey, isEnabled]) => {
+        const dbKey = `${catKey}::${actKey}`;
+        const existingId = existingMap[dbKey];
+        const payload = {
+          event_category: catKey,
+          event_type: actKey,
+          is_enabled: isEnabled ? 1 : 0,
+          updated_by: adminId || null,
+          description: `${actKey} action in ${catKey}`,
+        };
+
+        if (existingId) {
+          promises.push(
+            fetch(`${url}/${existingId}`, {
+              method: 'PATCH',
+              headers: getHeaders(),
+              body: JSON.stringify(payload),
+            })
+          );
+        } else {
+          promises.push(
+            fetch(url, {
+              method: 'POST',
+              headers: getHeaders(),
+              body: JSON.stringify({ ...payload, created_by: adminId || null }),
+            })
+          );
+        }
+      });
+    });
+
+    await Promise.allSettled(promises);
+
+    cachedAuditConfig = { ...newConfig };
+    lastConfigFetchTime = Date.now();
+    return cachedAuditConfig;
+  } catch (err) {
+    console.error("[updateAuditConfigRepo] Error updating audit config:", err);
+  }
+
+  cachedAuditConfig = { ...newConfig };
+  lastConfigFetchTime = Date.now();
+  return cachedAuditConfig;
+}
+
+export async function createAuditRecordRepo(payload: Partial<AuditRecord>): Promise<void> {
+  try {
+    if (!DIRECTUS_BASE) return;
+
+    // Check category and action toggle settings before inserting log
+    if (payload.event_category) {
+      const config = await fetchAuditConfigRepo();
+      const cat = String(payload.event_category);
+      const act = payload.action ? String(payload.action) : null;
+
+      // 1. Check category master toggle
+      if (config.categories && config.categories[cat] === false) {
+        return;
+      }
+
+      // 2. Check individual action toggle
+      if (act && config.actions && config.actions[cat] && config.actions[cat][act] === false) {
+        return;
+      }
+    }
+
+    const url = `${DIRECTUS_BASE}/items/vs_audit_trail`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn("[createAuditRecordRepo] Failed to insert audit log:", res.status, errText);
+    }
+  } catch (err) {
+    console.error("[createAuditRecordRepo] Audit record emission error:", err);
+  }
+}
+
