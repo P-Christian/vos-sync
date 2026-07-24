@@ -9,12 +9,25 @@ import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvi
 import { Button } from "@/components/ui/button";
 import { uploadProfileImageAction } from "../services/freelancer-profile.actions";
 import { PersonalInfoModal } from "./PersonalInfoModal";
+import { useEffect } from "react";
 
 export function PersonalInfoCard() {
     const { data, pendingPersonalInfo, pendingSocialLinks, refresh } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [idProofScore, setIdProofScore] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetch("/api/freelancer/id-proof-score")
+            .then(res => res.json())
+            .then(resData => {
+                if (resData && typeof resData.score === 'number') {
+                    setIdProofScore(resData.score);
+                }
+            })
+            .catch(err => console.error("Failed to fetch ID proof score:", err));
+    }, []);
 
     if (!data) return null;
 
@@ -71,12 +84,17 @@ export function PersonalInfoCard() {
                     <User className="h-5 w-5 text-primary" />
                     <h2 className="text-lg font-semibold text-foreground">Personal Information</h2>
                     {isComplete ? (
-                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500">
+                        <div className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-500" title="Personal info complete">
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </div>
                     ) : (
-                        <div className="ml-2 flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground">
+                        <div className="ml-1 flex items-center justify-center w-5 h-5 rounded-full bg-muted text-muted-foreground" title="Personal info incomplete">
                             <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
+                        </div>
+                    )}
+                    {idProofScore !== null && (
+                        <div className={`ml-3 px-2.5 py-0.5 rounded-full text-[11px] font-bold border flex items-center gap-1 ${idProofScore >= 80 ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/30' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/30'}`}>
+                            ID Proof: {idProofScore}%
                         </div>
                     )}
                 </div>
@@ -128,6 +146,16 @@ export function PersonalInfoCard() {
                         accept="image/*"
                         onChange={handleFileChange}
                     />
+                    
+                    <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full gap-2 text-xs h-8 mt-1"
+                        onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
+                        Verify Identity
+                    </Button>
                 </div>
 
                 {/* Right Column: Personal Info & Social Links */}

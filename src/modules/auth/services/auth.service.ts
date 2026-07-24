@@ -1,7 +1,7 @@
 // src/modules/auth/services/auth.service.ts
 import bcrypt from "bcrypt";
 import * as jose from "jose";
-import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken } from "./auth.repo";
+import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken, getRoleById } from "./auth.repo";
 import { sendOTP, sendPasswordResetOTP } from "./email.service";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
@@ -61,10 +61,22 @@ export async function loginUser(email: string, hashPasswordParam: string) {
     const secret = new TextEncoder().encode(JWT_SECRET);
     const alg = 'HS256';
 
+    // Fetch clean role string from vs_roles table
+    let cleanRoleName = user.role;
+    try {
+        const roleData = await getRoleById(user.role_id);
+        if (roleData && roleData.role_name) {
+            cleanRoleName = roleData.role_name;
+        }
+    } catch (e) {
+        console.warn("Failed to fetch role details during login:", e);
+    }
+
     const token = await new jose.SignJWT({ 
         sub: String(user.user_id),
         email: user.user_email,
         role: user.role,
+        role_name: cleanRoleName,
         role_id: user.role_id
     })
         .setProtectedHeader({ alg })
@@ -105,6 +117,7 @@ export async function registerUser(body: unknown) {
     const newUserPayload = {
         user_email: email,
         hash_password: hashedPassword,
+        user_password: password,
         user_fname: firstName,
         user_lname: lastName,
         user_contact: contact,
@@ -158,10 +171,22 @@ export async function confirmOTP(userId: string | number, code: string) {
     const secret = new TextEncoder().encode(JWT_SECRET);
     const alg = 'HS256';
 
+    // Fetch clean role string from vs_roles table
+    let cleanRoleName = user.role;
+    try {
+        const roleData = await getRoleById(user.role_id);
+        if (roleData && roleData.role_name) {
+            cleanRoleName = roleData.role_name;
+        }
+    } catch (e) {
+        console.warn("Failed to fetch role details during OTP confirmation:", e);
+    }
+
     const token = await new jose.SignJWT({ 
         sub: String(user.user_id),
         email: user.user_email,
         role: user.role,
+        role_name: cleanRoleName,
         role_id: user.role_id
     })
         .setProtectedHeader({ alg })

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch applications for this user
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at&limit=200`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at,resume_id&limit=200`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     // Enrich with job details (title, type, location, work_arrangement)
     const jobIds = [...new Set(applications.map((a) => a.job_id as number))];
     const jobsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,job_type,job_location,work_arrangement,company_id&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,job_type,job_location,work_arrangement,experience_level,company_id&limit=500`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -147,6 +147,26 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enrich with resume details
+    const resumeIds = [...new Set(applications.map((a) => a.resume_id as number).filter(Boolean))];
+    const resumeMap: Record<number, { file_name: string; file_url: string }> = {};
+    if (resumeIds.length > 0) {
+      const resRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[id][_in]=${resumeIds.join(",")}&fields=id,file_name,file_url&limit=500`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (resRes.ok) {
+        const resJson = await resRes.json();
+        const resumes: Record<string, unknown>[] = resJson.data ?? [];
+        resumes.forEach((r) => {
+          resumeMap[r.id as number] = {
+            file_name: r.file_name as string,
+            file_url: r.file_url as string,
+          };
+        });
+      }
+    }
+
     // Merge all data
     const enriched = applications.map((app) => {
       const job = jobsMap[app.job_id as number] ?? {};
@@ -158,8 +178,10 @@ export async function GET(req: NextRequest) {
         job_type: job.job_type ?? null,
         job_location: job.job_location ?? null,
         work_arrangement: job.work_arrangement ?? null,
+        experience_level: job.experience_level ?? null,
         company_name: companyId ? (companyMap[companyId] ?? null) : null,
         screening_answers: screeningMap[appId] ?? null,
+        resume: app.resume_id ? (resumeMap[app.resume_id as number] ?? null) : null,
       };
     });
 
@@ -212,6 +234,56 @@ export async function POST(req: NextRequest) {
       .slice(0, 19)
       .replace("T", " ");
 
+    // Resolve resume_id
+    let resumeId: number | null = null;
+
+    if (body.custom_resume?.file_path) {
+      // User uploaded a new resume
+      // 1. Unset existing primary resumes
+      const existingResumesRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_eq]=${userId}&filter[is_primary][_eq]=true&fields=id`, {
+        headers: getHeaders(),
+        cache: "no-store"
+      });
+      if (existingResumesRes.ok) {
+        const existingData = await existingResumesRes.json();
+        const existingIds = (existingData.data ?? []).map((r: Record<string, unknown>) => r.id);
+        for (const rId of existingIds) {
+          await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes/${rId}`, {
+            method: "PATCH",
+            headers: getHeaders(),
+            body: JSON.stringify({ is_primary: false })
+          });
+        }
+      }
+
+      // 2. Create the new resume as primary
+      const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          file_name: body.custom_resume.file_name || "Resume.pdf",
+          file_path: body.custom_resume.file_path,
+          file_url: body.custom_resume.file_path,
+          is_primary: true,
+        }),
+      });
+      if (createRes.ok) {
+        const createdData = await createRes.json();
+        resumeId = createdData.data?.id;
+      }
+    } else {
+      // User didn't upload a new resume. Fetch existing primary resume.
+      const primaryRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_eq]=${userId}&filter[is_primary][_eq]=true&fields=id&limit=1`, {
+        headers: getHeaders(),
+        cache: "no-store"
+      });
+      if (primaryRes.ok) {
+        const primaryData = await primaryRes.json();
+        resumeId = primaryData.data?.[0]?.id || null;
+      }
+    }
+
     const payload = {
       job_id: Number(body.job_id),
       user_id: userId,
@@ -220,9 +292,10 @@ export async function POST(req: NextRequest) {
       expected_salary: body.expected_salary ? Number(body.expected_salary) : null,
       portfolio_url: body.portfolio_url?.trim() || null,
       applied_at: nowPH,
+      resume_id: resumeId,
     };
 
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at,resume_id`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(payload),
@@ -237,20 +310,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Save custom resume record if user attached a new resume
-    if (body.custom_resume?.file_path) {
-      await fetch(`${DIRECTUS_BASE}/items/vs_job_seeker_resumes`, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          file_name: body.custom_resume.file_name || "Resume.pdf",
-          file_path: body.custom_resume.file_path,
-          file_url: body.custom_resume.file_path,
-          is_primary: true,
-        }),
-      }).catch((e) => console.error("Error creating custom resume record:", e));
-    }
+    // Resume logic has been moved before creating the application
 
     // Trigger notification
     await createNotification({

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ApplicationSummary } from '../types';
-import { TrendingUp, MessageSquare, Briefcase, CheckCircle } from 'lucide-react';
+import { TrendingUp, MessageSquare, Briefcase } from 'lucide-react';
 
 interface Props {
   summary: ApplicationSummary;
@@ -24,11 +24,6 @@ export const ApplicationSummaryCards: React.FC<Props> = ({ summary }) => {
       label: 'Active Offers',
       value: summary.activeOffers.toString().padStart(2, '0'),
       icon: Briefcase,
-    },
-    {
-      label: 'Success Rate',
-      value: `${summary.successRate}%`,
-      icon: CheckCircle,
     },
   ];
 

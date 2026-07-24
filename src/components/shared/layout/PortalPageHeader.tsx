@@ -28,20 +28,22 @@ interface PortalPageHeaderProps {
 export function PortalPageHeader({ user }: PortalPageHeaderProps) {
     const pathname = usePathname();
     const isClientRoute = pathname?.startsWith("/vos-sync/client");
+    const isFreelancerRoute = pathname?.startsWith("/vos-sync/freelancer");
 
     return (
         <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
-            {/* Left: sidebar toggle */}
-            <div className="flex h-full items-center gap-2 shrink-0">
+            {/* Left: sidebar toggle + searchbar */}
+            <div className="flex h-full items-center gap-4 shrink-0">
                 <SidebarTrigger className="-ml-1 shrink-0" />
+                <div className="hidden md:block w-2xl">
+                    <UserSearchBar />
+                </div>
             </div>
 
             {/* Right: actions + user avatar */}
             <div className="flex h-full items-center gap-2 shrink-0">
-                <div className="hidden md:block mr-2">
-                    <UserSearchBar />
-                </div>
-                {isClientRoute ? <ClientNotificationBell /> : <FreelancerNotificationBell />}
+                {isClientRoute && <ClientNotificationBell />}
+                {isFreelancerRoute && <FreelancerNotificationBell />}
                 <Button
                     variant="ghost"
                     size="icon"

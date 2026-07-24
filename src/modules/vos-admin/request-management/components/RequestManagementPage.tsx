@@ -39,7 +39,7 @@ export function RequestManagementPage() {
       </div>
 
       <Tabs defaultValue="schools" className="w-full">
-        <TabsList className="bg-white/50 border shadow-sm">
+        <TabsList className="bg-white/50 dark:bg-zinc-900/50 border dark:border-zinc-800 shadow-sm">
           <TabsTrigger value="schools">School Requests</TabsTrigger>
           <TabsTrigger value="courses">Course Requests</TabsTrigger>
         </TabsList>
@@ -48,7 +48,7 @@ export function RequestManagementPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Missing Schools</h2>
             <Select value={schoolStatusFilter} onValueChange={setSchoolStatusFilter}>
-              <SelectTrigger className="w-[180px] bg-white">
+              <SelectTrigger className="w-[180px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
               <SelectContent>
@@ -74,7 +74,7 @@ export function RequestManagementPage() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Missing Courses</h2>
             <Select value={courseStatusFilter} onValueChange={setCourseStatusFilter}>
-              <SelectTrigger className="w-[180px] bg-white">
+              <SelectTrigger className="w-[180px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
               <SelectContent>

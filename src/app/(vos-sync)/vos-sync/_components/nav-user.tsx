@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
+import { usePathname } from "next/navigation"
 import {
     ChevronsUpDown,
     LogOut,
@@ -15,6 +15,7 @@ import {
     Sun,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -46,9 +47,12 @@ type NavUserProps = {
     settingsUrl?: string
 }
 
-export function NavUser({ user, onLogout, profileUrl, settingsUrl }: NavUserProps) {
+export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: NavUserProps) {
 
-    const router = useRouter()
+    const contextUser = useUserProfile()
+    const user = contextUser?.name ? contextUser : propUser
+
+
     const [loggingOut, setLoggingOut] = React.useState(false)
 
     // ✅ theme toggle support
@@ -88,12 +92,12 @@ export function NavUser({ user, onLogout, profileUrl, settingsUrl }: NavUserProp
             // Default wiring: clear HttpOnly cookie via Next route
             await fetch("/api/auth/logout", { method: "POST" })
         } finally {
-            // Always redirect to login + refresh UI
-            router.replace("/login")
-            router.refresh()
-            setLoggingOut(false)
+            // Hide the body to prevent bfcache flash on back navigation
+            document.body.style.display = 'none';
+            // Always redirect to login (hard refresh to clear client-side cache)
+            window.location.href = "/login"
         }
-    }, [loggingOut, onLogout, router])
+    }, [loggingOut, onLogout])
 
     // Compute dynamic URLs based on current portal path
     let defaultProfileUrl = "#"
@@ -101,10 +105,10 @@ export function NavUser({ user, onLogout, profileUrl, settingsUrl }: NavUserProp
 
     if (pathname.startsWith("/vos-sync/freelancer")) {
         defaultProfileUrl = "/vos-sync/freelancer/profile"
-        defaultSettingsUrl = "/vos-sync/settings?portal=freelancer"
+        defaultSettingsUrl = "/vos-sync/freelancer/settings"
     } else if (pathname.startsWith("/vos-sync/client")) {
         defaultProfileUrl = "/vos-sync/client/company-profile"
-        defaultSettingsUrl = "/vos-sync/settings?portal=client"
+        defaultSettingsUrl = "/vos-sync/client/settings"
     } else if (pathname.startsWith("/vos-sync/school-admin")) {
         defaultProfileUrl = "/vos-sync/school-admin/profile"
         defaultSettingsUrl = "/vos-sync/settings?portal=school-admin"

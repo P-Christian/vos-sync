@@ -48,6 +48,30 @@ function formatAvatarUrl(url?: string | null): string | null {
   return `/api/client/assets/${fileId}`;
 }
 
+export function formatInterviewDateTime(dateTimeStr: string): string {
+  try {
+    const dateObj = new Date(dateTimeStr.replace(" ", "T"));
+    if (isNaN(dateObj.getTime())) return dateTimeStr;
+
+    const formattedDate = dateObj.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+    const formattedTime = dateObj.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    return `${formattedDate} at ${formattedTime}`;
+  } catch {
+    return dateTimeStr;
+  }
+}
+
 async function getCompanyId(userId: number): Promise<number | null> {
   const res = await fetch(
     `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`,
@@ -366,7 +390,7 @@ export async function POST(req: NextRequest) {
               entity_id: json.data?.interview_id,
               category: "INTERVIEW_SCHEDULED",
               title: "Interview Scheduled!",
-              message: `An interview has been scheduled for ${scheduledAt}.`,
+              message: `An interview has been scheduled for ${formatInterviewDateTime(scheduledAt)}.`,
               action_url: "/vos-sync/freelancer/applications",
             }).catch((err: unknown) => console.error("[Freelancer notification] Interview scheduled error:", err));
           }
@@ -381,7 +405,7 @@ export async function POST(req: NextRequest) {
               entity_id: json.data?.interview_id,
               category: "INTERVIEW_SCHEDULED",
               title: "Interview Scheduled",
-              message: `You scheduled an interview for ${scheduledAt}.`,
+              message: `You scheduled an interview for ${formatInterviewDateTime(scheduledAt)}.`,
               action_url: "/vos-sync/client/interviews",
             }).catch((err: unknown) => console.error("[Employer notification] Interview scheduled error:", err));
           }
