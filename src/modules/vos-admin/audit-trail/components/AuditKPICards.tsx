@@ -46,7 +46,7 @@ export function AuditKPICards({ kpis, loading }: AuditKPICardsProps) {
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
-          <Card key={idx} className="bg-white dark:bg-zinc-900 border dark:border-zinc-800 shadow-2xs">
+          <Card key={idx} className="shadow-2xs">
             <CardContent className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">

@@ -130,14 +130,15 @@ export function AuditSettingsModal({
   });
   const [saving, setSaving] = useState(false);
 
+  const prevIsOpenRef = React.useRef(isOpen);
   useEffect(() => {
-    // Ensure all categories & actions exist in localConfig structure
-    if (config && config.categories && config.actions) {
-      setLocalConfig(config);
-    } else {
-      setLocalConfig(DEFAULT_GRANULAR_AUDIT_CONFIG);
+    if (isOpen && !prevIsOpenRef.current) {
+      Promise.resolve().then(() => {
+        setLocalConfig(config && config.categories && config.actions ? config : DEFAULT_GRANULAR_AUDIT_CONFIG);
+      });
     }
-  }, [config, isOpen]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, config]);
 
   const toggleAccordion = (categoryKey: string) => {
     setExpandedCategories((prev) => ({

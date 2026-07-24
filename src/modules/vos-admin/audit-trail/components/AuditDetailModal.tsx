@@ -62,12 +62,12 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={(val) => { if (!val) onClose(); }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-white dark:bg-zinc-900 border dark:border-zinc-800 p-6">
-        <DialogHeader className="border-b dark:border-zinc-800 pb-4">
+      <DialogContent className="!max-w-5xl w-[92vw] max-h-[88vh] overflow-y-auto  border  p-6">
+        <DialogHeader className="border-b  pb-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline" className="text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800">
+                <Badge variant="outline" className="text-[11px] font-semibold">
                   {record.event_category}
                 </Badge>
                 <AuditActionBadge action={record.action} />
@@ -77,7 +77,7 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
                 {record.event_type}
               </DialogTitle>
             </div>
-            <span className="text-xs font-mono text-muted-foreground bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded">
+            <span className="text-xs font-mono text-muted-foreground  px-2.5 py-1 rounded">
               ID: #{record.audit_id}
             </span>
           </div>
@@ -88,7 +88,7 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid grid-cols-3 w-full bg-zinc-100 dark:bg-zinc-800">
+          <TabsList className="grid grid-cols-3 w-full  ">
             <TabsTrigger value="overview" className="text-xs">Overview</TabsTrigger>
             <TabsTrigger value="diff" className="text-xs">
               State Diff ({diffItems.length})
@@ -99,7 +99,7 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 pt-4">
             {/* Actor Card */}
-            <div className="p-4 rounded-xl border bg-zinc-50/50 dark:bg-zinc-800/30 dark:border-zinc-800 space-y-2">
+            <div className="p-4 rounded-xl border  space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <User className="h-4 w-4 text-primary" /> Actor Metadata
               </h4>
@@ -122,11 +122,11 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
                 </div>
                 <div>
                   <span className="text-muted-foreground">IP Address:</span>
-                  <p className="font-medium text-foreground font-mono">{record.ip_address || "N/A"}</p>
+                  <p className="font-medium text-foreground font-mono"> {record.ip_address || "N/A"}</p>
                 </div>
               </div>
               {record.user_agent && (
-                <div className="pt-2 border-t dark:border-zinc-800 text-xs">
+                <div className="pt-2  text-xs">
                   <span className="text-muted-foreground">User Agent:</span>
                   <p className="font-mono text-[11px] text-muted-foreground truncate">{record.user_agent}</p>
                 </div>
@@ -134,7 +134,7 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
             </div>
 
             {/* Resource & Org Card */}
-            <div className="p-4 rounded-xl border bg-zinc-50/50 dark:bg-zinc-800/30 dark:border-zinc-800 space-y-2">
+            <div className="p-4 rounded-xl border  space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <Shield className="h-4 w-4 text-primary" /> Resource & Target
               </h4>
@@ -176,14 +176,14 @@ export function AuditDetailModal({ record, isOpen, onClose }: AuditDetailModalPr
           {/* Diff Tab */}
           <TabsContent value="diff" className="pt-4">
             {diffItems.length === 0 ? (
-              <div className="p-8 text-center border rounded-xl bg-zinc-50/50 dark:bg-zinc-800/30">
+              <div className="p-8 text-center border rounded-xl bg-zinc-50/50 /30">
                 <Server className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
                 <p className="text-sm font-medium text-muted-foreground">No state changes recorded for this event.</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                 {diffItems.map((item) => {
-                  let bg = "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-800";
+                  let bg = "bg-zinc-50 /50 border-zinc-200 dark:border-zinc-800";
                   let badgeColor = "bg-zinc-200 text-zinc-800";
 
                   if (item.status === 'added') {

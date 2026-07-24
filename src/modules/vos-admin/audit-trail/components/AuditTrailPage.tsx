@@ -84,7 +84,7 @@ export function AuditTrailPage() {
       <AuditKPICards kpis={kpis} loading={loading} />
 
       {/* Main Content Card */}
-      <Card className="p-6 bg-white dark:bg-zinc-900 border dark:border-zinc-800 shadow-sm rounded-xl">
+      <Card className="p-6 shadow-sm gap-0 rounded-xl">
         {/* Filter Bar */}
         <AuditFilters
           filters={filters}

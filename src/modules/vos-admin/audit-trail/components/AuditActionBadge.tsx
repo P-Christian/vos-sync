@@ -11,7 +11,7 @@ interface AuditActionBadgeProps {
 export function AuditActionBadge({ action }: AuditActionBadgeProps) {
   const normalized = (action || '').toUpperCase();
 
-  let styles = "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700";
+  let styles = "";
 
   switch (normalized) {
     case 'CREATE':

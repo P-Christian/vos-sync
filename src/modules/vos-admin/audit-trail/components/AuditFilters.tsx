@@ -98,7 +98,7 @@ export function AuditFilters({
   isExporting,
 }: AuditFiltersProps) {
   return (
-    <div className="space-y-4 mb-6 bg-zinc-50/50 dark:bg-zinc-900/50 p-4 rounded-xl border dark:border-zinc-800">
+    <div className="space-y-4 b p-4 rounded-xl border">
       {/* Top Row: Search & Export */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
@@ -107,7 +107,7 @@ export function AuditFilters({
             placeholder="Search event type, reason, resource ID, correlation ID..."
             value={filters.search || ""}
             onChange={(e) => onFilterChange({ search: e.target.value, page: 1 })}
-            className="pl-9 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+            className="pl-9 "
           />
         </div>
 

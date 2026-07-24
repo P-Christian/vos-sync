@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { AuditRecord, AuditFilters, AuditKPIData, AuditCategoryConfig, DEFAULT_AUDIT_CONFIG } from '../types/audit.types';
 
 export function useAuditTrail() {
@@ -90,33 +91,55 @@ export function useAuditTrail() {
   const exportCSV = useCallback(async (filters: AuditFilters) => {
     try {
       const params = new URLSearchParams();
-      params.append('export', 'csv');
+      params.append('export', 'csv'); // Keep asking backend for CSV to avoid backend rewrites
 
-      if (filters.search?.trim()) params.append('search', filters.search.trim());
-      if (filters.event_category && filters.event_category !== 'ALL') params.append('event_category', filters.event_category);
-      if (filters.action && filters.action !== 'ALL') params.append('action', filters.action);
-      if (filters.status && filters.status !== 'ALL') params.append('status', filters.status);
-      if (filters.actor_type && filters.actor_type !== 'ALL') params.append('actor_type', filters.actor_type);
-      if (filters.organization_type && filters.organization_type !== 'ALL') params.append('organization_type', filters.organization_type);
-      if (filters.resource_type?.trim()) params.append('resource_type', filters.resource_type.trim());
-      if (filters.actor_user_id) params.append('actor_user_id', String(filters.actor_user_id));
-      if (filters.date_from) params.append('date_from', filters.date_from);
-      if (filters.date_to) params.append('date_to', filters.date_to);
+      // Cleanly append filters
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== 'ALL' && value !== '') {
+          const formattedValue = typeof value === 'string' ? value.trim() : String(value);
+          if (formattedValue && key !== 'page' && key !== 'limit') {
+            params.append(key, formattedValue);
+          }
+        }
+      });
 
       const res = await fetch(`/api/vos-admin/audit-trail?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to export audit CSV');
+      if (!res.ok) throw new Error('Failed to export audit data');
 
+      // 1. Get the raw CSV text from the backend
       const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audit_trail_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      const csvText = await blob.text();
+
+      // 2. Parse the CSV text into a SheetJS Workbook
+      const workbook = XLSX.read(csvText, { type: 'string', raw: true });
+      const worksheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[worksheetName];
+
+      // 3. Define auto-fitted column widths based on your screenshot
+      worksheet['!cols'] = [
+        { wch: 10 },  // A: Audit ID
+        { wch: 22 },  // B: Timestamp
+        { wch: 20 },  // C: Category
+        { wch: 25 },  // D: Event Type
+        { wch: 15 },  // E: Action
+        { wch: 15 },  // F: Status
+        { wch: 15 },  // G: Actor Type
+        { wch: 15 },  // H: Actor User ID
+        { wch: 25 },  // I: Actor Name
+        { wch: 20 },  // J: Resource (Type)
+        { wch: 15 },  // K: Resource ID
+        { wch: 25 },  // L: Organization
+        { wch: 70 },  // M: Reason (Made extra wide for log descriptions)
+        { wch: 20 },  // N: IP Address
+        { wch: 40 },  // O: Correlation ID
+      ];
+
+      // 4. Generate and download the .xlsx file
+      const fileName = `audit_trail_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
     } catch (err: unknown) {
-      setError((err as Error).message);
+      setError(err instanceof Error ? err.message : 'An error occurred during export.');
     }
   }, []);
 
@@ -130,7 +153,6 @@ export function useAuditTrail() {
     fetchAuditLogs,
     fetchAuditConfig,
     saveAuditConfig,
-    exportCSV,
+    exportCSV, // Make sure to update this in your component UI as well!
   };
 }
-

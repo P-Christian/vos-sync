@@ -3,7 +3,6 @@ import React from 'react';
 import { AuditStatus } from '../types/audit.types';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface AuditStatusBadgeProps {
   status: AuditStatus | string;
