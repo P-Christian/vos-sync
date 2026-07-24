@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { CompanyVerificationRecord, CompanyVerificationKPIs, VerificationDecisionPayload } from "../types";
+import { CompanyVerificationRecord, CompanyVerificationKPIs, VerificationDecisionPayload, VerificationStatus } from "../types";
 import { fetchCompanyVerifications, submitVerificationDecision } from "../services/companyVerification.service";
 import { calculateCompanyKPIs, filterCompanyRecords } from "../utils/companyVerification.utils";
 
@@ -35,8 +35,30 @@ export function useCompanyVerification() {
   }, [statusFilter, searchQuery]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let isMounted = true;
+
+    async function load() {
+      try {
+        const data = await fetchCompanyVerifications(statusFilter, searchQuery);
+        if (isMounted) {
+          setRecords(data);
+          setError(null);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Failed to load company verifications");
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [statusFilter, searchQuery]);
 
   // Pure filtered dataset
   const filteredRecords = useMemo(() => {
@@ -88,9 +110,18 @@ export function useCompanyVerification() {
 
     if (res.success) {
       // Optimistically update record state in local list
-      const newStatus =
+      const newStatus: VerificationStatus =
         action === "approve"
           ? "VERIFIED"
+          : action === "reject"
+          ? "REJECTED"
+          : action === "request_correction"
+          ? "PENDING_VERIFICATION"
+          : "SUSPENDED";
+
+      const newVerifStatus =
+        action === "approve"
+          ? "APPROVED"
           : action === "reject"
           ? "REJECTED"
           : action === "request_correction"
@@ -105,6 +136,16 @@ export function useCompanyVerification() {
                 verification_status: newStatus,
                 rejection_reason: rejectionReason || item.rejection_reason,
                 verified_at: action === "approve" ? new Date().toISOString() : item.verified_at,
+                latest_verification: {
+                  id: Date.now(),
+                  company_id: item.company_id,
+                  verification_type: "INITIAL_REGISTRATION",
+                  status: newVerifStatus,
+                  public_rejection_reason: rejectionReason || null,
+                  internal_notes: internalNotes || null,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                },
               }
             : item
         )

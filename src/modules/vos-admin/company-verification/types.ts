@@ -62,6 +62,18 @@ export interface CompanyVerificationRecord {
   company_zipCode?: string | null;
   company_website?: string | null;
   company_logo?: string | null;
+  company_cover?: string | null;
+  company_description?: string | null;
+  year_established?: number | string | null;
+  industry_id?: number | null;
+  company_size_id?: number | null;
+  organization_type_id?: number | null;
+  company_tags?: string | null;
+  company_facebook?: string | null;
+  company_linkedin?: string | null;
+  company_instagram?: string | null;
+  company_x?: string | null;
+  company_youtube?: string | null;
   verification_status: VerificationStatus;
   rejection_reason?: string | null;
   internal_notes?: string | null;

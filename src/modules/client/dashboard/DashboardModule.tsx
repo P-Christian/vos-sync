@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus, Phone, ShieldCheck, Mail, CheckCircle, Circle } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShieldAlert, LogOut, Building, Plus, ShieldCheck, Mail, CheckCircle, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardModule({ userName }: { userName?: string }) {

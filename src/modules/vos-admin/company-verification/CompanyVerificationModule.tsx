@@ -9,7 +9,7 @@ import {
   CompanyVerificationDetailModal,
   RejectionReasonModal,
 } from "./components";
-import { Building2, RefreshCw, ShieldCheck } from "lucide-react";
+import { Building2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function CompanyVerificationModule() {
@@ -64,12 +64,12 @@ export function CompanyVerificationModule() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 md:p-8 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col p-6 md:p-8 max-w-[1600px] mx-auto w-full overflow-y-auto h-full min-h-0">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1">
-            <ShieldCheck className="h-4 w-4 text-primary" />
+    
             <span>Admin Governance & Verification</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">

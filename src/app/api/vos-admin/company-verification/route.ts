@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
     /**
      * Batch fetch related documents from vs_company_document
      */
-    let docMap: Record<number, unknown[]> = {};
+    const docMap: Record<number, unknown[]> = {};
     if (companyIds.length > 0) {
       try {
         const docUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_in]=${companyIds.join(",")}&limit=-1`;
@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
     /**
      * Batch fetch primary contacts / users from vs_company_user
      */
-    let userMap: Record<number, unknown[]> = {};
+    const userMap: Record<number, unknown[]> = {};
     if (companyIds.length > 0) {
       try {
         const companyUserUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_in]=${companyIds.join(",")}&limit=-1`;
@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
           
           // Get unique user IDs to resolve names/emails
           const uids = Array.from(new Set(cus.map((cu) => Number(cu.user_id)).filter(Boolean)));
-          let vsUserMap: Record<number, { user_fname?: string; user_lname?: string; user_email?: string }> = {};
+          const vsUserMap: Record<number, { user_fname?: string; user_lname?: string; user_email?: string }> = {};
 
           if (uids.length > 0) {
             const vsUserUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${uids.join(",")}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
     /**
      * Batch fetch verification attempts from vs_company_verifications
      */
-    let verifMap: Record<number, unknown[]> = {};
+    const verifMap: Record<number, unknown[]> = {};
     if (companyIds.length > 0) {
       try {
         const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_in]=${companyIds.join(",")}&sort=-created_at&limit=-1`;
@@ -199,7 +199,7 @@ export async function GET(req: NextRequest) {
             )
           );
 
-          let verifUserNames: Record<number, string> = {};
+          const verifUserNames: Record<number, string> = {};
           if (verifUserIds.length > 0) {
             const vUserUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${verifUserIds.join(",")}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
             const vUserRes = await fetch(vUserUrl, { headers: getDirectusHeaders(), cache: "no-store" });
@@ -238,8 +238,24 @@ export async function GET(req: NextRequest) {
       const companyVerifs = (verifMap[cid] || []) as Record<string, unknown>[];
       const latestVerif = companyVerifs.length > 0 ? companyVerifs[0] : null;
 
+      const logoRaw = c.company_logo ? String(c.company_logo) : null;
+      const logoUrl = logoRaw
+        ? logoRaw.startsWith("http") || logoRaw.startsWith("/")
+          ? logoRaw
+          : `/assets/${logoRaw}`
+        : null;
+
+      const coverRaw = c.company_cover ? String(c.company_cover) : null;
+      const coverUrl = coverRaw
+        ? coverRaw.startsWith("http") || coverRaw.startsWith("/")
+          ? coverRaw
+          : `/assets/${coverRaw}`
+        : null;
+
       return {
         ...c,
+        company_logo: logoUrl,
+        company_cover: coverUrl,
         documents: docMap[cid] || [],
         users: userMap[cid] || [],
         verifications: companyVerifs,

@@ -28,7 +28,7 @@ export const VerificationStatusBadge: React.FC<VerificationStatusBadgeProps> = (
   const extraClass = styleMap[variant] || styleMap.outline;
 
   return (
-    <Badge variant="outline" className={`font-medium px-2.5 py-0.5 rounded-full border text-xs ${extraClass}`}>
+    <Badge variant="outline" className={`font-medium px-2.5  py-0.5 rounded-full border text-xs ${extraClass}`}>
       {label}
     </Badge>
   );
