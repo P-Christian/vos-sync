@@ -15,6 +15,7 @@ import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface Props {
   conversation: Conversation;
@@ -76,6 +77,7 @@ export default function ChatPanel({
   onRefresh,
   onBack,
 }: Props) {
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const {
     other_party_name = "Freelancer",
@@ -93,13 +95,37 @@ export default function ChatPanel({
     setImgError(false);
   }
 
-  // Auto scroll to bottom on new message
+  const scrollToBottom = React.useCallback((smooth = false) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  // Auto scroll to bottom whenever conversation changes, loading completes, or messages update
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    if (!loading) {
+      scrollToBottom(false);
+      const t1 = setTimeout(() => scrollToBottom(false), 50);
+      const t2 = setTimeout(() => scrollToBottom(false), 200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [conversation.conversation_id, messages.length, loading, scrollToBottom]);
 
   return (
-    <div className="flex flex-col h-full">
+    <motion.div
+      key={conversation.conversation_id}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className="flex flex-col h-full"
+    >
       {/* Chat Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
         {onBack && (
@@ -133,7 +159,7 @@ export default function ChatPanel({
             <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
               {other_party_name}
             </span>
-            <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
               {conversation_type === "JOB_APPLICATION"
                 ? "Applicant"
                 : conversation_type === "DIRECT_MESSAGE"
@@ -173,7 +199,7 @@ export default function ChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 bg-zinc-50/50 dark:bg-zinc-950/20">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 bg-zinc-50/50 dark:bg-zinc-950/20">
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
@@ -193,7 +219,7 @@ export default function ChatPanel({
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col justify-start space-y-2 min-h-full">
             {messages.map((msg, index) => {
               const isOwn = msg.sender_id === currentUserId;
               const prevMsg = messages[index - 1];
@@ -207,11 +233,12 @@ export default function ChatPanel({
                   isOwn={isOwn}
                   showDateDivider={showDateDivider}
                   dateLabel={showDateDivider ? getDateLabel(msg.created_at) : undefined}
+                  index={index}
                 />
               );
             })}
             <div ref={bottomRef} />
-          </>
+          </div>
         )}
       </div>
 
@@ -230,6 +257,6 @@ export default function ChatPanel({
         uploading={uploading}
         onSend={onSend}
       />
-    </div>
+    </motion.div>
   );
 }

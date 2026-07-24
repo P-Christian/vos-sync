@@ -170,6 +170,7 @@ export async function GET(
       .map((m) => m.message_id as number);
 
     const systemMsgMap: Record<number, Record<string, unknown>> = {};
+    const cardDataMap: Record<number, Record<string, unknown>> = {};
 
     if (systemMsgIds.length > 0) {
       const smRes = await fetch(
@@ -178,17 +179,102 @@ export async function GET(
       );
       if (smRes.ok) {
         const smJson = await smRes.json();
-        for (const sm of (smJson.data ?? []) as Record<string, unknown>[]) {
+        const smList = (smJson.data ?? []) as Record<string, unknown>[];
+        for (const sm of smList) {
           systemMsgMap[sm.message_id as number] = sm;
+        }
+
+        // Collect application_ids and interview_ids
+        const appIds = Array.from(new Set(smList.map((s) => s.application_id).filter(Boolean))) as number[];
+        const ivIds = Array.from(new Set(smList.map((s) => s.interview_id).filter(Boolean))) as number[];
+
+        const [appsRes, ivsRes] = await Promise.all([
+          appIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_job_application?filter[application_id][_in]=${appIds.join(",")}&fields=*`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
+          ivIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${ivIds.join(",")}&fields=*`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
+        ]);
+
+        const appMap = new Map<number, Record<string, unknown>>(appsRes.map((a: Record<string, unknown>) => [a.application_id as number, a]));
+        const ivMap = new Map<number, Record<string, unknown>>(ivsRes.map((i: Record<string, unknown>) => [i.interview_id as number, i]));
+
+        // Collect user_ids and job_ids for application cards
+        const userIds = Array.from(new Set(appsRes.map((a: Record<string, unknown>) => a.user_id).filter(Boolean))) as number[];
+        const jobIds = Array.from(new Set(appsRes.map((a: Record<string, unknown>) => a.job_id).filter(Boolean))) as number[];
+
+        const [usersRes, jobsRes] = await Promise.all([
+          userIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_contact,profile_image_url`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
+          jobIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,salary_min,salary_max`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
+        ]);
+
+        const userMap = new Map<number, Record<string, unknown>>(usersRes.map((u: Record<string, unknown>) => [u.user_id as number, u]));
+        const jobMap = new Map<number, Record<string, unknown>>(jobsRes.map((j: Record<string, unknown>) => [j.job_id as number, j]));
+
+        for (const sm of smList) {
+          const mid = sm.message_id as number;
+          const et = sm.event_type as string;
+          if (et === "APPLICATION_SUBMITTED" || et === "APPLICATION_STATUS_CHANGED" || et === "HIRED") {
+            const app = appMap.get(sm.application_id as number);
+            if (app) {
+              const u = userMap.get(app.user_id as number);
+              const j = jobMap.get(app.job_id as number);
+              cardDataMap[mid] = {
+                event_type: et,
+                application_id: app.application_id,
+                application_status: app.application_status ?? "APPLIED",
+                applied_at: app.applied_at ?? null,
+                expected_salary: app.expected_salary ?? null,
+                cover_letter: app.cover_letter ?? null,
+                portfolio_url: app.portfolio_url ?? null,
+                applicant_name: u ? `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() : "Unknown",
+                applicant_avatar: u?.profile_image_url ? `/api/client/assets/${(u.profile_image_url as string).split("/").pop()}` : null,
+                applicant_email: (u?.user_email as string) ?? null,
+                applicant_phone: (u?.user_contact as string) ?? null,
+                job_title: (j?.job_title as string) ?? "Position",
+                salary_min: (j?.salary_min as number) ?? null,
+                salary_max: (j?.salary_max as number) ?? null,
+              };
+            }
+          } else if (et === "INTERVIEW_SCHEDULED" || et === "INTERVIEW_UPDATED") {
+            const iv = ivMap.get(sm.interview_id as number);
+            if (iv) {
+              cardDataMap[mid] = {
+                event_type: et,
+                interview_id: iv.interview_id,
+                scheduled_at: iv.scheduled_at ?? null,
+                duration_minutes: iv.duration_minutes ?? 60,
+                timezone: iv.timezone ?? "Asia/Manila",
+                interview_format: iv.interview_format ?? "ONLINE",
+                meeting_link: iv.meeting_link ?? null,
+                meeting_location: iv.meeting_location ?? null,
+                interview_status: iv.interview_status ?? null,
+              };
+            }
+          }
         }
       }
     }
 
-    // Enrich messages with attachments and system_message metadata
+    // Enrich messages with attachments, system_message, and system_card_data
     const enriched = messages.map((msg) => ({
       ...msg,
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
       system_message: systemMsgMap[msg.message_id as number] ?? null,
+      system_card_data: cardDataMap[msg.message_id as number] ?? null,
     }));
 
     return NextResponse.json({ messages: enriched });

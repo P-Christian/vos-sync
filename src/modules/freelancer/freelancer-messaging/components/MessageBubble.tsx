@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface Props {
   isOwn: boolean;
   showDateDivider?: boolean;
   dateLabel?: string;
+  index?: number;
 }
 
 function formatTime(dateStr: string): string {
@@ -52,6 +54,7 @@ export default function MessageBubble({
   isOwn,
   showDateDivider,
   dateLabel,
+  index,
 }: Props) {
   const { message_type, message_content, created_at, attachments, is_edited } =
     message;
@@ -61,21 +64,31 @@ export default function MessageBubble({
     fileUrl: string;
   } | null>(null);
 
+  const delay = typeof index === "number" ? Math.min(index * 0.04, 0.4) : 0;
+
   if (message_type === "SYSTEM") {
     return (
-      <>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, delay, ease: "easeOut" }}
+      >
         {showDateDivider && dateLabel && (
           <DateDivider label={dateLabel} />
         )}
         <div className="flex justify-center my-3 px-4">
           <SystemMessageRenderer message={message} />
         </div>
-      </>
+      </motion.div>
     );
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, delay, ease: "easeOut" }}
+    >
       {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
       <div
         className={cn(
@@ -262,7 +275,7 @@ export default function MessageBubble({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </motion.div>
   );
 }
 

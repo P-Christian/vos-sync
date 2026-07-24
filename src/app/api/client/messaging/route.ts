@@ -257,6 +257,43 @@ export async function GET(req: NextRequest) {
   }
 }
 
+async function enrichOneConversation(conv: Record<string, unknown>) {
+  const fid = Number(conv.freelancer_id);
+  const jid = conv.job_id ? Number(conv.job_id) : null;
+
+  const [userRes, jobRes] = await Promise.all([
+    fid
+      ? fetch(
+          `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_eq]=${fid}&fields=user_id,user_fname,user_lname,user_email,profile_image_url&limit=1`,
+          { headers: getHeaders(), cache: "no-store" }
+        )
+          .then((r) => r.json())
+          .then((j) => j.data?.[0] ?? null)
+      : Promise.resolve(null),
+    jid
+      ? fetch(
+          `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_eq]=${jid}&fields=job_id,job_title&limit=1`,
+          { headers: getHeaders(), cache: "no-store" }
+        )
+          .then((r) => r.json())
+          .then((j) => j.data?.[0] ?? null)
+      : Promise.resolve(null),
+  ]);
+
+  const otherPartyName = userRes
+    ? `${userRes.user_fname ?? ""} ${userRes.user_lname ?? ""}`.trim() || "Freelancer"
+    : "Freelancer";
+
+  return {
+    ...conv,
+    other_party_name: otherPartyName,
+    other_party_avatar: formatAvatarUrl(userRes?.profile_image_url as string),
+    other_party_email: (userRes?.user_email as string) ?? null,
+    job_title: (jobRes?.job_title as string) ?? null,
+    unread_count: (conv.unread_count as number) ?? 0,
+  };
+}
+
 // ─── POST — Create a new conversation ─────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -312,7 +349,8 @@ export async function POST(req: NextRequest) {
           );
           existing.archived_by_client = false;
         }
-        return NextResponse.json({ conversation: existing, created: false });
+        const enrichedExisting = await enrichOneConversation(existing);
+        return NextResponse.json({ conversation: enrichedExisting, created: false });
       }
     }
 
@@ -346,8 +384,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const enrichedNew = await enrichOneConversation(createJson.data);
     return NextResponse.json(
-      { conversation: createJson.data, created: true },
+      { conversation: enrichedNew, created: true },
       { status: 201 }
     );
   } catch (err: unknown) {

@@ -2,7 +2,7 @@
 
 // src/modules/client/messaging/components/MessageInput.tsx
 
-import React, { useRef, useState, KeyboardEvent } from "react";
+import React, { useRef, useState, KeyboardEvent, useEffect } from "react";
 import { Send, Paperclip, X, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -44,6 +44,16 @@ export default function MessageInput({
   const isBusy = sending || uploading || disabled;
   const canSend = (content.trim().length > 0 || pendingFiles.length > 0) && !isBusy;
 
+  // Cleanup object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      pendingFiles.forEach((pf) => {
+        if (pf.preview) URL.revokeObjectURL(pf.preview);
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     const newPending: PendingFile[] = files.map((file) => {
@@ -54,11 +64,12 @@ export default function MessageInput({
       return pf;
     });
     setPendingFiles((prev) => [...prev, ...newPending]);
-    // Reset input so same file can be re-selected
+
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const removeFile = (index: number) => {
+    if (isBusy) return;
     setPendingFiles((prev) => {
       const next = [...prev];
       if (next[index].preview) URL.revokeObjectURL(next[index].preview!);
@@ -71,12 +82,12 @@ export default function MessageInput({
     if (!canSend) return;
     onSend(content.trim(), pendingFiles.map((pf) => pf.file));
     setContent("");
-    // Revoke preview URLs
+
     pendingFiles.forEach((pf) => {
       if (pf.preview) URL.revokeObjectURL(pf.preview);
     });
     setPendingFiles([]);
-    // Reset textarea height
+
     if (textareaRef.current) textareaRef.current.style.height = "auto";
   };
 
@@ -89,14 +100,13 @@ export default function MessageInput({
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setContent(e.target.value);
-    // Auto-resize
     const el = e.target;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 100)}px`;
   };
 
   return (
-    <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3">
+    <div className="border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shrink-0 font-sans">
       {/* Pending files preview */}
       {pendingFiles.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-3 px-1">
@@ -105,7 +115,10 @@ export default function MessageInput({
             return (
               <div
                 key={i}
-                className="relative flex items-center gap-2 pl-2.5 pr-8 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 max-w-[200px]"
+                className={cn(
+                  "relative flex items-center gap-2 pl-2.5 pr-8 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 max-w-[200px]",
+                  isBusy && "opacity-60 grayscale-[0.5]"
+                )}
               >
                 {pf.preview ? (
                   <Image
@@ -116,8 +129,8 @@ export default function MessageInput({
                     className="h-8 w-8 rounded-lg object-cover shrink-0"
                   />
                 ) : (
-                  <div className="h-8 w-8 rounded-lg bg-indigo-100 dark:bg-indigo-950/40 flex items-center justify-center shrink-0">
-                    <Icon className="h-4 w-4 text-indigo-500" />
+                  <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+                    <Icon className="h-4 w-4 text-blue-500" />
                   </div>
                 )}
                 <div className="min-w-0">
@@ -129,8 +142,10 @@ export default function MessageInput({
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => removeFile(i)}
-                  className="absolute right-1.5 top-1.5 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                  disabled={isBusy}
+                  className="absolute right-1.5 top-1.5 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -140,46 +155,50 @@ export default function MessageInput({
         </div>
       )}
 
-      {/* Input row */}
-      <div className="flex items-end gap-2">
-        {/* Attachment button */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isBusy}
-          title="Attach file"
-          className="flex-shrink-0 mb-0.5 p-2 rounded-xl text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40"
-        >
-          <Paperclip className="h-4 w-4" />
-        </button>
+      {/* Modern Capsule Input Row */}
+      <div className="flex items-center gap-3">
+        {/* Pill-shaped Input Bar */}
+        <div className="flex-1 relative flex items-center rounded-xl bg-slate-50/80 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/80 px-5 py-1.5 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400 transition-all shadow-2xs">
+          <textarea
+            ref={textareaRef}
+            rows={1}
+            value={content}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            disabled={isBusy}
+            placeholder="Type here..."
+            className="flex-1 bg-transparent border-0 text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none resize-none overflow-y-auto leading-relaxed py-1.5 pr-2 disabled:opacity-50"
+            style={{ minHeight: "36px", maxHeight: "100px" }}
+          />
 
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          rows={1}
-          value={content}
-          onChange={handleTextareaChange}
-          onKeyDown={handleKeyDown}
-          disabled={isBusy}
-          placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
-          className="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition leading-relaxed disabled:opacity-50"
-          style={{ minHeight: "42px", maxHeight: "120px" }}
-        />
+          {/* Inline Attachment Icon */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isBusy}
+            title="Attach file"
+            className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-slate-200/50 dark:hover:bg-zinc-700/50 transition shrink-0 disabled:opacity-40"
+          >
+            <Paperclip className="h-4.5 w-4.5" />
+          </button>
+        </div>
 
-        {/* Send button */}
+        {/* Separate Circular Send Button */}
         <button
+          type="button"
           onClick={handleSend}
           disabled={!canSend}
           className={cn(
-            "flex-shrink-0 mb-0.5 p-2.5 rounded-xl transition-all",
+            "h-10 w-10 rounded-2xl flex items-center justify-center transition-all shrink-0",
             canSend
-              ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 active:scale-95"
-              : "bg-zinc-200 dark:bg-zinc-700 text-zinc-400 cursor-not-allowed"
+              ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 active:scale-95 cursor-pointer shadow-xs"
+              : "bg-slate-100 dark:bg-zinc-800/60 text-slate-300 dark:text-zinc-600 cursor-not-allowed"
           )}
         >
           {sending || uploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
           ) : (
-            <Send className="h-4 w-4" />
+            <Send className="h-4 w-4 text-blue-600 dark:text-blue-400 ml-0.5" />
           )}
         </button>
       </div>

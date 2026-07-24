@@ -194,12 +194,12 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
 
           <div
             className={cn(
-              "flex-1 min-w-0",
+              "flex-1 min-w-0 h-full flex flex-col overflow-hidden",
               mobileShowChat ? "flex" : "hidden sm:flex"
             )}
           >
             {activeConversation ? (
-              <div className="w-full">
+              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
                 <ChatPanel
                   conversation={activeConversation}
                   messages={messages}
@@ -214,9 +214,9 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
                 />
               </div>
             ) : (
-              <div className="w-full">
-              <EmptyState />
-            </div>
+              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+                <EmptyState />
+              </div>
             )}
           </div>
         </div>

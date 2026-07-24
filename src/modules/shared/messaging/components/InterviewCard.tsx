@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { CalendarDays, Clock, ExternalLink, Loader2, Monitor, MapPin, RefreshCw } from "lucide-react";
 import { Message } from "@/modules/client/messaging/types";
+import SystemPill from "./SystemPill";
 
 interface InterviewCardData {
   event_type: string;
@@ -63,22 +64,26 @@ function tzAbbr(tz: string): string {
 }
 
 export default function InterviewCard({ message }: Props) {
-  const [data, setData] = useState<InterviewCardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialData = (message as unknown as { system_card_data?: InterviewCardData }).system_card_data ?? null;
+  const [data, setData] = useState<InterviewCardData | null>(initialData);
+  const [loading, setLoading] = useState(!initialData);
 
   useEffect(() => {
+    if (initialData) return;
     let cancelled = false;
 
     fetch(`/api/messaging/system-card?message_id=${message.message_id}`, {
       credentials: "include",
     })
       .then((r) => r.json())
-      .then((json) => { if (!cancelled) setData(json ?? null); })
+      .then((json) => {
+        if (!cancelled) setData(json && !json.error ? json : null);
+      })
       .catch(() => { if (!cancelled) setData(null); })
       .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
-  }, [message.message_id]);
+  }, [message.message_id, initialData]);
 
   const eventType = message.system_message?.event_type ?? "INTERVIEW_SCHEDULED";
   const meta = EVENT_META[eventType] ?? EVENT_META["INTERVIEW_SCHEDULED"];
@@ -92,15 +97,8 @@ export default function InterviewCard({ message }: Props) {
     );
   }
 
-  if (!data) {
-    return (
-      <div className={`w-80 rounded-2xl border p-4 ${meta.accent}`}>
-        <div className="flex items-center gap-2">
-          {meta.icon}
-          <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">{meta.label}</span>
-        </div>
-      </div>
-    );
+  if (!data || (data as unknown as Record<string, unknown>).error) {
+    return <SystemPill text={message.message_content} />;
   }
 
   const isOnline = data.interview_format === "ONLINE";

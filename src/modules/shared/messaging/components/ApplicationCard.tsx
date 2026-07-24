@@ -20,6 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Message } from "@/modules/client/messaging/types";
+import SystemPill from "./SystemPill";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
@@ -134,13 +135,15 @@ export default function ApplicationCard({ message }: Props) {
     ? "/vos-sync/freelancer/applications"
     : "/vos-sync/client/applicants";
 
-  const [data, setData] = useState<ApplicationCardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const initialData = (message as unknown as { system_card_data?: ApplicationCardData }).system_card_data ?? null;
+  const [data, setData] = useState<ApplicationCardData | null>(initialData);
+  const [loading, setLoading] = useState(!initialData);
   const [imgError, setImgError] = useState(false);
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ fileName: string; fileUrl: string } | null>(null);
 
   useEffect(() => {
+    if (initialData) return;
     let cancelled = false;
 
     fetch(`/api/messaging/system-card?message_id=${message.message_id}`, {
@@ -148,7 +151,9 @@ export default function ApplicationCard({ message }: Props) {
     })
       .then((r) => r.json())
       .then((json) => {
-        if (!cancelled) setData(json ?? null);
+        if (!cancelled) {
+          setData(json && !json.error ? json : null);
+        }
       })
       .catch(() => {
         if (!cancelled) setData(null);
@@ -158,7 +163,7 @@ export default function ApplicationCard({ message }: Props) {
       });
 
     return () => { cancelled = true; };
-  }, [message.message_id]);
+  }, [message.message_id, initialData]);
 
   const eventType = message.system_message?.event_type ?? "APPLICATION_SUBMITTED";
   const meta = EVENT_HEADERS[eventType] ?? EVENT_HEADERS["APPLICATION_SUBMITTED"];
@@ -172,12 +177,8 @@ export default function ApplicationCard({ message }: Props) {
     );
   }
 
-  if (!data) {
-    return (
-      <div className={`w-full max-w-sm rounded-2xl border p-4 ${meta.accent}`}>
-        <p className="text-xs text-zinc-500">{meta.icon} {meta.label}</p>
-      </div>
-    );
+  if (!data || (data as unknown as Record<string, unknown>).error) {
+    return <SystemPill text={message.message_content} />;
   }
 
   const salary = formatSalary(data.salary_min, data.salary_max);

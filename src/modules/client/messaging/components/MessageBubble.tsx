@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface Props {
   isOwn: boolean;
   showDateDivider?: boolean;
   dateLabel?: string;
+  index?: number;
 }
 
 function formatTime(dateStr: string): string {
@@ -52,6 +54,7 @@ export default function MessageBubble({
   isOwn,
   showDateDivider,
   dateLabel,
+  index,
 }: Props) {
   const { message_type, message_content, created_at, attachments, is_edited } =
     message;
@@ -61,23 +64,33 @@ export default function MessageBubble({
     fileUrl: string;
   } | null>(null);
 
+  const delay = typeof index === "number" ? Math.min(index * 0.04, 0.4) : 0;
+
   // ─── System message ────────────────────────────────────────────────────
 
   if (message_type === "SYSTEM") {
     return (
-      <>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, delay, ease: "easeOut" }}
+      >
         {showDateDivider && dateLabel && (
           <DateDivider label={dateLabel} />
         )}
         <div className="flex justify-center my-3 px-4">
           <SystemMessageRenderer message={message} />
         </div>
-      </>
+      </motion.div>
     );
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, delay, ease: "easeOut" }}
+    >
       {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
       <div
         className={cn(
@@ -247,7 +260,7 @@ export default function MessageBubble({
               <a
                 href={previewDoc.fileUrl}
                 download={previewDoc.fileName}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition"
+                className="inline-flex items-center gap-1.5 px-3 mr-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download
@@ -264,7 +277,7 @@ export default function MessageBubble({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </motion.div>
   );
 }
 
