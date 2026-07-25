@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
       const countJson = await countRes.json();
       unreadCount = countJson.meta?.filter_count ?? 0;
     } else {
-      unreadCount = notifications.filter((n: any) => n.is_read === false || n.is_read === 0).length;
+      unreadCount = notifications.filter((n: Record<string, unknown>) => n.is_read === false || n.is_read === 0).length;
     }
 
     return NextResponse.json({ notifications, unreadCount });

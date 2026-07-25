@@ -67,9 +67,9 @@ export async function GET(req: NextRequest) {
     }
 
     const json = await res.json();
-    const rawPrefs: Record<string, any>[] = json.data ?? [];
+    const rawPrefs: Record<string, unknown>[] = json.data ?? [];
 
-    const existingMap = new Map<string, any>();
+    const existingMap = new Map<string, { preference_id: number; email_enabled: boolean; in_app_enabled: boolean; updated_at: string | null }>();
     let quietHoursStart: string | null = null;
     let quietHoursEnd: string | null = null;
     let timezone: string | null = null;
@@ -78,16 +78,16 @@ export async function GET(req: NextRequest) {
       const cat = String(p.category ?? "");
       if (cat) {
         existingMap.set(cat, {
-          preference_id: p.preference_id,
+          preference_id: Number(p.preference_id),
           email_enabled: p.email_enabled === 1 || p.email_enabled === true,
           in_app_enabled: p.in_app_enabled === 1 || p.in_app_enabled === true,
-          updated_at: p.updated_at ?? null,
+          updated_at: (p.updated_at as string) ?? null,
         });
       }
       // Extract first found user-level quiet hours settings
-      if (p.quiet_hours_start && !quietHoursStart) quietHoursStart = p.quiet_hours_start;
-      if (p.quiet_hours_end && !quietHoursEnd) quietHoursEnd = p.quiet_hours_end;
-      if (p.timezone && !timezone) timezone = p.timezone;
+      if (p.quiet_hours_start && !quietHoursStart) quietHoursStart = p.quiet_hours_start as string;
+      if (p.quiet_hours_end && !quietHoursEnd) quietHoursEnd = p.quiet_hours_end as string;
+      if (p.timezone && !timezone) timezone = p.timezone as string;
     });
 
     const preferences = KNOWN_FREELANCER_CATEGORIES.map((kc) => {
@@ -172,7 +172,7 @@ export async function PUT(req: NextRequest) {
     const existingMap = new Map(existing.map((e) => [e.category, e.preference_id]));
 
     const results = await Promise.allSettled(
-      incoming.map(async (pref: any) => {
+      incoming.map(async (pref: { category: string; email_enabled?: boolean; in_app_enabled?: boolean }) => {
         const existingId = existingMap.get(pref.category);
         const payload = {
           email_enabled: pref.email_enabled ? 1 : 0,

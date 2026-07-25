@@ -18,7 +18,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Ban, Copy, Check } from "lucide-react";
+import { Ban, Copy, Check, Link2 } from "lucide-react";
+import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
+import { fetchUserProfile } from "@/modules/client/settings/providers/SettingsProvider";
 
 interface ReferralItem {
   referral_id: number;
@@ -37,6 +39,23 @@ export default function MyReferralsPage() {
   const [referrals, setReferrals] = React.useState<ReferralItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [copiedId, setCopiedId] = React.useState<number | null>(null);
+  const [userProfile, setUserProfile] = React.useState<{
+    name: string;
+    email: string;
+    avatar: string;
+  } | null>(null);
+
+  React.useEffect(() => {
+    fetchUserProfile()
+      .then((data) => {
+        setUserProfile({
+          name: `${data.user_fname} ${data.user_lname}`,
+          email: data.user_email || "",
+          avatar: data.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${data.profile_image_url}` : "",
+        });
+      })
+      .catch((err) => console.error("Error loading user profile", err));
+  }, []);
 
   const fetchReferrals = React.useCallback(async () => {
     try {
@@ -128,16 +147,26 @@ export default function MyReferralsPage() {
             </Breadcrumb>
           </div>
         </div>
+        <div className="flex h-full items-center px-2 sm:px-4 shrink-0 max-w-[48vw] sm:max-w-none overflow-hidden">
+          {userProfile && <NavUser user={userProfile} />}
+        </div>
       </header>
 
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-8">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Referrals</h1>
-              <p className="text-muted-foreground mt-1">
-                Invite friends and candidates to view open vacancies and track their application progress.
-              </p>
+        <div className="w-full max-w-[80%] mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-teal-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+            <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+                <Link2 className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight">Referrals</h1>
+                <p className="text-sm text-zinc-300 mt-1">
+                  Invite friends and candidates to view open vacancies and track their application progress.
+                </p>
+              </div>
             </div>
           </div>
 

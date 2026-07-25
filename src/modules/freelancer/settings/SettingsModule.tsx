@@ -5,26 +5,28 @@ import { useSettings } from "@/modules/client/settings/hooks/useSettings";
 import AccountSettings from "./components/AccountSettings";
 import SecuritySettings from "./components/SecuritySettings";
 import NotificationSettings from "./components/NotificationSettings";
-import { SettingsAppearance } from "@/app/(vos-sync)/vos-sync/settings/settings-appearance";
+import GeneralSettings from "./components/GeneralSettings";
+import PrivacyDataRequests from "./components/PrivacyDataRequests";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Settings2,
   User,
   Shield,
-  Palette,
   Bell,
   AlertCircle,
   CheckCircle,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsTab = "account" | "security" | "appearance" | "notifications";
+type SettingsTab = "account" | "general" | "security" | "notifications" | "privacy";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "account", label: "Account Profile", icon: User },
-  { id: "security", label: "Change Password", icon: Shield },
-  { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "general", label: "General & Accessibility", icon: Settings2 },
+  { id: "security", label: "Security & Sessions", icon: Shield },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "privacy", label: "Data & Privacy Requests", icon: Database },
 ];
 
 export default function SettingsModule() {
@@ -73,7 +75,7 @@ export default function SettingsModule() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Freelancer Settings</h1>
             <p className="text-sm text-zinc-300 mt-1">
-              Manage your profile preferences, credentials, workspace appearance, and email alerts.
+              Manage your profile preferences, credentials, visual settings, and data privacy options.
             </p>
           </div>
         </div>
@@ -129,13 +131,18 @@ export default function SettingsModule() {
               {activeTab === "account" && (
                 <AccountSettings user={user} saving={saving} onSave={saveProfile} />
               )}
+              {activeTab === "general" && (
+                <GeneralSettings />
+              )}
               {activeTab === "security" && (
                 <SecuritySettings saving={saving} onChangePassword={changePassword} />
               )}
-              {activeTab === "appearance" && (
-                <SettingsAppearance />
+              {activeTab === "notifications" && (
+                <NotificationSettings />
               )}
-              {activeTab === "notifications" && <NotificationSettings />}
+              {activeTab === "privacy" && (
+                <PrivacyDataRequests />
+              )}
             </>
           )}
         </CardContent>

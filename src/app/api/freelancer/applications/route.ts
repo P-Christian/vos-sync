@@ -237,14 +237,14 @@ export async function POST(req: NextRequest) {
       { headers: getHeaders(), cache: "no-store" }
     );
     
-    let existingApplication: any = null;
+    let existingApplication: Record<string, unknown> | null = null;
     if (dupCheck.ok) {
       const dupJson = await dupCheck.json();
       existingApplication = dupJson.data?.[0] || null;
     }
 
     if (existingApplication) {
-      const status = existingApplication.application_status;
+      const status = existingApplication.application_status as string;
       // If it is not a draft and not withdrawn/rejected, it's an active application
       if (status !== "DRAFT" && status !== "WITHDRAWN" && status !== "REJECTED") {
         return NextResponse.json(
@@ -309,8 +309,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const nextVersion = (existingApplication?.draft_version || 0) + 1;
-    const payload: any = {
+    const nextVersion = (Number(existingApplication?.draft_version) || 0) + 1;
+    const payload: Record<string, unknown> = {
       job_id: Number(body.job_id),
       user_id: userId,
       application_status: isDraft ? "DRAFT" : "APPLIED",
@@ -390,7 +390,7 @@ export async function POST(req: NextRequest) {
       );
       if (oldAnswersRes.ok) {
         const oldAnswers = await oldAnswersRes.json();
-        const oldIds = (oldAnswers.data ?? []).map((a: any) => a.id);
+        const oldIds = (oldAnswers.data ?? []).map((a: Record<string, unknown>) => a.id);
         for (const aId of oldIds) {
           await fetch(`${DIRECTUS_BASE}/items/vs_job_application_answer/${aId}`, {
             method: "DELETE",
@@ -427,7 +427,9 @@ export async function POST(req: NextRequest) {
             application_id: applicationId,
             snapshot_schema_version: "1.0",
             profile_data: {
-              professional_summary: (profile.job_seeker_profile as any)?.[0]?.professional_summary || (profile.job_seeker_profile as any)?.professional_summary || "",
+              professional_summary: 
+                (profile.job_seeker_profile as unknown as Record<string, unknown>[])?.[0]?.professional_summary || 
+                (profile.job_seeker_profile as unknown as Record<string, unknown>)?.professional_summary || "",
               skills: profile.skills || [],
               work_experience: profile.work_experience || [],
               education: profile.education || [],

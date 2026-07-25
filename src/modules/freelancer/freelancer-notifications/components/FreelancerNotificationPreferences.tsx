@@ -57,6 +57,7 @@ export default function FreelancerNotificationPreferences({
 
   // Initialize quiet hours local inputs on prop changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (quietHours.start) setQStart(quietHours.start);
     if (quietHours.end) setQEnd(quietHours.end);
     if (quietHours.timezone) setTimezone(quietHours.timezone);
