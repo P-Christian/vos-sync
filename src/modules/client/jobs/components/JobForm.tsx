@@ -6,7 +6,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -35,6 +34,7 @@ import {
 } from "lucide-react";
 import { searchMasterSkillsAction, addMasterSkillAction } from "../services/jobs.actions";
 import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, ExperienceLevel } from "../types";
+import { RichTextEditor } from "./RichTextEditor";
 
 interface JobFormProps {
   data: JobFormData;
@@ -377,35 +377,67 @@ export default function JobForm({
     setCustomBenefitInput("");
   };
 
+  const renderInlineMarkdown = (str: string) => {
+    const parts = str.split(/(\*\*.*?\*\*|<b>.*?<\/b>|<strong>.*?<\/strong>)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
+        return (
+          <strong key={idx} className="font-bold text-zinc-900 dark:text-zinc-100">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      if (part.startsWith("<b>") && part.endsWith("</b>") && part.length >= 7) {
+        return (
+          <strong key={idx} className="font-bold text-zinc-900 dark:text-zinc-100">
+            {part.slice(3, -4)}
+          </strong>
+        );
+      }
+      if (part.startsWith("<strong>") && part.endsWith("</strong>") && part.length >= 17) {
+        return (
+          <strong key={idx} className="font-bold text-zinc-900 dark:text-zinc-100">
+            {part.slice(8, -9)}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
   const renderFormattedContent = (text: string | null | undefined) => {
     if (!text) return <p className="text-xs text-zinc-400 italic">No information provided.</p>;
-    // Split text by double newlines or single newlines that are clearly separate items
-    const blocks = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    if (/<(b|strong|ul|ol|li|p|div|br)\b[^>]*>/i.test(text)) {
+      return (
+        <div
+          className="text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      );
+    }
+    const blocks = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
     return (
       <div className="space-y-2.5">
         {blocks.map((block, bIdx) => {
-          const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
-          // If a block consists of multiple lines or starts with bullet chars, format as bulleted list
-          const isList = lines.length > 1 || lines.some(line =>
-            line.startsWith("-") ||
-            line.startsWith("*") ||
-            line.startsWith("•") ||
-            /^\d+\./.test(line)
-          );
+          const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+          const isList =
+            lines.length > 0 &&
+            (lines.every((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line)) ||
+              (lines.length > 1 && lines.some((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line))));
 
           if (isList) {
             return (
               <ul key={bIdx} className="space-y-1.5 list-disc pl-4 text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed">
                 {lines.map((line, lIdx) => {
                   const cleaned = line.replace(/^[-*•\d+\.]\s*/, "");
-                  return <li key={lIdx}>{cleaned}</li>;
+                  return <li key={lIdx}>{renderInlineMarkdown(cleaned)}</li>;
                 })}
               </ul>
             );
           } else {
             return (
               <p key={bIdx} className="text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed whitespace-pre-wrap">
-                {block}
+                {renderInlineMarkdown(block)}
               </p>
             );
           }
@@ -806,17 +838,15 @@ export default function JobForm({
               <Label htmlFor="jf-desc" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                 Job Description <span className="text-rose-500">*</span>
               </Label>
-              <Textarea
+              <RichTextEditor
                 id="jf-desc"
                 value={data.job_description ?? ""}
-                onChange={(e) => {
-                  onChange("job_description", e.target.value);
+                onChange={(val) => {
+                  onChange("job_description", val);
                   if (localErrors.job_description) setLocalErrors((p) => ({ ...p, job_description: "" }));
                 }}
-                rows={6}
                 placeholder="Describe the overall purpose of the role and team context..."
-                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_description ? "border-rose-455" : ""
-                  }`}
+                error={!!localErrors.job_description}
               />
               {localErrors.job_description && (
                 <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
@@ -830,17 +860,15 @@ export default function JobForm({
               <Label htmlFor="jf-resp" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                 Core Responsibilities <span className="text-rose-500">*</span>
               </Label>
-              <Textarea
+              <RichTextEditor
                 id="jf-resp"
                 value={data.job_responsibilities ?? ""}
-                onChange={(e) => {
-                  onChange("job_responsibilities", e.target.value);
+                onChange={(val) => {
+                  onChange("job_responsibilities", val);
                   if (localErrors.job_responsibilities) setLocalErrors((p) => ({ ...p, job_responsibilities: "" }));
                 }}
-                rows={6}
                 placeholder="Outline key daily tasks, reports, and scope of responsibility..."
-                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_responsibilities ? "border-rose-455" : ""
-                  }`}
+                error={!!localErrors.job_responsibilities}
               />
               {localErrors.job_responsibilities && (
                 <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
@@ -854,17 +882,15 @@ export default function JobForm({
               <Label htmlFor="jf-quals" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                 Qualifications & Requirements <span className="text-rose-500">*</span>
               </Label>
-              <Textarea
+              <RichTextEditor
                 id="jf-quals"
                 value={data.job_qualifications ?? ""}
-                onChange={(e) => {
-                  onChange("job_qualifications", e.target.value);
+                onChange={(val) => {
+                  onChange("job_qualifications", val);
                   if (localErrors.job_qualifications) setLocalErrors((p) => ({ ...p, job_qualifications: "" }));
                 }}
-                rows={6}
                 placeholder="List required skills, education, and years of experience..."
-                className={`resize-none min-h-[140px] text-sm leading-relaxed border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_qualifications ? "border-rose-455" : ""
-                  }`}
+                error={!!localErrors.job_qualifications}
               />
               {localErrors.job_qualifications && (
                 <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">

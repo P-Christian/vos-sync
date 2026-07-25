@@ -54,7 +54,7 @@ export default function CompanyProfileModule() {
   const [uploadedDocsCount, setUploadedDocsCount] = useState(0);
   const [isEditingClassification, setIsEditingClassification] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
-  const [draft, setDraft] = useState<Partial<EditableCompanyFields>>({});
+  const [draft, setDraft] = useState<Partial<EditableCompanyFields & { custom_industry_name?: string }>>({});
   const [showPreview, setShowPreview] = useState(false);
 
   const [setupForm, setSetupForm] = useState({
@@ -92,7 +92,7 @@ export default function CompanyProfileModule() {
   }, [fetchProfile]);
 
   const handleFieldChange = (
-    field: keyof EditableCompanyFields,
+    field: keyof EditableCompanyFields | "custom_industry_name",
     value: string | number | boolean | null | undefined
   ) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -168,13 +168,41 @@ export default function CompanyProfileModule() {
 
   const handleSaveClassification = async () => {
     clearMessages();
+    let targetIndustryId: number | string | null | undefined = draft.industry_id;
+
+    if (
+      draft.industry_id === "OTHERS" ||
+      String(draft.industry_id).toUpperCase() === "OTHERS"
+    ) {
+      const customName = draft.custom_industry_name?.trim();
+      if (customName) {
+        try {
+          const res = await fetch("/api/client/company-profile?directusCollection=vs_industry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ industry_name: customName }),
+          });
+          const json = await res.json();
+          if (res.ok && (json.data?.industry_id || json.industry_id)) {
+            targetIndustryId = Number(json.data?.industry_id ?? json.industry_id);
+          }
+        } catch (err) {
+          console.error("Error creating custom industry:", err);
+        }
+      }
+    } else if (draft.industry_id) {
+      targetIndustryId = Number(draft.industry_id);
+    }
+
     await updateProfile({
-      industry_id: draft.industry_id,
-      organization_type_id: draft.organization_type_id,
-      company_size_id: draft.company_size_id,
-      year_established: draft.year_established,
+      industry_id: targetIndustryId as number | null,
+      organization_type_id: draft.organization_type_id ? Number(draft.organization_type_id) : null,
+      company_size_id: draft.company_size_id ? Number(draft.company_size_id) : null,
+      year_established: draft.year_established ? Number(draft.year_established) : null,
       company_tags: draft.company_tags,
     });
+
+    await fetchProfile();
     setIsEditingClassification(false);
   };
 

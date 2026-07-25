@@ -35,7 +35,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   ChevronLeft,
@@ -43,7 +42,6 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Search,
-  Settings2,
 } from "lucide-react";
 import {
   Select,
@@ -254,12 +252,12 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-2 ml-auto">
           {actionComponent}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            {/* <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Settings2 className="h-4 w-4" />
                 View
               </Button>
-            </DropdownMenuTrigger>
+            </DropdownMenuTrigger> */}
             <DropdownMenuContent align="end" className="w-[150px]">
               {table
                 .getAllColumns()

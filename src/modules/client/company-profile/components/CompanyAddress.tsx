@@ -134,6 +134,18 @@ export default function CompanyAddress({
     onChange("company_brgy", selectedBgy ? selectedBgy.name : "");
   };
 
+  const provinceOptions = [...provinces]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((prov) => ({ value: prov.code, label: prov.name }));
+
+  const cityOptions = [...cities]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((city) => ({ value: city.code, label: city.name }));
+
+  const barangayOptions = [...barangays]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((bgy) => ({ value: bgy.code, label: bgy.name }));
+
   return (
     <div className="space-y-5">
       <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
@@ -155,7 +167,7 @@ export default function CompanyAddress({
             />
           ) : (
             <SearchableSelect
-              options={provinces.map((prov) => ({ value: prov.code, label: prov.name }))}
+              options={provinceOptions}
               value={selectedProvinceCode}
               onValueChange={handleProvinceChange}
               disabled={loadingProvinces}
@@ -179,7 +191,7 @@ export default function CompanyAddress({
             />
           ) : (
             <SearchableSelect
-              options={cities.map((city) => ({ value: city.code, label: city.name }))}
+              options={cityOptions}
               value={selectedCityCode}
               onValueChange={handleCityChange}
               disabled={!selectedProvinceCode || loadingCities}
@@ -209,7 +221,7 @@ export default function CompanyAddress({
             />
           ) : (
             <SearchableSelect
-              options={barangays.map((bgy) => ({ value: bgy.code, label: bgy.name }))}
+              options={barangayOptions}
               value={barangays.find((b) => b.name.toLowerCase() === data.company_brgy?.toLowerCase())?.code || ""}
               onValueChange={handleBrgyChange}
               disabled={!selectedCityCode || loadingBarangays}

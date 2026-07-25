@@ -212,6 +212,27 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const directusCollection = searchParams.get("directusCollection");
+
+    if (directusCollection) {
+      if (!DIRECTUS_BASE) {
+        return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
+      }
+      const body = await req.json().catch(() => null);
+      const target = `${DIRECTUS_BASE}/items/${encodeURIComponent(directusCollection)}`;
+      const res = await fetch(target, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(body),
+      });
+      const text = await res.text();
+      return new NextResponse(text, {
+        status: res.status,
+        headers: { "content-type": res.headers.get("content-type") || "application/json" },
+      });
+    }
+
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
       req.cookies.get("vos_access_token")?.value;

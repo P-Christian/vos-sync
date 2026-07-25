@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import * as jose from "jose";
 import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken, getRoleById } from "./auth.repo";
 import { sendOTP, sendPasswordResetOTP } from "./email.service";
+import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 // ⚠️ TESTING: 1 min — CHANGE TO 15 * 60 * 1000 (15 min) FOR PRODUCTION
@@ -21,10 +22,28 @@ export async function loginUser(email: string, hashPasswordParam: string) {
 
     const user = await getUserByEmail(email);
     if (!user) {
+        // Log failed login attempt with unknown email
+        createAuditRecordRepo({
+            event_type: "USER_LOGIN_FAILED",
+            event_category: "AUTHENTICATION",
+            action: "FAILED_LOGIN",
+            status: "FAILED",
+            actor_type: "USER",
+            reason: `Login attempt failed: Email ${email} not found`,
+        });
         throw new Error("Credentials invalid.");
     }
 
     if (user.is_blocked) {
+        createAuditRecordRepo({
+            event_type: "USER_LOGIN_BLOCKED",
+            event_category: "AUTHENTICATION",
+            action: "FAILED_LOGIN",
+            status: "DENIED",
+            actor_type: "USER",
+            actor_user_id: user.user_id,
+            reason: "Login denied: Account is blocked",
+        });
         throw new Error("Account is blocked. Contact support.");
     }
 
@@ -34,6 +53,15 @@ export async function loginUser(email: string, hashPasswordParam: string) {
     if (user.lock_until) {
         const lockUntilDate = new Date(user.lock_until);
         if (now < lockUntilDate) {
+            createAuditRecordRepo({
+                event_type: "USER_LOGIN_LOCKED",
+                event_category: "AUTHENTICATION",
+                action: "LOCKOUT",
+                status: "DENIED",
+                actor_type: "USER",
+                actor_user_id: user.user_id,
+                reason: `Login denied: Account locked until ${lockUntilDate.toISOString()}`,
+            });
             throw new Error(`Account is locked. Try again at ${lockUntilDate.toLocaleTimeString()}.`);
         } else {
             // Lock has naturally expired. Give them a fresh set of attempts.
@@ -47,16 +75,45 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         if (newAttempts >= MAX_FAILED_ATTEMPTS) {
             const lockUntil = new Date(now.getTime() + LOCK_DURATION_MS).toISOString();
             await updateFailedAttempts(user.user_id, newAttempts, lockUntil);
+            createAuditRecordRepo({
+                event_type: "ACCOUNT_LOCKOUT",
+                event_category: "AUTHENTICATION",
+                action: "LOCKOUT",
+                status: "DENIED",
+                actor_type: "SYSTEM",
+                actor_user_id: user.user_id,
+                reason: `Account locked due to ${MAX_FAILED_ATTEMPTS} consecutive failed attempts`,
+            });
             throw new Error("Account locked for 1 minute due to too many failed attempts.");
         } else {
             await updateFailedAttempts(user.user_id, newAttempts);
             const remaining = MAX_FAILED_ATTEMPTS - newAttempts;
+            createAuditRecordRepo({
+                event_type: "USER_LOGIN_FAILED",
+                event_category: "AUTHENTICATION",
+                action: "FAILED_LOGIN",
+                status: "FAILED",
+                actor_type: "USER",
+                actor_user_id: user.user_id,
+                reason: `Invalid password. ${remaining} attempt(s) remaining`,
+            });
             throw new Error(`Credentials invalid. ${remaining} attempt(s) remaining.`);
         }
     }
 
     // Login successful
     await resetFailedAttempts(user.user_id);
+
+    createAuditRecordRepo({
+        event_type: "USER_LOGIN",
+        event_category: "AUTHENTICATION",
+        action: "LOGIN",
+        status: "SUCCESS",
+        actor_type: user.role_id === 3 ? "ADMIN" : "USER",
+        actor_user_id: user.user_id,
+        organization_type: user.role_id === 2 ? "EMPLOYER" : user.role_id === 4 ? "SCHOOL" : "FREELANCER",
+        reason: "User logged in successfully",
+    });
 
     const secret = new TextEncoder().encode(JWT_SECRET);
     const alg = 'HS256';
@@ -128,6 +185,19 @@ export async function registerUser(body: unknown) {
 
     const newUser = await createUser(newUserPayload);
 
+    createAuditRecordRepo({
+        event_type: "USER_REGISTERED",
+        event_category: "USER",
+        action: "CREATE",
+        status: "SUCCESS",
+        actor_type: "USER",
+        actor_user_id: newUser.user_id,
+        resource_type: "vs_user",
+        resource_id: String(newUser.user_id),
+        organization_type: role_id === 2 ? "EMPLOYER" : "FREELANCER",
+        reason: `New user registration for ${email}`,
+    });
+
     // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -155,6 +225,15 @@ export async function confirmOTP(userId: string | number, code: string) {
     }
 
     if (String(user.otp_code) !== String(code)) {
+        createAuditRecordRepo({
+            event_type: "OTP_VERIFY_FAILED",
+            event_category: "AUTHENTICATION",
+            action: "OTP_VERIFY",
+            status: "FAILED",
+            actor_type: "USER",
+            actor_user_id: Number(userId),
+            reason: "Invalid OTP code entered",
+        });
         throw new Error('Invalid verification code.');
     }
 
@@ -163,10 +242,29 @@ export async function confirmOTP(userId: string | number, code: string) {
     const nowPH = new Date(new Date().getTime() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
 
     if (expiryStr < nowPH) {
+        createAuditRecordRepo({
+            event_type: "OTP_VERIFY_EXPIRED",
+            event_category: "AUTHENTICATION",
+            action: "OTP_VERIFY",
+            status: "FAILED",
+            actor_type: "USER",
+            actor_user_id: Number(userId),
+            reason: "Expired OTP code submitted",
+        });
         throw new Error('Verification code has expired.');
     }
 
     await markOTPVerified(userId);
+
+    createAuditRecordRepo({
+        event_type: "OTP_VERIFY_SUCCESS",
+        event_category: "AUTHENTICATION",
+        action: "OTP_VERIFY",
+        status: "SUCCESS",
+        actor_type: "USER",
+        actor_user_id: Number(userId),
+        reason: "OTP verification completed successfully",
+    });
 
     const secret = new TextEncoder().encode(JWT_SECRET);
     const alg = 'HS256';
@@ -185,6 +283,8 @@ export async function confirmOTP(userId: string | number, code: string) {
     const token = await new jose.SignJWT({ 
         sub: String(user.user_id),
         email: user.user_email,
+        user_fname: user.user_fname,
+        user_lname: user.user_lname,
         role: user.role,
         role_name: cleanRoleName,
         role_id: user.role_id
@@ -220,6 +320,16 @@ export async function requestPasswordReset(email: string) {
     
     await saveResetToken(user.user_id, tokenId, hashedOtp, otpExpiryPH);
     await sendPasswordResetOTP(email, otpCode);
+
+    createAuditRecordRepo({
+        event_type: "PASSWORD_RESET_REQUESTED",
+        event_category: "AUTHENTICATION",
+        action: "PASSWORD_RESET",
+        status: "SUCCESS",
+        actor_type: "USER",
+        actor_user_id: user.user_id,
+        reason: "Password reset OTP requested",
+    });
     
     return { ok: true, userId: user.user_id };
 }
@@ -240,6 +350,15 @@ export async function confirmPasswordReset(userId: string | number, code: string
     
     const isValid = await bcrypt.compare(code, user.reset_token_hash);
     if (!isValid) {
+        createAuditRecordRepo({
+            event_type: "PASSWORD_RESET_FAILED",
+            event_category: "AUTHENTICATION",
+            action: "PASSWORD_RESET",
+            status: "FAILED",
+            actor_type: "USER",
+            actor_user_id: Number(userId),
+            reason: "Invalid password reset code submitted",
+        });
         throw new Error('Invalid or expired code.');
     }
 
@@ -248,6 +367,15 @@ export async function confirmPasswordReset(userId: string | number, code: string
     const nowPH = getPHTimeString(new Date());
 
     if (expiryStr < nowPH) {
+        createAuditRecordRepo({
+            event_type: "PASSWORD_RESET_EXPIRED",
+            event_category: "AUTHENTICATION",
+            action: "PASSWORD_RESET",
+            status: "FAILED",
+            actor_type: "USER",
+            actor_user_id: Number(userId),
+            reason: "Expired password reset code submitted",
+        });
         throw new Error('Reset code has expired.');
     }
     
@@ -256,5 +384,16 @@ export async function confirmPasswordReset(userId: string | number, code: string
 
     await clearResetToken(userId, hashedPassword, newPassword);
 
+    createAuditRecordRepo({
+        event_type: "PASSWORD_RESET_COMPLETED",
+        event_category: "AUTHENTICATION",
+        action: "PASSWORD_RESET",
+        status: "SUCCESS",
+        actor_type: "USER",
+        actor_user_id: Number(userId),
+        reason: "Password reset completed successfully",
+    });
+
     return { ok: true };
 }
+

@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles, LogOut, Building, Plus, Phone, ShieldCheck, Mail, CheckCircle, Circle } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShieldAlert, LogOut, Building, Plus, ShieldCheck, Mail, CheckCircle, Circle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function DashboardModule({ userName }: { userName?: string }) {
@@ -286,7 +286,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
           Last steps before you can hire
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          {/* Card 1: Phone Verification */}
+          {/* Card 1: Phone Verification
           <Card className="border bg-card p-5 rounded-xl flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-md transition-all duration-300">
             <div>
               <div className="flex justify-between items-start mb-2">
@@ -312,7 +312,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
                   : "Confirm it's you, to be able to publish your first job post."}
               </p>
             </div>
-          </Card>
+          </Card> */}
 
           {/* Card 2: Company verification */}
           <Card className="border bg-card p-5 rounded-xl flex flex-col justify-between min-h-[160px] shadow-sm hover:shadow-md transition-all duration-300">
@@ -426,10 +426,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">Overview</h2>
-          <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold">
-            <Sparkles className="h-3 w-3" />
-            Live Filtering
-          </div>
+
         </div>
 
         <DashboardFilters

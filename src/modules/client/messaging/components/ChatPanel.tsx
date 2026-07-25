@@ -31,16 +31,23 @@ interface Props {
 
 function getDateLabel(dateStr: string): string {
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "";
+
   const now = new Date();
-  const diff = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  const dStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const nStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const diffDays = Math.round(
+    (nStart.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)
   );
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
   return date.toLocaleDateString("en-PH", {
     weekday: "long",
     month: "long",
     day: "numeric",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
   });
 }
 
