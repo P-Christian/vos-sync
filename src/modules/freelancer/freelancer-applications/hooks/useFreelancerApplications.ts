@@ -29,8 +29,9 @@ export function useFreelancerApplications() {
   // Computed summary KPIs
   const summary: ApplicationSummary = useMemo(() => {
     const total = allApplications.length;
+    const terminalOrDraftStatuses = ["DRAFT", "HIRED", "REJECTED", "WITHDRAWN", "CANCELLED_CLOSED"];
     const pendingApplications = allApplications.filter(
-      (a) => a.application_status === "APPLIED"
+      (a) => !terminalOrDraftStatuses.includes(a.application_status)
     ).length;
     const hired = allApplications.filter((a) => a.application_status === "HIRED").length;
     const successRate = total > 0 ? Math.round((hired / total) * 100) : 0;

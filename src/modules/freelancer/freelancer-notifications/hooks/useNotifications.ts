@@ -1,8 +1,5 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-"use client";
-
 import { useState, useEffect, useCallback } from "react";
-import { FreelancerNotification } from "../types";
+import { FreelancerNotification, FreelancerNotificationPreference } from "../types";
 
 export function useNotifications() {
   const [notifications, setNotifications] = useState<FreelancerNotification[]>([]);
@@ -10,11 +7,26 @@ export function useNotifications() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchNotifications = useCallback(async () => {
+  // Preferences & Quiet Hours State
+  const [preferences, setPreferences] = useState<FreelancerNotificationPreference[]>([]);
+  const [quietHours, setQuietHours] = useState<{
+    start: string | null;
+    end: string | null;
+    timezone: string | null;
+  }>({ start: null, end: null, timezone: null });
+  const [prefsLoading, setPrefsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [prefsError, setPrefsError] = useState("");
+
+  const fetchNotifications = useCallback(async (opts?: { unread_only?: boolean }) => {
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/freelancer/notifications");
+      const query = new URLSearchParams();
+      if (opts?.unread_only) query.set("unread_only", "true");
+      const qs = query.toString();
+
+      const res = await fetch(`/api/freelancer/notifications${qs ? `?${qs}` : ""}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to fetch notifications");
@@ -50,6 +62,89 @@ export function useNotifications() {
     }
   }, []);
 
+  const markAllAsRead = useCallback(async () => {
+    // Optimistically mark all read
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+    setSaving(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/freelancer/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mark_all_read: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to mark all as read.");
+      }
+      return true;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to mark all notifications as read.");
+      // Rollback unread count
+      fetchNotifications();
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [fetchNotifications]);
+
+  const loadPreferences = useCallback(async () => {
+    setPrefsLoading(true);
+    setPrefsError("");
+    try {
+      const res = await fetch("/api/freelancer/notifications/preferences");
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch notification preferences.");
+      }
+      setPreferences(data.preferences || []);
+      setQuietHours({
+        start: data.quiet_hours_start ?? null,
+        end: data.quiet_hours_end ?? null,
+        timezone: data.timezone ?? null,
+      });
+    } catch (err: unknown) {
+      setPrefsError(
+        err instanceof Error ? err.message : "Failed to load notification preferences."
+      );
+    } finally {
+      setPrefsLoading(false);
+    }
+  }, []);
+
+  const savePreferences = useCallback(async (payload: {
+    preferences: Partial<FreelancerNotificationPreference>[];
+    quiet_hours_start?: string | null;
+    quiet_hours_end?: string | null;
+    timezone?: string | null;
+  }) => {
+    setSaving(true);
+    setPrefsError("");
+    try {
+      const res = await fetch("/api/freelancer/notifications/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save notification preferences.");
+      }
+      // Reload on success
+      await loadPreferences();
+      return true;
+    } catch (err: unknown) {
+      setPrefsError(
+        err instanceof Error ? err.message : "Failed to save notification preferences."
+      );
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [loadPreferences]);
+
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
@@ -61,5 +156,16 @@ export function useNotifications() {
     error,
     fetchNotifications,
     markAsRead,
+
+    // New preferences hooks/state
+    preferences,
+    quietHours,
+    prefsLoading,
+    saving,
+    prefsError,
+    loadPreferences,
+    savePreferences,
+    markAllAsRead,
   };
 }
+

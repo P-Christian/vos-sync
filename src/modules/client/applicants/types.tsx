@@ -1,11 +1,13 @@
 // src/modules/client/applicants/types.tsx
 
 export type ApplicationStatus =
+  | "DRAFT"
   | "APPLIED"
   | "SHORTLISTED"
   | "INTERVIEW_SCHEDULED"
   | "HIRED"
-  | "REJECTED";
+  | "REJECTED"
+  | "WITHDRAWN";
 
 export interface Applicant {
   application_id: number;
@@ -165,21 +167,21 @@ export const STATUS_LABELS: Record<
   ApplicationStatus,
   string
 > = {
+  DRAFT: "Draft",
   APPLIED: "Applied",
-
   SHORTLISTED: "Shortlisted",
-
   INTERVIEW_SCHEDULED: "Interview Scheduled",
-
   HIRED: "Hired",
-
   REJECTED: "Rejected",
+  WITHDRAWN: "Withdrawn",
 };
 
 export const STATUS_FLOW: ApplicationStatus[] = [
+  "DRAFT",
   "APPLIED",
   "SHORTLISTED",
   "INTERVIEW_SCHEDULED",
   "HIRED",
   "REJECTED",
+  "WITHDRAWN",
 ];

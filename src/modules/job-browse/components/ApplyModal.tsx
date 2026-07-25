@@ -71,6 +71,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const [uploadingCoverFile, setUploadingCoverFile] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +100,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
     reset();
     setCurrentStep(1);
     setUploadError("");
+    setConsentAccepted(false);
     onClose();
   };
 
@@ -135,11 +137,25 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   };
 
   const handleSubmit = async () => {
-    const ok = await submitApplication();
+    const ok = await submitApplication(false);
     if (ok) {
       setTimeout(() => {
         reset();
         setCurrentStep(1);
+        setConsentAccepted(false);
+        onClose();
+        onSuccess();
+      }, 1200);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    const ok = await submitApplication(true);
+    if (ok) {
+      setTimeout(() => {
+        reset();
+        setCurrentStep(1);
+        setConsentAccepted(false);
         onClose();
         onSuccess();
       }, 1200);
@@ -631,6 +647,19 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     </div>
                   )}
                 </div>
+                {/* Explicit Consent Checkbox */}
+                <div className="flex items-start gap-2.5 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-background mt-3">
+                  <input
+                    id="consent-checkbox"
+                    type="checkbox"
+                    checked={consentAccepted}
+                    onChange={(e) => setConsentAccepted(e.target.checked)}
+                    className="h-4.5 w-4.5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary mt-0.5 cursor-pointer"
+                  />
+                  <Label htmlFor="consent-checkbox" className="text-xs text-foreground/80 leading-normal font-normal cursor-pointer select-none">
+                    I confirm that the information provided in this application is true and complete to the best of my knowledge. I understand that any false statement or omission may result in my disqualification or the withdrawal of any offer.
+                  </Label>
+                </div>
               </div>
             )}
           </div>
@@ -662,6 +691,16 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
           </div>
 
           <div className="flex gap-2">
+            {!successMessage && (
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={saving}
+                className="h-9 text-sm rounded-xl px-4 border-zinc-200 text-zinc-600 font-medium"
+              >
+                Save Draft
+              </Button>
+            )}
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
@@ -674,7 +713,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <Button
                 id="apply-submit-btn"
                 onClick={handleSubmit}
-                disabled={saving || !!successMessage}
+                disabled={saving || !consentAccepted || !!successMessage}
                 className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
               >
                 {saving ? (

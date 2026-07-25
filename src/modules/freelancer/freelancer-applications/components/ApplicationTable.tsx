@@ -22,14 +22,30 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface Props {
   applications: ApplicationItem[];
+  onRefresh?: () => void;
 }
 
 type StatusConfigEntry = { icon: React.ElementType; className: string; style?: React.CSSProperties };
 
 const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
+  DRAFT: {
+    icon: Clock,
+    className: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700',
+  },
   APPLIED: {
     icon: Clock,
     className: 'bg-secondary text-muted-foreground border-transparent',
@@ -50,6 +66,10 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
   REJECTED: {
     icon: XCircle,
     className: 'bg-rose-50 text-rose-600 border-transparent dark:bg-rose-950/30 dark:text-rose-400',
+  },
+  WITHDRAWN: {
+    icon: XOctagon,
+    className: 'bg-zinc-50 text-zinc-500 border-zinc-200 dark:bg-zinc-950/30 dark:text-zinc-500 dark:border-zinc-800',
   },
 };
 
@@ -90,13 +110,18 @@ function getInitials(name?: string): string {
     .toUpperCase();
 }
 
-export const ApplicationTable: React.FC<Props> = ({ applications }) => {
+export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
   const [originalJob, setOriginalJob] = useState<PublicJobPosting | null>(null);
   const [isJobSheetOpen, setIsJobSheetOpen] = useState(false);
   const [loadingJob, setLoadingJob] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyProfile | null>(null);
   const [isCompanyOpen, setIsCompanyOpen] = useState(false);
+
+  // Custom withdrawal modal states
+  const [withdrawApp, setWithdrawApp] = useState<ApplicationItem | null>(null);
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const handleOpenJobPost = async (jobId: number) => {
     try {
@@ -110,23 +135,52 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           setOriginalJob(found);
           setIsJobSheetOpen(true);
         } else {
-          alert("Could not find the original job post. It might have been closed or deleted.");
+          toast.error("Could not find the original job post. It might have been closed or deleted.");
         }
       } else {
-        alert("Failed to load original job post.");
+        toast.error("Failed to load original job post.");
       }
     } catch (err) {
       console.error(err);
-      alert("Error loading job post.");
+      toast.error("Error loading job post.");
     } finally {
       setLoadingJob(false);
     }
   };
 
-  const handleWithdraw = (app: ApplicationItem) => {
-    // Placeholder for withdraw action
-    console.log("Withdraw application", app.application_id);
-    alert("Withdraw application functionality will be implemented soon.");
+  const executeWithdrawal = async () => {
+    if (!withdrawApp) return;
+    setIsWithdrawing(true);
+    try {
+      const res = await fetch("/api/freelancer/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: withdrawApp.application_id,
+          action: "withdraw",
+          reason: withdrawReason.trim() || "Withdrawn by candidate",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Failed to withdraw application.");
+      } else {
+        toast.success("Application withdrawn successfully!");
+        setWithdrawApp(null);
+        setWithdrawReason("");
+        if (onRefresh) {
+          onRefresh();
+        } else {
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while withdrawing the application.");
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   const columns: ColumnDef<ApplicationItem>[] = [
@@ -215,7 +269,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
                   <Eye className="w-4 h-4" />
                   View Application
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleWithdraw(app)} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
+                <DropdownMenuItem onClick={() => { setWithdrawApp(app); setWithdrawReason(""); }} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
                   <XOctagon className="w-4 h-4" />
                   Withdraw Application
                 </DropdownMenuItem>
@@ -482,6 +536,51 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
         open={isCompanyOpen}
         onClose={() => setIsCompanyOpen(false)}
       />
+
+      <Dialog open={!!withdrawApp} onOpenChange={(open) => !open && setWithdrawApp(null)}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Withdraw Application</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
+              Are you sure you want to withdraw your application for <strong className="text-foreground">{withdrawApp?.job_title}</strong> at <strong className="text-foreground">{withdrawApp?.company_name}</strong>?
+              <br /><br />
+              <span className="text-rose-600 dark:text-rose-400 font-medium">⚠️ Warning: This action cannot be undone and will retract your candidacy from the employer.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 py-4">
+            <Label htmlFor="withdraw-reason-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Reason for withdrawal (optional)
+            </Label>
+            <Textarea
+              id="withdraw-reason-input"
+              placeholder="e.g. I have accepted another offer, salary misalignment, etc."
+              value={withdrawReason}
+              onChange={(e) => setWithdrawReason(e.target.value)}
+              className="resize-none text-sm rounded-xl bg-background"
+              rows={3}
+              disabled={isWithdrawing}
+            />
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => { setWithdrawApp(null); setWithdrawReason(""); }}
+              disabled={isWithdrawing}
+              className="rounded-xl h-9 text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={executeWithdrawal}
+              disabled={isWithdrawing}
+              className="rounded-xl h-9 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium border-0"
+            >
+              {isWithdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

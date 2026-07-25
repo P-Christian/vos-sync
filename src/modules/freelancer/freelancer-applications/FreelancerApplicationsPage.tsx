@@ -114,7 +114,7 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             </div>
           ) : (
             <div className="mb-8">
-              <ApplicationTable applications={applications} />
+              <ApplicationTable applications={applications} onRefresh={fetchApplications} />
             </div>
           )}
         </TabsContent>

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
-  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
 
   return (
     <div className="relative inline-block">
@@ -53,6 +53,7 @@ export function NotificationBell() {
             isLoading={isLoading}
             onClose={() => setOpen(false)}
             onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
           />
         </>
       )}
