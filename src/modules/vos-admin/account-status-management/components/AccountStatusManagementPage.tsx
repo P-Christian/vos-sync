@@ -1,0 +1,258 @@
+// src/modules/vos-admin/account-status-management/components/AccountStatusManagementPage.tsx
+"use client";
+
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useAccountStatus } from "../hooks/useAccountStatus";
+import { AccountStatusUser, AccountStatus, StatusTransitionPayload, AppealDecisionPayload } from "../types/account-status.types";
+import { DataTable } from "../../request-management/components/new-data-table";
+import { AccountStatusDetailModal } from "./AccountStatusDetailModal";
+import { ColumnDef } from "@tanstack/react-table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ShieldAlert, ShieldCheck, UserMinus, AlertOctagon, HelpCircle, Eye, Search, AlertTriangle } from "lucide-react";
+
+export function AccountStatusManagementPage() {
+  const { users, total, loading, fetchUsers, fetchUserDetail, changeStatus, resolveAppealCase } = useAccountStatus();
+  
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(10);
+  
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [detailOpen, setDetailOpen] = useState<boolean>(false);
+
+  const loadData = useCallback(() => {
+    fetchUsers(statusFilter, searchQuery, page, limit);
+  }, [fetchUsers, statusFilter, searchQuery, page, limit]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleManageStatus = (userId: number) => {
+    setSelectedUserId(userId);
+    setDetailOpen(true);
+  };
+
+  const handleStatusChange = async (payload: StatusTransitionPayload) => {
+    const success = await changeStatus(payload);
+    if (success) {
+      loadData();
+    }
+    return success;
+  };
+
+  const handleResolveAppeal = async (payload: AppealDecisionPayload & { userId: number }) => {
+    const success = await resolveAppealCase(payload);
+    if (success) {
+      loadData();
+    }
+    return success;
+  };
+
+  const getStatusColor = (status: AccountStatus) => {
+    switch (status) {
+      case "ACTIVE": return "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300";
+      case "LIMITED": return "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+      case "SUSPENDED": return "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300";
+      case "BLOCKED": return "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300";
+      case "DEACTIVATED": return "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300";
+      case "PENDING_DELETION": return "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300";
+      case "DELETED": return "bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300";
+      default: return "bg-slate-100 text-slate-800";
+    }
+  };
+
+  const columns = useMemo<ColumnDef<AccountStatusUser>[]>(() => [
+    {
+      id: "name",
+      header: "Full Name",
+      cell: ({ row }) => {
+        const u = row.original;
+        return `${u.user_fname} ${u.user_lname}`;
+      }
+    },
+    {
+      accessorKey: "user_email",
+      header: "Email Address",
+    },
+    {
+      id: "role",
+      header: "Role",
+      cell: ({ row }) => {
+        const u = row.original;
+        return (
+          <span className="font-semibold text-zinc-700 dark:text-zinc-300 capitalize">
+            {u.role.toLowerCase()}
+          </span>
+        );
+      }
+    },
+    {
+      id: "status",
+      header: "Account Status",
+      cell: ({ row }) => {
+        const u = row.original;
+        return (
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(u.status)}`}>
+            {u.status.replace("_", " ")}
+          </span>
+        );
+      }
+    },
+    {
+      id: "restrictions",
+      header: "Active Restrictions",
+      cell: ({ row }) => {
+        const u = row.original;
+        const count = u.restrictions ? u.restrictions.length : 0;
+        if (count === 0) return <span className="text-zinc-400 text-xs">None</span>;
+        return (
+          <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
+            {count} Active
+          </span>
+        );
+      }
+    },
+    {
+      id: "actions",
+      header: () => <div className="text-right">Actions</div>,
+      cell: ({ row }) => {
+        const u = row.original;
+        return (
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleManageStatus(u.user_id)}
+              className="flex items-center gap-1 text-primary border-primary/20 hover:bg-primary/5"
+            >
+              <Eye className="h-4 w-4" /> Manage Status
+            </Button>
+          </div>
+        );
+      }
+    }
+  ], []);
+
+  const statusDropdownOptions = [
+    { value: "ALL", label: "All Statuses" },
+    { value: "ACTIVE", label: "Active" },
+    { value: "LIMITED", label: "Limited" },
+    { value: "SUSPENDED", label: "Suspended" },
+    { value: "BLOCKED", label: "Blocked" },
+    { value: "DEACTIVATED", label: "Deactivated" },
+    { value: "PENDING_DELETION", label: "Pending Deletion" },
+  ];
+
+  return (
+    <div className="h-full flex-1 overflow-y-auto p-4 sm:p-8 bg-secondary/10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Account Status Management</h1>
+        <p className="text-muted-foreground mt-1">
+          Review security containment states, restriction parameters, appeals, and deactivations.
+        </p>
+      </div>
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card className="bg-white dark:bg-zinc-900 border dark:border-zinc-800">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-lg">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">General Eligibility</p>
+              <p className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">Healthy</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white dark:bg-zinc-900 border dark:border-zinc-800">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 rounded-lg">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Limited Users</p>
+              <p className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">Active Gates</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white dark:bg-zinc-900 border dark:border-zinc-800">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 rounded-lg">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Suspended / Blocked</p>
+              <p className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">Containment</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white dark:bg-zinc-900 border dark:border-zinc-800">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg">
+              <AlertOctagon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Deletion / Holds</p>
+              <p className="text-2xl font-bold mt-1 text-zinc-900 dark:text-zinc-100">Grace & Audit</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Table Card */}
+      <Card className="p-6 bg-white dark:bg-zinc-900 border dark:border-zinc-800 shadow-sm rounded-xl">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+          <h2 className="text-xl font-semibold">User Account States</h2>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
+                <SelectValue placeholder="Filter by Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {statusDropdownOptions.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <DataTable
+          columns={columns}
+          data={users}
+          onSearch={(val) => { setSearchQuery(val); setPage(1); }}
+          isLoading={loading}
+          manualPagination={true}
+          pageCount={Math.ceil(total / limit)}
+          pagination={{
+            pageIndex: page - 1,
+            pageSize: limit,
+          }}
+          onPaginationChange={(newPagination) => {
+            setPage(newPagination.pageIndex + 1);
+            setLimit(newPagination.pageSize);
+          }}
+        />
+      </Card>
+
+      <AccountStatusDetailModal
+        userId={selectedUserId}
+        isOpen={detailOpen}
+        onClose={() => { setDetailOpen(false); setSelectedUserId(null); }}
+        onFetchDetail={fetchUserDetail}
+        onChangeStatus={handleStatusChange}
+        onResolveAppeal={handleResolveAppeal}
+      />
+    </div>
+  );
+}

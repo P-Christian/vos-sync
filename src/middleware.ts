@@ -54,8 +54,47 @@ export async function middleware(req: NextRequest) {
         const userRoleName = typeof payload.role_name === 'string' ? payload.role_name.toUpperCase() : "";
         const pathLower = pathname.toLowerCase();
         
-        let isAuthorized = true;
+        // Exclude suspended page and logout routes from redirection checks
+        if (
+            pathLower !== "/vos-sync/suspended" && 
+            !pathLower.startsWith("/api/auth/logout") && 
+            pathLower !== "/logout"
+        ) {
+            const userId = Number(payload.sub || payload.user_id || payload.id);
+            const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+            const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+            const headers: Record<string, string> = { "Accept": "application/json" };
+            if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
 
+            try {
+                const statusRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
+                    headers,
+                    next: { revalidate: 15 }
+                } as any);
+
+                if (statusRes.ok) {
+                    const statusJson = await statusRes.json();
+                    const dbUser = statusJson.data;
+                    if (dbUser) {
+                        const status = dbUser.status || 'ACTIVE';
+                        const sessionEpoch = dbUser.session_epoch ? new Date(dbUser.session_epoch).getTime() : 0;
+                        const tokenIat = payload.iat ? payload.iat * 1000 : 0;
+
+                        if (status === 'SUSPENDED' || status === 'BLOCKED' || sessionEpoch > tokenIat) {
+                            console.warn(`[Middleware] Account containment active for user #${userId}. Redirecting to suspended page.`);
+                            const url = req.nextUrl.clone();
+                            url.pathname = "/vos-sync/suspended";
+                            return NextResponse.redirect(url);
+                        }
+                    }
+                }
+            } catch (fetchErr) {
+                console.error("[Middleware] Failed to fetch account status details:", fetchErr);
+            }
+        }
+
+        let isAuthorized = true;
+        
         if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER") {
             isAuthorized = false;
         } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN") {
@@ -65,12 +104,12 @@ export async function middleware(req: NextRequest) {
         } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN") {
             isAuthorized = false;
         }
-
+ 
         if (!isAuthorized) {
             console.warn(`[Middleware] Unauthorized access detected for role_name: ${userRoleName || 'UNKNOWN'} to path: ${pathname}.`);
             return redirectToLogin(req);
         }
-
+ 
         const response = NextResponse.next();
         
         // Prevent browser caching (bfcache) so the back button forces a new request to middleware

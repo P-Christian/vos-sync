@@ -6,6 +6,7 @@ import { sendApplicationSubmittedEmail, sendNewApplicationReceivedEmail, isEmail
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
+import { checkRestriction } from "@/lib/status-validator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -223,6 +224,15 @@ export async function POST(req: NextRequest) {
 
     const userId = getUserIdFromToken(token);
     if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+
+    // Validate APPLY_JOBS Restriction
+    const isRestricted = await checkRestriction(userId, "APPLY_JOBS");
+    if (isRestricted) {
+      return NextResponse.json(
+        { error: "Your job application privileges are temporarily suspended." },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json().catch(() => null);
     if (!body?.job_id) {

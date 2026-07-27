@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/api/client/jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "./service.directus";
+import { checkRestriction } from "@/lib/status-validator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,6 +151,15 @@ export async function POST(req: NextRequest) {
 
     const userId = getUserIdFromToken(token);
     if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+
+    // Validate PUBLISH_JOBS Restriction
+    const isRestricted = await checkRestriction(userId, "PUBLISH_JOBS");
+    if (isRestricted) {
+      return NextResponse.json(
+        { error: "Your job posting privileges are temporarily suspended." },
+        { status: 403 }
+      );
+    }
 
     const { companyId, verification_status, error } = await resolveCompany(userId);
     if (error || !companyId)

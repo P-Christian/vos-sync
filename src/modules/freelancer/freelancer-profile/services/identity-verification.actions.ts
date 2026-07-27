@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { createVerificationSubmission, approveMobileVerification, deleteExistingVerification, IdentityVerification } from "./identity-verification.repo";
 import { getFreelancerProfile } from "./freelancer-profile.service";
+import { checkRestriction } from "@/lib/status-validator";
 
 export async function uploadVerificationDocumentAction(userId: number, formData: FormData) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -16,6 +17,11 @@ export async function uploadVerificationDocumentAction(userId: number, formData:
     }
 
     try {
+        const isRestricted = await checkRestriction(userId, "UPLOAD_PROFILE_FILES");
+        if (isRestricted) {
+            throw new Error("Your profile file upload privileges are temporarily suspended.");
+        }
+
         const uploadUrl = `${NEXT_PUBLIC_API_BASE_URL}/files`;
         const uploadRes = await fetch(uploadUrl, {
             method: "POST",
