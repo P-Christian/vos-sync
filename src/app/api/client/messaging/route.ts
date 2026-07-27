@@ -1,6 +1,7 @@
 // src/app/api/client/messaging/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { checkRestriction } from "@/lib/status-validator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -272,6 +273,15 @@ export async function POST(req: NextRequest) {
     const userId = getUserIdFromToken(token);
     if (!userId) {
       return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    }
+
+    // Validate SEND_MESSAGES Restriction
+    const isRestricted = await checkRestriction(userId, "SEND_MESSAGES");
+    if (isRestricted) {
+      return NextResponse.json(
+        { error: "Your messaging privileges are temporarily suspended." },
+        { status: 403 }
+      );
     }
 
     const body = await req.json().catch(() => null);

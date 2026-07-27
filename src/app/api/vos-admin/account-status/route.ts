@@ -103,6 +103,10 @@ export async function POST(req: NextRequest) {
 
       // Send User/Freelancer Notification
       try {
+        const actionUrl = targetStatus === "SUSPENDED" || targetStatus === "BLOCKED"
+          ? "/vos-sync/suspended"
+          : (userDetail.role === "CLIENT" ? "/vos-sync/client/dashboard" : "/vos-sync/freelancer/dashboard");
+
         await createNotification({
           event_type: "account_status_change",
           recipient_user_id: Number(userId),
@@ -111,10 +115,10 @@ export async function POST(req: NextRequest) {
           category: "System Activity",
           title: `Account Status Changed to ${targetStatus.replace("_", " ")}`,
           message: publicReason,
-          action_url: targetStatus === "SUSPENDED" || targetStatus === "BLOCKED" ? "/vos-sync/suspended" : "/vos-sync/freelancer/dashboard",
+          action_url: actionUrl,
         });
       } catch (notifErr) {
-        console.error("Failed to create freelancer notification:", notifErr);
+        console.error("Failed to create user status change notification:", notifErr);
       }
     }
 
