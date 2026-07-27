@@ -1,8 +1,20 @@
 // src/modules/vos-admin/account-status-management/services/account-status.repo.ts
-import { AccountStatusUser, AccountRestriction, AccountStatusHistory, AccountStatusCase, AccountDeletionRequest } from '../types/account-status.types';
+import { AccountStatusUser, AccountRestriction, AccountStatusCase, AccountDeletionRequest, AccountStatus } from '../types/account-status.types';
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+interface DirectusUserRaw {
+  user_id: number;
+  user_email: string;
+  user_fname: string;
+  user_lname: string;
+  role?: string | null;
+  role_id?: number | null;
+  status?: string | null;
+  status_version?: number | null;
+  session_epoch?: string | null;
+}
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -33,20 +45,15 @@ export async function fetchAccountStatusUsersRepo(
   }
 
   if (search && search.trim()) {
-    const cleanSearch = search.trim();
-    filterParams.push(`"_or":[
-      {"user_fname":{"_icontains":"${cleanSearch}"}},
-      {"user_lname":{"_icontains":"${cleanSearch}"}},
-      {"user_email":{"_icontains":"${cleanSearch}"}}
-    ]`);
+    const q = search.trim();
+    filterParams.push(`"_or":[{"user_fname":{"_contains":"${q}"}},{"user_lname":{"_contains":"${q}"}},{"user_email":{"_contains":"${q}"}}]`);
   }
 
   if (filterParams.length > 0) {
     queries.push(`filter={${filterParams.join(',')}}`);
   }
 
-  const queryString = queries.length > 0 ? `?${queries.join('&')}` : '';
-  const url = `${DIRECTUS_BASE}/items/vs_user${queryString}`;
+  const url = `${DIRECTUS_BASE}/items/vs_user?${queries.join('&')}`;
 
   const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
   if (!res.ok) {
@@ -54,10 +61,10 @@ export async function fetchAccountStatusUsersRepo(
   }
 
   const json = await res.json();
-  const rawUsers = json.data || [];
+  const rawUsers: DirectusUserRaw[] = json.data || [];
   const total = json.meta?.filter_count ?? rawUsers.length;
 
-  const userIds = rawUsers.map((u: any) => u.user_id);
+  const userIds = rawUsers.map((u: DirectusUserRaw) => u.user_id);
   const restrictionsMap: Record<number, AccountRestriction[]> = {};
   const casesMap: Record<number, AccountStatusCase[]> = {};
   const deletionsMap: Record<number, AccountDeletionRequest> = {};
@@ -98,16 +105,16 @@ export async function fetchAccountStatusUsersRepo(
     }
   }
 
-  const users: AccountStatusUser[] = rawUsers.map((u: any) => ({
+  const users: AccountStatusUser[] = rawUsers.map((u: DirectusUserRaw) => ({
     user_id: u.user_id,
     user_email: u.user_email,
     user_fname: u.user_fname,
     user_lname: u.user_lname,
     role: u.role || 'USER',
-    role_id: u.role_id,
-    status: u.status || 'ACTIVE',
+    role_id: u.role_id ?? null,
+    status: (u.status as AccountStatus) || 'ACTIVE',
     status_version: u.status_version || 1,
-    session_epoch: u.session_epoch,
+    session_epoch: u.session_epoch ?? null,
     restrictions: restrictionsMap[u.user_id] || [],
     cases: casesMap[u.user_id] || [],
     deletionRequest: deletionsMap[u.user_id] || null

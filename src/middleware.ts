@@ -70,7 +70,7 @@ export async function middleware(req: NextRequest) {
                 const statusRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
                     headers,
                     next: { revalidate: 15 }
-                } as any);
+                } as RequestInit & { next?: { revalidate: number } });
 
                 if (statusRes.ok) {
                     const statusJson = await statusRes.json();

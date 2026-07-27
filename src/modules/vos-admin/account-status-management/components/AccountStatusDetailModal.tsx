@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccountStatusUser, AccountStatus, StatusTransitionPayload, AppealDecisionPayload } from "../types/account-status.types";
-import { ShieldAlert, History, MessageSquare, AlertTriangle, Shield, Check, X, Clock, HelpCircle } from "lucide-react";
+import { ShieldAlert, History, MessageSquare, Shield, Check, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -52,7 +52,7 @@ export function AccountStatusDetailModal({
   const [appealInternalNote, setAppealInternalNote] = useState("");
   const [appealPublicNote, setAppealPublicNote] = useState("");
 
-  const loadUserDetail = async () => {
+  const loadUserDetail = React.useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     const details = await onFetchDetail(userId);
@@ -67,21 +67,24 @@ export function AccountStatusDetailModal({
       }
     }
     setLoading(false);
-  };
+  }, [userId, onFetchDetail]);
 
   useEffect(() => {
     if (isOpen && userId) {
-      loadUserDetail();
-      setActiveTab("control");
-      // Reset form
-      setReasonCode("");
-      setPublicReason("");
-      setInternalNote("");
-      setDuration("indefinite");
-      setAppealInternalNote("");
-      setAppealPublicNote("");
+      const timer = setTimeout(() => {
+        loadUserDetail();
+        setActiveTab("control");
+        // Reset form
+        setReasonCode("");
+        setPublicReason("");
+        setInternalNote("");
+        setDuration("indefinite");
+        setAppealInternalNote("");
+        setAppealPublicNote("");
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, userId]);
+  }, [isOpen, userId, loadUserDetail]);
 
   if (!userId) return null;
 

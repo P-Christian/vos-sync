@@ -56,7 +56,7 @@ async function resolveCompany(userId: number): Promise<{
   };
 }
 
-async function attachCompanyToJob(job: any) {
+async function attachCompanyToJob<T extends { company_id?: string | number | null }>(job: T) {
   if (!job || !job.company_id) return job;
   try {
     const res = await fetch(

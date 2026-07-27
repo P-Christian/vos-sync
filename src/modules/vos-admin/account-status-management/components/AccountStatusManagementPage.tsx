@@ -10,7 +10,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShieldAlert, ShieldCheck, UserMinus, AlertOctagon, HelpCircle, Eye, Search, AlertTriangle } from "lucide-react";
+import { ShieldAlert, ShieldCheck, AlertOctagon, Eye, AlertTriangle } from "lucide-react";
 
 export function AccountStatusManagementPage() {
   const { users, total, loading, fetchUsers, fetchUserDetail, changeStatus, resolveAppealCase } = useAccountStatus();

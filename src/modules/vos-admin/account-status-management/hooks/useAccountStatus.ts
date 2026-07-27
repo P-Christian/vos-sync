@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { AccountStatusUser, AccountStatus, StatusTransitionPayload, AppealDecisionPayload } from '../types/account-status.types';
+import { AccountStatusUser, StatusTransitionPayload, AppealDecisionPayload } from '../types/account-status.types';
 
 export function useAccountStatus() {
   const [users, setUsers] = useState<AccountStatusUser[]>([]);
