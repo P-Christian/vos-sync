@@ -63,7 +63,8 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert} from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert } from "lucide-react";
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
     className,
@@ -72,21 +73,27 @@ export function AppSidebar({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const portal = searchParams.get("portal");
+    const userProfile = useUserProfile();
+    const isGuest = !userProfile || userProfile.email === "guest@example.com";
 
     if (pathname.startsWith("/vos-sync/freelancer") || portal === "freelancer") {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "FREELANCER PORTAL",
-            homeUrl: "/vos-sync/freelancer/dashboard",
-            navItems: [
-                { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
-                { label: "My Profile", href: "/vos-sync/freelancer/profile", icon: User },
-                { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
-                { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
-                { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
-                { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
-                { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
-            ],
+            homeUrl: isGuest ? "/vos-sync/freelancer/jobs" : "/vos-sync/freelancer/dashboard",
+            navItems: isGuest
+                ? [
+                    { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
+                  ]
+                : [
+                    { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
+                    { label: "My Profile", href: "/vos-sync/freelancer/profile", icon: User },
+                    { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
+                    { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
+                    { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
+                    { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
+                    { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
+                  ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
             ],
@@ -145,12 +152,12 @@ export function AppSidebar({
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
+                { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
+                { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
                 { label: "Settings", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
             ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
-                { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
-                { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
             ],
         };
         return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;

@@ -22,74 +22,120 @@ const CATEGORIES = [
   { name: "Healthcare", icon: <HeartPulse className="w-6 h-6" />, count: "2,100 jobs", color: "bg-rose-50 text-rose-600" },
 ];
 
-const FEATURED_JOBS = [
-  {
-    id: 1,
-    title: "Senior Frontend Engineer",
-    company: "Vercel",
-    location: "Remote, US",
-    type: "Full-Time",
-    salary: "$140k - $180k",
-    logo: "V",
-    posted: "2 hours ago",
-    tags: ["React", "Next.js", "TypeScript"]
-  },
-  {
-    id: 2,
-    title: "Product Designer",
-    company: "Stripe",
-    location: "San Francisco, CA",
-    type: "Full-Time",
-    salary: "$130k - $160k",
-    logo: "S",
-    posted: "5 hours ago",
-    tags: ["Figma", "Prototyping", "UI/UX"]
-  },
-  {
-    id: 3,
-    title: "Marketing Director",
-    company: "Airbnb",
-    location: "New York, NY",
-    type: "Full-Time",
-    salary: "$150k - $190k",
-    logo: "A",
-    posted: "1 day ago",
-    tags: ["Growth", "B2B", "Leadership"]
-  },
-  {
-    id: 4,
-    title: "Data Scientist",
-    company: "Spotify",
-    location: "Stockholm, SE",
-    type: "Hybrid",
-    salary: "€80k - €110k",
-    logo: "Sp",
-    posted: "2 days ago",
-    tags: ["Python", "Machine Learning", "SQL"]
-  },
-  {
-    id: 5,
-    title: "Backend Developer",
-    company: "Discord",
-    location: "Remote, Global",
-    type: "Contract",
-    salary: "$90/hr",
-    logo: "D",
-    posted: "3 days ago",
-    tags: ["Rust", "Elixir", "PostgreSQL"]
-  },
-  {
-    id: 6,
-    title: "HR Business Partner",
-    company: "Netflix",
-    location: "Los Angeles, CA",
-    type: "Full-Time",
-    salary: "$110k - $140k",
-    logo: "N",
-    posted: "1 week ago",
-    tags: ["People Ops", "Culture", "Recruiting"]
+function getInitials(name?: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function getRelativeTimeString(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
+
+function formatSalary(job: any): string {
+  if (job.salary_negotiable) return "Negotiable";
+  const currency = job.currency ?? "PHP";
+  if (job.salary_type === "Fixed Salary" && job.salary_min) {
+    return `${currency} ${Number(job.salary_min).toLocaleString()} / mo`;
   }
-];
+  if (job.salary_min && job.salary_max) {
+    return `${currency} ${Number(job.salary_min).toLocaleString()} – ${Number(job.salary_max).toLocaleString()} / mo`;
+  }
+  if (job.salary_min) return `${currency} ${Number(job.salary_min).toLocaleString()}+ / mo`;
+  return "Salary not disclosed";
+}
+
+async function getFeaturedJobs() {
+  const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+  const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+
+  try {
+    const fields = [
+      "job_id", "company_id", "job_title", "job_type", "work_arrangement",
+      "job_location", "salary_type", "salary_min", "salary_max",
+      "salary_negotiable", "currency", "created_at"
+    ].join(",");
+    
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting?filter[status][_eq]=ACTIVE&sort[]=-created_at&fields=${fields}&limit=6`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const rawJobs = json.data ?? [];
+    if (rawJobs.length === 0) return [];
+
+    const jobIds = rawJobs.map((j: any) => j.job_id);
+    const companyIds = Array.from(new Set(rawJobs.map((j: any) => j.company_id).filter(Boolean)));
+
+    let companiesMap: Record<number, { name: string; logo: string | null }> = {};
+    if (companyIds.length > 0) {
+      const compRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name,company_logo&limit=100`,
+        { headers, cache: "no-store" }
+      );
+      if (compRes.ok) {
+        const compJson = await compRes.json();
+        (compJson.data ?? []).forEach((c: any) => {
+          companiesMap[c.company_id] = {
+            name: c.company_name,
+            logo: c.company_logo ?? null,
+          };
+        });
+      }
+    }
+
+    let skillsMap: Record<number, string[]> = {};
+    if (jobIds.length > 0) {
+      const skillsRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_skills_map?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,skill_id.skill_name&limit=500`,
+        { headers, cache: "no-store" }
+      );
+      if (skillsRes.ok) {
+        const skillsJson = await skillsRes.json();
+        (skillsJson.data ?? []).forEach((m: any) => {
+          const jobId = m.job_id;
+          if (!skillsMap[jobId]) skillsMap[jobId] = [];
+          if (m.skill_id?.skill_name) {
+            skillsMap[jobId].push(m.skill_id.skill_name);
+          }
+        });
+      }
+    }
+
+    return rawJobs.map((j: any) => {
+      const company = companiesMap[j.company_id] || { name: "Unknown Company", logo: null };
+      return {
+        id: j.job_id,
+        title: j.job_title,
+        company: company.name,
+        location: j.job_location,
+        type: j.job_type,
+        salary: formatSalary(j),
+        logo: company.logo ? `${DIRECTUS_BASE}/assets/${company.logo}` : getInitials(company.name),
+        posted: getRelativeTimeString(j.created_at),
+        tags: (skillsMap[j.job_id] ?? []).slice(0, 3),
+      };
+    });
+  } catch (err) {
+    console.error("Error loading featured jobs:", err);
+    return [];
+  }
+}
 
 const TRUSTED_COMPANIES = ["Google", "Microsoft", "Meta", "Amazon", "Netflix", "Apple"];
 
@@ -122,6 +168,9 @@ export default async function Page() {
       }
     }
   }
+
+  const jobs = await getFeaturedJobs();
+
   return (
     <div className="bg-background pt-16 text-foreground font-sans selection:bg-muted">
       {/* HERO SECTION */}
@@ -232,11 +281,15 @@ export default async function Page() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {FEATURED_JOBS.map((job) => (
+            {jobs.map((job) => (
               <div key={job.id} className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start">
                 {/* Company Logo Placeholder */}
-                <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0">
-                  {job.logo}
+                <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
+                  {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
+                    <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
+                  ) : (
+                    job.logo
+                  )}
                 </div>
 
                 <div className="flex-1 w-full">
@@ -262,7 +315,9 @@ export default async function Page() {
                     <div className="font-semibold text-foreground">{job.salary}</div>
                     <div className="flex items-center gap-4">
                       <span className="text-xs text-muted-foreground">{job.posted}</span>
-                      <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer">Apply Now</Button>
+                      <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
+                        <Link href={`/vos-sync/freelancer/jobs?open_job=${job.id}`}>Apply Now</Link>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -271,8 +326,8 @@ export default async function Page() {
           </div>
 
           <div className="mt-12 text-center">
-            <Button size="lg" className="rounded-full px-8 cursor-pointer">
-              Explore All Jobs
+            <Button size="lg" className="rounded-full px-8 cursor-pointer" asChild>
+              <Link href="/vos-sync/freelancer/jobs">Explore All Jobs</Link>
             </Button>
           </div>
         </div>

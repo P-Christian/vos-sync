@@ -8,6 +8,10 @@ const PUBLIC_FILE = /\.(.*)$/;
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
 function isProtectedPath(pathname: string) {
+    const pathLower = pathname.toLowerCase();
+    if (pathLower === "/vos-sync/freelancer/jobs" || pathLower.startsWith("/vos-sync/freelancer/jobs/")) {
+        return false;
+    }
     return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 

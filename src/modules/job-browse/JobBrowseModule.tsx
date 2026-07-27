@@ -1,7 +1,7 @@
 // src/modules/job-browse/JobBrowseModule.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, AlertCircle, Briefcase } from "lucide-react";
 import { useJobBrowse } from "./hooks/useJobBrowse";
 import { JobBrowseFilters } from "./components/JobBrowseFilters";
@@ -9,6 +9,8 @@ import { JobBrowseCard } from "./components/JobBrowseCard";
 import { JobDetailSheet } from "./components/JobDetailSheet";
 import { ApplyModal } from "./components/ApplyModal";
 import { useFreelancerBookmarks } from "../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
+import { RegisterRequiredModal } from "./components/RegisterRequiredModal";
 
 export default function JobBrowseModule() {
   const {
@@ -36,11 +38,16 @@ export default function JobBrowseModule() {
   } = useJobBrowse();
 
   const { bookmarkedJobIds, toggleBookmark, fetchBookmarks } = useFreelancerBookmarks();
+  const userProfile = useUserProfile();
+  const isGuest = !userProfile || userProfile.email === "guest@example.com";
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
 
   useEffect(() => {
     fetchJobs();
-    fetchBookmarks();
-  }, [fetchJobs, fetchBookmarks]);
+    if (!isGuest) {
+      fetchBookmarks();
+    }
+  }, [fetchJobs, fetchBookmarks, isGuest]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && allJobs.length > 0) {
@@ -54,6 +61,22 @@ export default function JobBrowseModule() {
       }
     }
   }, [allJobs, openDetail]);
+
+  const handleApply = (job: any) => {
+    if (isGuest) {
+      setRegisterModalOpen(true);
+    } else {
+      openApply(job);
+    }
+  };
+
+  const handleToggleBookmark = (jobId: number) => {
+    if (isGuest) {
+      setRegisterModalOpen(true);
+    } else {
+      toggleBookmark(jobId);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6 sm:p-8">
@@ -132,7 +155,7 @@ export default function JobBrowseModule() {
                 job={job}
                 onViewDetail={openDetail}
                 isBookmarked={bookmarkedJobIds.includes(job.job_id)}
-                onToggleBookmark={toggleBookmark}
+                onToggleBookmark={handleToggleBookmark}
               />
             ))}
           </div>
@@ -144,10 +167,10 @@ export default function JobBrowseModule() {
         job={selectedJob}
         open={sheetOpen}
         onClose={closeDetail}
-        onApply={openApply}
+        onApply={handleApply}
         appliedJobIds={appliedJobIds}
         bookmarkedJobIds={bookmarkedJobIds}
-        onToggleBookmark={toggleBookmark}
+        onToggleBookmark={handleToggleBookmark}
       />
 
       {/* Apply Modal */}
@@ -156,6 +179,12 @@ export default function JobBrowseModule() {
         open={applyModalOpen}
         onClose={closeApply}
         onSuccess={fetchJobs}
+      />
+
+      {/* Register Required Modal */}
+      <RegisterRequiredModal
+        open={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
       />
     </div>
   );
