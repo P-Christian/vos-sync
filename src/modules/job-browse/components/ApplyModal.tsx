@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -70,6 +70,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [uploadingCoverFile, setUploadingCoverFile] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
@@ -78,13 +80,27 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   useEffect(() => {
     if (open && job) {
       loadPrefill(job);
+      
+      // Check for active referral claim
+      if (referrerName !== null) {
+        setReferrerName(null);
+      }
+      fetch(`/api/freelancer/referrals/check-claim?job_id=${job.job_id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.claimed) {
+            setReferrerName(data.referrer_name);
+          }
+        })
+        .catch((err) => console.error("Error checking claim:", err));
     }
-  }, [open, job, loadPrefill]);
+  }, [open, job, loadPrefill, referrerName]);
 
   const handleClose = () => {
     reset();
     setCurrentStep(1);
     setUploadError("");
+    setConsentAccepted(false);
     onClose();
   };
 
@@ -121,11 +137,25 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   };
 
   const handleSubmit = async () => {
-    const ok = await submitApplication();
+    const ok = await submitApplication(false);
     if (ok) {
       setTimeout(() => {
         reset();
         setCurrentStep(1);
+        setConsentAccepted(false);
+        onClose();
+        onSuccess();
+      }, 1200);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    const ok = await submitApplication(true);
+    if (ok) {
+      setTimeout(() => {
+        reset();
+        setCurrentStep(1);
+        setConsentAccepted(false);
         onClose();
         onSuccess();
       }, 1200);
@@ -166,7 +196,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             <div className="absolute top-3 left-3 right-3 h-0.5 bg-zinc-200 dark:bg-zinc-800 -z-10" />
             {/* Active progress line */}
             <div
-              className="absolute top-3 left-3 h-0.5 bg-[#14a800] transition-all duration-300 -z-10"
+              className="absolute top-3 left-3 h-0.5 bg-primary transition-all duration-300 -z-10"
               style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
             />
 
@@ -179,9 +209,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${
                       isCompleted
-                        ? "bg-[#14a800] border-[#14a800] text-white"
+                        ? "bg-primary border-primary text-white"
                         : isActive
-                        ? "bg-background border-[#14a800] text-[#14a800]"
+                        ? "bg-background border-primary text-primary"
                         : "bg-background border-zinc-300 dark:border-zinc-700 text-zinc-400"
                     }`}
                   >
@@ -189,7 +219,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   </div>
                   <span
                     className={`text-[8px] font-semibold text-center hidden sm:block ${
-                      isActive ? "text-[#14a800] font-bold" : "text-muted-foreground"
+                      isActive ? "text-primary font-bold" : "text-muted-foreground"
                     }`}
                   >
                     {step.label}
@@ -223,6 +253,14 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <div className="flex items-center gap-3 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error || uploadError}
+              </div>
+            )}
+
+            {/* Referral Connected */}
+            {referrerName && (
+              <div className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary text-sm font-medium">
+                <span className="text-base">🔗</span>
+                <span>Referral Connected: Accepted invitation from <strong>{referrerName}</strong>. This referral will be locked in when you submit.</span>
               </div>
             )}
 
@@ -609,6 +647,19 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     </div>
                   )}
                 </div>
+                {/* Explicit Consent Checkbox */}
+                <div className="flex items-start gap-2.5 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-background mt-3">
+                  <input
+                    id="consent-checkbox"
+                    type="checkbox"
+                    checked={consentAccepted}
+                    onChange={(e) => setConsentAccepted(e.target.checked)}
+                    className="h-4.5 w-4.5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary mt-0.5 cursor-pointer"
+                  />
+                  <Label htmlFor="consent-checkbox" className="text-xs text-foreground/80 leading-normal font-normal cursor-pointer select-none">
+                    I confirm that the information provided in this application is true and complete to the best of my knowledge. I understand that any false statement or omission may result in my disqualification or the withdrawal of any offer.
+                  </Label>
+                </div>
               </div>
             )}
           </div>
@@ -640,10 +691,20 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
           </div>
 
           <div className="flex gap-2">
+            {!successMessage && (
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={saving}
+                className="h-9 text-sm rounded-xl px-4 border-zinc-200 text-zinc-600 font-medium"
+              >
+                Save Draft
+              </Button>
+            )}
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-4"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />
@@ -652,8 +713,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <Button
                 id="apply-submit-btn"
                 onClick={handleSubmit}
-                disabled={saving || !!successMessage}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium px-5"
+                disabled={saving || !consentAccepted || !!successMessage}
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
               >
                 {saving ? (
                   <>

@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ApplicationItem, ApplicationStatus, STATUS_LABELS } from '../types';
-import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign } from 'lucide-react';
+import { ApplicationItem, ApplicationStatus, STATUS_LABELS, PublicJobPosting } from '../types';
+import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { JobDetailSheet } from './JobDetailSheet';
+import CompanyPreviewModal from './CompanyPreviewModal';
+import { CompanyProfile } from '../types';
 import { DataTable } from './NewDataTable';
 import { ColumnDef } from '@tanstack/react-table';
 import {
@@ -19,14 +22,30 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 
 interface Props {
   applications: ApplicationItem[];
+  onRefresh?: () => void;
 }
 
 type StatusConfigEntry = { icon: React.ElementType; className: string; style?: React.CSSProperties };
 
 const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
+  DRAFT: {
+    icon: Clock,
+    className: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700',
+  },
   APPLIED: {
     icon: Clock,
     className: 'bg-secondary text-muted-foreground border-transparent',
@@ -47,6 +66,10 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
   REJECTED: {
     icon: XCircle,
     className: 'bg-rose-50 text-rose-600 border-transparent dark:bg-rose-950/30 dark:text-rose-400',
+  },
+  WITHDRAWN: {
+    icon: XOctagon,
+    className: 'bg-zinc-50 text-zinc-500 border-zinc-200 dark:bg-zinc-950/30 dark:text-zinc-500 dark:border-zinc-800',
   },
 };
 
@@ -87,13 +110,77 @@ function getInitials(name?: string): string {
     .toUpperCase();
 }
 
-export const ApplicationTable: React.FC<Props> = ({ applications }) => {
+export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
+  const [originalJob, setOriginalJob] = useState<PublicJobPosting | null>(null);
+  const [isJobSheetOpen, setIsJobSheetOpen] = useState(false);
+  const [loadingJob, setLoadingJob] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyProfile | null>(null);
+  const [isCompanyOpen, setIsCompanyOpen] = useState(false);
 
-  const handleWithdraw = (app: ApplicationItem) => {
-    // Placeholder for withdraw action
-    console.log("Withdraw application", app.application_id);
-    alert("Withdraw application functionality will be implemented soon.");
+  // Custom withdrawal modal states
+  const [withdrawApp, setWithdrawApp] = useState<ApplicationItem | null>(null);
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+  const handleOpenJobPost = async (jobId: number) => {
+    try {
+      setLoadingJob(true);
+      const res = await fetch("/api/freelancer/jobs");
+      if (res.ok) {
+        const data = await res.json();
+        const jobs: PublicJobPosting[] = data.jobs || [];
+        const found = jobs.find(j => j.job_id === jobId);
+        if (found) {
+          setOriginalJob(found);
+          setIsJobSheetOpen(true);
+        } else {
+          toast.error("Could not find the original job post. It might have been closed or deleted.");
+        }
+      } else {
+        toast.error("Failed to load original job post.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error loading job post.");
+    } finally {
+      setLoadingJob(false);
+    }
+  };
+
+  const executeWithdrawal = async () => {
+    if (!withdrawApp) return;
+    setIsWithdrawing(true);
+    try {
+      const res = await fetch("/api/freelancer/applications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          application_id: withdrawApp.application_id,
+          action: "withdraw",
+          reason: withdrawReason.trim() || "Withdrawn by candidate",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error || "Failed to withdraw application.");
+      } else {
+        toast.success("Application withdrawn successfully!");
+        setWithdrawApp(null);
+        setWithdrawReason("");
+        if (onRefresh) {
+          onRefresh();
+        } else {
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("An error occurred while withdrawing the application.");
+    } finally {
+      setIsWithdrawing(false);
+    }
   };
 
   const columns: ColumnDef<ApplicationItem>[] = [
@@ -117,12 +204,33 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
       header: 'Company',
       cell: ({ row }) => {
         const app = row.original;
+        const isClickable = !!app.company_details;
         return (
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0">
-              {getInitials(app.company_name)}
+          <div 
+            className={`flex items-center gap-2.5 ${isClickable ? 'group cursor-pointer' : ''}`}
+            onClick={(e) => {
+              if (isClickable) {
+                e.stopPropagation();
+                setSelectedCompany(app.company_details ?? null);
+                setIsCompanyOpen(true);
+              }
+            }}
+          >
+            <div className={`w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0 overflow-hidden ${isClickable ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
+              {app.company_details?.company_logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={app.company_details.company_logo.startsWith("http") ? app.company_details.company_logo : `/api/client/assets/${app.company_details.company_logo}`} 
+                  alt={app.company_name ?? ""} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                getInitials(app.company_name)
+              )}
             </div>
-            <span className="text-sm text-foreground">{app.company_name ?? '—'}</span>
+            <span className={`text-sm text-foreground ${isClickable ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
+              {app.company_name ?? '—'}
+            </span>
           </div>
         );
       },
@@ -161,7 +269,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
                   <Eye className="w-4 h-4" />
                   View Application
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleWithdraw(app)} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
+                <DropdownMenuItem onClick={() => { setWithdrawApp(app); setWithdrawReason(""); }} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
                   <XOctagon className="w-4 h-4" />
                   Withdraw Application
                 </DropdownMenuItem>
@@ -194,14 +302,48 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           <div className="p-6 overflow-y-auto space-y-6">
             {selectedApp && (
               <>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0">
-                    {getInitials(selectedApp.company_name)}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div 
+                    className={`flex items-center gap-4 ${!!selectedApp.company_details ? 'group cursor-pointer' : ''}`}
+                    onClick={(e) => {
+                      if (selectedApp.company_details) {
+                        e.stopPropagation();
+                        setSelectedCompany(selectedApp.company_details ?? null);
+                        setIsCompanyOpen(true);
+                      }
+                    }}
+                  >
+                    <div className={`w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0 overflow-hidden ${!!selectedApp.company_details ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
+                      {selectedApp.company_details?.company_logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img 
+                          src={selectedApp.company_details.company_logo.startsWith("http") ? selectedApp.company_details.company_logo : `/api/client/assets/${selectedApp.company_details.company_logo}`} 
+                          alt={selectedApp.company_name ?? ""} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        getInitials(selectedApp.company_name)
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">{selectedApp.job_title ?? '—'}</h3>
+                      <p className={`text-sm text-muted-foreground ${!!selectedApp.company_details ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
+                        {selectedApp.company_name ?? '—'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{selectedApp.job_title ?? '—'}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedApp.company_name ?? '—'}</p>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="shrink-0"
+                    disabled={loadingJob}
+                    onClick={() => handleOpenJobPost(selectedApp.job_id)}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      {loadingJob ? "Loading..." : "View Original Job Post"}
+                    </span>
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1 border-b border-border/50 pb-6">
@@ -226,6 +368,15 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
                     </span>
                   )}
                 </div>
+
+                {selectedApp.job_description && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Job Description</p>
+                    <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto">
+                      {selectedApp.job_description}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
@@ -373,6 +524,63 @@ export const ApplicationTable: React.FC<Props> = ({ applications }) => {
           </div>
         </DrawerContent>
       </Drawer>
+
+      <JobDetailSheet 
+        job={originalJob}
+        open={isJobSheetOpen}
+        onClose={() => setIsJobSheetOpen(false)}
+      />
+
+      <CompanyPreviewModal 
+        company={selectedCompany}
+        open={isCompanyOpen}
+        onClose={() => setIsCompanyOpen(false)}
+      />
+
+      <Dialog open={!!withdrawApp} onOpenChange={(open) => !open && setWithdrawApp(null)}>
+        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground">Withdraw Application</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-2">
+              Are you sure you want to withdraw your application for <strong className="text-foreground">{withdrawApp?.job_title}</strong> at <strong className="text-foreground">{withdrawApp?.company_name}</strong>?
+              <br /><br />
+              <span className="text-rose-600 dark:text-rose-400 font-medium">⚠️ Warning: This action cannot be undone and will retract your candidacy from the employer.</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 py-4">
+            <Label htmlFor="withdraw-reason-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Reason for withdrawal (optional)
+            </Label>
+            <Textarea
+              id="withdraw-reason-input"
+              placeholder="e.g. I have accepted another offer, salary misalignment, etc."
+              value={withdrawReason}
+              onChange={(e) => setWithdrawReason(e.target.value)}
+              className="resize-none text-sm rounded-xl bg-background"
+              rows={3}
+              disabled={isWithdrawing}
+            />
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => { setWithdrawApp(null); setWithdrawReason(""); }}
+              disabled={isWithdrawing}
+              className="rounded-xl h-9 text-sm"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={executeWithdrawal}
+              disabled={isWithdrawing}
+              className="rounded-xl h-9 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium border-0"
+            >
+              {isWithdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

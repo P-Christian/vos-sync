@@ -130,6 +130,7 @@ export const jobPreferencesSchema = z.object({
     preferred_location: z.string().nullable().optional(),
     salary_range_min: z.number().nullable().optional(),
     salary_range_max: z.number().nullable().optional(),
+    currency: z.string().nullable().optional(),
     availability: z.string().nullable().optional(),
     preferred_industry: z.string().nullable().optional(),
 });

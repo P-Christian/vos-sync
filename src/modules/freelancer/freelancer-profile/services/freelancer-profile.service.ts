@@ -243,6 +243,7 @@ export async function saveJobPreferencesService(userId: number, payload: any) {
         preferred_location: payload.preferred_location,
         salary_range_min: payload.salary_range_min,
         salary_range_max: payload.salary_range_max,
+        currency: payload.currency,
         availability: payload.availability,
         preferred_industry: payload.preferred_industry,
     };

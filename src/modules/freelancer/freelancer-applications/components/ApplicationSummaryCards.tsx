@@ -16,8 +16,8 @@ export const ApplicationSummaryCards: React.FC<Props> = ({ summary }) => {
       icon: TrendingUp,
     },
     {
-      label: 'Interviewing',
-      value: summary.interviewing.toString().padStart(2, '0'),
+      label: 'Pending Application',
+      value: summary.pendingApplications.toString().padStart(2, '0'),
       icon: MessageSquare,
     },
     {
