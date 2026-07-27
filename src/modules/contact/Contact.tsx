@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 
 // ==========================================
 // MOCK DATA
@@ -68,43 +69,52 @@ export default function Contact() {
       <section className="relative overflow-hidden pt-20 pb-20 md:pt-28 md:pb-28">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-zinc-100 via-white to-white" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-2xl">
-            <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
-              <MessageSquare className="w-3.5 h-3.5 mr-2 text-zinc-500" />
-              Get in touch
-            </Badge>
-            <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-tight">
-              Let&apos;s start a{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900">
-                conversation.
-              </span>
-            </h1>
-            <p className="text-lg text-zinc-500 leading-relaxed">
-              Whether you&apos;re a job seeker, employer, or just have a question — we&apos;re here to help. Fill out the form and we&apos;ll get back to you soon.
-            </p>
-          </div>
+          <StaggerContainer className="max-w-2xl">
+            <StaggerChild>
+              <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
+                <MessageSquare className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                Get in touch
+              </Badge>
+            </StaggerChild>
+            <StaggerChild>
+              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-tight">
+                Let&apos;s start a{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900">
+                  conversation.
+                </span>
+              </h1>
+            </StaggerChild>
+            <StaggerChild>
+              <p className="text-lg text-zinc-500 leading-relaxed">
+                Whether you&apos;re a job seeker, employer, or just have a question — we&apos;re here to help. Fill out the form and we&apos;ll get back to you soon.
+              </p>
+            </StaggerChild>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* CONTACT INFO CARDS */}
       <section className="pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {CONTACT_INFO.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:border-zinc-300 hover:shadow-md transition-all duration-200"
-              >
-                <div className="w-11 h-11 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors">
-                  <item.icon className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors" />
-                </div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">{item.label}</p>
-                <p className="text-base font-semibold text-zinc-900 mb-1">{item.value}</p>
-                <p className="text-sm text-zinc-500">{item.desc}</p>
-              </a>
+              <StaggerChild key={item.label}>
+                <HoverScale className="h-full">
+                  <a
+                    href={item.href}
+                    className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:border-zinc-300 hover:shadow-md transition-all duration-200 block h-full"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-zinc-900 transition-colors">
+                      <item.icon className="w-5 h-5 text-zinc-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-1">{item.label}</p>
+                    <p className="text-base font-semibold text-zinc-900 mb-1">{item.value}</p>
+                    <p className="text-sm text-zinc-500">{item.desc}</p>
+                  </a>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -113,7 +123,7 @@ export default function Contact() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
             {/* FORM */}
-            <div className="lg:col-span-3">
+            <SlideUp className="lg:col-span-3">
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-2">Send us a message</h2>
               <p className="text-zinc-500 mb-8 text-sm">We&apos;ll respond within one business day with next steps.</p>
 
@@ -156,10 +166,10 @@ export default function Contact() {
                   </Button>
                 </div>
               </div>
-            </div>
+            </SlideUp>
 
             {/* FAQ */}
-            <div className="lg:col-span-2">
+            <SlideUp className="lg:col-span-2" delay={0.2}>
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-2">Common questions</h2>
               <p className="text-zinc-500 mb-8 text-sm">Quick answers to things we get asked often.</p>
               <div className="space-y-4">
@@ -170,7 +180,7 @@ export default function Contact() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SlideUp>
           </div>
         </div>
       </section>
@@ -198,7 +208,7 @@ export default function Contact() {
 
       {/* CTA STRIP */}
       <section className="py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -ml-20 -mb-20" />
@@ -217,7 +227,7 @@ export default function Contact() {
               </div>
             </div>
           </div>
-        </div>
+        </SlideUp>
       </section>
     </div>
   );

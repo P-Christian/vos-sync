@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 
 // ==========================================
 // MOCK DATA
@@ -182,55 +183,67 @@ export default async function Page() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
-            <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
-            Over 10,000+ new jobs added this week
-          </Badge>
+          <StaggerContainer>
+            <StaggerChild>
+              <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
+                <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
+                Over 10,000+ new jobs added this week
+              </Badge>
+            </StaggerChild>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
-            Find the job that fits your <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">life.</span>
-          </h1>
+            <StaggerChild>
+              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
+                Find the job that fits your <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">life.</span>
+              </h1>
+            </StaggerChild>
 
-          <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Discover opportunities across the globe. Join the most exclusive network of top tier professionals and industry-leading companies.
-          </p>
+            <StaggerChild>
+              <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+                Discover opportunities across the globe. Join the most exclusive network of top tier professionals and industry-leading companies.
+              </p>
+            </StaggerChild>
 
-          {/* Search Bar */}
-          <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
-            <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-border">
-              <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-              <Input
-                type="text"
-                placeholder="Job title, keywords, or company"
-                className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-              />
-            </div>
-            <div className="flex-1 flex items-center px-4 py-2">
-              <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-              <Input
-                type="text"
-                placeholder="City, state, or 'Remote'"
-                className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-              />
-            </div>
-            <Button size="lg" className="rounded-xl w-full md:w-auto px-8 py-6 text-base shadow-md hover:shadow-lg transition-all cursor-pointer">
-              Search Jobs
-            </Button>
-          </div>
+            <StaggerChild>
+              {/* Search Bar */}
+              <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
+                <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-border">
+                  <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
+                  <Input
+                    type="text"
+                    placeholder="Job title, keywords, or company"
+                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
+                  />
+                </div>
+                <div className="flex-1 flex items-center px-4 py-2">
+                  <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
+                  <Input
+                    type="text"
+                    placeholder="City, state, or 'Remote'"
+                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
+                  />
+                </div>
+                <Button size="lg" className="rounded-xl w-full md:w-auto px-8 py-6 text-base shadow-md hover:shadow-lg transition-all cursor-pointer">
+                  Search Jobs
+                </Button>
+              </div>
+            </StaggerChild>
 
-          <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-            <span>Popular searches:</span>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Remote</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">React</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Designer</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
-          </div>
+            <StaggerChild>
+              <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+                <span>Popular searches:</span>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Remote</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">React</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Designer</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
+              </div>
+            </StaggerChild>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* LOGO CLOUD */}
       <section className="border-y border-border bg-muted/30 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <FadeIn delay={0.4} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm font-medium text-muted-foreground mb-6">Trusted by the world&apos;s most innovative companies</p>
           <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
             {TRUSTED_COMPANIES.map(company => (
@@ -239,7 +252,7 @@ export default async function Page() {
               </div>
             ))}
           </div>
-        </div>
+        </FadeIn>
       </section>
 
       {/* POPULAR CATEGORIES */}
@@ -255,19 +268,23 @@ export default async function Page() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {CATEGORIES.map((cat, idx) => (
-              <div key={idx} className="group border border-border rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${cat.color} dark:bg-opacity-20`}>
-                  {cat.icon}
-                </div>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
-                <p className="text-muted-foreground mt-1 flex items-center text-sm">
-                  {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                </p>
-              </div>
+              <StaggerChild key={idx}>
+                <HoverScale className="h-full">
+                  <div className="group border border-border rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card h-full">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${cat.color} dark:bg-opacity-20`}>
+                      {cat.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
+                    <p className="text-muted-foreground mt-1 flex items-center text-sm">
+                      {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </p>
+                  </div>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
           <Button variant="outline" className="w-full mt-8 md:hidden cursor-pointer">View all categories</Button>
         </div>
       </section>
@@ -280,50 +297,54 @@ export default async function Page() {
             <p className="text-muted-foreground mt-4">Hand-picked roles from top companies actively hiring right now.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {jobs.map((job) => (
-              <div key={job.id} className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start">
-                {/* Company Logo Placeholder */}
-                <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
-                  {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
-                    <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
-                  ) : (
-                    job.logo
-                  )}
-                </div>
+              <StaggerChild key={job.id}>
+                <HoverScale className="h-full">
+                  <div className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start h-full">
+                    {/* Company Logo Placeholder */}
+                    <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
+                      {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
+                        <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
+                      ) : (
+                        job.logo
+                      )}
+                    </div>
 
-                <div className="flex-1 w-full">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
-                        <span className="font-medium text-foreground">{job.company}</span>
-                        <span>•</span>
-                        <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
+                    <div className="flex-1 w-full">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
+                        <div>
+                          <h3 className="text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
+                            <span className="font-medium text-foreground">{job.company}</span>
+                            <span>•</span>
+                            <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-muted shrink-0">{job.type}</Badge>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2 mb-6">
+                        {job.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="font-medium text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                        <div className="font-semibold text-foreground">{job.salary}</div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-muted-foreground">{job.posted}</span>
+                          <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
+                            <Link href={`/vos-sync/freelancer/jobs?open_job=${job.id}`}>Apply Now</Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-muted shrink-0">{job.type}</Badge>
                   </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 mb-6">
-                    {job.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="font-medium text-xs">{tag}</Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                    <div className="font-semibold text-foreground">{job.salary}</div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs text-muted-foreground">{job.posted}</span>
-                      <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
-                        <Link href={`/vos-sync/freelancer/jobs?open_job=${job.id}`}>Apply Now</Link>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
 
           <div className="mt-12 text-center">
             <Button size="lg" className="rounded-full px-8 cursor-pointer" asChild>
@@ -337,7 +358,7 @@ export default async function Page() {
       <section className="py-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="lg:w-1/2">
+            <SlideUp className="lg:w-1/2">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
                 Your next career move, <br /><span className="text-muted-foreground">simplified.</span>
               </h2>
@@ -362,9 +383,9 @@ export default async function Page() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SlideUp>
 
-            <div className="lg:w-1/2 relative">
+            <SlideUp className="lg:w-1/2 relative" delay={0.2}>
               {/* Decorative UI element representing a dashboard */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-2xl relative z-10">
                 <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
@@ -396,14 +417,14 @@ export default async function Page() {
 
               {/* Background decorative blobs */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-muted rounded-full blur-3xl -z-10 dark:opacity-20"></div>
-            </div>
+            </SlideUp>
           </div>
         </div>
       </section>
 
       {/* CTA SECTION */}
       <section className="py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 dark:bg-zinc-950 rounded-3xl p-8 md:p-16 text-center text-white relative overflow-hidden border dark:border-zinc-800">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20"></div>
@@ -423,7 +444,7 @@ export default async function Page() {
               </div>
             </div>
           </div>
-        </div>
+        </SlideUp>
       </section>
     </div>
   );
