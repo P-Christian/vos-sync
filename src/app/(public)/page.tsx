@@ -41,7 +41,35 @@ function getRelativeTimeString(dateStr: string): string {
   return `${diffDays}d ago`;
 }
 
-function formatSalary(job: any): string {
+interface RawJob {
+  job_id: number;
+  company_id: number | null;
+  job_title: string;
+  job_type: string;
+  work_arrangement: string;
+  job_location: string;
+  salary_type: string;
+  salary_min: number | string | null;
+  salary_max: number | string | null;
+  salary_negotiable: boolean;
+  currency: string | null;
+  created_at: string;
+}
+
+interface RawCompany {
+  company_id: number;
+  company_name: string;
+  company_logo: string | null;
+}
+
+interface RawSkillMap {
+  job_id: number;
+  skill_id: {
+    skill_name: string;
+  } | null;
+}
+
+function formatSalary(job: RawJob): string {
   if (job.salary_negotiable) return "Negotiable";
   const currency = job.currency ?? "PHP";
   if (job.salary_type === "Fixed Salary" && job.salary_min) {
@@ -77,13 +105,13 @@ async function getFeaturedJobs() {
     );
     if (!res.ok) return [];
     const json = await res.json();
-    const rawJobs = json.data ?? [];
+    const rawJobs: RawJob[] = json.data ?? [];
     if (rawJobs.length === 0) return [];
 
-    const jobIds = rawJobs.map((j: any) => j.job_id);
-    const companyIds = Array.from(new Set(rawJobs.map((j: any) => j.company_id).filter(Boolean)));
+    const jobIds = rawJobs.map((j) => j.job_id);
+    const companyIds = Array.from(new Set(rawJobs.map((j) => j.company_id).filter((id): id is number => Boolean(id))));
 
-    let companiesMap: Record<number, { name: string; logo: string | null }> = {};
+    const companiesMap: Record<number, { name: string; logo: string | null }> = {};
     if (companyIds.length > 0) {
       const compRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name,company_logo&limit=100`,
@@ -91,7 +119,7 @@ async function getFeaturedJobs() {
       );
       if (compRes.ok) {
         const compJson = await compRes.json();
-        (compJson.data ?? []).forEach((c: any) => {
+        (compJson.data ?? []).forEach((c: RawCompany) => {
           companiesMap[c.company_id] = {
             name: c.company_name,
             logo: c.company_logo ?? null,
@@ -100,7 +128,7 @@ async function getFeaturedJobs() {
       }
     }
 
-    let skillsMap: Record<number, string[]> = {};
+    const skillsMap: Record<number, string[]> = {};
     if (jobIds.length > 0) {
       const skillsRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_job_skills_map?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,skill_id.skill_name&limit=500`,
@@ -108,7 +136,7 @@ async function getFeaturedJobs() {
       );
       if (skillsRes.ok) {
         const skillsJson = await skillsRes.json();
-        (skillsJson.data ?? []).forEach((m: any) => {
+        (skillsJson.data ?? []).forEach((m: RawSkillMap) => {
           const jobId = m.job_id;
           if (!skillsMap[jobId]) skillsMap[jobId] = [];
           if (m.skill_id?.skill_name) {
@@ -118,8 +146,9 @@ async function getFeaturedJobs() {
       }
     }
 
-    return rawJobs.map((j: any) => {
-      const company = companiesMap[j.company_id] || { name: "Unknown Company", logo: null };
+    return rawJobs.map((j) => {
+      const companyId = j.company_id;
+      const company = (companyId ? companiesMap[companyId] : null) || { name: "Unknown Company", logo: null };
       return {
         id: j.job_id,
         title: j.job_title,
@@ -305,6 +334,7 @@ export default async function Page() {
                     {/* Company Logo Placeholder */}
                     <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
                       {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
                       ) : (
                         job.logo

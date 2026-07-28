@@ -11,6 +11,7 @@ import { ApplyModal } from "./components/ApplyModal";
 import { useFreelancerBookmarks } from "../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 import { RegisterRequiredModal } from "./components/RegisterRequiredModal";
+import { PublicJobPosting } from "./types";
 
 export default function JobBrowseModule() {
   const {
@@ -62,7 +63,7 @@ export default function JobBrowseModule() {
     }
   }, [allJobs, openDetail]);
 
-  const handleApply = (job: any) => {
+  const handleApply = (job: PublicJobPosting) => {
     if (isGuest) {
       setRegisterModalOpen(true);
     } else {

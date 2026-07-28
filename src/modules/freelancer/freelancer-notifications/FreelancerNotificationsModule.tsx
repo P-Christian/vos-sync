@@ -43,7 +43,6 @@ export default function FreelancerNotificationsModule() {
     prefsError,
     loadPreferences,
     savePreferences,
-    fetchNotifications,
   } = useNotifications();
 
   const [activeTab, setActiveTab] = useState<Tab>("feed");
