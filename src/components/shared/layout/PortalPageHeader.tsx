@@ -8,6 +8,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
 import { NotificationBell as FreelancerNotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
 import { ClientNotificationBell } from "@/modules/client/notifications/components/ClientNotificationBellWrapper";
+import { SchoolAdminNotificationBell } from "@/modules/school-admin/components/SchoolAdminNotificationBellWrapper";
 import { UserSearchBar } from "@/modules/shared/search/components/UserSearchBar";
 
 type PortalPageHeaderUser = {
@@ -29,6 +30,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
     const pathname = usePathname();
     const isClientRoute = pathname?.startsWith("/vos-sync/client");
     const isFreelancerRoute = pathname?.startsWith("/vos-sync/freelancer");
+    const isSchoolAdminRoute = pathname?.startsWith("/vos-sync/school-admin");
     const isVosAdminRoute = pathname?.startsWith("/vos-sync/vos-admin");
 
     return (
@@ -47,6 +49,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
             <div className="flex h-full items-center gap-2 shrink-0">
                 {isClientRoute && <ClientNotificationBell />}
                 {isFreelancerRoute && <FreelancerNotificationBell />}
+                {isSchoolAdminRoute && <SchoolAdminNotificationBell />}
                 <Button
                     variant="ghost"
                     size="icon"

@@ -170,6 +170,8 @@ export function AccountStatusDetailModal({
     { code: "SEND_MESSAGES", label: "Send Direct Messages" },
     { code: "APPLY_JOBS", label: "Apply to Job Openings" },
     { code: "UPLOAD_PROFILE_FILES", label: "Upload Files to Profile" },
+    { code: "MANAGE_COURSES", label: "Manage School Courses (School Admin)" },
+    { code: "UPDATE_SCHOOL", label: "Update School Settings (School Admin)" },
   ];
 
   return (
