@@ -18,6 +18,11 @@ function getHeaders(): Record<string, string> {
  */
 export async function checkRestriction(userId: number, restrictionCode: string): Promise<boolean> {
   try {
+    const userStatus = await checkUserStatus(userId);
+    if (!userStatus || userStatus.status === 'ACTIVE') {
+      return false;
+    }
+
     const url = `${DIRECTUS_BASE}/items/vs_account_restriction?filter[user_id][_eq]=${userId}&filter[code][_eq]=${restrictionCode}&filter[status][_eq]=ACTIVE&limit=1`;
     const res = await fetch(url, {
       headers: getHeaders(),

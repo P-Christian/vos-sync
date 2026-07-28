@@ -229,7 +229,7 @@ export function AccountStatusDetailModal({
                 )}
               </div>
 
-              {user.restrictions && user.restrictions.length > 0 && (
+              {user.status !== 'ACTIVE' && user.restrictions && user.restrictions.length > 0 && (
                 <div>
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Restrictions</h3>
                   <div className="mt-2 space-y-1">
@@ -382,21 +382,37 @@ export function AccountStatusDetailModal({
                       <p className="text-sm text-zinc-500 text-center py-6">No status changes recorded.</p>
                     ) : (
                       <div className="border rounded-lg overflow-hidden divide-y">
-                        {user.history.map((h) => (
-                          <div key={h.history_id} className="p-3 text-sm flex justify-between items-start gap-4">
-                            <div>
-                              <p className="font-semibold text-zinc-800 dark:text-zinc-200">
-                                Transited to <span className="text-primary">{h.new_status.replace("_", " ")}</span>
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">Reason: {h.reason || 'No justification provided'}</p>
-                              <p className="text-xs text-zinc-400 mt-1">Version: v{h.new_version}</p>
+                        {user.history.map((h) => {
+                          const parts = h.reason ? h.reason.split(" | Restrictions: ") : [h.reason || ""];
+                          const displayReason = parts[0] || "No justification provided";
+                          const restrictionsString = parts[1];
+                          const restrictionsList = restrictionsString ? restrictionsString.split(",").map(r => r.trim()) : [];
+
+                          return (
+                            <div key={h.history_id} className="p-3 text-sm flex justify-between items-start gap-4">
+                              <div>
+                                <p className="font-semibold text-zinc-800 dark:text-zinc-200">
+                                  Transited to <span className="text-primary">{h.new_status.replace("_", " ")}</span>
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Reason: {displayReason}</p>
+                                {restrictionsList.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {restrictionsList.map((code, idx) => (
+                                      <span key={idx} className="inline-flex items-center rounded bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-300 border border-amber-200/50 dark:border-amber-900/50">
+                                        {code}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="text-xs text-zinc-400 mt-1">Version: v{h.new_version}</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs text-zinc-500 font-medium block">By: {h.actor || 'System'}</span>
+                                <span className="text-[10px] text-zinc-400 block mt-0.5">{new Date(h.occurred_at).toLocaleString()}</span>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="text-xs text-zinc-500 font-medium block">By: {h.actor || 'System'}</span>
-                              <span className="text-[10px] text-zinc-400 block mt-0.5">{new Date(h.occurred_at).toLocaleString()}</span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
