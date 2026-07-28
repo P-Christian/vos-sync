@@ -22,27 +22,43 @@ export function UserSearchBar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleResultClick = async (userId: number) => {
+  const handleResultClick = async (userId: number, roleId: number) => {
     setIsOpen(false);
     setQuery("");
     
-    // Log the profile view
-    try {
-      await fetch("/api/freelancer/profile-views", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ viewed_user_id: userId })
-      });
-    } catch (e) {
-      console.error("Failed to log view", e);
+    // Log the profile view (only for freelancer profiles)
+    if (roleId === 1) {
+      try {
+        await fetch("/api/freelancer/profile-views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ viewed_user_id: userId })
+        });
+      } catch (e) {
+        console.error("Failed to log view", e);
+      }
     }
     
     // Determine which portal we are currently in so the sidebar stays consistent
     const isClientPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/vos-sync/client');
-    const portalParam = isClientPortal ? "?portal=client" : "?portal=freelancer";
+    const isSchoolPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/vos-sync/school-admin');
+    let portalParam = "?portal=freelancer";
+    if (isClientPortal) {
+      portalParam = "?portal=client";
+    } else if (isSchoolPortal) {
+      portalParam = "?portal=school-admin";
+    }
+
+    // Determine public path based on target user's role
+    let targetType = "freelancer";
+    if (roleId === 2) {
+      targetType = "client";
+    } else if (roleId === 4) {
+      targetType = "school-admin";
+    }
 
     // Navigate to public profile
-    router.push(`/vos-sync/public/freelancer/${userId}${portalParam}`);
+    router.push(`/vos-sync/public/${targetType}/${userId}${portalParam}`);
   };
 
   return (
@@ -57,7 +73,7 @@ export function UserSearchBar() {
             setIsOpen(true);
           }}
           onFocus={() => setIsOpen(true)}
-          placeholder="Search freelancers..."
+          placeholder="Search users..."
           className="h-9 w-full rounded-full border border-input bg-background/50 pl-9 pr-8 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         />
         {query && (
@@ -81,13 +97,13 @@ export function UserSearchBar() {
             ) : error ? (
               <div className="px-4 py-3 text-sm text-red-500 text-center">{error}</div>
             ) : results.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-muted-foreground text-center">No freelancers found.</div>
+              <div className="px-4 py-3 text-sm text-muted-foreground text-center">No users found.</div>
             ) : (
               <ul className="flex flex-col">
                 {results.map((user) => (
                   <li key={user.user_id}>
                     <button
-                      onClick={() => handleResultClick(user.user_id)}
+                      onClick={() => handleResultClick(user.user_id, user.role_id)}
                       className="w-full flex items-center gap-3 px-4 py-2 hover:bg-muted/50 transition-colors text-left"
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">

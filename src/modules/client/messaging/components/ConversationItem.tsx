@@ -84,7 +84,7 @@ export default function ConversationItem({
       className={cn(
         "group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all border-b border-zinc-100 dark:border-zinc-800/60",
         isActive
-          ? "bg-indigo-50 dark:bg-indigo-950/30 border-l-2 border-l-indigo-500"
+          ? "bg-primary/5 dark:bg-primary/10 border-l-2 border-l-primary"
           : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 border-l-2 border-l-transparent"
       )}
     >
@@ -153,8 +153,8 @@ export default function ConversationItem({
 
         {job_title && (
           <div className="flex items-center gap-1 mt-0.5">
-            <Briefcase className="h-2.5 w-2.5 text-indigo-400 shrink-0" />
-            <span className="text-[10px] text-indigo-500 dark:text-indigo-400 truncate font-medium">
+            <Briefcase className="h-2.5 w-2.5 text-primary shrink-0" />
+            <span className="text-[10px] text-primary truncate font-medium">
               {job_title}
             </span>
           </div>

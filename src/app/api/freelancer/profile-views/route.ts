@@ -79,6 +79,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fetch viewer user's name
+    let viewerName = "Someone";
+    try {
+      const viewerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${viewerUserId}?fields=user_fname,user_lname`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (viewerRes.ok) {
+        const viewerJson = await viewerRes.json();
+        const fname = viewerJson.data?.user_fname || "";
+        const lname = viewerJson.data?.user_lname || "";
+        if (fname || lname) {
+          viewerName = `${fname} ${lname}`.trim();
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch viewer details:", e);
+    }
+
     // Trigger notification
     await createNotification({
       event_type: "profile_view",
@@ -87,7 +106,7 @@ export async function POST(req: NextRequest) {
       entity_id: viewerUserId,
       category: "Profile Activity",
       title: "New Profile View",
-      message: "Someone has viewed your profile recently.",
+      message: `${viewerName} recently viewed your profile.`,
       action_url: "/vos-sync/freelancer/profile",
     });
 

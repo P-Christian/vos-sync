@@ -24,10 +24,37 @@ export interface PublicFreelancerProfile {
   portfolio_url?: string;
 }
 
+export interface PublicClientProfile {
+  user_id: number;
+  user_fname: string;
+  user_lname: string;
+  user_email: string;
+  avatar_url?: string;
+  headline: string;
+}
+
+export interface PublicSchoolAdminProfile {
+  user_id: number;
+  user_fname: string;
+  user_lname: string;
+  user_email: string;
+  avatar_url?: string;
+  headline: string;
+  school_name?: string;
+  school_type?: string;
+  school_logo_url?: string | null;
+  school_description?: string | null;
+  school_email?: string | null;
+  school_contact_no?: string | null;
+  school_website?: string | null;
+  school_address?: string;
+  course_count?: number;
+}
+
 export async function getPublicFreelancerProfile(id: number, callerRole: number = 0): Promise<PublicFreelancerProfile | null> {
   try {
     const url = new URL(`${DIRECTUS_BASE}/items/vs_user/${id}`);
-    url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,job_seeker_profile.*,vs_job_seeker_profile.*");
+    url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,job_seeker_profile.*,vs_job_seeker_profile.*,user_image");
 
     const res = await fetch(url.toString(), {
       method: "GET",
@@ -52,6 +79,7 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
         user_fname: user.user_fname,
         user_lname: user.user_lname,
         user_email: user.user_email,
+        avatar_url: user.user_image || undefined,
         headline: "Client",
       };
     }
@@ -75,6 +103,7 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
       user_fname: user.user_fname,
       user_lname: user.user_lname,
       user_email: user.user_email, // Depending on privacy rules, email might be hidden, but we include it for MVP
+      avatar_url: user.user_image || undefined,
       headline: publicProfile.professional_headline || "",
       bio: publicProfile.about_me || "",
       skills: publicProfile.skills || [],
@@ -82,6 +111,123 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
     };
   } catch (err) {
     console.error("Error fetching public freelancer profile:", err);
+    return null;
+  }
+}
+
+export async function getPublicClientProfile(id: number): Promise<PublicClientProfile | null> {
+  try {
+    const url = new URL(`${DIRECTUS_BASE}/items/vs_user/${id}`);
+    url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,user_image");
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch public client profile:", await res.text());
+      return null;
+    }
+
+    const json = await res.json();
+    const user = json.data;
+
+    if (!user || user.role_id !== 2) return null;
+
+    return {
+      user_id: user.user_id,
+      user_fname: user.user_fname,
+      user_lname: user.user_lname,
+      user_email: user.user_email,
+      avatar_url: user.user_image || undefined,
+      headline: "Client",
+    };
+  } catch (err) {
+    console.error("Error fetching public client profile:", err);
+    return null;
+  }
+}
+
+import { fetchSchoolByUserIdRepo } from "@/modules/school-admin/services/school-admin.repo";
+
+export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSchoolAdminProfile | null> {
+  try {
+    const url = new URL(`${DIRECTUS_BASE}/items/vs_user/${id}`);
+    url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,user_image");
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("Failed to fetch public school admin profile:", await res.text());
+      return null;
+    }
+
+    const json = await res.json();
+    const user = json.data;
+
+    if (!user || user.role_id !== 4) return null;
+
+    let school_name = undefined;
+    let school_type = undefined;
+    let school_logo_url = null;
+    let school_description = null;
+    let school_email = null;
+    let school_contact_no = null;
+    let school_website = null;
+    let school_address = undefined;
+    let course_count = 0;
+
+    try {
+      const schoolStats = await fetchSchoolByUserIdRepo(id);
+      if (schoolStats) {
+        school_name = schoolStats.school_name;
+        school_type = schoolStats.school_type;
+        school_logo_url = schoolStats.school_logo_url;
+        school_description = schoolStats.school_description;
+        school_email = schoolStats.school_email;
+        school_contact_no = schoolStats.school_contact_no;
+        school_website = schoolStats.school_website;
+        
+        const addressParts = [
+          schoolStats.address_line,
+          schoolStats.barangay,
+          schoolStats.city_municipality,
+          schoolStats.province,
+          schoolStats.postal_code,
+          schoolStats.country
+        ].filter(Boolean);
+        school_address = addressParts.join(", ");
+        course_count = schoolStats.course_count;
+      }
+    } catch (e) {
+      console.error("Failed to fetch school details for admin public profile:", e);
+    }
+
+    return {
+      user_id: user.user_id,
+      user_fname: user.user_fname,
+      user_lname: user.user_lname,
+      user_email: user.user_email,
+      avatar_url: user.user_image || undefined,
+      headline: "School Admin",
+      school_name,
+      school_type,
+      school_logo_url,
+      school_description,
+      school_email,
+      school_contact_no,
+      school_website,
+      school_address,
+      course_count,
+    };
+  } catch (err) {
+    console.error("Error fetching public school admin profile:", err);
     return null;
   }
 }

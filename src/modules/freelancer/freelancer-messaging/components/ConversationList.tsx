@@ -82,7 +82,7 @@ export default function ConversationList({
               className={cn(
                 "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300",
                 showArchived &&
-                  "bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                  "bg-primary/10 text-primary"
               )}
             >
               <Archive className="h-3.5 w-3.5" />
@@ -108,7 +108,7 @@ export default function ConversationList({
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition"
+            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
           />
         </div>
       </div>
