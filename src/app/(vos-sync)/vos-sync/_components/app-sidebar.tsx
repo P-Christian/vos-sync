@@ -92,6 +92,7 @@ export function AppSidebar({
                     { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
                     { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
                     { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
+                    { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
                     { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
                   ],
             footerLinks: [
