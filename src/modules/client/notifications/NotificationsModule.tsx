@@ -16,6 +16,7 @@ import { useNotifications } from "./hooks/useNotifications";
 import NotificationList from "./components/NotificationList";
 import NotificationPreferences from "./components/NotificationPreferences";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 type Tab = "feed" | "preferences";
 
@@ -120,17 +121,17 @@ export default function NotificationsModule() {
       )}
 
       {/* ── Tabs + Content ────────────────────────────────────────────── */}
-      <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+      <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
         {/* Tab Bar */}
-        <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
+        <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleTabChange("feed")}
               className={cn(
-                "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors",
+                "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors",
                 activeTab === "feed"
-                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               )}
             >
               <Bell className="h-4 w-4" />
@@ -140,19 +141,33 @@ export default function NotificationsModule() {
                   {unreadCount}
                 </span>
               )}
+              {activeTab === "feed" && (
+                <motion.div
+                  layoutId="activeTabUnderlineNotifications"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
             </button>
 
             <button
               onClick={() => handleTabChange("preferences")}
               className={cn(
-                "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors",
+                "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors",
                 activeTab === "preferences"
-                  ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               )}
             >
               <Settings2 className="h-4 w-4" />
               Preferences
+              {activeTab === "preferences" && (
+                <motion.div
+                  layoutId="activeTabUnderlineNotifications"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
             </button>
           </div>
         </CardHeader>

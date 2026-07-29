@@ -95,7 +95,6 @@ interface DirectusInterview {
   interview_notes?: string | null;
   candidate_notes?: string | null;
   feedback?: string | null;
-  evaluation_score?: number | null;
   interview_status: string;
   cancel_reason?: string | null;
   created_by_user_id?: number;

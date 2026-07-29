@@ -31,39 +31,45 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   const MAX_SIZE_MB = 10;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFiles = Array.from(e.target.files ?? []);
+    if (selectedFiles.length === 0) return;
 
     setUploadError("");
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setUploadError("Only PDF, JPG, PNG, or WEBP files are allowed.");
+    const invalidType = selectedFiles.find((f) => !ALLOWED_TYPES.includes(f.type));
+    if (invalidType) {
+      setUploadError(`Only PDF, JPG, PNG, or WEBP files are allowed. (${invalidType.name})`);
       e.target.value = "";
       return;
     }
 
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setUploadError(`File must be under ${MAX_SIZE_MB}MB.`);
+    const invalidSize = selectedFiles.find((f) => f.size > MAX_SIZE_MB * 1024 * 1024);
+    if (invalidSize) {
+      setUploadError(`Each file must be under ${MAX_SIZE_MB}MB. (${invalidSize.name})`);
       e.target.value = "";
       return;
     }
 
     setUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (companyId) formData.append("companyId", String(companyId));
+      const uploadPromises = selectedFiles.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (companyId) formData.append("companyId", String(companyId));
 
-      const res = await fetch("/api/client/upload", {
-        method: "POST",
-        body: formData,
+        const res = await fetch("/api/client/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+
+        const uploaded = await res.json();
+        return { id: uploaded.id, name: file.name, size: file.size };
       });
 
-      if (!res.ok) throw new Error("Upload failed. Please try again.");
-
-      const uploaded = await res.json();
-      const newDoc = { id: uploaded.id, name: file.name, size: file.size };
-      setDocs((prev) => [...prev, newDoc]);
+      const uploadedDocs = await Promise.all(uploadPromises);
+      setDocs((prev) => [...prev, ...uploadedDocs]);
     } catch (err: unknown) {
       setUploadError(
         err instanceof Error ? err.message : "Upload failed. Please try again."
@@ -135,15 +141,16 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         )}
         <div className="text-center">
           <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-            {uploading ? "Uploading..." : "Click to upload document"}
+            {uploading ? "Uploading documents..." : "Click to upload documents"}
           </p>
           <p className="text-[11px] text-zinc-400 mt-0.5">
-            PDF, JPG, PNG, WEBP — max {MAX_SIZE_MB}MB
+            PDF, JPG, PNG, WEBP — max {MAX_SIZE_MB}MB each (multiple allowed)
           </p>
         </div>
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           accept=".pdf,.jpg,.jpeg,.png,.webp"
           className="hidden"
           onChange={handleFileChange}

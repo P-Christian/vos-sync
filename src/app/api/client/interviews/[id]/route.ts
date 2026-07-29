@@ -218,7 +218,6 @@ export async function PATCH(
     }
 
     if (type === "EVALUATION") {
-      const score = Number(payload?.evaluation_score ?? 0);
       const feedbackText = String(payload?.feedback ?? payload?.evaluation_notes ?? "").trim();
       const decision = payload?.decision; // "HIRED", "REJECTED", "NO_ACTION"
 
@@ -226,7 +225,6 @@ export async function PATCH(
         method: "PATCH",
         headers: getHeaders(),
         body: JSON.stringify({
-          evaluation_score: score,
           feedback: feedbackText,
           interview_status: "COMPLETED",
           updated_by_user_id: userId,
@@ -249,16 +247,17 @@ export async function PATCH(
         { headers: getHeaders(), cache: "no-store" }
       );
 
-      if (ivRes.ok && decision && decision !== "NO_ACTION") {
+      if (ivRes.ok) {
         const ivData = (await ivRes.json()).data;
         if (ivData?.application_id) {
+          const targetStatus = decision === "HIRED" ? "HIRED" : decision === "REJECTED" ? "REJECTED" : "INTERVIEW_COMPLETED";
           await fetch(
             `${DIRECTUS_BASE}/items/vs_job_application/${ivData.application_id}?fields=application_id,application_status,client_notes`,
             {
               method: "PATCH",
               headers: getHeaders(),
               body: JSON.stringify({
-                application_status: decision,
+                application_status: targetStatus,
                 client_notes: feedbackText ? `Interview feedback: ${feedbackText}` : undefined,
               }),
             }

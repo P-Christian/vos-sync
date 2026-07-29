@@ -132,7 +132,6 @@ export function useInterviews() {
           item.interview_id === payload.interview_id
             ? {
                 ...item,
-                evaluation_score: payload.evaluation_score,
                 feedback: payload.feedback,
                 interview_status: "COMPLETED",
                 application_status:

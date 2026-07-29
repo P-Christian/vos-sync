@@ -50,13 +50,21 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
     icon: Clock,
     className: 'bg-secondary text-muted-foreground border-transparent',
   },
+  UNDER_REVIEW: {
+    icon: Eye,
+    className: 'bg-blue-50 text-blue-700 border-transparent dark:bg-blue-950/30 dark:text-blue-300',
+  },
   SHORTLISTED: {
     icon: Star,
-    className: 'bg-blue-50 text-blue-700 border-transparent dark:bg-blue-950/30 dark:text-blue-300',
+    className: 'bg-purple-50 text-purple-700 border-transparent dark:bg-purple-950/30 dark:text-purple-300',
   },
   INTERVIEW_SCHEDULED: {
     icon: Calendar,
     className: 'bg-primary/15 text-primary border-transparent',
+  },
+  INTERVIEW_COMPLETED: {
+    icon: CheckCircle,
+    className: 'bg-teal-50 text-teal-700 border-transparent dark:bg-teal-950/30 dark:text-teal-300',
   },
   HIRED: {
     icon: CheckCircle,
@@ -69,7 +77,7 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
   },
   WITHDRAWN: {
     icon: XOctagon,
-    className: 'bg-zinc-50 text-zinc-500 border-zinc-200 dark:bg-zinc-950/30 dark:text-zinc-500 dark:border-zinc-800',
+    className: 'bg-zinc-100 text-zinc-500 border-transparent dark:bg-zinc-800 dark:text-zinc-400',
   },
 };
 

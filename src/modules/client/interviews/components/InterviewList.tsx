@@ -12,7 +12,7 @@ import {
   Video,
   MapPin,
   Eye,
-  Star,
+  MessageSquare,
   RefreshCw,
   XCircle,
   CheckCircle2,
@@ -164,8 +164,8 @@ export default function InterviewList({
                     onClick={() => onOpenEvaluation(item)}
                     className="h-8 text-xs rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0"
                   >
-                    <Star className="h-3.5 w-3.5" />
-                    Evaluate & Complete
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Record Feedback
                   </Button>
 
                   <Button
@@ -183,10 +183,10 @@ export default function InterviewList({
                   variant="outline"
                   size="sm"
                   onClick={() => onOpenEvaluation(item)}
-                  className="h-8 text-xs rounded-lg gap-1.5 text-amber-600 border-amber-200"
+                  className="h-8 text-xs rounded-lg gap-1.5 text-emerald-600 border-emerald-200 dark:border-emerald-900/50"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {item.evaluation_score ? `Rated ${item.evaluation_score}/5` : "Add Rating"}
+                  {item.feedback ? "View Feedback" : "Add Feedback"}
                 </Button>
               ) : null}
             </div>

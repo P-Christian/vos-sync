@@ -92,7 +92,7 @@ export async function GET(
 
     // Fetch messages
     const msgsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&filter[is_deleted][_eq]=false&sort[]=created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted`,
+      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&filter[is_deleted][_eq]=false&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted`,
       { headers: getHeaders(), cache: "no-store" }
     );
 

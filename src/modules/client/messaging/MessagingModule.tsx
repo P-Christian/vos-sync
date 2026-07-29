@@ -38,10 +38,13 @@ export default function MessagingModule({
   const {
     messages,
     loading: msgsLoading,
+    loadingOlder,
+    hasMore,
     sending,
     uploading,
     error: msgsError,
     loadMessages,
+    loadOlderMessages,
     refreshMessages,
     send,
     upload,
@@ -238,11 +241,14 @@ export default function MessagingModule({
                   messages={messages}
                   currentUserId={currentUserId}
                   loading={msgsLoading}
+                  loadingOlder={loadingOlder}
+                  hasMore={hasMore}
                   sending={sending}
                   uploading={uploading}
                   error={msgsError}
                   onSend={handleSend}
                   onRefresh={handleRefreshMessages}
+                  onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
                   onBack={() => setMobileShowChat(false)}
                 />
               </div>

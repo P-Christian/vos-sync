@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import InterviewStatusBadge from "./InterviewStatusBadge";
 import ScreeningAnswersView from "./ScreeningAnswersView";
-import { Calendar, Clock, Video, MapPin, Star, Globe } from "lucide-react";
+import { Calendar, Clock, Video, MapPin, Globe, MessageSquare } from "lucide-react";
 import Image from "next/image";
 
 interface InterviewDetailsModalProps {
@@ -175,22 +175,16 @@ export default function InterviewDetailsModal({
             </div>
           )}
 
-          {/* Evaluation Rating & Feedback if Completed */}
-          {(interview.evaluation_score || interview.feedback) && (
-            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 rounded-xl space-y-2">
-              {interview.evaluation_score && (
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                    <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                    Evaluation Rating: {interview.evaluation_score} / 5 Stars
-                  </span>
-                </div>
-              )}
-              {interview.feedback && (
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 italic">
-                  &ldquo;{interview.feedback}&rdquo;
-                </p>
-              )}
+          {/* Feedback if Completed or Added */}
+          {interview.feedback && (
+            <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 rounded-xl space-y-1">
+              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4 text-emerald-500" />
+                Interview Feedback & Notes:
+              </span>
+              <p className="text-xs text-zinc-700 dark:text-zinc-300 pt-1">
+                {interview.feedback}
+              </p>
             </div>
           )}
 
@@ -209,8 +203,8 @@ export default function InterviewDetailsModal({
               }}
               className="h-8 text-xs rounded-lg gap-1.5"
             >
-              <Star className="h-3.5 w-3.5 text-amber-500" />
-              Evaluate Interview
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+              {interview.feedback ? "Edit Feedback" : "Add Feedback"}
             </Button>
           )}
           <Button variant="default" size="sm" onClick={onClose} className="h-8 text-xs rounded-lg ml-auto">

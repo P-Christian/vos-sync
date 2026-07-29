@@ -13,6 +13,8 @@ import {
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -20,9 +22,11 @@ export function useMessages() {
   const loadMessages = useCallback(async (conversationId: number) => {
     setLoading(true);
     setError("");
+    setHasMore(true);
     try {
-      const data = await fetchMessages(conversationId);
+      const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
       setMessages(data);
+      setHasMore(data.length >= 50);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to load messages."
@@ -32,12 +36,35 @@ export function useMessages() {
     }
   }, []);
 
+  const loadOlderMessages = useCallback(async (conversationId: number) => {
+    if (loadingOlder || !hasMore) return;
+    setLoadingOlder(true);
+    setError("");
+    try {
+      const currentOffset = messages.length;
+      const olderData = await fetchMessages(conversationId, { limit: 50, offset: currentOffset });
+      if (olderData.length === 0) {
+        setHasMore(false);
+      } else {
+        setMessages((prev) => [...olderData, ...prev]);
+        setHasMore(olderData.length >= 50);
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load older messages."
+      );
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [loadingOlder, hasMore, messages.length]);
+
   const refreshMessages = useCallback(
     async (conversationId: number) => {
       setError("");
       try {
-        const data = await fetchMessages(conversationId);
+        const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
         setMessages(data);
+        setHasMore(data.length >= 50);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Failed to refresh messages."
@@ -89,15 +116,19 @@ export function useMessages() {
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError("");
+    setHasMore(true);
   }, []);
 
   return {
     messages,
     loading,
+    loadingOlder,
+    hasMore,
     sending,
     uploading,
     error,
     loadMessages,
+    loadOlderMessages,
     refreshMessages,
     send,
     upload,

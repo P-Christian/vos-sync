@@ -1,6 +1,15 @@
 // src/modules/freelancer/freelancer-applications/types/index.ts
 
-export type ApplicationStatus = 'DRAFT' | 'APPLIED' | 'SHORTLISTED' | 'INTERVIEW_SCHEDULED' | 'HIRED' | 'REJECTED' | 'WITHDRAWN';
+export type ApplicationStatus =
+  | 'DRAFT'
+  | 'APPLIED'
+  | 'UNDER_REVIEW'
+  | 'SHORTLISTED'
+  | 'INTERVIEW_SCHEDULED'
+  | 'INTERVIEW_COMPLETED'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'WITHDRAWN';
 
 export interface CompanyProfile {
   company_id: number;
@@ -73,8 +82,10 @@ export interface ApplicationSummary {
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   DRAFT: 'Draft',
   APPLIED: 'Applied',
+  UNDER_REVIEW: 'Under Review',
   SHORTLISTED: 'Shortlisted',
   INTERVIEW_SCHEDULED: 'Interview Scheduled',
+  INTERVIEW_COMPLETED: 'Interview Completed',
   HIRED: 'Hired',
   REJECTED: 'Rejected',
   WITHDRAWN: 'Withdrawn',
