@@ -3,8 +3,10 @@
 export type ApplicationStatus =
   | "DRAFT"
   | "APPLIED"
+  | "UNDER_REVIEW"
   | "SHORTLISTED"
   | "INTERVIEW_SCHEDULED"
+  | "INTERVIEW_COMPLETED"
   | "HIRED"
   | "REJECTED"
   | "WITHDRAWN";
@@ -169,8 +171,10 @@ export const STATUS_LABELS: Record<
 > = {
   DRAFT: "Draft",
   APPLIED: "Applied",
+  UNDER_REVIEW: "Under Review",
   SHORTLISTED: "Shortlisted",
   INTERVIEW_SCHEDULED: "Interview Scheduled",
+  INTERVIEW_COMPLETED: "Interview Completed",
   HIRED: "Hired",
   REJECTED: "Rejected",
   WITHDRAWN: "Withdrawn",
@@ -179,8 +183,10 @@ export const STATUS_LABELS: Record<
 export const STATUS_FLOW: ApplicationStatus[] = [
   "DRAFT",
   "APPLIED",
+  "UNDER_REVIEW",
   "SHORTLISTED",
   "INTERVIEW_SCHEDULED",
+  "INTERVIEW_COMPLETED",
   "HIRED",
   "REJECTED",
   "WITHDRAWN",

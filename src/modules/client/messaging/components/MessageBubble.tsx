@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -29,11 +30,12 @@ interface Props {
 }
 
 function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en-PH", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  if (!dateStr) return "";
+  const [, timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [rawHour = 0, minute = 0] = timePart.split(":").map(Number);
+  const suffix = rawHour >= 12 ? "PM" : "AM";
+  const hour = rawHour % 12 || 12;
+  return `${hour}:${minute.toString().padStart(2, "0")} ${suffix}`;
 }
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -65,19 +67,27 @@ export default function MessageBubble({
 
   if (message_type === "SYSTEM") {
     return (
-      <>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+      >
         {showDateDivider && dateLabel && (
           <DateDivider label={dateLabel} />
         )}
         <div className="flex justify-center my-3 px-4">
           <SystemMessageRenderer message={message} />
         </div>
-      </>
+      </motion.div>
     );
   }
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+    >
       {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
       <div
         className={cn(
@@ -247,7 +257,7 @@ export default function MessageBubble({
               <a
                 href={previewDoc.fileUrl}
                 download={previewDoc.fileName}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition"
+                className="inline-flex items-center gap-1.5 px-3 mr-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download
@@ -264,18 +274,16 @@ export default function MessageBubble({
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </motion.div>
   );
 }
 
 function DateDivider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 my-4 px-4">
-      <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
-      <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 uppercase tracking-wider px-2">
+    <div className="sticky top-2 z-10 flex items-center justify-center my-3 px-4 pointer-events-none">
+      <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/90 dark:bg-zinc-800/90 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs backdrop-blur-md">
         {label}
       </span>
-      <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
     </div>
   );
 }

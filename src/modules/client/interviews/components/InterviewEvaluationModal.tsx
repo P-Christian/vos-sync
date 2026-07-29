@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Loader2, Award, CheckCircle, XCircle } from "lucide-react";
+import { Award, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InterviewEvaluationModalProps {
@@ -32,7 +32,6 @@ export default function InterviewEvaluationModal({
   onClose,
   onSubmitEvaluation,
 }: InterviewEvaluationModalProps) {
-  const [score, setScore] = useState<number>(interview?.evaluation_score || 0);
   const [feedbackText, setFeedbackText] = useState<string>(interview?.feedback || "");
   const [decision, setDecision] = useState<"HIRED" | "REJECTED" | "NO_ACTION">("NO_ACTION");
 
@@ -42,7 +41,6 @@ export default function InterviewEvaluationModal({
 
     const ok = await onSubmitEvaluation({
       interview_id: interview.interview_id,
-      evaluation_score: score,
       feedback: feedbackText,
       decision,
     });
@@ -58,8 +56,8 @@ export default function InterviewEvaluationModal({
       <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold flex items-center gap-2">
-            <Award className="h-4 w-4 text-amber-500" />
-            Interview Evaluation & Feedback
+            <Award className="h-4 w-4 text-emerald-500" />
+            Interview Feedback & Decision
           </DialogTitle>
         </DialogHeader>
 
@@ -74,46 +72,17 @@ export default function InterviewEvaluationModal({
             </p>
           </div>
 
-          {/* Rating Stars */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              Overall Candidate Rating (1 - 5 Stars)
-            </Label>
-            <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setScore(star)}
-                  className="p-1.5 focus:outline-none transition-transform hover:scale-110"
-                >
-                  <Star
-                    className={cn(
-                      "h-7 w-7 transition-colors",
-                      star <= score
-                        ? "text-amber-400 fill-amber-400"
-                        : "text-zinc-300 dark:text-zinc-700"
-                    )}
-                  />
-                </button>
-              ))}
-              <span className="ml-2 text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                {score} / 5
-              </span>
-            </div>
-          </div>
-
           {/* Feedback Text */}
           <div className="space-y-2">
             <Label htmlFor="eval-feedback" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              Interview Feedback & Evaluation Notes
+              Interview Feedback & Notes
             </Label>
             <Textarea
               id="eval-feedback"
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
-              rows={4}
-              placeholder="Record candidate technical competence, communication skills, culture fit, and feedback..."
+              rows={5}
+              placeholder="Record candidate technical competence, communication skills, culture fit, and feedback notes..."
               className="text-xs rounded-lg resize-none"
               required
             />

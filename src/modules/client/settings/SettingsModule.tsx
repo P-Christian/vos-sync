@@ -8,28 +8,27 @@ import AccountSettings from "./components/AccountSettings";
 import SecuritySettings from "./components/SecuritySettings";
 import TeamSettings from "./components/TeamSettings";
 import NotificationSettings from "./components/NotificationSettings";
-import IntegrationSettings from "./components/IntegrationSettings";
+// import IntegrationSettings from "./components/IntegrationSettings";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-  Settings2,
   User,
   Shield,
   Users,
   Bell,
-  Blocks,
   AlertCircle,
   CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
-type SettingsTab = "account" | "security" | "team" | "notifications" | "integrations";
+type SettingsTab = "account" | "security" | "team" | "notifications";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "account", label: "Account Profile", icon: User },
   { id: "security", label: "Security & Auth", icon: Shield },
   { id: "team", label: "Team & Roles", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "integrations", label: "Integrations", icon: Blocks },
+  // { id: "integrations", label: "Integrations", icon: Blocks },
 ];
 
 export default function SettingsModule() {
@@ -73,7 +72,7 @@ export default function SettingsModule() {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+      {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="flex items-center gap-4 relative z-10">
           <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
@@ -86,7 +85,7 @@ export default function SettingsModule() {
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Feedback Messages */}
       {error && (
@@ -103,24 +102,32 @@ export default function SettingsModule() {
       )}
 
       {/* Tabs & Module Body */}
-      <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-        <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
+      <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
+        <CardHeader className="border-b gap-0 border-zinc-100 dark:border-zinc-800 px-6 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {TABS.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === tab.id
-                      ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
-                      : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors whitespace-nowrap",
+                    isActive
+                      ? "text-indigo-600 dark:text-indigo-400"
+                      : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                   )}
                 >
                   <Icon className="h-4 w-4" />
                   {tab.label}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500 rounded-full"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -151,7 +158,7 @@ export default function SettingsModule() {
                 />
               )}
               {activeTab === "notifications" && <NotificationSettings />}
-              {activeTab === "integrations" && <IntegrationSettings />}
+              {/* {activeTab === "integrations" && <IntegrationSettings />} */}
             </>
           )}
         </CardContent>

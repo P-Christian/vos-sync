@@ -7,6 +7,7 @@ import { Archive, ArchiveRestore, Briefcase } from "lucide-react";
 import { Conversation } from "../types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 interface Props {
   conversation: Conversation;
@@ -18,27 +19,69 @@ interface Props {
 
 function formatTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const [datePart, timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour = 0, minute = 0] = timePart.split(":").map(Number);
+
+  const messageDate = new Date(year, month - 1, day);
+  const today = new Date();
+  const todayDate = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+
+  const diffDays = Math.floor(
+    (todayDate.getTime() - messageDate.getTime()) / 86400000
+  );
+
+  // Manual 12-hour formatting
+  const displayHour = hour % 12 || 12;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const displayTime = `${displayHour}:${minute
+    .toString()
+    .padStart(2, "0")} ${suffix}`;
 
   if (diffDays === 0) {
-    return date.toLocaleTimeString("en-PH", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  } else if (diffDays === 1) {
-    return "Yesterday";
-  } else if (diffDays < 7) {
-    return date.toLocaleDateString("en-PH", { weekday: "short" });
-  } else {
-    return date.toLocaleDateString("en-PH", {
-      month: "short",
-      day: "numeric",
-    });
+    return displayTime;
   }
+
+  if (diffDays === 1) {
+    return "Yesterday";
+  }
+
+  if (diffDays < 7) {
+    const weekdays = [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+    ];
+
+    return weekdays[messageDate.getDay()];
+  }
+
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
+  return `${months[month - 1]} ${day}`;
 }
 
 function getInitials(name: string): string {
@@ -84,10 +127,17 @@ export default function ConversationItem({
       className={cn(
         "group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all border-b border-zinc-100 dark:border-zinc-800/60",
         isActive
-          ? "bg-primary/5 dark:bg-primary/10 border-l-2 border-l-primary"
-          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40 border-l-2 border-l-transparent"
+          ? "bg-emerald-50/70 dark:bg-emerald-950/30"
+          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
       )}
     >
+      {isActive && (
+        <motion.div
+          layoutId="activeConversationBorderFreelancer"
+          className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-r-full"
+          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+        />
+      )}
       {/* Avatar */}
       <div className="relative shrink-0 mt-0.5">
         {other_party_avatar && !imgError ? (

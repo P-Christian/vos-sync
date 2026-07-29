@@ -9,52 +9,79 @@ import {
   AlertCircle,
   Loader2,
   ArrowLeft,
+  ChevronUp,
+  ArrowDown,
 } from "lucide-react";
 import { Conversation, Message } from "../types";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   conversation: Conversation;
   messages: Message[];
   currentUserId: number;
   loading: boolean;
+  loadingOlder?: boolean;
+  hasMore?: boolean;
   sending: boolean;
   uploading: boolean;
   error: string;
   onSend: (content: string, files: File[]) => void;
   onRefresh: () => void;
+  onLoadOlder?: () => void;
   onBack?: () => void; // for mobile
 }
 
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
+  const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
 function getDateLabel(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "";
+  const messageDate = parseDate(dateStr);
+  if (isNaN(messageDate.getTime())) return "";
 
   const now = new Date();
-  const dStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const nStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDate = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate()
+  );
 
   const diffDays = Math.round(
-    (nStart.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)
+    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
   );
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
-  return date.toLocaleDateString("en-PH", {
+
+  return messageDate.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    year:
+      messageDate.getFullYear() !== now.getFullYear()
+        ? "numeric"
+        : undefined,
   });
 }
 
-function isSameDayStr(a: string, b: string) {
-  return new Date(a).toDateString() === new Date(b).toDateString();
+function isSameDayStr(a: string, b: string): boolean {
+  const dateA = parseDate(a);
+  const dateB = parseDate(b);
+  return (
+    dateA.getFullYear() === dateB.getFullYear() &&
+    dateA.getMonth() === dateB.getMonth() &&
+    dateA.getDate() === dateB.getDate()
+  );
 }
-
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -69,14 +96,20 @@ export default function ChatPanel({
   messages,
   currentUserId,
   loading,
+  loadingOlder,
+  hasMore,
   sending,
   uploading,
   error,
   onSend,
   onRefresh,
+  onLoadOlder,
   onBack,
 }: Props) {
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [showScrollBottom, setShowScrollBottom] = React.useState(false);
+
   const {
     other_party_name = "Freelancer",
     other_party_avatar,
@@ -93,13 +126,68 @@ export default function ChatPanel({
     setImgError(false);
   }
 
-  // Auto scroll to bottom on new message
+  const handleScroll = React.useCallback(() => {
+    if (!messagesContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const isFarFromBottom = scrollHeight - scrollTop - clientHeight > 150;
+    setShowScrollBottom(isFarFromBottom);
+  }, []);
+
+  const scrollToBottom = React.useCallback((smooth = false) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  const prevMessagesLengthRef = useRef(messages.length);
+  const prevConversationIdRef = useRef(conversation.conversation_id);
+  const wasLoadingOlderRef = useRef(loadingOlder);
+
+  // Auto scroll to bottom whenever conversation changes, loading completes, or new messages are appended
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+    const isNewConversation = prevConversationIdRef.current !== conversation.conversation_id;
+    const isNewMessageAdded = messages.length > prevMessagesLengthRef.current;
+    const justFinishedLoadingOlder = wasLoadingOlderRef.current && !loadingOlder;
+
+    prevConversationIdRef.current = conversation.conversation_id;
+    prevMessagesLengthRef.current = messages.length;
+    wasLoadingOlderRef.current = loadingOlder;
+
+    if (loading) return;
+
+    if (isNewConversation) {
+      scrollToBottom(false);
+      const t1 = setTimeout(() => scrollToBottom(false), 50);
+      const t2 = setTimeout(() => scrollToBottom(false), 200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+
+    if (isNewMessageAdded && !justFinishedLoadingOlder) {
+      scrollToBottom(true);
+      const t1 = setTimeout(() => scrollToBottom(true), 50);
+      const t2 = setTimeout(() => scrollToBottom(true), 150);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [conversation.conversation_id, messages.length, loading, loadingOlder, scrollToBottom]);
 
   return (
-    <div className="flex flex-col h-full">
+    <motion.div
+      key={conversation.conversation_id}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      className="relative flex flex-col h-full"
+    >
       {/* Chat Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
         {onBack && (
@@ -133,7 +221,7 @@ export default function ChatPanel({
             <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
               {other_party_name}
             </span>
-            <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
               {conversation_type === "JOB_APPLICATION"
                 ? "Applicant"
                 : conversation_type === "DIRECT_MESSAGE"
@@ -173,7 +261,11 @@ export default function ChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 bg-zinc-50/50 dark:bg-zinc-950/20">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-4 bg-zinc-50/50 dark:bg-zinc-950/20"
+      >
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
@@ -193,7 +285,36 @@ export default function ChatPanel({
             </div>
           </div>
         ) : (
-          <>
+          <motion.div
+            key={messages.length > 0 ? messages[0].message_id : "empty"}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
+            className="flex flex-col justify-start space-y-2 min-h-full"
+          >
+            {/* Load Older Messages Trigger */}
+            {hasMore && (
+              <div className="flex justify-center mb-2">
+                <button
+                  onClick={onLoadOlder}
+                  disabled={loadingOlder}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50"
+                >
+                  {loadingOlder ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                      <span>Loading older messages...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
+                      <span>Load older messages</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
             {messages.map((msg, index) => {
               const isOwn = msg.sender_id === currentUserId;
               const prevMsg = messages[index - 1];
@@ -211,9 +332,25 @@ export default function ChatPanel({
               );
             })}
             <div ref={bottomRef} />
-          </>
+          </motion.div>
         )}
       </div>
+
+      {/* Floating Jump to Bottom Button */}
+      <AnimatePresence>
+        {showScrollBottom && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 10 }}
+            onClick={() => scrollToBottom(true)}
+            title="Jump to recent messages"
+            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Error */}
       {error && (
@@ -230,6 +367,6 @@ export default function ChatPanel({
         uploading={uploading}
         onSend={onSend}
       />
-    </div>
+    </motion.div>
   );
 }

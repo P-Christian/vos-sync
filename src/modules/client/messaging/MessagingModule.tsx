@@ -38,10 +38,13 @@ export default function MessagingModule({
   const {
     messages,
     loading: msgsLoading,
+    loadingOlder,
+    hasMore,
     sending,
     uploading,
     error: msgsError,
     loadMessages,
+    loadOlderMessages,
     refreshMessages,
     send,
     upload,
@@ -227,28 +230,30 @@ export default function MessagingModule({
           {/* Chat Panel */}
           <div
             className={cn(
-              "flex-1 min-w-0",
+              "flex-1 min-w-0 h-full flex flex-col overflow-hidden",
               mobileShowChat ? "flex" : "hidden sm:flex"
             )}
           >
             {activeConversation ? (
-              <div className="w-full">
+              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
                 <ChatPanel
                   conversation={activeConversation}
                   messages={messages}
                   currentUserId={currentUserId}
                   loading={msgsLoading}
+                  loadingOlder={loadingOlder}
+                  hasMore={hasMore}
                   sending={sending}
                   uploading={uploading}
                   error={msgsError}
                   onSend={handleSend}
                   onRefresh={handleRefreshMessages}
+                  onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
                   onBack={() => setMobileShowChat(false)}
                 />
               </div>
             ) : (
-              // Add the w-full wrapper here
-              <div className="w-full">
+              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
                 <EmptyState />
               </div>
             )}

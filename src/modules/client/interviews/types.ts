@@ -30,7 +30,6 @@ export interface Interview {
   interview_notes?: string | null;
   candidate_notes?: string | null;
   feedback?: string | null;
-  evaluation_score?: number | null;
   interview_status: InterviewStatus;
   cancel_reason?: string | null;
   created_by_user_id?: number;
@@ -63,7 +62,6 @@ export interface InterviewFormData {
 
 export interface EvaluationFormData {
   interview_id: number;
-  evaluation_score: number;
   feedback: string;
   decision?: "HIRED" | "REJECTED" | "NO_ACTION";
 }
