@@ -64,6 +64,23 @@ export async function calculateIdProofScore(token: string): Promise<IdProofScore
 
     const totalScore = gov_id + address + mobile_number + profile_sections;
 
+    // Sync calculated ID proof score to profile_completion_percent in Directus vs_job_seeker_profile
+    const profileObj = profile.job_seeker_profile || profile.vs_job_seeker_profile;
+    const profileData = Array.isArray(profileObj) ? profileObj[0] : profileObj;
+    if (profileData && profileData.profile_id) {
+        const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+        if (NEXT_PUBLIC_API_BASE_URL) {
+            fetch(`${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile/${profileData.profile_id}`, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ profile_completion_percent: totalScore })
+            }).catch(err => console.error("Failed to sync profile completion percent:", err));
+        }
+    }
+
     return {
         score: totalScore,
         breakdown: {

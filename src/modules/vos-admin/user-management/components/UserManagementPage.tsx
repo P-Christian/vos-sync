@@ -1,22 +1,21 @@
 // src/modules/vos-admin/user-management/components/UserManagementPage.tsx
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useUsers } from "../hooks/useUsers";
-import { VsUser } from "../types/user.types";
-import { DataTable } from "../../request-management/components/new-data-table";
-import { UserStatusBadge } from "./UserStatusBadge";
+import { VsUser, UserManagementKPIs } from "../types/user.types";
 import { UserDetailModal } from "./UserDetailModal";
-import { ColumnDef } from "@tanstack/react-table";
-import { Card } from "@/components/ui/card";
+import { UserManagementKpis } from "./UserManagementKpis";
+import { UserManagementFilters } from "./UserManagementFilters";
+import { UserManagementTable } from "./UserManagementTable";
+import { Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye } from "lucide-react";
 
 export function UserManagementPage() {
-  const { users, total, loading, fetchUsers, reviewIdentity } = useUsers();
+  const { users, total, loading, error, fetchUsers, reviewIdentity } = useUsers();
   
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
+  const [verificationFilter, setVerificationFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
@@ -26,8 +25,8 @@ export function UserManagementPage() {
 
   const loadData = useCallback(() => {
     const roleId = roleFilter === "ALL" ? undefined : Number(roleFilter);
-    fetchUsers(roleId, searchQuery, page, limit);
-  }, [fetchUsers, roleFilter, searchQuery, page, limit]);
+    fetchUsers(roleId, searchQuery, 1, -1); // Load all to handle client-side pagination & global KPI filtering
+  }, [fetchUsers, roleFilter, searchQuery]);
 
   useEffect(() => {
     loadData();
@@ -46,140 +45,107 @@ export function UserManagementPage() {
     return success;
   };
 
-  const getRoleLabel = (roleId: number | null) => {
-    switch (roleId) {
-      case 1: return "Freelancer";
-      case 2: return "Client";
-      case 3: return "Admin";
-      case 4: return "School Admin";
-      default: return "Unknown";
-    }
-  };
-
   const getVerificationStatus = (user: VsUser): 'pending' | 'approved' | 'rejected' | 'not_submitted' => {
     const verifs = user.verifications || [];
     if (verifs.length === 0) return 'not_submitted';
-    
-    // According to the new logic where there is max 1 record per type:
     if (verifs.some(v => v.status === 'pending')) return 'pending';
     if (verifs.some(v => v.status === 'rejected')) return 'rejected';
     
-    // Check if all 3 required types are present and approved
     const typesPresent = new Set(verifs.map(v => v.type));
     if (typesPresent.has('gov_id') && typesPresent.has('address') && typesPresent.has('mobile_number') && verifs.every(v => v.status === 'approved')) {
       return 'approved';
     }
     
-    return 'not_submitted'; // Still waiting for other documents
+    return 'not_submitted';
   };
 
-  const columns = useMemo<ColumnDef<VsUser>[]>(() => [
-    {
-      id: "name",
-      header: "Full Name",
-      cell: ({ row }) => {
-        const u = row.original;
-        return `${u.user_fname} ${u.user_lname}`;
-      }
-    },
-    {
-      accessorKey: "user_email",
-      header: "Email Address",
-    },
-    {
-      id: "role",
-      header: "Role",
-      cell: ({ row }) => {
-        const u = row.original;
-        return (
-          <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-            {getRoleLabel(u.role_id)}
-          </span>
-        );
-      }
-    },
-    {
-      id: "verification",
-      header: "Verification",
-      cell: ({ row }) => {
-        const u = row.original;
-        const status = getVerificationStatus(u);
-        return <UserStatusBadge status={status} />;
-      }
-    },
-    {
-      id: "actions",
-      header: () => <div className="text-right">Actions</div>,
-      cell: ({ row }) => {
-        const u = row.original;
-        return (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleViewDetails(u)}
-              className="flex items-center gap-1 text-primary border-primary/20 hover:bg-primary/5"
-            >
-              <Eye className="h-4 w-4" /> View Info
-            </Button>
-          </div>
-        );
-      }
-    }
-  ], []);
+  // Safe client-side exclusion of client accounts (role_id = 2)
+  const activeUsers = useMemo(() => {
+    return users.filter(u => u.role_id !== 2);
+  }, [users]);
 
-  // Map roles to dropdown options
-  const roleDropdownOptions = [
-    { value: "ALL", label: "All Roles" },
-    { value: "1", label: "Freelancer" },
-    { value: "2", label: "Client / Employer" },
-    { value: "3", label: "Admin" },
-    { value: "4", label: "School Admin" },
-  ];
+  // Filter users by verification status client-side globally
+  const filteredUsers = useMemo(() => {
+    if (verificationFilter === "ALL") return activeUsers;
+    return activeUsers.filter(u => getVerificationStatus(u) === verificationFilter);
+  }, [activeUsers, verificationFilter]);
+
+  // Paginated slice for the table view
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (page - 1) * limit;
+    return filteredUsers.slice(startIndex, startIndex + limit);
+  }, [filteredUsers, page, limit]);
+
+  // Derive client-side count metrics globally for the KPI section
+  const kpiData = useMemo<UserManagementKPIs>(() => {
+    const counts = { totalCount: activeUsers.length, pendingCount: 0, approvedCount: 0, rejectedCount: 0 };
+    activeUsers.forEach(u => {
+      const status = getVerificationStatus(u);
+      if (status === 'pending') counts.pendingCount++;
+      else if (status === 'approved') counts.approvedCount++;
+      else if (status === 'rejected') counts.rejectedCount++;
+    });
+    return counts;
+  }, [activeUsers]);
 
   return (
-    <div className="h-full flex-1 overflow-y-auto p-4 sm:p-8 bg-secondary/10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground mt-1">Review user accounts, view complete information, and approve/reject identity documents.</p>
-      </div>
-
-      <Card className="p-6 bg-white dark:bg-zinc-900 border dark:border-zinc-800 shadow-sm rounded-xl">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-          <h2 className="text-xl font-semibold">User Accounts</h2>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Select value={roleFilter} onValueChange={(val) => { setRoleFilter(val); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
-                <SelectValue placeholder="Filter by Role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roleDropdownOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="flex flex-col p-6 md:p-8 max-w-[1600px] mx-auto w-full overflow-y-auto h-full min-h-0">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5">
+        <div>
+          <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wider mb-1">
+            <span>Admin Governance & Users</span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <Users className="h-7 w-7 text-primary" />
+            User Account Management
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Review user accounts, view complete information, and approve/reject identity documents.
+          </p>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={users}
-          onSearch={(val) => { setSearchQuery(val); setPage(1); }}
-          isLoading={loading}
-          manualPagination={true}
-          pageCount={Math.ceil(total / limit)}
-          pagination={{
-            pageIndex: page - 1,
-            pageSize: limit,
-          }}
-          onPaginationChange={(newPagination) => {
-            setPage(newPagination.pageIndex + 1);
-            setLimit(newPagination.pageSize);
-          }}
-        />
-      </Card>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => loadData()} className="gap-2 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            Refresh Queue
+          </Button>
+        </div>
+      </div>
+
+      {/* Error alert banner */}
+      {error && (
+        <div className="p-4 mb-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium">
+          {error}
+        </div>
+      )}
+
+      {/* KPI Stat Cards */}
+      <UserManagementKpis
+        kpis={kpiData}
+        currentFilter={verificationFilter}
+        onFilterSelect={(status) => { setVerificationFilter(status); setPage(1); }}
+      />
+
+      {/* Filter Bar */}
+      <UserManagementFilters
+        roleFilter={roleFilter}
+        onRoleChange={(r) => { setRoleFilter(r); setPage(1); }}
+        searchQuery={searchQuery}
+        onSearchChange={(q) => { setSearchQuery(q); setPage(1); }}
+      />
+
+      {/* Table List */}
+      <UserManagementTable
+        users={paginatedUsers}
+        loading={loading}
+        onSelectUser={handleViewDetails}
+        currentPage={page}
+        pageSize={limit}
+        totalCount={filteredUsers.length}
+        onPageChange={(p) => setPage(p)}
+        onPageSizeChange={(s) => setLimit(s)}
+      />
 
       <UserDetailModal
         user={selectedUser}
@@ -190,3 +156,5 @@ export function UserManagementPage() {
     </div>
   );
 }
+
+export default UserManagementPage;
