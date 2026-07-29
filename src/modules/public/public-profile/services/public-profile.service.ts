@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/modules/public/public-profile/services/public-profile.service.ts
+
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -162,7 +164,6 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
       }
     }
     const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const publicProfile = profiles.find((p: any) => {
       if (!p) return false;
       const vis = p.profile_visibility?.toLowerCase() || "";

@@ -1,5 +1,5 @@
 import React from "react";
-import { User, Globe, Briefcase, Mail, GraduationCap, Award, MapPin, Calendar, DollarSign, ExternalLink, Link2 } from "lucide-react";
+import { User, Globe, Briefcase, Mail, GraduationCap, Award, MapPin, Calendar, ExternalLink, Link2 } from "lucide-react";
 import { PublicFreelancerProfile } from "../services/public-profile.service";
 
 interface Props {

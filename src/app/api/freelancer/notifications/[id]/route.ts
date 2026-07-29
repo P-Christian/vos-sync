@@ -46,7 +46,7 @@ export async function PATCH(
     if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const payload: Record<string, any> = {};
+    const payload: Record<string, unknown> = {};
     if (body.is_read !== undefined) payload.is_read = body.is_read;
     if (body.is_starred !== undefined) payload.is_starred = body.is_starred;
 
