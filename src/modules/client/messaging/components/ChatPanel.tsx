@@ -35,23 +35,34 @@ interface Props {
   onBack?: () => void; // for mobile
 }
 
-function getDateLabel(dateStr: string): string {
-  const [datePart] = dateStr.replace("T", " ").split(" ");
-  const [year, month, day] = datePart.split("-").map(Number);
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
+  const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second);
+}
 
-  const messageDate = new Date(year, month - 1, day);
+function getDateLabel(dateStr: string): string {
+  const messageDate = parseDate(dateStr);
+  if (isNaN(messageDate.getTime())) return "";
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDate = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate()
+  );
 
-  const diffDays = Math.floor(
-    (today.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
+  const diffDays = Math.round(
+    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
   );
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
 
-  return messageDate.toLocaleDateString("en-PH", {
+  return messageDate.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -61,11 +72,15 @@ function getDateLabel(dateStr: string): string {
         : undefined,
   });
 }
-function isSameDayStr(a: string, b: string): boolean {
-  const [dateA] = a.replace("T", " ").split(" ");
-  const [dateB] = b.replace("T", " ").split(" ");
 
-  return dateA === dateB;
+function isSameDayStr(a: string, b: string): boolean {
+  const dateA = parseDate(a);
+  const dateB = parseDate(b);
+  return (
+    dateA.getFullYear() === dateB.getFullYear() &&
+    dateA.getMonth() === dateB.getMonth() &&
+    dateA.getDate() === dateB.getDate()
+  );
 }
 function getInitials(name: string): string {
   return name
@@ -128,9 +143,23 @@ export default function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
   }, []);
 
+  const prevMessagesLengthRef = useRef(messages.length);
+  const prevConversationIdRef = useRef(conversation.conversation_id);
+  const wasLoadingOlderRef = useRef(loadingOlder);
+
   // Auto scroll to bottom whenever conversation changes, loading completes, or new messages are appended
   useEffect(() => {
-    if (!loading && !loadingOlder) {
+    const isNewConversation = prevConversationIdRef.current !== conversation.conversation_id;
+    const isNewMessageAdded = messages.length > prevMessagesLengthRef.current;
+    const justFinishedLoadingOlder = wasLoadingOlderRef.current && !loadingOlder;
+
+    prevConversationIdRef.current = conversation.conversation_id;
+    prevMessagesLengthRef.current = messages.length;
+    wasLoadingOlderRef.current = loadingOlder;
+
+    if (loading) return;
+
+    if (isNewConversation) {
       scrollToBottom(false);
       const t1 = setTimeout(() => scrollToBottom(false), 50);
       const t2 = setTimeout(() => scrollToBottom(false), 200);
@@ -139,7 +168,17 @@ export default function ChatPanel({
         clearTimeout(t2);
       };
     }
-  }, [conversation.conversation_id, loading, scrollToBottom, loadingOlder]);
+
+    if (isNewMessageAdded && !justFinishedLoadingOlder) {
+      scrollToBottom(true);
+      const t1 = setTimeout(() => scrollToBottom(true), 50);
+      const t2 = setTimeout(() => scrollToBottom(true), 150);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [conversation.conversation_id, messages.length, loading, loadingOlder, scrollToBottom]);
 
   return (
     <motion.div

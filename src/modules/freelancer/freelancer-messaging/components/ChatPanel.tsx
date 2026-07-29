@@ -35,8 +35,16 @@ interface Props {
   onBack?: () => void;
 }
 
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
+  const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second);
+}
+
 function getDateLabel(dateStr: string): string {
-  const date = new Date(dateStr);
+  const date = parseDate(dateStr);
   if (isNaN(date.getTime())) return "";
 
   const now = new Date();
@@ -49,7 +57,7 @@ function getDateLabel(dateStr: string): string {
 
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
-  return date.toLocaleDateString("en-PH", {
+  return date.toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -57,8 +65,14 @@ function getDateLabel(dateStr: string): string {
   });
 }
 
-function isSameDayStr(a: string, b: string) {
-  return new Date(a).toDateString() === new Date(b).toDateString();
+function isSameDayStr(a: string, b: string): boolean {
+  const dateA = parseDate(a);
+  const dateB = parseDate(b);
+  return (
+    dateA.getFullYear() === dateB.getFullYear() &&
+    dateA.getMonth() === dateB.getMonth() &&
+    dateA.getDate() === dateB.getDate()
+  );
 }
 
 function getInitials(name: string): string {
@@ -122,8 +136,22 @@ export default function ChatPanel({
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
   }, []);
 
+  const prevMessagesLengthRef = useRef(messages.length);
+  const prevConversationIdRef = useRef(conversation.conversation_id);
+  const wasLoadingOlderRef = useRef(loadingOlder);
+
   useEffect(() => {
-    if (!loading && !loadingOlder) {
+    const isNewConversation = prevConversationIdRef.current !== conversation.conversation_id;
+    const isNewMessageAdded = messages.length > prevMessagesLengthRef.current;
+    const justFinishedLoadingOlder = wasLoadingOlderRef.current && !loadingOlder;
+
+    prevConversationIdRef.current = conversation.conversation_id;
+    prevMessagesLengthRef.current = messages.length;
+    wasLoadingOlderRef.current = loadingOlder;
+
+    if (loading) return;
+
+    if (isNewConversation) {
       scrollToBottom(false);
       const t1 = setTimeout(() => scrollToBottom(false), 50);
       const t2 = setTimeout(() => scrollToBottom(false), 200);
@@ -132,7 +160,17 @@ export default function ChatPanel({
         clearTimeout(t2);
       };
     }
-  }, [conversation.conversation_id, loading, scrollToBottom, loadingOlder]);
+
+    if (isNewMessageAdded && !justFinishedLoadingOlder) {
+      scrollToBottom(true);
+      const t1 = setTimeout(() => scrollToBottom(true), 50);
+      const t2 = setTimeout(() => scrollToBottom(true), 150);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [conversation.conversation_id, messages.length, loading, loadingOlder, scrollToBottom]);
 
   return (
     <motion.div

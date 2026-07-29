@@ -30,14 +30,11 @@ interface Props {
 }
 
 function formatTime(dateStr: string): string {
+  if (!dateStr) return "";
   const [, timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
-
-  let [hour, minute] = timePart.split(":").map(Number);
-
-  const suffix = hour >= 12 ? "PM" : "AM";
-  hour %= 12;
-  if (hour === 0) hour = 12;
-
+  const [rawHour = 0, minute = 0] = timePart.split(":").map(Number);
+  const suffix = rawHour >= 12 ? "PM" : "AM";
+  const hour = rawHour % 12 || 12;
   return `${hour}:${minute.toString().padStart(2, "0")} ${suffix}`;
 }
 

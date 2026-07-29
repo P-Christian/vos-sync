@@ -31,14 +31,10 @@ interface Props {
 
 function formatTime(dateStr: string): string {
   if (!dateStr) return "";
-
   const [, time = "00:00:00"] = dateStr.replace("T", " ").split(" ");
-
-  let [hour = 0, minute = 0] = time.split(":").map(Number);
-
-  const period = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12;
-
+  const [rawHour = 0, minute = 0] = time.split(":").map(Number);
+  const period = rawHour >= 12 ? "PM" : "AM";
+  const hour = rawHour % 12 || 12;
   return `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
 }
 

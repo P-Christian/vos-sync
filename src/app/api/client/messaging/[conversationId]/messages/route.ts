@@ -271,12 +271,13 @@ export async function GET(
     }
 
     // Enrich messages with attachments, system_message, and system_card_data
+    // Reverse array so messages returned are in chronological order (oldest -> newest)
     const enriched = messages.map((msg) => ({
       ...msg,
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
       system_message: systemMsgMap[msg.message_id as number] ?? null,
       system_card_data: cardDataMap[msg.message_id as number] ?? null,
-    }));
+    })).reverse();
 
     return NextResponse.json({ messages: enriched });
   } catch (err: unknown) {
@@ -364,7 +365,10 @@ export async function POST(
       );
     }
 
-    const nowISO = new Date().toISOString().slice(0, 19).replace("T", " ");
+    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
 
     // Insert message
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
@@ -375,6 +379,7 @@ export async function POST(
         sender_id: userId,
         message_type: body.message_type ?? "TEXT",
         message_content: body.message_content ?? null,
+        created_at: nowPH,
         is_edited: false,
         is_deleted: false,
       }),
@@ -393,6 +398,9 @@ export async function POST(
     }
 
     const newMessage = msgJson.data;
+    if (newMessage && !newMessage.created_at) {
+      newMessage.created_at = nowPH;
+    }
 
     // Insert attachments if any
     let attachments: unknown[] = [];
@@ -426,7 +434,7 @@ export async function POST(
     fetch(`${DIRECTUS_BASE}/items/vs_conversation/${conversationId}`, {
       method: "PATCH",
       headers: getHeaders(),
-      body: JSON.stringify({ last_message_at: nowISO }),
+      body: JSON.stringify({ last_message_at: nowPH }),
     }).catch((e) => console.error("Update last_message_at error:", e));
 
     return NextResponse.json(

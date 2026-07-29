@@ -10,6 +10,18 @@ import {
   uploadFile,
 } from "../providers/MessagingProvider";
 
+function parseLocalDateMs(dateStr: string): number {
+  if (!dateStr) return 0;
+  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
+  const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, second).getTime();
+}
+
+function sortChronologically(list: Message[]): Message[] {
+  return [...list].sort((a, b) => parseLocalDateMs(a.created_at) - parseLocalDateMs(b.created_at));
+}
+
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,9 +39,8 @@ export function useMessages() {
     setHasMore(true);
     try {
       const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
-      setMessages(data);
+      setMessages(sortChronologically(data));
       setHasMore(data.length >= 50);
-      console.log(data)
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to load messages."
@@ -51,11 +62,12 @@ export function useMessages() {
       if (olderData.length === 0) {
         setHasMore(false);
       } else {
-        setMessages((prev) =>
-          [...olderData, ...prev].sort((a, b) =>
-            a.created_at.localeCompare(b.created_at)
-          )
-        );
+        setMessages((prev) => {
+          const combined = [...olderData, ...prev];
+          const map = new Map<number, Message>();
+          for (const m of combined) map.set(m.message_id, m);
+          return sortChronologically(Array.from(map.values()));
+        });
         setHasMore(olderData.length >= 50);
       }
     } catch (err: unknown) {
@@ -74,7 +86,7 @@ export function useMessages() {
       setError("");
       try {
         const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
-        setMessages(data);
+        setMessages(sortChronologically(data));
         setHasMore(data.length >= 50);
       } catch (err: unknown) {
         setError(
@@ -96,7 +108,7 @@ export function useMessages() {
       setError("");
       try {
         const newMsg = await sendMessage(conversationId, payload);
-        setMessages((prev) => [...prev, newMsg]);
+        setMessages((prev) => sortChronologically([...prev, newMsg]));
         return true;
       } catch (err: unknown) {
         setError(

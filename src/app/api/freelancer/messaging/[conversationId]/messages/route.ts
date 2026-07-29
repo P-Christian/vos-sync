@@ -90,7 +90,7 @@ export async function GET(
     const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
     const msgsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&filter[is_deleted][_eq]=false&sort[]=created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted`,
+      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&filter[is_deleted][_eq]=false&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -271,7 +271,7 @@ export async function GET(
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
       system_message: systemMsgMap[msg.message_id as number] ?? null,
       system_card_data: cardDataMap[msg.message_id as number] ?? null,
-    }));
+    })).reverse();
 
     return NextResponse.json({ messages: enriched });
   } catch (err: unknown) {
@@ -358,7 +358,10 @@ export async function POST(
       );
     }
 
-    const nowISO = new Date().toISOString().slice(0, 19).replace("T", " ");
+    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
 
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
       method: "POST",
@@ -368,6 +371,7 @@ export async function POST(
         sender_id: userId,
         message_type: body.message_type ?? "TEXT",
         message_content: body.message_content ?? null,
+        created_at: nowPH,
         is_edited: false,
         is_deleted: false,
       }),
@@ -383,6 +387,9 @@ export async function POST(
     }
 
     const newMessage = msgJson.data;
+    if (newMessage && !newMessage.created_at) {
+      newMessage.created_at = nowPH;
+    }
 
     let attachments: unknown[] = [];
     if (body.attachments?.length && newMessage?.message_id) {
@@ -414,7 +421,7 @@ export async function POST(
     fetch(`${DIRECTUS_BASE}/items/vs_conversation/${conversationId}`, {
       method: "PATCH",
       headers: getHeaders(),
-      body: JSON.stringify({ last_message_at: nowISO }),
+      body: JSON.stringify({ last_message_at: nowPH }),
     }).catch((e) => console.error("Update last_message_at error:", e));
 
     return NextResponse.json(
