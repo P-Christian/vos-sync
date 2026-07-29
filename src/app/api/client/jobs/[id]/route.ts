@@ -2,12 +2,27 @@
 // src/app/api/client/jobs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "../service.directus";
+import { checkRestriction } from "@/lib/status-validator";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+function getUserIdFromToken(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
+    return id != null ? Number(id) : null;
+  } catch {
+    return null;
+  }
+}
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -94,6 +109,22 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
+    const token =
+      req.headers.get("authorization")?.replace("Bearer ", "") ||
+      req.cookies.get("vos_access_token")?.value;
+    if (token) {
+      const userId = getUserIdFromToken(token);
+      if (userId) {
+        const isRestricted = await checkRestriction(userId, "PUBLISH_JOBS");
+        if (isRestricted) {
+          return NextResponse.json(
+            { error: "Your job posting privileges are temporarily suspended." },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const body = await req.json().catch(() => null);
     if (!body)
       return NextResponse.json({ error: "Invalid request body." }, { status: 400 });

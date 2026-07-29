@@ -53,11 +53,41 @@ export function useNotifications() {
       const res = await fetch(`/api/freelancer/notifications/${notificationId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_read: true }),
       });
       const data = await res.json();
       return res.ok && data.success;
     } catch (err) {
       console.error("Error marking notification as read", err);
+      return false;
+    }
+  }, []);
+
+  const toggleStar = useCallback(async (notificationId: number, currentStarred: boolean) => {
+    const nextStarred = !currentStarred;
+    // 1. Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.notification_id === notificationId ? { ...n, is_starred: nextStarred } : n
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/freelancer/notifications/${notificationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_starred: nextStarred }),
+      });
+      const data = await res.json();
+      return res.ok && data.success;
+    } catch (err) {
+      console.error("Error toggling notification starred state", err);
+      // rollback if it fails
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.notification_id === notificationId ? { ...n, is_starred: currentStarred } : n
+        )
+      );
       return false;
     }
   }, []);
@@ -157,6 +187,7 @@ export function useNotifications() {
     error,
     fetchNotifications,
     markAsRead,
+    toggleStar,
 
     // New preferences hooks/state
     preferences,

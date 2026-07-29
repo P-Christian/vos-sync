@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 
 // ==========================================
 // MOCK DATA
@@ -74,33 +75,43 @@ export default function AboutUs() {
           <div className="w-[500px] h-[500px] rounded-full bg-blue-50 blur-3xl mix-blend-multiply" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
-            <HeartHandshake className="w-3.5 h-3.5 mr-2 text-zinc-500" />
-            Our Story
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 max-w-4xl mx-auto leading-tight">
-            We believe everyone deserves{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900">
-              meaningful work.
-            </span>
-          </h1>
-          <p className="text-xl text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-            VosSync was built to bridge the gap between ambitious professionals and the companies building tomorrow. We&apos;re not just a job board — we&apos;re a career partner.
-          </p>
+          <StaggerContainer>
+            <StaggerChild>
+              <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
+                <HeartHandshake className="w-3.5 h-3.5 mr-2 text-zinc-500" />
+                Our Story
+              </Badge>
+            </StaggerChild>
+            <StaggerChild>
+              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 max-w-4xl mx-auto leading-tight">
+                We believe everyone deserves{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900">
+                  meaningful work.
+                </span>
+              </h1>
+            </StaggerChild>
+            <StaggerChild>
+              <p className="text-xl text-zinc-500 max-w-2xl mx-auto leading-relaxed">
+                VosSync was built to bridge the gap between ambitious professionals and the companies building tomorrow. We&apos;re not just a job board — we&apos;re a career partner.
+              </p>
+            </StaggerChild>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* STATS BAR */}
       <section className="border-y border-zinc-100 bg-zinc-50/60 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-4xl font-extrabold text-zinc-900 tracking-tight">{stat.value}</p>
-                <p className="text-sm text-zinc-500 mt-1 font-medium">{stat.label}</p>
-              </div>
+              <StaggerChild key={stat.label}>
+                <div className="text-center">
+                  <p className="text-4xl font-extrabold text-zinc-900 tracking-tight">{stat.value}</p>
+                  <p className="text-sm text-zinc-500 mt-1 font-medium">{stat.label}</p>
+                </div>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -108,7 +119,7 @@ export default function AboutUs() {
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16 items-center">
-            <div className="lg:w-1/2">
+            <SlideUp className="lg:w-1/2">
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Our Mission</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 mb-6">
                 To make job searching{" "}
@@ -131,19 +142,23 @@ export default function AboutUs() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SlideUp>
 
-            <div className="lg:w-1/2 grid grid-cols-2 gap-4">
+            <StaggerContainer className="lg:w-1/2 grid grid-cols-2 gap-4">
               {TEAM_HIGHLIGHTS.map((item) => (
-                <div key={item.title} className="border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md transition-all duration-200 hover:border-zinc-300">
-                  <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center mb-4">
-                    <item.icon className="w-5 h-5 text-zinc-700" />
-                  </div>
-                  <h3 className="text-sm font-bold text-zinc-900 mb-1">{item.title}</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed">{item.desc}</p>
-                </div>
+                <StaggerChild key={item.title}>
+                  <HoverScale className="h-full">
+                    <div className="border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md transition-all duration-200 hover:border-zinc-300 h-full">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center mb-4">
+                        <item.icon className="w-5 h-5 text-zinc-700" />
+                      </div>
+                      <h3 className="text-sm font-bold text-zinc-900 mb-1">{item.title}</h3>
+                      <p className="text-xs text-zinc-500 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </HoverScale>
+                </StaggerChild>
               ))}
-            </div>
+            </StaggerContainer>
           </div>
         </div>
       </section>
@@ -159,17 +174,21 @@ export default function AboutUs() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {VALUES.map((val) => (
-              <div key={val.title} className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md hover:border-zinc-300 transition-all duration-200">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${val.color}`}>
-                  <val.icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-zinc-900 mb-2">{val.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{val.desc}</p>
-              </div>
+              <StaggerChild key={val.title}>
+                <HoverScale className="h-full">
+                  <div className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md hover:border-zinc-300 transition-all duration-200 h-full">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${val.color}`}>
+                      <val.icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-base font-bold text-zinc-900 mb-2">{val.title}</h3>
+                    <p className="text-sm text-zinc-500 leading-relaxed">{val.desc}</p>
+                  </div>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -177,33 +196,35 @@ export default function AboutUs() {
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16">
-            <div className="lg:w-1/3">
+            <SlideUp className="lg:w-1/3">
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Timeline</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 mb-4">How we got here</h2>
               <p className="text-zinc-500 leading-relaxed">
                 VosSync didn&apos;t start as a billion-dollar idea. It started with a simple observation: job searching was painful, and it didn&apos;t have to be.
               </p>
-            </div>
+            </SlideUp>
 
             <div className="lg:w-2/3">
-              <div className="space-y-0">
+              <StaggerContainer className="space-y-0">
                 {MILESTONES.map((m, i) => (
-                  <div key={m.year} className="flex gap-6 relative">
-                    <div className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold shrink-0 z-10">
-                        {m.year.slice(2)}
+                  <StaggerChild key={m.year}>
+                    <div className="flex gap-6 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold shrink-0 z-10">
+                          {m.year.slice(2)}
+                        </div>
+                        {i < MILESTONES.length - 1 && (
+                          <div className="w-px flex-1 bg-zinc-200 my-1" />
+                        )}
                       </div>
-                      {i < MILESTONES.length - 1 && (
-                        <div className="w-px flex-1 bg-zinc-200 my-1" />
-                      )}
+                      <div className={`pb-8 ${i < MILESTONES.length - 1 ? "" : ""}`}>
+                        <p className="text-xs font-semibold text-zinc-400 mb-1">{m.year}</p>
+                        <p className="text-zinc-700 font-medium">{m.event}</p>
+                      </div>
                     </div>
-                    <div className={`pb-8 ${i < MILESTONES.length - 1 ? "" : ""}`}>
-                      <p className="text-xs font-semibold text-zinc-400 mb-1">{m.year}</p>
-                      <p className="text-zinc-700 font-medium">{m.event}</p>
-                    </div>
-                  </div>
+                  </StaggerChild>
                 ))}
-              </div>
+              </StaggerContainer>
             </div>
           </div>
         </div>
@@ -211,7 +232,7 @@ export default function AboutUs() {
 
       {/* CTA */}
       <section className="py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -ml-20 -mb-20" />
@@ -230,7 +251,7 @@ export default function AboutUs() {
               </div>
             </div>
           </div>
-        </div>
+        </SlideUp>
       </section>
     </div>
   );

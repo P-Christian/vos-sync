@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { SchoolWithStats, VsSchoolCourse, VsSchool } from '../types/school-admin.types';
+import { toast } from 'sonner';
 
 export function useSchoolAdmin() {
   const [school, setSchool] = useState<SchoolWithStats | null>(null);
@@ -54,6 +55,7 @@ export function useSchoolAdmin() {
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message || 'Failed to update school.');
+      toast.error(error.message || 'Failed to update school.');
       return false;
     }
   };
@@ -72,6 +74,7 @@ export function useSchoolAdmin() {
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message || 'Failed to create course.');
+      toast.error(error.message || 'Failed to create course.');
       return false;
     }
   };
@@ -92,6 +95,7 @@ export function useSchoolAdmin() {
     } catch (err: unknown) {
       const error = err as Error;
       setError(error.message || 'Failed to update course status.');
+      toast.error(error.message || 'Failed to update course status.');
       return false;
     }
   };

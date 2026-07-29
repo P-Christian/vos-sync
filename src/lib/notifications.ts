@@ -59,7 +59,23 @@ export async function createNotification(params: CreateNotificationParams) {
       return false;
     }
 
-    // 2. Insert into vs_freelancer_notification
+    // 2. Determine target table based on recipient user's role
+    let role = "FREELANCER";
+    try {
+      const userRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${params.recipient_user_id}?fields=role`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (userRes.ok) {
+        const userJson = await userRes.json();
+        role = userJson?.data?.role || "FREELANCER";
+      }
+    } catch (err) {
+      console.error("[notifications] Failed to fetch recipient role:", err);
+    }
+
+    const targetTable = role === "CLIENT" ? "vs_employer_notification" : "vs_freelancer_notification";
+
     const notifPayload = {
       user_id: params.recipient_user_id,
       event_id: eventId,
@@ -71,14 +87,14 @@ export async function createNotification(params: CreateNotificationParams) {
       created_at: nowPH,
     };
 
-    const notifRes = await fetch(`${DIRECTUS_BASE}/items/vs_freelancer_notification`, {
+    const notifRes = await fetch(`${DIRECTUS_BASE}/items/${targetTable}`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(notifPayload),
     });
 
     if (!notifRes.ok) {
-      console.error("Failed to create vs_freelancer_notification", await notifRes.text());
+      console.error(`Failed to create ${targetTable}`, await notifRes.text());
       return false;
     }
 

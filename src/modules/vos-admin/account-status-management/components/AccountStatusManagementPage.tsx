@@ -107,7 +107,7 @@ export function AccountStatusManagementPage() {
       header: "Active Restrictions",
       cell: ({ row }) => {
         const u = row.original;
-        const count = u.restrictions ? u.restrictions.length : 0;
+        const count = (u.status !== "ACTIVE" && u.restrictions) ? u.restrictions.length : 0;
         if (count === 0) return <span className="text-zinc-400 text-xs">None</span>;
         return (
           <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">

@@ -55,6 +55,29 @@ export function DashboardSidebar({
     ...props
 }: DashboardSidebarProps) {
     const pathname = usePathname();
+    const [unreadCount, setUnreadCount] = React.useState(0);
+
+    React.useEffect(() => {
+        const hasMessagesItem = config.navItems.some((item) => item.label === "Messages");
+        if (!hasMessagesItem) return;
+
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await fetch("/api/shared/messaging/unread-count");
+                if (res.ok) {
+                    const data = await res.json();
+                    setUnreadCount(data.unreadCount || 0);
+                }
+            } catch (err) {
+                console.error("Failed to fetch unread message count:", err);
+            }
+        };
+
+        fetchUnreadCount();
+
+        const interval = setInterval(fetchUnreadCount, 30000);
+        return () => clearInterval(interval);
+    }, [config.navItems]);
 
     const handleFooterClick = async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         if (href === "/logout") {
@@ -119,6 +142,7 @@ export function DashboardSidebar({
                     <SidebarMenu className="px-2 space-y-1">
                         {config.navItems.map((item, index) => {
                             const isActive = isRouteActiveExact(pathname, item.href);
+                            const isMessages = item.label === "Messages";
                             return (
                                 <SidebarMenuItem key={index}>
                                     <SidebarMenuButton 
@@ -129,9 +153,16 @@ export function DashboardSidebar({
                                             isActive && "bg-sidebar-primary/10 text-sidebar-primary font-medium hover:bg-sidebar-primary/15 hover:text-sidebar-primary"
                                         )}
                                     >
-                                        <Link href={item.href}>
-                                            <item.icon className="size-5 shrink-0" />
-                                            <span>{item.label}</span>
+                                        <Link href={item.href} className="flex w-full items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <item.icon className="size-5 shrink-0" />
+                                                <span>{item.label}</span>
+                                            </div>
+                                            {isMessages && unreadCount > 0 && (
+                                                <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white shadow-sm mr-1">
+                                                    {unreadCount}
+                                                </span>
+                                            )}
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

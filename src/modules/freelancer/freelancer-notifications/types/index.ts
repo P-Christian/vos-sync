@@ -18,6 +18,7 @@ export interface FreelancerNotification {
   message: string;
   action_url?: string | null;
   is_read: boolean | number;
+  is_starred?: boolean | number;
   created_at: string;
 }
 

@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     // Use REST API to bypass strict GraphQL relational alias constraints
     const url = new URL(`${DIRECTUS_BASE}/items/vs_user`);
     url.searchParams.append("limit", "10");
-    url.searchParams.append("filter[_and][0][role_id][_in]", "1,2");
+    url.searchParams.append("filter[_and][0][role_id][_in]", "1,2,4");
     url.searchParams.append("filter[_and][1][_or][0][user_fname][_icontains]", query);
     url.searchParams.append("filter[_and][1][_or][1][user_lname][_icontains]", query);
     url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,job_seeker_profile.*,vs_job_seeker_profile.*");
@@ -81,8 +81,8 @@ export async function GET(req: NextRequest) {
     // Filter based on role and visibility
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const filteredUsers = users.filter((u: any) => {
-      // Must be freelancer or client
-      if (u.role_id !== 1 && u.role_id !== 2) return false;
+      // Must be freelancer, client, or school admin
+      if (u.role_id !== 1 && u.role_id !== 2 && u.role_id !== 4) return false;
       
       // If Freelancer
       if (u.role_id === 1) {
@@ -99,8 +99,8 @@ export async function GET(req: NextRequest) {
         return false;
       }
       
-      // If Client
-      return u.role_id === 2;
+      // If Client or School Admin
+      return u.role_id === 2 || u.role_id === 4;
     });
 
     const publicUsers = filteredUsers.map((u: any) => {
@@ -112,6 +112,8 @@ export async function GET(req: NextRequest) {
         headline = profiles[0]?.professional_headline || "Freelancer";
       } else if (u.role_id === 2) {
         headline = "Client";
+      } else if (u.role_id === 4) {
+        headline = "School Admin";
       }
 
       return {
