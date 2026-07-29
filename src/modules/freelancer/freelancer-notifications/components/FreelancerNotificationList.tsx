@@ -11,12 +11,14 @@ interface NotificationListProps {
   notifications: FreelancerNotification[];
   loading: boolean;
   onMarkRead: (id: number) => void;
+  onToggleStar: (id: number, currentStarred: boolean) => void;
 }
 
 export default function FreelancerNotificationList({
   notifications,
   loading,
   onMarkRead,
+  onToggleStar,
 }: NotificationListProps) {
   if (loading) {
     return (
@@ -54,6 +56,7 @@ export default function FreelancerNotificationList({
           key={notification.notification_id}
           notification={notification}
           onMarkRead={onMarkRead}
+          onToggleStar={onToggleStar}
         />
       ))}
     </div>

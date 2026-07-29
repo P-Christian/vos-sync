@@ -79,10 +79,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch viewer user's name
+    // Fetch viewer user's name & role
     let viewerName = "Someone";
+    let viewerRole = "CLIENT";
     try {
-      const viewerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${viewerUserId}?fields=user_fname,user_lname`, {
+      const viewerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${viewerUserId}?fields=user_fname,user_lname,role`, {
         headers: getHeaders(),
         cache: "no-store",
       });
@@ -90,6 +91,7 @@ export async function POST(req: NextRequest) {
         const viewerJson = await viewerRes.json();
         const fname = viewerJson.data?.user_fname || "";
         const lname = viewerJson.data?.user_lname || "";
+        viewerRole = viewerJson.data?.role || "CLIENT";
         if (fname || lname) {
           viewerName = `${fname} ${lname}`.trim();
         }
@@ -97,6 +99,10 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error("Failed to fetch viewer details:", e);
     }
+
+    const actionUrl = viewerRole === "FREELANCER"
+      ? `/vos-sync/public/freelancer/${viewerUserId}`
+      : `/vos-sync/public/client/${viewerUserId}`;
 
     // Trigger notification
     await createNotification({
@@ -107,7 +113,7 @@ export async function POST(req: NextRequest) {
       category: "Profile Activity",
       title: "New Profile View",
       message: `${viewerName} recently viewed your profile.`,
-      action_url: "/vos-sync/freelancer/profile",
+      action_url: actionUrl,
     });
 
     return NextResponse.json({

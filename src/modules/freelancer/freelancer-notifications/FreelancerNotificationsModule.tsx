@@ -22,6 +22,7 @@ type Tab = "feed" | "preferences";
 const FILTER_OPTIONS = [
   { label: "All", value: "ALL" },
   { label: "Unread", value: "UNREAD" },
+  { label: "Starred", value: "STARRED" },
 ] as const;
 
 type FilterValue = (typeof FILTER_OPTIONS)[number]["value"];
@@ -33,6 +34,7 @@ export default function FreelancerNotificationsModule() {
     isLoading,
     error,
     markAsRead,
+    toggleStar,
     markAllAsRead,
 
     // Preferences & Quiet Hours State
@@ -62,6 +64,8 @@ export default function FreelancerNotificationsModule() {
   const filteredNotifications =
     filter === "UNREAD"
       ? notifications.filter((n) => !n.is_read)
+      : filter === "STARRED"
+      ? notifications.filter((n) => n.is_starred)
       : notifications;
 
   const displayError = error || prefsError || localError;
@@ -189,6 +193,7 @@ export default function FreelancerNotificationsModule() {
                 notifications={filteredNotifications}
                 loading={isLoading}
                 onMarkRead={markAsRead}
+                onToggleStar={toggleStar}
               />
             </>
           )}

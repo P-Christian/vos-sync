@@ -34,7 +34,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
     const isVosAdminRoute = pathname?.startsWith("/vos-sync/vos-admin");
 
     return (
-        <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
+        <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b shadow-sm bg-background sm:h-16 px-4">
             {/* Left: sidebar toggle + searchbar */}
             <div className="flex h-full items-center gap-4 shrink-0">
                 <SidebarTrigger className="-ml-1 shrink-0" />

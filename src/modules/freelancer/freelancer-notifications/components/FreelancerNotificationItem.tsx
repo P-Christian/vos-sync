@@ -12,6 +12,7 @@ import {
   User,
   Zap,
   ExternalLink,
+  Star,
 } from "lucide-react";
 import { FreelancerNotification } from "../types";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 interface NotificationItemProps {
   notification: FreelancerNotification;
   onMarkRead: (id: number) => void;
+  onToggleStar: (id: number, currentStarred: boolean) => void;
 }
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -73,7 +75,9 @@ function formatRelativeTime(dateStr: string): string {
 export default function FreelancerNotificationItem({
   notification,
   onMarkRead,
+  onToggleStar,
 }: NotificationItemProps) {
+  const isStarred = Boolean(notification.is_starred);
   const isRead = Boolean(notification.is_read);
 
   const iconKey = CATEGORY_ICONS[notification.category] ?? "Bell";
@@ -129,9 +133,26 @@ export default function FreelancerNotificationItem({
           >
             {notification.title}
           </p>
-          <span className="flex-shrink-0 text-[11px] text-zinc-400 mt-0.5 whitespace-nowrap">
-            {formatRelativeTime(notification.created_at)}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[11px] text-zinc-400 whitespace-nowrap">
+              {formatRelativeTime(notification.created_at)}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStar(notification.notification_id, isStarred);
+              }}
+              className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-amber-500 transition-colors"
+              title={isStarred ? "Remove star" : "Star notification"}
+            >
+              <Star
+                className={cn(
+                  "h-3.5 w-3.5",
+                  isStarred ? "fill-amber-400 text-amber-400" : "text-zinc-400 hover:text-amber-400"
+                )}
+              />
+            </button>
+          </div>
         </div>
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed line-clamp-2">
@@ -140,7 +161,7 @@ export default function FreelancerNotificationItem({
 
         {notification.action_url && (
           <span className="inline-flex items-center gap-1 mt-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 group-hover:underline">
-            View details
+            {notification.category === "Profile Activity" ? "View company profile" : "View details"}
             <ExternalLink className="h-2.5 w-2.5" />
           </span>
         )}

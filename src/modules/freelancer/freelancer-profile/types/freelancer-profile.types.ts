@@ -120,6 +120,7 @@ export interface FreelancerProfile {
     nickname: string | null;
     user_contact: string;
     user_position: string | null;
+    role_id?: number | null;
     user_province: string | null;
     user_city: string | null;
     user_brgy: string | null;

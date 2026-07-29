@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch all active messages in these conversations not sent by this user
-    const msgUrl = `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&filter[sender_id][_neq]=${userId}&fields=message_id&limit=1000`;
+    const msgUrl = `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&filter[sender_id][_neq]=${userId}&fields=message_id,conversation_id&limit=1000`;
     const msgRes = await fetch(msgUrl, { headers: getHeaders(), cache: "no-store" });
     if (!msgRes.ok) return NextResponse.json({ unreadCount: 0 });
 
@@ -74,19 +74,24 @@ export async function GET(req: NextRequest) {
     // Fetch read confirmations for these messages by this user
     const readUrl = `${DIRECTUS_BASE}/items/vs_message_read?filter[message_id][_in]=${messageIds.join(",")}&filter[user_id][_eq]=${userId}&fields=message_id&limit=1000`;
     const readRes = await fetch(readUrl, { headers: getHeaders(), cache: "no-store" });
-    if (!readRes.ok) return NextResponse.json({ unreadCount: messages.length });
+    if (!readRes.ok) {
+      // If read confirmation query fails, assume all active conversations with messages are unread
+      const distinctActiveConvs = new Set(messages.map((m: any) => m.conversation_id));
+      return NextResponse.json({ unreadCount: distinctActiveConvs.size });
+    }
 
     const readJson = await readRes.json();
     const readMessages = readJson.data || [];
     const readMessageIds = new Set(readMessages.map((r: any) => r.message_id));
 
-    // Unread count is total messages minus read messages
-    let unreadCount = 0;
-    for (const mid of messageIds) {
-      if (!readMessageIds.has(mid)) {
-        unreadCount++;
+    // Count how many distinct conversations have at least one unread message
+    const unreadConversationIds = new Set<number>();
+    for (const msg of messages) {
+      if (!readMessageIds.has(msg.message_id)) {
+        unreadConversationIds.add(Number(msg.conversation_id));
       }
     }
+    const unreadCount = unreadConversationIds.size;
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
     return NextResponse.json({ unreadCount });

@@ -35,7 +35,12 @@ export default function ConversationList({
   onRefresh,
   onToggleArchived,
 }: Props) {
+  const [filterTab, setFilterTab] = React.useState<"ALL" | "UNREAD">("ALL");
+
+  const totalUnread = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
+
   const filtered = conversations.filter((c) => {
+    if (filterTab === "UNREAD" && (c.unread_count ?? 0) === 0) return false;
     const q = searchQuery.toLowerCase();
     if (!q) return true;
     return (
@@ -44,11 +49,6 @@ export default function ConversationList({
       c.last_message_preview?.toLowerCase().includes(q)
     );
   });
-
-  const totalUnread = conversations.reduce(
-    (sum, c) => sum + (c.unread_count ?? 0),
-    0
-  );
 
   return (
     <div className="flex flex-col h-full border-r border-zinc-200 dark:border-zinc-800">
@@ -111,6 +111,40 @@ export default function ConversationList({
             className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
           />
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-zinc-100 dark:border-zinc-800 px-4 py-2 gap-2 bg-zinc-50/50 dark:bg-zinc-900/10 shrink-0">
+        <button
+          onClick={() => setFilterTab("ALL")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+            filterTab === "ALL"
+              ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
+              : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          )}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setFilterTab("UNREAD")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5",
+            filterTab === "UNREAD"
+              ? "bg-rose-500 text-white"
+              : "text-zinc-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 dark:hover:text-rose-400"
+          )}
+        >
+          Unread
+          {totalUnread > 0 && (
+            <span className={cn(
+              "h-4 min-w-4 px-1 flex items-center justify-center rounded-full text-[9px] font-bold",
+              filterTab === "UNREAD" ? "bg-white text-rose-600" : "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
+            )}>
+              {totalUnread}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* List */}
