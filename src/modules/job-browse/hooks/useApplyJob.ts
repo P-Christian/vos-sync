@@ -135,7 +135,7 @@ export function useApplyJob() {
     };
   }, []);
 
-  const submitApplication = useCallback(async (): Promise<boolean> => {
+  const submitApplication = useCallback(async (isDraft = false): Promise<boolean> => {
     setSaving(true);
     setError("");
     setSuccessMessage("");
@@ -159,11 +159,15 @@ export function useApplyJob() {
           custom_resume: formData.custom_resume || null,
           screening_answers:
             formData.screening_answers.length > 0 ? formData.screening_answers : null,
+          is_draft: isDraft,
+          consent_accepted: !isDraft,
+          consent_text: "I confirm the information is accurate and accept the application consent.",
+          consent_hash: "3a6e9a7e0ff8312e75e9b8cd83d5cfcf204a9e52e50529de801b67cc1d9e290f", // SHA256 of the consent statement
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Failed to submit application.");
-      setSuccessMessage("Application submitted successfully!");
+      if (!res.ok) throw new Error(json.error || "Failed to save application.");
+      setSuccessMessage(isDraft ? "Draft saved successfully!" : "Application submitted successfully!");
       return true;
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred.");

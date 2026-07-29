@@ -15,6 +15,8 @@ const STATUS_STYLES: Record<ApplicationStatus, string> = {
   INTERVIEW_SCHEDULED: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
   HIRED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400",
   REJECTED: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400",
+  DRAFT: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400",
+  WITHDRAWN: "bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400",
 };
 
 function timeAgo(dateStr?: string): string {

@@ -31,8 +31,10 @@ import {
   Instagram,
   Youtube,
   Bookmark,
+  Share2,
 } from "lucide-react";
 import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
+import ReferModal from "../../freelancer/freelancer-referrals/components/ReferModal";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -149,6 +151,8 @@ function renderFormattedContent(text: string | null | undefined) {
 }
 
 export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = [], bookmarkedJobIds = [], onToggleBookmark }: Props) {
+  const [referModalOpen, setReferModalOpen] = React.useState(false);
+
   if (!job) return null;
 
   const alreadyApplied = appliedJobIds.includes(job.job_id);
@@ -430,6 +434,14 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
             </Button>
           )}
           <Button
+            variant="outline"
+            className="h-10 px-4 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800"
+            onClick={() => setReferModalOpen(true)}
+          >
+            <Share2 className="h-4 w-4" />
+            Refer
+          </Button>
+          <Button
             id="job-detail-apply-btn"
             onClick={() => onApply(job)}
             disabled={alreadyApplied}
@@ -439,6 +451,14 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
             {alreadyApplied ? "Already Applied" : "Apply Now"}
           </Button>
         </div>
+
+        {/* Refer Modal */}
+        <ReferModal
+          jobId={job.job_id}
+          jobTitle={job.job_title}
+          open={referModalOpen}
+          onClose={() => setReferModalOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );

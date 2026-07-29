@@ -42,6 +42,19 @@ export default function JobBrowseModule() {
     fetchBookmarks();
   }, [fetchJobs, fetchBookmarks]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && allJobs.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const openJobId = params.get("open_job");
+      if (openJobId) {
+        const matched = allJobs.find((j) => j.job_id === Number(openJobId));
+        if (matched) {
+          openDetail(matched);
+        }
+      }
+    }
+  }, [allJobs, openDetail]);
+
   return (
     <div className="space-y-6 p-6 sm:p-8">
       <style>{`

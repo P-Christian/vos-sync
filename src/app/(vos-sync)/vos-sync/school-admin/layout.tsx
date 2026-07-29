@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import * as jose from "jose";
-import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
 
 async function verifySchoolAdminRole() {
     if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
@@ -39,7 +38,7 @@ export default async function SchoolAdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { isAdmin, user } = await verifySchoolAdminRole();
+    const { isAdmin } = await verifySchoolAdminRole();
     
     if (!isAdmin) {
         redirect("/main-dashboard");
@@ -47,11 +46,7 @@ export default async function SchoolAdminLayout({
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            {user && <PortalPageHeader user={user} />}
-
-            <main className="flex-1 overflow-auto">
-                {children}
-            </main>
+            {children}
         </div>
     );
 }

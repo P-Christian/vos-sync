@@ -41,6 +41,7 @@ export interface VsJobPreferences {
     preferred_location: string | null;
     salary_range_min: number | null;
     salary_range_max: number | null;
+    currency: string | null;
     availability: string | null;
     preferred_industry: string | null;
     created_at?: string;

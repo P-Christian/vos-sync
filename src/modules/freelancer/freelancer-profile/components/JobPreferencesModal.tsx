@@ -107,9 +107,12 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Minimum Salary</label>
                             <Input 
-                                type="number"
-                                value={preferences.salary_range_min || ""} 
-                                onChange={(e) => handleChange("salary_range_min", e.target.value ? Number(e.target.value) : null)}
+                                type="text"
+                                value={preferences.salary_range_min !== null && preferences.salary_range_min !== undefined ? preferences.salary_range_min.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
+                                onChange={(e) => {
+                                    const numericStr = e.target.value.replace(/[^\d]/g, "");
+                                    handleChange("salary_range_min", numericStr ? Number(numericStr) : null);
+                                }}
                                 placeholder="Min expected salary"
                             />
                         </div>
@@ -117,14 +120,38 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Maximum Salary</label>
                             <Input 
-                                type="number"
-                                value={preferences.salary_range_max || ""} 
-                                onChange={(e) => handleChange("salary_range_max", e.target.value ? Number(e.target.value) : null)}
+                                type="text"
+                                value={preferences.salary_range_max !== null && preferences.salary_range_max !== undefined ? preferences.salary_range_max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
+                                onChange={(e) => {
+                                    const numericStr = e.target.value.replace(/[^\d]/g, "");
+                                    handleChange("salary_range_max", numericStr ? Number(numericStr) : null);
+                                }}
                                 placeholder="Max expected salary"
                             />
                         </div>
 
-                        <div className="space-y-2 md:col-span-2">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Currency</label>
+                            <Select 
+                                value={preferences.currency || "PHP"} 
+                                onValueChange={(val) => handleChange("currency", val)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
+                                    <SelectItem value="USD">USD ($)</SelectItem>
+                                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                                    <SelectItem value="AUD">AUD (A$)</SelectItem>
+                                    <SelectItem value="SGD">SGD (S$)</SelectItem>
+                                    <SelectItem value="JPY">JPY (¥)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
                             <label className="text-sm font-medium">Availability</label>
                             <Select 
                                 value={preferences.availability || ""} 
