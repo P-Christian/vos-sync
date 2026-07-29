@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
           .then((r) => r.json())
           .then((j) => j.data ?? []),
         fetch(
-          `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&fields=message_id,conversation_id,sender_id`,
+          `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&fields=message_id,conversation_id,sender_id&limit=1000`,
           { headers: getHeaders(), cache: "no-store" }
         )
           .then((r) => r.json())

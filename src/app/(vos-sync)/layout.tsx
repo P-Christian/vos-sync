@@ -47,10 +47,20 @@ export default async function DashboardLayout({
     // Check profile_image_url (Freelancer DB style) and user_image (Admin style)
     const rawImage = profile?.profile_image_url || payload?.user_image;
 
+    // Resolve user role
+    const roleId = profile?.role_id || (payload?.role_id ? Number(payload.role_id) : undefined);
+    let role: string | undefined = undefined;
+    if (roleId === 1) role = "FREELANCER";
+    else if (roleId === 2) role = "CLIENT";
+    else if (roleId === 4) role = "SCHOOL_ADMIN";
+    else if (roleId === 3 || roleId === 5) role = "ADMIN";
+
     const userProfile = {
         name,
         email,
         avatar: getAvatarUrl(rawImage as string),
+        role,
+        role_id: roleId,
     };
 
     return (

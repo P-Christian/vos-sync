@@ -136,9 +136,21 @@ export async function fetchUserStatusDetailRepo(userId: number): Promise<Account
   if (!u) return null;
 
   // Fetch restrictions
-  const restUrl = `${DIRECTUS_BASE}/items/vs_account_restriction?filter[user_id][_eq]=${userId}&limit=-1`;
+  const restUrl = `${DIRECTUS_BASE}/items/vs_account_restriction?filter[user_id][_eq]=${userId}&filter[status][_eq]=ACTIVE&limit=-1`;
   const restRes = await fetch(restUrl, { headers: getHeaders(), cache: "no-store" });
-  const restrictions = restRes.ok ? (await restRes.json()).data || [] : [];
+  let restrictions = restRes.ok ? (await restRes.json()).data || [] : [];
+
+  // Self-heal: deactivate stale active restrictions if user status is ACTIVE
+  if (u.status === 'ACTIVE' && restrictions.length > 0) {
+    for (const r of restrictions) {
+      await fetch(`${DIRECTUS_BASE}/items/vs_account_restriction/${r.restriction_id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'INACTIVE' })
+      });
+    }
+    restrictions = [];
+  }
 
   // Fetch history
   const histUrl = `${DIRECTUS_BASE}/items/vs_account_status_history?filter[user_id][_eq]=${userId}&sort=-occurred_at&limit=50`;
@@ -202,7 +214,26 @@ export async function updateUserStatusRepo(
     throw new Error(`Failed to update user status record: ${await userRes.text()}`);
   }
 
+  // Deactivate all existing active restrictions for this user
+  const checkRestUrl = `${DIRECTUS_BASE}/items/vs_account_restriction?filter[user_id][_eq]=${userId}&filter[status][_eq]=ACTIVE&limit=-1`;
+  const checkRestRes = await fetch(checkRestUrl, { headers: getHeaders(), cache: "no-store" });
+  if (checkRestRes.ok) {
+    const activeRest = (await checkRestRes.json()).data || [];
+    for (const r of activeRest) {
+      await fetch(`${DIRECTUS_BASE}/items/vs_account_restriction/${r.restriction_id}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status: 'INACTIVE' })
+      });
+    }
+  }
+
   // Create history record
+  let historyReason = internalNote || reasonCode;
+  if (newStatus === 'LIMITED' && restrictionsToApply && restrictionsToApply.length > 0) {
+    historyReason = `${historyReason} | Restrictions: ${restrictionsToApply.join(', ')}`;
+  }
+
   const histUrl = `${DIRECTUS_BASE}/items/vs_account_status_history`;
   const histPayload = {
     user_id: userId,
@@ -212,7 +243,7 @@ export async function updateUserStatusRepo(
     new_version: newVersion,
     actor: adminEmail,
     approver: adminEmail,
-    reason: internalNote || reasonCode,
+    reason: historyReason,
     occurred_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ") // PH Time
   };
 

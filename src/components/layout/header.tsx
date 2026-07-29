@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Menu, X, Briefcase } from "lucide-react"
+import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { ThemeSelector } from "@/components/theme/ThemeSelector"
@@ -21,7 +22,12 @@ export function Header() {
   }, []);
 
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${isScrolled ? 'bg-background/90 backdrop-blur-md border-border shadow-sm py-3' : 'bg-transparent border-transparent py-5'}`}>
+    <motion.header
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${isScrolled ? 'bg-background/90 backdrop-blur-md border-border shadow-sm py-3' : 'bg-transparent border-transparent py-5'}`}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 cursor-pointer">
           <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
@@ -77,6 +83,6 @@ export function Header() {
           </Button>
         </div>
       )}
-    </header>
+    </motion.header>
   )
 }

@@ -45,10 +45,10 @@ export async function PATCH(
     const userId = getUserIdFromToken(token);
     if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
 
-    // Mark as read
-    const payload = {
-      is_read: true,
-    };
+    const body = await req.json().catch(() => ({}));
+    const payload: Record<string, unknown> = {};
+    if (body.is_read !== undefined) payload.is_read = body.is_read;
+    if (body.is_starred !== undefined) payload.is_starred = body.is_starred;
 
     // Note: To be fully secure we should ensure the notification belongs to this userId,
     // but typically Directus permissions handle this or we assume the ID is unguessable enough/checked.
@@ -62,7 +62,7 @@ export async function PATCH(
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return NextResponse.json(
-        { error: err.errors?.[0]?.message ?? "Failed to mark as read." },
+        { error: err.errors?.[0]?.message ?? "Failed to update notification." },
         { status: res.status }
       );
     }

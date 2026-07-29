@@ -63,7 +63,8 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert} from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert } from "lucide-react";
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
     className,
@@ -72,21 +73,29 @@ export function AppSidebar({
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const portal = searchParams.get("portal");
+    const userProfile = useUserProfile();
+    const isGuest = !userProfile || userProfile.email === "guest@example.com";
+    const role = userProfile?.role;
 
-    if (pathname.startsWith("/vos-sync/freelancer") || portal === "freelancer") {
+    if (role === "FREELANCER" || pathname.startsWith("/vos-sync/freelancer") || (isGuest && pathname.startsWith("/vos-sync/public")) || portal === "freelancer") {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "FREELANCER PORTAL",
-            homeUrl: "/vos-sync/freelancer/dashboard",
-            navItems: [
-                { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
-                { label: "My Profile", href: "/vos-sync/freelancer/profile", icon: User },
-                { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
-                { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
-                { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
-                { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
-                { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
-            ],
+            homeUrl: isGuest ? "/vos-sync/freelancer/jobs" : "/vos-sync/freelancer/dashboard",
+            navItems: isGuest
+                ? [
+                    { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
+                  ]
+                : [
+                    { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
+                    { label: "My Profile", href: "/vos-sync/freelancer/profile", icon: User },
+                    { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
+                    { label: "My Applications", href: "/vos-sync/freelancer/applications", icon: FileText },
+                    { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
+                    { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
+                    { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
+                    { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
+                  ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
             ],
@@ -94,7 +103,7 @@ export function AppSidebar({
         return <DashboardSidebar config={FREELANCER_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/client") || portal === "client") {
+    if (role === "CLIENT" || pathname.startsWith("/vos-sync/client") || portal === "client") {
         const CLIENT_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "CLIENT PORTAL",
@@ -108,16 +117,13 @@ export function AppSidebar({
                 { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
                 { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },
                 { label: "Settings", href: "/vos-sync/client/settings", icon: Settings2 },
-
-
-
             ],
             footerLinks: [],
         };
         return <DashboardSidebar config={CLIENT_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/school-admin") || portal === "school-admin") {
+    if (role === "SCHOOL_ADMIN" || pathname.startsWith("/vos-sync/school-admin") || portal === "school-admin") {
         const SCHOOL_DASHBOARD_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "SCHOOL ADMIN",
@@ -134,7 +140,7 @@ export function AppSidebar({
         return <DashboardSidebar config={SCHOOL_DASHBOARD_SIDEBAR_CONFIG} {...props} />;
     }
 
-    if (pathname.startsWith("/vos-sync/vos-admin") || portal === "vos-admin") {
+    if (role === "ADMIN" || pathname.startsWith("/vos-sync/vos-admin") || portal === "vos-admin") {
         const SCHOOL_ADMIN_SIDEBAR_CONFIG: SidebarConfig = {
             title: "VOS Sync",
             subtitle: "VOS Sync ADMIN",
@@ -145,12 +151,12 @@ export function AppSidebar({
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
+                { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
+                { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
                 { label: "Settings", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
             ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
-                { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
-                { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
             ],
         };
         return <DashboardSidebar config={SCHOOL_ADMIN_SIDEBAR_CONFIG} {...props} />;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { getMySchool, updateMySchool } from "@/modules/school-admin/services/school-admin.service";
+import { checkRestriction } from "@/lib/status-validator";
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_super_secret_key_for_development");
 
@@ -36,6 +37,15 @@ export async function PATCH(req: NextRequest) {
   try {
     const userId = await getUserIdFromToken();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    // Validate UPDATE_SCHOOL Restriction
+    const isRestricted = await checkRestriction(userId, "UPDATE_SCHOOL");
+    if (isRestricted) {
+      return NextResponse.json(
+        { error: "Your school modification privileges are temporarily suspended." },
+        { status: 403 }
+      );
+    }
 
     const school = await getMySchool(userId);
     if (!school) return NextResponse.json({ error: "School not found." }, { status: 404 });

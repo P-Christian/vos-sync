@@ -57,7 +57,8 @@ export function useJobBrowse() {
         j.job_title.toLowerCase().includes(q) ||
         (j.company_name ?? "").toLowerCase().includes(q) ||
         j.job_location.toLowerCase().includes(q) ||
-        j.job_category.toLowerCase().includes(q);
+        j.job_category.toLowerCase().includes(q) ||
+        (j.job_description ?? "").toLowerCase().includes(q);
 
       const matchesType = filterJobType === "ALL" || j.job_type === filterJobType;
       const matchesArrangement = filterArrangement === "ALL" || j.work_arrangement === filterArrangement;

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SlideUp, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 
 const SECTIONS = [
   { id: "acceptance", title: "1. Acceptance of Terms" },
@@ -22,27 +23,35 @@ export default function TermsOfService() {
       <section className="relative overflow-hidden pt-20 pb-16 md:pt-24 md:pb-20 border-b border-zinc-100">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-zinc-100 via-white to-white" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
-            <Button asChild variant="ghost" size="sm" className="mb-6 rounded-full -ml-3 text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 cursor-pointer">
-              <Link href="/" className="inline-flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" /> Back to Home
-              </Link>
-            </Button>
-            <div className="flex items-center gap-3 mb-4">
-              <Badge variant="secondary" className="py-1 px-3 rounded-full bg-zinc-100 text-zinc-800 text-xs font-medium">
-                Terms
-              </Badge>
-              <span className="text-xs text-zinc-400 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Last updated: July 8, 2026
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-tight">
-              Terms of Service
-            </h1>
-            <p className="text-lg text-zinc-500 leading-relaxed">
-              Welcome to Vos Sync. These terms govern your access to and use of our platform, services, websites, and applications. Please read them carefully.
-            </p>
-          </div>
+          <StaggerContainer className="max-w-3xl">
+            <StaggerChild>
+              <Button asChild variant="ghost" size="sm" className="mb-6 rounded-full -ml-3 text-zinc-500 hover:text-zinc-950 hover:bg-zinc-100 cursor-pointer">
+                <Link href="/" className="inline-flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" /> Back to Home
+                </Link>
+              </Button>
+            </StaggerChild>
+            <StaggerChild>
+              <div className="flex items-center gap-3 mb-4">
+                <Badge variant="secondary" className="py-1 px-3 rounded-full bg-zinc-100 text-zinc-800 text-xs font-medium">
+                  Terms
+                </Badge>
+                <span className="text-xs text-zinc-400 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" /> Last updated: July 8, 2026
+                </span>
+              </div>
+            </StaggerChild>
+            <StaggerChild>
+              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-tight">
+                Terms of Service
+              </h1>
+            </StaggerChild>
+            <StaggerChild>
+              <p className="text-lg text-zinc-500 leading-relaxed">
+                Welcome to Vos Sync. These terms govern your access to and use of our platform, services, websites, and applications. Please read them carefully.
+              </p>
+            </StaggerChild>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -51,7 +60,7 @@ export default function TermsOfService() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             {/* Sidebar Table of Contents */}
-            <div className="lg:col-span-1 lg:sticky lg:top-28 h-fit space-y-2 hidden lg:block">
+            <SlideUp className="lg:col-span-1 lg:sticky lg:top-28 h-fit space-y-2 hidden lg:block">
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-4 px-3">On this page</p>
               <nav className="flex flex-col gap-1">
                 {SECTIONS.map((sec) => (
@@ -64,10 +73,10 @@ export default function TermsOfService() {
                   </a>
                 ))}
               </nav>
-            </div>
+            </SlideUp>
 
             {/* Document body */}
-            <div className="lg:col-span-3 prose prose-zinc max-w-none text-zinc-600 space-y-10 leading-relaxed">
+            <SlideUp className="lg:col-span-3 prose prose-zinc max-w-none text-zinc-600 space-y-10 leading-relaxed" delay={0.2}>
               <div id="acceptance" className="scroll-mt-28 space-y-3">
                 <h2 className="text-xl font-bold text-zinc-900 border-b border-zinc-100 pb-2">1. Acceptance of Terms</h2>
                 <p>
@@ -167,7 +176,7 @@ export default function TermsOfService() {
                   </div>
                 </div>
               </div>
-            </div>
+            </SlideUp>
           </div>
         </div>
       </section>

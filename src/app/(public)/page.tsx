@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 
 // ==========================================
 // MOCK DATA
@@ -22,74 +23,149 @@ const CATEGORIES = [
   { name: "Healthcare", icon: <HeartPulse className="w-6 h-6" />, count: "2,100 jobs", color: "bg-rose-50 text-rose-600" },
 ];
 
-const FEATURED_JOBS = [
-  {
-    id: 1,
-    title: "Senior Frontend Engineer",
-    company: "Vercel",
-    location: "Remote, US",
-    type: "Full-Time",
-    salary: "$140k - $180k",
-    logo: "V",
-    posted: "2 hours ago",
-    tags: ["React", "Next.js", "TypeScript"]
-  },
-  {
-    id: 2,
-    title: "Product Designer",
-    company: "Stripe",
-    location: "San Francisco, CA",
-    type: "Full-Time",
-    salary: "$130k - $160k",
-    logo: "S",
-    posted: "5 hours ago",
-    tags: ["Figma", "Prototyping", "UI/UX"]
-  },
-  {
-    id: 3,
-    title: "Marketing Director",
-    company: "Airbnb",
-    location: "New York, NY",
-    type: "Full-Time",
-    salary: "$150k - $190k",
-    logo: "A",
-    posted: "1 day ago",
-    tags: ["Growth", "B2B", "Leadership"]
-  },
-  {
-    id: 4,
-    title: "Data Scientist",
-    company: "Spotify",
-    location: "Stockholm, SE",
-    type: "Hybrid",
-    salary: "€80k - €110k",
-    logo: "Sp",
-    posted: "2 days ago",
-    tags: ["Python", "Machine Learning", "SQL"]
-  },
-  {
-    id: 5,
-    title: "Backend Developer",
-    company: "Discord",
-    location: "Remote, Global",
-    type: "Contract",
-    salary: "$90/hr",
-    logo: "D",
-    posted: "3 days ago",
-    tags: ["Rust", "Elixir", "PostgreSQL"]
-  },
-  {
-    id: 6,
-    title: "HR Business Partner",
-    company: "Netflix",
-    location: "Los Angeles, CA",
-    type: "Full-Time",
-    salary: "$110k - $140k",
-    logo: "N",
-    posted: "1 week ago",
-    tags: ["People Ops", "Culture", "Recruiting"]
+function getInitials(name?: string | null): string {
+  if (!name) return "?";
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function getRelativeTimeString(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
+
+interface RawJob {
+  job_id: number;
+  company_id: number | null;
+  job_title: string;
+  job_type: string;
+  work_arrangement: string;
+  job_location: string;
+  salary_type: string;
+  salary_min: number | string | null;
+  salary_max: number | string | null;
+  salary_negotiable: boolean;
+  currency: string | null;
+  created_at: string;
+}
+
+interface RawCompany {
+  company_id: number;
+  company_name: string;
+  company_logo: string | null;
+}
+
+interface RawSkillMap {
+  job_id: number;
+  skill_id: {
+    skill_name: string;
+  } | null;
+}
+
+function formatSalary(job: RawJob): string {
+  if (job.salary_negotiable) return "Negotiable";
+  const currency = job.currency ?? "PHP";
+  if (job.salary_type === "Fixed Salary" && job.salary_min) {
+    return `${currency} ${Number(job.salary_min).toLocaleString()} / mo`;
   }
-];
+  if (job.salary_min && job.salary_max) {
+    return `${currency} ${Number(job.salary_min).toLocaleString()} – ${Number(job.salary_max).toLocaleString()} / mo`;
+  }
+  if (job.salary_min) return `${currency} ${Number(job.salary_min).toLocaleString()}+ / mo`;
+  return "Salary not disclosed";
+}
+
+async function getFeaturedJobs() {
+  const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+  const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+
+  try {
+    const fields = [
+      "job_id", "company_id", "job_title", "job_type", "work_arrangement",
+      "job_location", "salary_type", "salary_min", "salary_max",
+      "salary_negotiable", "currency", "created_at"
+    ].join(",");
+    
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting?filter[status][_eq]=ACTIVE&sort[]=-created_at&fields=${fields}&limit=6`,
+      { headers, cache: "no-store" }
+    );
+    if (!res.ok) return [];
+    const json = await res.json();
+    const rawJobs: RawJob[] = json.data ?? [];
+    if (rawJobs.length === 0) return [];
+
+    const jobIds = rawJobs.map((j) => j.job_id);
+    const companyIds = Array.from(new Set(rawJobs.map((j) => j.company_id).filter((id): id is number => Boolean(id))));
+
+    const companiesMap: Record<number, { name: string; logo: string | null }> = {};
+    if (companyIds.length > 0) {
+      const compRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name,company_logo&limit=100`,
+        { headers, cache: "no-store" }
+      );
+      if (compRes.ok) {
+        const compJson = await compRes.json();
+        (compJson.data ?? []).forEach((c: RawCompany) => {
+          companiesMap[c.company_id] = {
+            name: c.company_name,
+            logo: c.company_logo ?? null,
+          };
+        });
+      }
+    }
+
+    const skillsMap: Record<number, string[]> = {};
+    if (jobIds.length > 0) {
+      const skillsRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_skills_map?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,skill_id.skill_name&limit=500`,
+        { headers, cache: "no-store" }
+      );
+      if (skillsRes.ok) {
+        const skillsJson = await skillsRes.json();
+        (skillsJson.data ?? []).forEach((m: RawSkillMap) => {
+          const jobId = m.job_id;
+          if (!skillsMap[jobId]) skillsMap[jobId] = [];
+          if (m.skill_id?.skill_name) {
+            skillsMap[jobId].push(m.skill_id.skill_name);
+          }
+        });
+      }
+    }
+
+    return rawJobs.map((j) => {
+      const companyId = j.company_id;
+      const company = (companyId ? companiesMap[companyId] : null) || { name: "Unknown Company", logo: null };
+      return {
+        id: j.job_id,
+        title: j.job_title,
+        company: company.name,
+        location: j.job_location,
+        type: j.job_type,
+        salary: formatSalary(j),
+        logo: company.logo ? `${DIRECTUS_BASE}/assets/${company.logo}` : getInitials(company.name),
+        posted: getRelativeTimeString(j.created_at),
+        tags: (skillsMap[j.job_id] ?? []).slice(0, 3),
+      };
+    });
+  } catch (err) {
+    console.error("Error loading featured jobs:", err);
+    return [];
+  }
+}
 
 const TRUSTED_COMPANIES = ["Google", "Microsoft", "Meta", "Amazon", "Netflix", "Apple"];
 
@@ -122,6 +198,9 @@ export default async function Page() {
       }
     }
   }
+
+  const jobs = await getFeaturedJobs();
+
   return (
     <div className="bg-background pt-16 text-foreground font-sans selection:bg-muted">
       {/* HERO SECTION */}
@@ -133,55 +212,67 @@ export default async function Page() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
-            <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
-            Over 10,000+ new jobs added this week
-          </Badge>
+          <StaggerContainer>
+            <StaggerChild>
+              <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
+                <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
+                Over 10,000+ new jobs added this week
+              </Badge>
+            </StaggerChild>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
-            Find the job that fits your <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">life.</span>
-          </h1>
+            <StaggerChild>
+              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
+                Find the job that fits your <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">life.</span>
+              </h1>
+            </StaggerChild>
 
-          <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Discover opportunities across the globe. Join the most exclusive network of top tier professionals and industry-leading companies.
-          </p>
+            <StaggerChild>
+              <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+                Discover opportunities across the globe. Join the most exclusive network of top tier professionals and industry-leading companies.
+              </p>
+            </StaggerChild>
 
-          {/* Search Bar */}
-          <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
-            <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-border">
-              <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-              <Input
-                type="text"
-                placeholder="Job title, keywords, or company"
-                className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-              />
-            </div>
-            <div className="flex-1 flex items-center px-4 py-2">
-              <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-              <Input
-                type="text"
-                placeholder="City, state, or 'Remote'"
-                className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-              />
-            </div>
-            <Button size="lg" className="rounded-xl w-full md:w-auto px-8 py-6 text-base shadow-md hover:shadow-lg transition-all cursor-pointer">
-              Search Jobs
-            </Button>
-          </div>
+            <StaggerChild>
+              {/* Search Bar */}
+              <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
+                <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-border">
+                  <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
+                  <Input
+                    type="text"
+                    placeholder="Job title, keywords, or company"
+                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
+                  />
+                </div>
+                <div className="flex-1 flex items-center px-4 py-2">
+                  <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
+                  <Input
+                    type="text"
+                    placeholder="City, state, or 'Remote'"
+                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
+                  />
+                </div>
+                <Button size="lg" className="rounded-xl w-full md:w-auto px-8 py-6 text-base shadow-md hover:shadow-lg transition-all cursor-pointer">
+                  Search Jobs
+                </Button>
+              </div>
+            </StaggerChild>
 
-          <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-            <span>Popular searches:</span>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Remote</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">React</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Designer</Link>
-            <Link href="#" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
-          </div>
+            <StaggerChild>
+              <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+                <span>Popular searches:</span>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Remote</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">React</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Designer</Link>
+                <Link href="#" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
+              </div>
+            </StaggerChild>
+          </StaggerContainer>
         </div>
       </section>
 
       {/* LOGO CLOUD */}
       <section className="border-y border-border bg-muted/30 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <FadeIn delay={0.4} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm font-medium text-muted-foreground mb-6">Trusted by the world&apos;s most innovative companies</p>
           <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
             {TRUSTED_COMPANIES.map(company => (
@@ -190,7 +281,7 @@ export default async function Page() {
               </div>
             ))}
           </div>
-        </div>
+        </FadeIn>
       </section>
 
       {/* POPULAR CATEGORIES */}
@@ -206,19 +297,23 @@ export default async function Page() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {CATEGORIES.map((cat, idx) => (
-              <div key={idx} className="group border border-border rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${cat.color} dark:bg-opacity-20`}>
-                  {cat.icon}
-                </div>
-                <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
-                <p className="text-muted-foreground mt-1 flex items-center text-sm">
-                  {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                </p>
-              </div>
+              <StaggerChild key={idx}>
+                <HoverScale className="h-full">
+                  <div className="group border border-border rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card h-full">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${cat.color} dark:bg-opacity-20`}>
+                      {cat.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
+                    <p className="text-muted-foreground mt-1 flex items-center text-sm">
+                      {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </p>
+                  </div>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
           <Button variant="outline" className="w-full mt-8 md:hidden cursor-pointer">View all categories</Button>
         </div>
       </section>
@@ -231,48 +326,59 @@ export default async function Page() {
             <p className="text-muted-foreground mt-4">Hand-picked roles from top companies actively hiring right now.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {FEATURED_JOBS.map((job) => (
-              <div key={job.id} className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start">
-                {/* Company Logo Placeholder */}
-                <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0">
-                  {job.logo}
-                </div>
+          <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {jobs.map((job) => (
+              <StaggerChild key={job.id}>
+                <HoverScale className="h-full">
+                  <div className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start h-full">
+                    {/* Company Logo Placeholder */}
+                    <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
+                      {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
+                      ) : (
+                        job.logo
+                      )}
+                    </div>
 
-                <div className="flex-1 w-full">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
-                      <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
-                        <span className="font-medium text-foreground">{job.company}</span>
-                        <span>•</span>
-                        <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
+                    <div className="flex-1 w-full">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
+                        <div>
+                          <h3 className="text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
+                            <span className="font-medium text-foreground">{job.company}</span>
+                            <span>•</span>
+                            <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="bg-muted shrink-0">{job.type}</Badge>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2 mb-6">
+                        {job.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="font-medium text-xs">{tag}</Badge>
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
+                        <div className="font-semibold text-foreground">{job.salary}</div>
+                        <div className="flex items-center gap-4">
+                          <span className="text-xs text-muted-foreground">{job.posted}</span>
+                          <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
+                            <Link href={`/vos-sync/freelancer/jobs?open_job=${job.id}`}>Apply Now</Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="bg-muted shrink-0">{job.type}</Badge>
                   </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 mb-6">
-                    {job.tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="font-medium text-xs">{tag}</Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                    <div className="font-semibold text-foreground">{job.salary}</div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs text-muted-foreground">{job.posted}</span>
-                      <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer">Apply Now</Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </HoverScale>
+              </StaggerChild>
             ))}
-          </div>
+          </StaggerContainer>
 
           <div className="mt-12 text-center">
-            <Button size="lg" className="rounded-full px-8 cursor-pointer">
-              Explore All Jobs
+            <Button size="lg" className="rounded-full px-8 cursor-pointer" asChild>
+              <Link href="/vos-sync/freelancer/jobs">Explore All Jobs</Link>
             </Button>
           </div>
         </div>
@@ -282,7 +388,7 @@ export default async function Page() {
       <section className="py-24 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="lg:w-1/2">
+            <SlideUp className="lg:w-1/2">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
                 Your next career move, <br /><span className="text-muted-foreground">simplified.</span>
               </h2>
@@ -307,9 +413,9 @@ export default async function Page() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SlideUp>
 
-            <div className="lg:w-1/2 relative">
+            <SlideUp className="lg:w-1/2 relative" delay={0.2}>
               {/* Decorative UI element representing a dashboard */}
               <div className="bg-card border border-border rounded-3xl p-6 shadow-2xl relative z-10">
                 <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
@@ -341,14 +447,14 @@ export default async function Page() {
 
               {/* Background decorative blobs */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-muted rounded-full blur-3xl -z-10 dark:opacity-20"></div>
-            </div>
+            </SlideUp>
           </div>
         </div>
       </section>
 
       {/* CTA SECTION */}
       <section className="py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 dark:bg-zinc-950 rounded-3xl p-8 md:p-16 text-center text-white relative overflow-hidden border dark:border-zinc-800">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20"></div>
@@ -368,7 +474,7 @@ export default async function Page() {
               </div>
             </div>
           </div>
-        </div>
+        </SlideUp>
       </section>
     </div>
   );

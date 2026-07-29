@@ -6,6 +6,8 @@ export type UserProfile = {
     name: string;
     email: string;
     avatar: string;
+    role?: string;
+    role_id?: number;
 };
 
 const UserProfileContext = createContext<UserProfile | null>(null);
