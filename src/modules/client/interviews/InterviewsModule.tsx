@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInterviews } from "./hooks/useInterviews";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import InterviewList from "./components/InterviewList";
 import InterviewForm from "./components/InterviewForm";
 import InterviewDetailsModal from "./components/InterviewDetailsModal";
@@ -41,6 +42,17 @@ export default function InterviewsModule() {
     clearMessages,
     EMPTY_FORM,
   } = useInterviews();
+
+  const { subscribe } = useRealtime();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_interview_schedule", ({ data }) => {
+      if (data && data.length > 0) {
+        loadInterviews();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, loadInterviews]);
 
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [formData, setFormData] = useState<InterviewFormData>(EMPTY_FORM);
@@ -87,12 +99,24 @@ export default function InterviewsModule() {
   const handleOpenReschedule = (interview: Interview) => {
     clearMessages();
     setSelectedInterview(interview);
-    // Convert DB scheduled_at string to datetime-local format "YYYY-MM-DDTHH:mm"
+
+    // Convert DB scheduled_at string to datetime-local format "YYYY-MM-DDTHH:mm" without UTC shift
     let localDatetime = "";
     if (interview.scheduled_at) {
-      const d = new Date(interview.scheduled_at);
-      if (!isNaN(d.getTime())) {
-        localDatetime = d.toISOString().slice(0, 16);
+      const normalized = interview.scheduled_at.replace(" ", "T");
+      const match = normalized.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+      if (match) {
+        localDatetime = match[1];
+      } else {
+        const d = new Date(normalized);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const hours = String(d.getHours()).padStart(2, "0");
+          const mins = String(d.getMinutes()).padStart(2, "0");
+          localDatetime = `${year}-${month}-${day}T${hours}:${mins}`;
+        }
       }
     }
 

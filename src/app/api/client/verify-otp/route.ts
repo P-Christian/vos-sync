@@ -1,6 +1,6 @@
-// src/app/api/client/verify-otp/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -118,10 +118,7 @@ export async function POST(req: NextRequest) {
     // 5. Mark user as OTP-verified in Directus and clear OTP fields
     const userId = user.user_id;
     // Record PH timestamp of verification (UTC+8, naive datetime)
-    const nowPHStr = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPHStr = getPHTimeString();
 
     const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
       method: "PATCH",

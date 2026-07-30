@@ -1,4 +1,5 @@
-// src/lib/notifications.ts
+import { getPHTimeString } from "@/lib/utils";
+
 export interface CreateNotificationParams {
   event_type: string;
   recipient_user_id: number;
@@ -25,10 +26,7 @@ function getHeaders(): Record<string, string> {
 
 export async function createNotification(params: CreateNotificationParams) {
   try {
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     // 1. Insert into vs_notification_event
     const eventPayload = {

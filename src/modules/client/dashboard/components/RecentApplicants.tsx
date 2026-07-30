@@ -1,5 +1,4 @@
-// src/modules/client/dashboard/components/RecentApplicants.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Applicant } from "../types";
 import {
   Table,
@@ -10,14 +9,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User } from "lucide-react";
+import { Calendar, User, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 interface RecentApplicantsProps {
   applicants: Applicant[];
 }
 
 export default function RecentApplicants({ applicants }: RecentApplicantsProps) {
+  const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+
+  const displayedApplicants = expanded ? applicants : applicants.slice(0, 5);
+
   const getStatusBadge = (status: Applicant["status"]) => {
     switch (status) {
       case "SHORTLISTED":
@@ -64,48 +70,83 @@ export default function RecentApplicants({ applicants }: RecentApplicantsProps) 
   }
 
   return (
-    <div className="overflow-x-auto border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Applicant</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Target Position</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Experience</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Applied Date</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {applicants.map((applicant) => (
-            <TableRow key={applicant.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
-              <TableCell className="py-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border shrink-0">
-                    <User className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-zinc-900 dark:text-zinc-100">{applicant.name}</div>
-                    <div className="text-xs text-zinc-500">{applicant.email}</div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate">
-                {applicant.jobTitle}
-              </TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-                {applicant.experience}
-              </TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                  {formatDateTime(new Date(applicant.appliedDate))}
-                </div>
-              </TableCell>
-              <TableCell className="py-4">{getStatusBadge(applicant.status)}</TableCell>
+    <div className="overflow-hidden border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl flex flex-col">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Applicant</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Target Position</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Experience</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Applied Date</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {displayedApplicants.map((applicant) => (
+              <TableRow key={applicant.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
+                <TableCell className="py-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border shrink-0">
+                      <User className="h-4.5 w-4.5" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-zinc-900 dark:text-zinc-100">{applicant.name}</div>
+                      <div className="text-xs text-zinc-500">{applicant.email}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400 max-w-[200px] truncate">
+                  {applicant.jobTitle}
+                </TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                  {applicant.experience}
+                </TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                    {formatDateTime(new Date(applicant.appliedDate))}
+                  </div>
+                </TableCell>
+                <TableCell className="py-4">{getStatusBadge(applicant.status)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {applicants.length > 5 && (
+        <div className="p-3 border-t bg-zinc-50/50 dark:bg-zinc-900/30 flex items-center justify-between gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-foreground"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                Show Less (Showing all {applicants.length})
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                Show More ({applicants.length - 5} more candidates)
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/vos-sync/client/applicants")}
+            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10"
+          >
+            View All Candidates
+            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// src/lib/messaging/system-message.ts
+import { getPHTimeString } from "@/lib/utils";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(
   /\/$/,
@@ -46,7 +46,7 @@ export async function createSystemMessage({
   if (!DIRECTUS_BASE) return;
 
   try {
-    const nowISO = new Date().toISOString().slice(0, 19).replace("T", " ");
+    const nowPH = getPHTimeString();
 
     // 1. Check existing conversation
     let filter = `filter[client_id][_eq]=${clientId}&filter[freelancer_id][_eq]=${freelancerId}&filter[status][_neq]=BLOCKED`;
@@ -79,7 +79,7 @@ export async function createSystemMessage({
           status: "ACTIVE",
           archived_by_client: false,
           archived_by_freelancer: false,
-          last_message_at: nowISO,
+          last_message_at: nowPH,
         }),
       });
 
@@ -102,6 +102,7 @@ export async function createSystemMessage({
         sender_id: effectiveSenderId,
         message_type: "SYSTEM",
         message_content: text,
+        created_at: nowPH,
         is_edited: false,
         is_deleted: false,
       }),
@@ -129,7 +130,7 @@ export async function createSystemMessage({
     await fetch(`${DIRECTUS_BASE}/items/vs_conversation/${conversationId}`, {
       method: "PATCH",
       headers: getHeaders(),
-      body: JSON.stringify({ last_message_at: nowISO }),
+      body: JSON.stringify({ last_message_at: nowPH }),
     });
   } catch (err) {
     console.error("Error creating system message:", err);

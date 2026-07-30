@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { sendOtpEmail } from "@/lib/mail";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -174,11 +175,7 @@ export async function POST(req: NextRequest) {
     };
 
     // PH Time helper (UTC+8)
-    const phNow = () =>
-      new Date(Date.now() + 8 * 60 * 60 * 1000)
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
+    const phNow = () => getPHTimeString();
 
     // ─────────────────────────────────────────
     // 5. DUPLICATE EMAIL CHECK

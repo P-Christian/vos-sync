@@ -1,7 +1,6 @@
-// src/lib/notifications/services/freelancer-notifications.ts
-
 import { CreateFreelancerNotificationParams } from "../types";
 import { isInAppEnabledForUser } from "../preference-check";
+import { getPHTimeString } from "@/lib/utils";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -35,10 +34,7 @@ export async function createFreelancerNotification(
       );
       return false;
     }
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     // 1. Insert into vs_notification_event
     const eventRes = await fetch(`${DIRECTUS_BASE}/items/vs_notification_event`, {

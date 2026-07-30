@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "./hooks/useNotifications";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import NotificationList from "./components/NotificationList";
 import NotificationPreferences from "./components/NotificationPreferences";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,8 @@ export default function NotificationsModule() {
     clearError,
   } = useNotifications();
 
+  const { subscribe } = useRealtime();
+
   const [activeTab, setActiveTab] = useState<Tab>("feed");
   const [filter, setFilter] = useState<FilterValue>("ALL");
 
@@ -53,6 +56,15 @@ export default function NotificationsModule() {
     loadNotifications();
     loadPreferences();
   }, [loadNotifications, loadPreferences]);
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_employer_notification", ({ data }) => {
+      if (data && data.length > 0) {
+        loadNotifications();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, loadNotifications]);
 
   const handleTabChange = (tab: Tab) => {
     clearError();

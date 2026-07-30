@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "./hooks/useNotifications";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import FreelancerNotificationList from "./components/FreelancerNotificationList";
 import FreelancerNotificationPreferences from "./components/FreelancerNotificationPreferences";
 import { cn } from "@/lib/utils";
@@ -43,9 +44,12 @@ export default function FreelancerNotificationsModule() {
     prefsLoading,
     saving,
     prefsError,
+    fetchNotifications,
     loadPreferences,
     savePreferences,
   } = useNotifications();
+
+  const { subscribe } = useRealtime();
 
   const [activeTab, setActiveTab] = useState<Tab>("feed");
   const [filter, setFilter] = useState<FilterValue>("ALL");
@@ -55,6 +59,15 @@ export default function FreelancerNotificationsModule() {
   useEffect(() => {
     loadPreferences();
   }, [loadPreferences]);
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_freelancer_notification", ({ data }) => {
+      if (data && data.length > 0) {
+        fetchNotifications();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchNotifications]);
 
   const handleTabChange = (tab: Tab) => {
     setLocalError("");

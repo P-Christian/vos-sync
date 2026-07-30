@@ -2,13 +2,14 @@
 
 // src/modules/freelancer/freelancer-messaging/hooks/useMessages.ts
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Message, SendMessagePayload } from "../types";
 import {
   fetchMessages,
   sendMessage,
   uploadFile,
 } from "../providers/MessagingProvider";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 
 function parseLocalDateMs(dateStr: string): number {
   if (!dateStr) return 0;
@@ -30,8 +31,55 @@ export function useMessages() {
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const activeConversationIdRef = useRef<number | null>(null);
+
+  const { subscribe } = useRealtime();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_messages", ({ event, data }) => {
+      if (event === "create" && data && data.length > 0) {
+        data.forEach((item) => {
+          const rawMsg = item as unknown as Message;
+          const currentConvId = activeConversationIdRef.current;
+          if (!currentConvId || Number(rawMsg.conversation_id) === currentConvId) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.message_id === rawMsg.message_id)) return prev;
+              return sortChronologically([...prev, rawMsg]);
+            });
+          }
+        });
+      } else {
+        // Polling tick or generic update event — fetch latest messages for active conversation
+        const activeId = activeConversationIdRef.current;
+        if (activeId) {
+          fetchMessages(activeId, { limit: 50, offset: 0 })
+            .then((latestMessages) => {
+              if (latestMessages && latestMessages.length > 0) {
+                setMessages((prev) => {
+                  const map = new Map<number, Message>();
+                  for (const m of prev) map.set(m.message_id, m);
+                  let newFound = false;
+                  for (const m of latestMessages) {
+                    if (!map.has(m.message_id)) {
+                      map.set(m.message_id, m);
+                      newFound = true;
+                    }
+                  }
+                  if (!newFound) return prev;
+                  return sortChronologically(Array.from(map.values()));
+                });
+              }
+            })
+            .catch(() => {});
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const loadMessages = useCallback(async (conversationId: number) => {
+    activeConversationIdRef.current = conversationId;
     setLoading(true);
     setError("");
     setHasMore(true);

@@ -80,3 +80,18 @@ export const INTERVIEW_FORMAT_LABELS: Record<InterviewFormat, string> = {
   ONSITE: "On-Site",
   PHONE: "Phone Call",
 };
+
+export const TIMEZONE_OPTIONS = [
+  { value: "Asia/Manila", label: "Asia/Manila (PHT, UTC+08:00)" },
+  { value: "Asia/Singapore", label: "Asia/Singapore (SGT, UTC+08:00)" },
+  { value: "Asia/Tokyo", label: "Asia/Tokyo (JST, UTC+09:00)" },
+  { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong (HKT, UTC+08:00)" },
+  { value: "Australia/Sydney", label: "Australia/Sydney (AEST, UTC+10:00)" },
+  { value: "Europe/London", label: "Europe/London (GMT/BST, UTC+00:00)" },
+  { value: "Europe/Paris", label: "Europe/Paris (CET, UTC+01:00)" },
+  { value: "America/New_York", label: "America/New_York (EST/EDT, UTC-05:00)" },
+  { value: "America/Chicago", label: "America/Chicago (CST/CDT, UTC-06:00)" },
+  { value: "America/Denver", label: "America/Denver (MST/MDT, UTC-07:00)" },
+  { value: "America/Los_Angeles", label: "America/Los_Angeles (PST/PDT, UTC-08:00)" },
+  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+];

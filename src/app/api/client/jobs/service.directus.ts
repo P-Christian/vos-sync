@@ -296,6 +296,8 @@ function parsePayload(payload: Record<string, unknown>) {
   if (payload.salary_negotiable !== undefined) jobPayload.salary_negotiable = payload.salary_negotiable ? 1 : 0;
   if (payload.experience_level !== undefined) jobPayload.experience_level = payload.experience_level ? String(payload.experience_level) : null;
   if (payload.status !== undefined) jobPayload.status = String(payload.status);
+  if (payload.created_at !== undefined) jobPayload.created_at = String(payload.created_at);
+  if (payload.updated_at !== undefined) jobPayload.updated_at = String(payload.updated_at);
 
   let skills: { id: number; skill_name?: string; source?: string; confidence_score?: number | null }[] | undefined = undefined;
   let benefits: string[] | undefined = undefined;

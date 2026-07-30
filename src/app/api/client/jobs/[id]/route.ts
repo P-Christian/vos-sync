@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "../service.directus";
 import { checkRestriction } from "@/lib/status-validator";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -147,6 +148,10 @@ export async function PATCH(
     for (const key of ALLOWED_FIELDS) {
       if (key in body) safePayload[key] = body[key];
     }
+
+    const nowPH = getPHTimeString();
+
+    safePayload.updated_at = nowPH;
 
     const updatedJob = await jobService.updateJob(id, safePayload);
     const jobWithCompany = await attachCompanyToJob(updatedJob);

@@ -1,11 +1,10 @@
-// src/app/api/client/interviews/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { sendInterviewScheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createFreelancerNotification } from "@/lib/notifications/services/freelancer-notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -325,10 +324,7 @@ export async function POST(req: NextRequest) {
       scheduledAt = `${body.interview_date} ${body.interview_time}:00`;
     }
 
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     const interviewPayload = {
       company_id: companyId,

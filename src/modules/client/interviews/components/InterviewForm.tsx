@@ -3,10 +3,17 @@
 // src/modules/client/interviews/components/InterviewForm.tsx
 
 import React from "react";
-import { InterviewFormData, InterviewFormat, INTERVIEW_FORMAT_LABELS } from "../types";
+import { InterviewFormData, InterviewFormat, INTERVIEW_FORMAT_LABELS, TIMEZONE_OPTIONS } from "../types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface InterviewFormProps {
   data: InterviewFormData;
@@ -81,19 +88,21 @@ export default function InterviewForm({
           <Label htmlFor="format" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Interview Format <span className="text-rose-500">*</span>
           </Label>
-          <select
-            id="format"
+          <Select
             value={data.interview_format}
-            onChange={(e) => onChange("interview_format", e.target.value as InterviewFormat)}
-            className="w-full h-9 px-3 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onValueChange={(val) => onChange("interview_format", val as InterviewFormat)}
           >
-            <option value="">-- Select Format --</option>
-            {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="format" className="w-full h-9 text-sm rounded-lg">
+              <SelectValue placeholder="-- Select Format --" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {errors.interview_format && (
             <p className="text-[11px] text-rose-500">{errors.interview_format}</p>
           )}
@@ -103,13 +112,24 @@ export default function InterviewForm({
           <Label htmlFor="timezone" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Timezone
           </Label>
-          <Input
-            id="timezone"
-            value={data.timezone}
-            onChange={(e) => onChange("timezone", e.target.value)}
-            placeholder="Asia/Manila"
-            className="h-9 text-sm rounded-lg"
-          />
+          <Select
+            value={data.timezone || "Asia/Manila"}
+            onValueChange={(val) => onChange("timezone", val)}
+          >
+            <SelectTrigger id="timezone" className="w-full h-9 text-sm rounded-lg">
+              <SelectValue placeholder="Select Timezone" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIMEZONE_OPTIONS.map((tz) => (
+                <SelectItem key={tz.value} value={tz.value}>
+                  {tz.label}
+                </SelectItem>
+              ))}
+              {data.timezone && !TIMEZONE_OPTIONS.some((tz) => tz.value === data.timezone) && (
+                <SelectItem value={data.timezone}>{data.timezone}</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

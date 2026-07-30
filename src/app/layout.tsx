@@ -8,6 +8,7 @@ config.autoAddCss = false
 
 import ThemeProvider from "@/components/theme/ThemeProvider"
 import ThemeSettingsProvider from "@/components/theme/ThemeSettingsProvider"
+import { RealtimeProvider } from "@/modules/shared/providers/RealtimeProvider"
 import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
@@ -35,7 +36,9 @@ export default function RootLayout({
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <ThemeProvider>
                     <ThemeSettingsProvider>
-                        {children}
+                        <RealtimeProvider>
+                            {children}
+                        </RealtimeProvider>
                     </ThemeSettingsProvider>
 
                     {/* Global toast host (Sonner / shadcn) */}

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useFreelancerApplications } from './hooks/useFreelancerApplications';
+import { useRealtime } from '@/modules/shared/providers/RealtimeProvider';
 import { ApplicationHeader } from './components/ApplicationHeader';
 import { ApplicationSummaryCards } from './components/ApplicationSummaryCards';
 import { ApplicationTable } from './components/ApplicationTable';
@@ -28,6 +29,17 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
     filterStatus,
     setFilterStatus,
   } = useFreelancerApplications();
+
+  const { subscribe } = useRealtime();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_job_application", ({ data }) => {
+      if (data && data.length > 0) {
+        fetchApplications();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, fetchApplications]);
 
   const {
     bookmarks,

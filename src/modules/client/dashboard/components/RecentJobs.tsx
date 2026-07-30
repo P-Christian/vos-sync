@@ -1,5 +1,4 @@
-// src/modules/client/dashboard/components/RecentJobs.tsx
-import React from "react";
+import React, { useState } from "react";
 import { JobPosting } from "../types";
 import {
   Table,
@@ -10,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Users, FolderClosed, Search, Plus } from "lucide-react";
+import { MapPin, Calendar, Users, FolderClosed, Search, Plus, ChevronDown, ChevronUp, ArrowRight } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
@@ -21,6 +20,9 @@ interface RecentJobsProps {
 
 export default function RecentJobs({ jobs }: RecentJobsProps) {
   const router = useRouter();
+  const [expanded, setExpanded] = useState(false);
+
+  const displayedJobs = expanded ? jobs : jobs.slice(0, 5);
 
   const getStatusBadge = (status: JobPosting["status"]) => {
     switch (status) {
@@ -78,48 +80,83 @@ export default function RecentJobs({ jobs }: RecentJobsProps) {
   }
 
   return (
-    <div className="overflow-x-auto border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Job Title</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Department</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Location</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50 text-center">Applicants</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Posted Date</TableHead>
-            <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {jobs.map((job) => (
-            <TableRow key={job.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
-              <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100 py-4">
-                {job.title}
-              </TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">{job.department}</TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                  {job.location}
-                </div>
-              </TableCell>
-              <TableCell className="text-sm text-center">
-                <div className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-full text-zinc-700 dark:text-zinc-300 font-medium">
-                  <Users className="h-3.5 w-3.5 text-zinc-400" />
-                  {job.applicantsCount}
-                </div>
-              </TableCell>
-              <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-zinc-400" />
-                  {formatDateTime(new Date(job.postedAt))}
-                </div>
-              </TableCell>
-              <TableCell className="py-4">{getStatusBadge(job.status)}</TableCell>
+    <div className="overflow-hidden border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-lg rounded-xl flex flex-col">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-zinc-50/50 dark:bg-zinc-900/50">
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Job Title</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Department</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Location</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50 text-center">Applicants</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Posted Date</TableHead>
+              <TableHead className="font-semibold text-zinc-900 dark:text-zinc-50">Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {displayedJobs.map((job) => (
+              <TableRow key={job.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/30 transition-colors">
+                <TableCell className="font-semibold text-zinc-900 dark:text-zinc-100 py-4">
+                  {job.title}
+                </TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">{job.department}</TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                    {job.location}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm text-center">
+                  <div className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900 px-2.5 py-1 rounded-full text-zinc-700 dark:text-zinc-300 font-medium">
+                    <Users className="h-3.5 w-3.5 text-zinc-400" />
+                    {job.applicantsCount}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm text-zinc-600 dark:text-zinc-400">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-zinc-400" />
+                    {formatDateTime(new Date(job.postedAt))}
+                  </div>
+                </TableCell>
+                <TableCell className="py-4">{getStatusBadge(job.status)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {jobs.length > 5 && (
+        <div className="p-3 border-t bg-zinc-50/50 dark:bg-zinc-900/30 flex items-center justify-between gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:text-foreground"
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                Show Less (Showing all {jobs.length})
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
+                Show More ({jobs.length - 5} more jobs)
+              </>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push("/vos-sync/client/jobs")}
+            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/10"
+          >
+            Manage All Jobs
+            <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
