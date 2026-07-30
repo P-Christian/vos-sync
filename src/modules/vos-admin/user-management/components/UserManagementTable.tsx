@@ -89,9 +89,13 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
     if (verifs.some(v => v.status === 'pending')) return 'pending';
     if (verifs.some(v => v.status === 'rejected')) return 'rejected';
     
-    const typesPresent = new Set(verifs.map(v => v.type));
-    if (typesPresent.has('gov_id') && typesPresent.has('address') && typesPresent.has('mobile_number') && verifs.every(v => v.status === 'approved')) {
+    const typesPresent = new Set(verifs.filter(v => v.status === 'approved').map(v => v.type));
+    if (typesPresent.has('gov_id') && typesPresent.has('address') && typesPresent.has('mobile_number')) {
       return 'approved';
+    }
+    
+    if (typesPresent.size > 0) {
+      return 'pending';
     }
     
     return 'not_submitted';
@@ -234,15 +238,26 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
 
                   {/* Actions */}
                   <TableCell className="py-4 pr-6 pl-4 text-right">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => onSelectUser(user)}
-                      className="h-8 px-3 gap-1.5 text-xs font-semibold shadow-xs transition-all hover:scale-102 active:scale-98"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      Review & Verify
-                    </Button>
+                    {(() => {
+                      const hasPendingDocuments = (user.verifications || []).some(v => v.status === 'pending');
+                      return (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => onSelectUser(user)}
+                          className="h-8 px-3 gap-1.5 text-xs font-semibold shadow-xs transition-all hover:scale-102 active:scale-98 relative"
+                        >
+                          {hasPendingDocuments && (
+                            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                            </span>
+                          )}
+                          <Eye className="h-3.5 w-3.5" />
+                          Review & Verify
+                        </Button>
+                      );
+                    })()}
                   </TableCell>
                 </TableRow>
               );

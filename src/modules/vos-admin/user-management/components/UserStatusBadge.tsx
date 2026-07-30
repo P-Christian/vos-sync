@@ -22,7 +22,11 @@ export function UserStatusBadge({ status }: Props) {
   }
   if (status === 'pending') {
     return (
-      <span className="inline-flex items-center rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-50 px-2.5 py-0.5 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
+        <span className="flex h-1.5 w-1.5 relative">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500"></span>
+        </span>
         Pending Review
       </span>
     );

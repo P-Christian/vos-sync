@@ -251,51 +251,49 @@ export async function saveJobPreferencesService(userId: number, payload: any) {
     return await upsertJobPreferencesInDirectus(userId, data);
 }
 
-export function computeProfileCompletion(profile: FreelancerProfile): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
-    let completedSections = 0;
+export function computeProfileCompletion(profile: FreelancerProfile, verifications: any[] = []): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
+    let gov_id = 0;
+    let address = 0;
+    let mobile_number = 0;
+
+    for (const v of verifications || []) {
+        if (v.status === 'approved') {
+            if (v.type === 'gov_id') gov_id = 20;
+            if (v.type === 'address') address = 20;
+            if (v.type === 'mobile_number') mobile_number = 20;
+        }
+    }
+
+    let completedProfileSections = 0;
+    const totalProfileSections = 6;
 
     // 1. Personal Info
     if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) {
-        completedSections++;
+        completedProfileSections++;
     }
-
-    // 2. Contact Info
-    if (profile.user_contact) {
-        completedSections++;
+    // 2. Resume Document
+    if (profile.resumes && profile.resumes.length > 0) {
+        completedProfileSections++;
     }
-
-    // 3. Address
-    if (profile.user_province && profile.user_city) {
-        completedSections++;
-    }
-
-    // 4. Professional Summary
+    // 3. Professional Summary
     if (profile.job_seeker_profile?.[0]?.professional_summary) {
-        completedSections++;
+        completedProfileSections++;
     }
-
-    // 5. Skills
+    // 4. Core Skills
     if (profile.skills && profile.skills.length > 0) {
-        completedSections++;
+        completedProfileSections++;
     }
-
-    // 6. Work Experience
+    // 5. Work Experience History
     if (profile.work_experience && profile.work_experience.length > 0) {
-        completedSections++;
+        completedProfileSections++;
     }
-
-    // 7. Education
+    // 6. Educational Background
     if (profile.education && profile.education.length > 0) {
-        completedSections++;
+        completedProfileSections++;
     }
 
-    // 8. Job Preferences
-    const prefs = profile.job_preferences?.[0];
-    if (prefs && prefs.job_type && prefs.availability) {
-        completedSections++;
-    }
-
-    const percent = Math.round((completedSections / 8) * 100);
+    const profile_sections = Math.round((completedProfileSections / totalProfileSections) * 40);
+    const percent = gov_id + address + mobile_number + profile_sections;
 
     let status: 'not_started' | 'draft' | 'complete' | 'admin_verified' = 'not_started';
     const currentStatus = profile.job_seeker_profile?.[0]?.profile_status;

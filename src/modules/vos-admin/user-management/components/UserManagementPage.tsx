@@ -51,9 +51,13 @@ export function UserManagementPage() {
     if (verifs.some(v => v.status === 'pending')) return 'pending';
     if (verifs.some(v => v.status === 'rejected')) return 'rejected';
     
-    const typesPresent = new Set(verifs.map(v => v.type));
-    if (typesPresent.has('gov_id') && typesPresent.has('address') && typesPresent.has('mobile_number') && verifs.every(v => v.status === 'approved')) {
+    const typesPresent = new Set(verifs.filter(v => v.status === 'approved').map(v => v.type));
+    if (typesPresent.has('gov_id') && typesPresent.has('address') && typesPresent.has('mobile_number')) {
       return 'approved';
+    }
+    
+    if (typesPresent.size > 0) {
+      return 'pending';
     }
     
     return 'not_submitted';

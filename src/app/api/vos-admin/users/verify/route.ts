@@ -44,6 +44,15 @@ export async function POST(req: NextRequest) {
       rejectionNote
     );
 
+    if (verification && verification.user_id) {
+      try {
+        const { recalculateAndPersistScoreForUser } = await import("@/modules/freelancer/freelancer-profile/services/identity-verification.service");
+        await recalculateAndPersistScoreForUser(verification.user_id);
+      } catch (err) {
+        console.error("Failed to auto-recalculate score after admin review:", err);
+      }
+    }
+
     createAuditRecordRepo({
       event_type: status === 'approved' ? "IDENTITY_VERIFICATION_APPROVED" : "IDENTITY_VERIFICATION_REJECTED",
       event_category: "USER",

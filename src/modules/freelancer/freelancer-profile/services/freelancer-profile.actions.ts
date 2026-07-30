@@ -407,7 +407,9 @@ export async function saveAllProfileChangesAction(payload: any) {
         if (token) {
             const updatedProfile = await getFreelancerProfile(token);
             if (updatedProfile && updatedProfile.job_seeker_profile?.[0]) {
-                const { percent, status } = computeProfileCompletion(updatedProfile);
+                const { fetchUserVerifications } = await import("./identity-verification.repo");
+                const verifications = await fetchUserVerifications(updatedProfile.user_id);
+                const { percent, status } = computeProfileCompletion(updatedProfile, verifications);
                 await updateJobSeekerProfileCompletion(updatedProfile.job_seeker_profile[0].profile_id, percent, status);
             }
         }
