@@ -1,3 +1,5 @@
+import { getPHTimeString } from "@/lib/utils";
+
 export interface IdentityVerification {
     id: number;
     user_id: number;
@@ -56,6 +58,7 @@ export async function createVerificationSubmission(data: Partial<IdentityVerific
             user_id: data.user_id,
             type: data.type,
             status: data.status || 'pending',
+            submitted_at: getPHTimeString(),
             gov_id_type: data.gov_id_type || null,
             gov_id_front_image_uuid: data.gov_id_front_image_uuid || null,
             gov_id_selfie_image_uuid: data.gov_id_selfie_image_uuid || null,
@@ -96,8 +99,8 @@ export async function approveMobileVerification(userId: number, mobileNumber: st
         : `${baseUrl}/items/vs_identity_verifications`;
     const method = existingId ? "PATCH" : "POST";
     const body = existingId 
-        ? { status: 'approved', mobile_number: mobileNumber, mobile_verified: 1 }
-        : { user_id: userId, type: 'mobile_number', status: 'approved', mobile_number: mobileNumber, mobile_verified: 1 };
+        ? { status: 'approved', mobile_number: mobileNumber, mobile_verified: 1, reviewed_at: getPHTimeString() }
+        : { user_id: userId, type: 'mobile_number', status: 'approved', mobile_number: mobileNumber, mobile_verified: 1, submitted_at: getPHTimeString(), reviewed_at: getPHTimeString() };
         
     const res = await fetch(url, {
         method,

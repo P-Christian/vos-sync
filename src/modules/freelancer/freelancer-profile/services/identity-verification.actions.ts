@@ -72,6 +72,9 @@ export async function submitIdentityVerificationAction(payload: Partial<Identity
             status: "pending"
         });
 
+        const { recalculateAndPersistScoreForUser } = await import("./identity-verification.service");
+        await recalculateAndPersistScoreForUser(profile.user_id, profile.user_email);
+
         revalidatePath("/(vos-sync)/vos-sync/freelancer/verify-identity");
         return { success: true };
     } catch (error) {
@@ -114,6 +117,9 @@ export async function verifyMobileOtpAction(mobileNumber: string, otp: string) {
         }
 
         await approveMobileVerification(profile.user_id, mobileNumber);
+
+        const { recalculateAndPersistScoreForUser } = await import("./identity-verification.service");
+        await recalculateAndPersistScoreForUser(profile.user_id, profile.user_email);
 
         revalidatePath("/(vos-sync)/vos-sync/freelancer/verify-identity");
         return { success: true };

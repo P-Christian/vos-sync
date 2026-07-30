@@ -16,21 +16,25 @@ function getHeaders(): Record<string, string> {
 export async function fetchUsersRepo(
   roleId?: number,
   search?: string,
-  page: number = 1,
-  limit: number = 10
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _page: number = 1,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _limit: number = 10
 ): Promise<{ users: VsUser[]; total: number }> {
   const queries: string[] = [];
 
-  // Pagination parameters
-  queries.push(`limit=${limit}`);
-  queries.push(`page=${page}`);
-  queries.push('meta=filter_count');
+  // Fetch all matching users for client-side pagination & KPI calculation
+  queries.push('limit=-1');
+  queries.push('fields=*,job_seeker_profile.*,vs_job_seeker_profile.*,job_preferences.*,vs_job_preferences.*');
   queries.push('sort=-user_id');
 
   // Filter conditions
   const filterParams: string[] = [];
 
-  // Filter by role_id
+  // Exclude client accounts (role_id === 2)
+  filterParams.push(`"role_id":{"_neq":2}`);
+
+  // Filter by role_id if specifically requested
   if (roleId && roleId !== 0) {
     filterParams.push(`"role_id":{"_eq":${roleId}}`);
   }
@@ -59,13 +63,15 @@ export async function fetchUsersRepo(
 
   const json = await res.json();
   const users = json.data || [];
-  const total = json.meta?.filter_count ?? users.length;
+  const total = users.length;
 
   // Let's also fetch verification status summaries for these users to display in the table
   const userIds = users.map((u: VsUser) => u.user_id);
   const verificationsMap: Record<number, IdentityVerification[]> = {};
+  const preferencesMap: Record<number, unknown> = {};
 
   if (userIds.length > 0) {
+    // Fetch verifications
     const verifUrl = `${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_in]=${userIds.join(',')}&limit=-1`;
     const verifRes = await fetch(verifUrl, { headers: getHeaders(), cache: "no-store" });
     if (verifRes.ok) {
@@ -78,11 +84,23 @@ export async function fetchUsersRepo(
         verificationsMap[v.user_id].push(v);
       });
     }
+
+    // Fetch job preferences directly
+    const prefsUrl = `${DIRECTUS_BASE}/items/vs_job_preferences?filter[user_id][_in]=${userIds.join(',')}&limit=-1`;
+    const prefsRes = await fetch(prefsUrl, { headers: getHeaders(), cache: "no-store" });
+    if (prefsRes.ok) {
+      const prefsJson = await prefsRes.json();
+      const allPrefs = prefsJson.data || [];
+      allPrefs.forEach((p: { user_id: number }) => {
+        preferencesMap[p.user_id] = p;
+      });
+    }
   }
 
   const usersWithVerif = users.map((user: VsUser) => ({
     ...user,
-    verifications: verificationsMap[user.user_id] || []
+    verifications: verificationsMap[user.user_id] || [],
+    job_preferences: (preferencesMap[user.user_id] as VsUser['job_preferences']) || null
   }));
 
   return {
@@ -92,7 +110,7 @@ export async function fetchUsersRepo(
 }
 
 export async function fetchUserDetailRepo(userId: number): Promise<VsUser | null> {
-  const url = `${DIRECTUS_BASE}/items/vs_user/${userId}`;
+  const url = `${DIRECTUS_BASE}/items/vs_user/${userId}?fields=*,job_seeker_profile.*,vs_job_seeker_profile.*`;
   const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
   if (!res.ok) {
     if (res.status === 404) return null;
@@ -112,9 +130,20 @@ export async function fetchUserDetailRepo(userId: number): Promise<VsUser | null
     verifications = verifJson.data || [];
   }
 
+  // Fetch job preferences directly for this user
+  const prefsUrl = `${DIRECTUS_BASE}/items/vs_job_preferences?filter[user_id][_eq]=${userId}&limit=1`;
+  const prefsRes = await fetch(prefsUrl, { headers: getHeaders(), cache: "no-store" });
+  let job_preferences = null;
+  if (prefsRes.ok) {
+    const prefsJson = await prefsRes.json();
+    const data = prefsJson.data || [];
+    job_preferences = data.length > 0 ? data[0] : null;
+  }
+
   return {
     ...user,
-    verifications
+    verifications,
+    job_preferences
   };
 }
 

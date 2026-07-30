@@ -185,6 +185,29 @@ export async function registerUser(body: unknown) {
 
     const newUser = await createUser(newUserPayload);
 
+    // Seed draft profile for Freelancers (role_id === 1)
+    const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const envToken = process.env.DIRECTUS_STATIC_TOKEN;
+    if (role_id === 1 && envApiBase && envToken) {
+        try {
+            await fetch(`${envApiBase}/items/vs_job_seeker_profile`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${envToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    user_id: newUser.user_id,
+                    profile_status: "draft",
+                    profile_completion_percent: 0,
+                    profile_visibility: "Public"
+                })
+            });
+        } catch (err) {
+            console.error("Failed to seed job seeker profile on registration:", err);
+        }
+    }
+
     createAuditRecordRepo({
         event_type: "USER_REGISTERED",
         event_category: "USER",
