@@ -12,7 +12,7 @@ import { Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function UserManagementPage() {
-  const { users, total, loading, error, fetchUsers, reviewIdentity } = useUsers();
+  const { users, loading, error, fetchUsers, reviewIdentity } = useUsers();
   
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [verificationFilter, setVerificationFilter] = useState<string>("ALL");

@@ -14,13 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Eye,
   Users,
-  Calendar,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { VsUser } from "../types/user.types";
 import { UserStatusBadge } from "./UserStatusBadge";
-
+ 
 interface UserManagementTableProps {
   users: VsUser[];
   loading: boolean;
@@ -29,9 +28,9 @@ interface UserManagementTableProps {
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
-
+ 
 export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   users,
   loading,
@@ -40,7 +39,8 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   pageSize,
   totalCount,
   onPageChange,
-  onPageSizeChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onPageSizeChange: _onPageSizeChange,
 }) => {
   const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
   const getImageUrl = (uuid: string) => `${DIRECTUS_BASE}/assets/${uuid}`;
@@ -103,7 +103,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
 
   const getJobSeekerProfile = (user: VsUser) => {
     const profile = user.job_seeker_profile || user.vs_job_seeker_profile;
-    return Array.isArray(profile) ? profile[0] : profile;
+    return (Array.isArray(profile) ? profile[0] : profile) as Record<string, string | number | null | undefined>;
   };
 
   const getUserAvatarUrl = (user: VsUser) => {
@@ -167,6 +167,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs group-hover:scale-105 transition-transform overflow-hidden">
                         {avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={avatarUrl}
                             alt={`${user.user_fname} ${user.user_lname}`}

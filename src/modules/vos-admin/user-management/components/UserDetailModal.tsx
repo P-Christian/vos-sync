@@ -64,12 +64,12 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
 
   const getJobSeekerProfile = (user: VsUser) => {
     const profile = user.job_seeker_profile || user.vs_job_seeker_profile;
-    return Array.isArray(profile) ? profile[0] : profile;
+    return (Array.isArray(profile) ? profile[0] : profile) as Record<string, string | number | null | undefined>;
   };
 
   const getJobPreferences = (user: VsUser) => {
     const prefs = user.job_preferences || user.vs_job_preferences;
-    return Array.isArray(prefs) ? prefs[0] : prefs;
+    return (Array.isArray(prefs) ? prefs[0] : prefs) as Record<string, string | number | null | undefined>;
   };
 
   const getUserAvatarUrl = (user: VsUser) => {
@@ -138,14 +138,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
       ? "bg-amber-500"
       : "bg-rose-500";
 
-  // Helper to format currency
-  const formatSalary = (val: string | number | null | undefined) => {
-    if (!val) return "Not Specified";
-    const num = Number(val);
-    return isNaN(num) ? String(val) : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(num);
-  };
-
-  const formatSalaryRange = (min: any, max: any, curr: string | null | undefined) => {
+  const formatSalaryRange = (min: string | number | null | undefined, max: string | number | null | undefined, curr: string | null | undefined) => {
     if (!min && !max) return "Not Specified";
     const currency = curr || "PHP";
     const formatter = new Intl.NumberFormat("en-PH", { style: "currency", currency, maximumFractionDigits: 0 });
@@ -170,6 +163,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/15 via-primary/10 to-primary/5 text-primary border border-primary/20 flex items-center justify-center font-bold text-base shrink-0 overflow-hidden">
                   {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarUrl}
                       alt={`${user.user_fname} ${user.user_lname}`}
@@ -193,7 +187,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
               </div>
             </div>
           </DialogHeader>
-
+ 
           {/* Tabbed Content Container */}
           <div className="flex-1 overflow-y-auto p-6">
             <Tabs defaultValue="profile" className="w-full">
@@ -207,7 +201,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                   Identity Documents ({verifications.length})
                 </TabsTrigger>
               </TabsList>
-
+ 
               {/* Tab 1: Profile Details */}
               <TabsContent value="profile" className="space-y-6 text-sm outline-none">
                 {/* Completion Banner (if Freelancer) */}
@@ -234,7 +228,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                     </div>
                   </div>
                 )}
-
+ 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Personal Info card */}
                   <div className="p-5 border rounded-2xl bg-card space-y-4 shadow-sm">
@@ -242,6 +236,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-12 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-lg overflow-hidden">
                         {avatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={avatarUrl}
                             alt={`${user.user_fname} ${user.user_lname}`}
@@ -335,7 +330,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
                           <div>
                             <span className="text-[10px] font-semibold text-muted-foreground uppercase block">Salary Range</span>
                             <span className="font-semibold text-foreground text-sm">
-                              {formatSalaryRange(prefsObj.salary_range_min, prefsObj.salary_range_max, prefsObj.currency)}
+                              {formatSalaryRange(prefsObj.salary_range_min, prefsObj.salary_range_max, prefsObj.currency as string | null | undefined)}
                             </span>
                           </div>
                           <div>
@@ -545,6 +540,7 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
           </div>
           <div className="p-4 flex items-center justify-center bg-muted/10 overflow-hidden">
             {previewImage && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={previewImage.url}
                 alt={previewImage.title}

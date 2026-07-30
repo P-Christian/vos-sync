@@ -43,7 +43,7 @@ export async function recalculateAndPersistScoreForUser(userId: number, email?: 
         const verifications = await fetchUserVerifications(profile.user_id);
         const { percent, status } = computeProfileCompletion(profile, verifications);
 
-        const profileObj = profile.job_seeker_profile || (profile as any).vs_job_seeker_profile;
+        const profileObj = profile.job_seeker_profile || profile.vs_job_seeker_profile;
         const profileData = Array.isArray(profileObj) ? profileObj[0] : profileObj;
 
         if (profileData && profileData.profile_id) {

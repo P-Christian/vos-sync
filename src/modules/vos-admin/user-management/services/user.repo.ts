@@ -16,8 +16,10 @@ function getHeaders(): Record<string, string> {
 export async function fetchUsersRepo(
   roleId?: number,
   search?: string,
-  page: number = 1,
-  limit: number = 10
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _page: number = 1,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _limit: number = 10
 ): Promise<{ users: VsUser[]; total: number }> {
   const queries: string[] = [];
 
@@ -66,7 +68,7 @@ export async function fetchUsersRepo(
   // Let's also fetch verification status summaries for these users to display in the table
   const userIds = users.map((u: VsUser) => u.user_id);
   const verificationsMap: Record<number, IdentityVerification[]> = {};
-  const preferencesMap: Record<number, any> = {};
+  const preferencesMap: Record<number, unknown> = {};
 
   if (userIds.length > 0) {
     // Fetch verifications
@@ -89,7 +91,7 @@ export async function fetchUsersRepo(
     if (prefsRes.ok) {
       const prefsJson = await prefsRes.json();
       const allPrefs = prefsJson.data || [];
-      allPrefs.forEach((p: any) => {
+      allPrefs.forEach((p: { user_id: number }) => {
         preferencesMap[p.user_id] = p;
       });
     }
@@ -98,7 +100,7 @@ export async function fetchUsersRepo(
   const usersWithVerif = users.map((user: VsUser) => ({
     ...user,
     verifications: verificationsMap[user.user_id] || [],
-    job_preferences: preferencesMap[user.user_id] || null
+    job_preferences: (preferencesMap[user.user_id] as VsUser['job_preferences']) || null
   }));
 
   return {
