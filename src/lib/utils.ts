@@ -19,6 +19,10 @@ export function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+export function getPHTimeString(): string {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ");
+}
+
 export function formatDateLong(d: Date, locale: string = "en-PH"): string {
   return new Intl.DateTimeFormat(locale, {
     year: "numeric",

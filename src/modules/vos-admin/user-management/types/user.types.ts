@@ -19,6 +19,82 @@ export interface VsUser {
   profile_image_url?: string | null;
   isAdmin: boolean | number;
   verifications?: IdentityVerification[];
+  vs_job_seeker_profile?: {
+    profile_id?: number;
+    profile_headline?: string | null;
+    professional_summary?: string | null;
+    profile_visibility?: string | null;
+    expected_salary?: number | string | null;
+    profile_completion_percent?: number | string | null;
+    profile_status?: string | null;
+  } | {
+    profile_id?: number;
+    profile_headline?: string | null;
+    professional_summary?: string | null;
+    profile_visibility?: string | null;
+    expected_salary?: number | string | null;
+    profile_completion_percent?: number | string | null;
+    profile_status?: string | null;
+  }[] | null;
+  job_seeker_profile?: {
+    profile_id?: number;
+    profile_headline?: string | null;
+    professional_summary?: string | null;
+    profile_visibility?: string | null;
+    expected_salary?: number | string | null;
+    profile_completion_percent?: number | string | null;
+    profile_status?: string | null;
+  } | {
+    profile_id?: number;
+    profile_headline?: string | null;
+    professional_summary?: string | null;
+    profile_visibility?: string | null;
+    expected_salary?: number | string | null;
+    profile_completion_percent?: number | string | null;
+    profile_status?: string | null;
+  }[] | null;
+  vs_job_preferences?: {
+    id?: number;
+    job_type?: string | null;
+    work_setup?: string | null;
+    preferred_location?: string | null;
+    salary_range_min?: number | string | null;
+    salary_range_max?: number | string | null;
+    currency?: string | null;
+    availability?: string | null;
+    preferred_industry?: string | null;
+  } | {
+    id?: number;
+    job_type?: string | null;
+    work_setup?: string | null;
+    preferred_location?: string | null;
+    salary_range_min?: number | string | null;
+    salary_range_max?: number | string | null;
+    currency?: string | null;
+    availability?: string | null;
+    preferred_industry?: string | null;
+  }[] | null;
+  job_preferences?: {
+    id?: number;
+    job_type?: string | null;
+    work_setup?: string | null;
+    preferred_location?: string | null;
+    salary_range_min?: number | string | null;
+    salary_range_max?: number | string | null;
+    currency?: string | null;
+    availability?: string | null;
+    preferred_industry?: string | null;
+  } | {
+    id?: number;
+    job_type?: string | null;
+    work_setup?: string | null;
+    preferred_location?: string | null;
+    salary_range_min?: number | string | null;
+    salary_range_max?: number | string | null;
+    currency?: string | null;
+    availability?: string | null;
+    preferred_industry?: string | null;
+  }[] | null;
 }
 
 export interface IdentityVerification {
@@ -38,6 +114,13 @@ export interface IdentityVerification {
   mobile_verified?: boolean | number;
 }
 
+export interface UserManagementKPIs {
+  totalCount: number;
+  pendingCount: number;
+  approvedCount: number;
+  rejectedCount: number;
+}
+
 export interface UserWithVerification extends VsUser {
   verifications: IdentityVerification[];
 }
@@ -46,3 +129,4 @@ export interface ReviewVerificationAction {
   status: 'approved' | 'rejected';
   rejection_note?: string;
 }
+

@@ -135,6 +135,7 @@ export interface FreelancerProfile {
     
     // Relational fields fetched via Directus
     job_seeker_profile?: VsJobSeekerProfile[];
+    vs_job_seeker_profile?: VsJobSeekerProfile[];
     job_preferences?: VsJobPreferences[];
     social_links?: VsUserSocialLink[];
     work_experience?: VsWorkExperience[];
