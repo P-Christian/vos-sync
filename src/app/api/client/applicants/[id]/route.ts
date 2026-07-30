@@ -1,11 +1,11 @@
 
-// src/app/api/client/applicants/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -574,10 +574,7 @@ export async function PATCH(
       );
     }
 
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     const payload: Record<string, unknown> = {
       application_status: body.application_status,

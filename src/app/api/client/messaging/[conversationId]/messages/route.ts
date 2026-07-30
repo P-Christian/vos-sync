@@ -1,7 +1,6 @@
-// src/app/api/client/messaging/[conversationId]/messages/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { checkRestriction } from "@/lib/status-validator";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -365,10 +364,7 @@ export async function POST(
       );
     }
 
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     // Insert message
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {

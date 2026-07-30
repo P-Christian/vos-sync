@@ -82,6 +82,7 @@ function isSameDayStr(a: string, b: string): boolean {
     dateA.getDate() === dateB.getDate()
   );
 }
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -89,6 +90,32 @@ function getInitials(name: string): string {
     .map((n) => n[0] ?? "")
     .join("")
     .toUpperCase();
+}
+
+function filterLatestInterviewCards(msgs: Message[]): Message[] {
+  let latestRescheduledMsgId: number | null = null;
+
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    if (
+      m.message_type === "SYSTEM" &&
+      m.system_message?.event_type === "INTERVIEW_UPDATED"
+    ) {
+      if (latestRescheduledMsgId === null || m.message_id > latestRescheduledMsgId) {
+        latestRescheduledMsgId = m.message_id;
+      }
+    }
+  }
+
+  return msgs.filter((m) => {
+    if (
+      m.message_type === "SYSTEM" &&
+      m.system_message?.event_type === "INTERVIEW_UPDATED"
+    ) {
+      return m.message_id === latestRescheduledMsgId;
+    }
+    return true;
+  });
 }
 
 export default function ChatPanel({
@@ -109,6 +136,11 @@ export default function ChatPanel({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = React.useState(false);
+
+  const displayMessages = React.useMemo(
+    () => filterLatestInterviewCards(messages),
+    [messages]
+  );
 
   const {
     other_party_name = "Freelancer",
@@ -315,9 +347,9 @@ export default function ChatPanel({
               </div>
             )}
 
-            {messages.map((msg, index) => {
+            {displayMessages.map((msg, index) => {
               const isOwn = msg.sender_id === currentUserId;
-              const prevMsg = messages[index - 1];
+              const prevMsg = displayMessages[index - 1];
               const showDateDivider =
                 !prevMsg ||
                 !isSameDayStr(prevMsg.created_at, msg.created_at);

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendHiringEmail, sendRejectionEmail, sendInterviewRescheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,10 +82,7 @@ export async function PATCH(
     const type = body?.type;
     const payload = body?.payload;
 
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     if (type === "DETAILS") {
       const updateData: Record<string, unknown> = {

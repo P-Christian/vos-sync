@@ -67,7 +67,7 @@ export default async function DashboardLayout({
         <UserProfileProvider user={userProfile}>
             <BfCacheBuster />
             <SidebarProvider>
-            <Suspense fallback={<div className="w-64 border-r bg-sidebar" />}>
+            <Suspense fallback={<div className="group peer text-sidebar-foreground hidden md:block w-64 border-r border-sidebar-border/60 bg-sidebar h-full" />}>
                 <AppSidebar />
             </Suspense>
 
