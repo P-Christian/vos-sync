@@ -2,17 +2,31 @@
 
 // src/modules/freelancer/freelancer-messaging/hooks/useConversations.ts
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Conversation } from "../types";
 import {
   fetchConversations,
   archiveConversation,
 } from "../providers/MessagingProvider";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const { subscribe } = useRealtime();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_messages", () => {
+      fetchConversations()
+        .then((data) => {
+          if (data) setConversations(data);
+        })
+        .catch(() => {});
+    });
+    return () => unsubscribe();
+  }, [subscribe]);
 
   const loadConversations = useCallback(
     async (opts?: { archived?: boolean }) => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import * as React from "react";
@@ -70,12 +71,30 @@ export function AppSidebar({
     className,
     ...props
 }: React.ComponentProps<typeof Sidebar>) {
+    const [mounted, setMounted] = React.useState(false);
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const portal = searchParams.get("portal");
     const userProfile = useUserProfile();
     const isGuest = !userProfile || userProfile.email === "guest@example.com";
     const role = userProfile?.role;
+
+    if (!mounted) {
+        return (
+            <Sidebar
+                {...props}
+                className={cn(
+                    "border-r border-sidebar-border/60 dark:border-white/20",
+                    "shadow-sm dark:shadow-[0_0_0_1px_rgba(255,255,255,0.10),0_16px_40px_-24px_rgba(0,0,0,0.9)]",
+                    className
+                )}
+            />
+        );
+    }
 
     if (role === "FREELANCER" || pathname.startsWith("/vos-sync/freelancer") || (isGuest && pathname.startsWith("/vos-sync/public")) || portal === "freelancer") {
         const FREELANCER_SIDEBAR_CONFIG: SidebarConfig = {
@@ -181,7 +200,8 @@ export function AppSidebar({
                                         alt="VOS Logo"
                                         width={40}
                                         height={40}
-                                        className="h-9 w-10 object-contain"
+                                        style={{ width: "auto", height: "auto" }}
+                                        className="max-h-9 max-w-10 object-contain"
                                         priority
                                     />
                                 </div>

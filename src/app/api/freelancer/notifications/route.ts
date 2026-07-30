@@ -51,10 +51,16 @@ export async function GET(req: NextRequest) {
       filterQuery += `&filter[is_read][_eq]=0`;
     }
 
-    const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_freelancer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}`,
-      { headers: getHeaders(), cache: "no-store" }
-    );
+    let res: Response;
+    try {
+      res = await fetch(
+        `${DIRECTUS_BASE}/items/vs_freelancer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+    } catch (fetchErr: unknown) {
+      console.warn("[Freelancer notifications] Upstream socket/network error:", fetchErr instanceof Error ? fetchErr.message : fetchErr);
+      return NextResponse.json({ notifications: [], unreadCount: 0 }, { status: 200 });
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

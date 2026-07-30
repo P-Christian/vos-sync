@@ -5,6 +5,7 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInterviews } from "./hooks/useInterviews";
+import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import InterviewList from "./components/InterviewList";
 import InterviewForm from "./components/InterviewForm";
 import InterviewDetailsModal from "./components/InterviewDetailsModal";
@@ -41,6 +42,17 @@ export default function InterviewsModule() {
     clearMessages,
     EMPTY_FORM,
   } = useInterviews();
+
+  const { subscribe } = useRealtime();
+
+  useEffect(() => {
+    const unsubscribe = subscribe("vs_interview_schedule", ({ data }) => {
+      if (data && data.length > 0) {
+        loadInterviews();
+      }
+    });
+    return () => unsubscribe();
+  }, [subscribe, loadInterviews]);
 
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [formData, setFormData] = useState<InterviewFormData>(EMPTY_FORM);

@@ -67,16 +67,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch notifications flat — no relational join to avoid Directus config dependency
-    const notifRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_employer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=notification_id,user_id,event_id,category,title,message,action_url,is_read,created_at`,
-      {
-        headers: getHeaders(),
-        cache: "no-store",
-      }
-    );
+    let notifRes: Response;
+    try {
+      notifRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_employer_notification?${filterQuery}&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=notification_id,user_id,event_id,category,title,message,action_url,is_read,created_at`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      );
+    } catch (fetchErr: unknown) {
+      console.warn("[Employer notifications] Upstream socket/network error:", fetchErr instanceof Error ? fetchErr.message : fetchErr);
+      return NextResponse.json({ notifications: [] }, { status: 200 });
+    }
 
     if (!notifRes.ok) {
-      const text = await notifRes.text();
+      const text = await notifRes.text().catch(() => "");
       console.error("[Employer notifications] Directus fetch error:", text);
       return NextResponse.json(
         { error: "Failed to fetch notifications." },
