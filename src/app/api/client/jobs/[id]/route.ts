@@ -148,6 +148,13 @@ export async function PATCH(
       if (key in body) safePayload[key] = body[key];
     }
 
+    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
+    safePayload.updated_at = nowPH;
+
     const updatedJob = await jobService.updateJob(id, safePayload);
     const jobWithCompany = await attachCompanyToJob(updatedJob);
 

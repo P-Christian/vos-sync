@@ -215,6 +215,7 @@ export async function POST(req: NextRequest) {
       status: targetStatus,
       is_deleted: 0,
       created_at: nowPH,
+      updated_at: nowPH,
     };
 
     const createdJob = await jobService.createJob(jobPayload);
