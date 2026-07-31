@@ -193,6 +193,10 @@ export default async function Page() {
         redirect("/vos-sync/client/dashboard");
       } else if (userRole === "FREELANCER" || roleId === 1) {
         redirect("/vos-sync/freelancer/dashboard");
+      } else if (userRole === "ADMIN" || roleId === 3) {
+        redirect("/vos-sync/vos-admin");
+      } else if (userRole === "SCHOOL_ADMIN" || roleId === 4) {
+        redirect("/vos-sync/school-admin");
       } else {
         redirect("/main-dashboard");
       }
