@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" rx="32" fill="#F8FAFC"/>
+  <!-- UI Window -->
+  <rect x="120" y="90" width="560" height="420" rx="24" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4"/>
+  <!-- Security Shield Icon -->
+  <path d="M400 140L470 175V260C470 315 440 365 400 380C360 365 330 315 330 260V175L400 140Z" fill="#EFF6FF" stroke="#2563EB" stroke-width="6"/>
+  <path d="M375 255L392 272L428 236" stroke="#2563EB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- OTP Input Boxes -->
+  <g transform="translate(180, 410)">
+    <rect x="0" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#2563EB" stroke-width="3"/>
+    <text x="30" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#2563EB" text-anchor="middle">5</text>
+
+    <rect x="75" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#2563EB" stroke-width="3"/>
+    <text x="105" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#2563EB" text-anchor="middle">8</text>
+
+    <rect x="150" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#2563EB" stroke-width="3"/>
+    <text x="180" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#2563EB" text-anchor="middle">2</text>
+
+    <rect x="225" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+    <text x="255" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#94A3B8" text-anchor="middle">•</text>
+
+    <rect x="300" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+    <text x="330" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#94A3B8" text-anchor="middle">•</text>
+
+    <rect x="375" y="0" width="60" height="60" rx="14" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+    <text x="405" y="40" font-family="sans-serif" font-size="28" font-weight="bold" fill="#94A3B8" text-anchor="middle">•</text>
+  </g>
+</svg>

@@ -12,6 +12,7 @@ import {
     Bell,
     Settings2,
     MessageSquare,
+    HelpCircle,
 } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -104,6 +105,7 @@ export function AppSidebar({
             navItems: isGuest
                 ? [
                     { label: "Find Work", href: "/vos-sync/freelancer/jobs", icon: Briefcase },
+                    { label: "How It Works", href: "/vos-sync/freelancer/how-it-works", icon: HelpCircle },
                   ]
                 : [
                     { label: "Dashboard", href: "/vos-sync/freelancer/dashboard", icon: LayoutDashboard },
@@ -113,6 +115,7 @@ export function AppSidebar({
                     { label: "Messages", href: "/vos-sync/freelancer/messaging", icon: MessageSquare },
                     { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
                     { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
+                    // { label: "How It Works", href: "/vos-sync/freelancer/how-it-works", icon: HelpCircle },
                     { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
                   ],
             footerLinks: [
@@ -135,6 +138,7 @@ export function AppSidebar({
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
                 { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
                 { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },
+                // { label: "How It Works", href: "/vos-sync/client/how-it-works", icon: HelpCircle },
                 { label: "Settings", href: "/vos-sync/client/settings", icon: Settings2 },
             ],
             footerLinks: [],
@@ -150,6 +154,7 @@ export function AppSidebar({
             navItems: [
                 { label: "Dashboard", href: "/vos-sync/school-admin", icon: LayoutDashboard },
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
+                // { label: "How It Works", href: "/vos-sync/school-admin/how-it-works", icon: HelpCircle },
                 { label: "Settings", href: "/vos-sync/school-admin/settings", icon: Settings2 },
             ],
             footerLinks: [

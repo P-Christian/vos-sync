@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -132,6 +133,17 @@ export async function GET(req: NextRequest) {
       }
     }
 
+function resolveAssetUrl(idStr: unknown): string | null {
+  if (!idStr || typeof idStr !== "string" || !idStr.trim()) return null;
+  const t = idStr.trim();
+  if (t.startsWith("http://") || t.startsWith("https://")) return t;
+  if (t.startsWith("/api/assets/")) return t;
+  if (t.startsWith("/assets/")) return `/api${t}`;
+  const parts = t.split("/");
+  const fileId = parts[parts.length - 1];
+  return fileId ? `/api/assets/${fileId}` : null;
+}
+
     /**
      * Batch fetch primary contacts / users from vs_company_user
      */
@@ -144,33 +156,165 @@ export async function GET(req: NextRequest) {
           const cuJson = await cuRes.json();
           const cus: Record<string, unknown>[] = cuJson.data || [];
           
-          // Get unique user IDs to resolve names/emails
-          const uids = Array.from(new Set(cus.map((cu) => Number(cu.user_id)).filter(Boolean)));
-          const vsUserMap: Record<number, { user_fname?: string; user_lname?: string; user_email?: string }> = {};
+          // Get unique user IDs to resolve names/emails and government ID verifications
+          const uidsFromCU = cus
+            .map((cu) => {
+              const rawId = typeof cu.user_id === "object" && cu.user_id !== null ? (cu.user_id as Record<string, unknown>).user_id : cu.user_id;
+              return Number(rawId);
+            })
+            .filter(Boolean);
+          const uidsFromCompanies = companies
+            .map((c) => Number(c.created_by_user_id))
+            .filter(Boolean);
+          const uids = Array.from(new Set([...uidsFromCU, ...uidsFromCompanies]));
+
+          const vsUserMap: Record<number, { user_fname?: string; user_lname?: string; user_email?: string; user_contact?: string; user_position?: string; gov_id_type?: string; gov_id_front_image_uuid?: string; gov_id_back_image_uuid?: string }> = {};
+          const vsIdVerMap: Record<number, Record<string, unknown>> = {};
 
           if (uids.length > 0) {
-            const vsUserUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${uids.join(",")}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
-            const uRes = await fetch(vsUserUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+            const [uRes, idVerRes] = await Promise.all([
+              fetch(`${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${uids.join(",")}&fields=*&limit=-1`, { headers: getDirectusHeaders(), cache: "no-store" }),
+              fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_in]=${uids.join(",")}&limit=-1`, { headers: getDirectusHeaders(), cache: "no-store" }),
+            ]);
+
             if (uRes.ok) {
               const uJson = await uRes.json();
               const uList = uJson.data || [];
-              uList.forEach((u: { user_id: number; user_fname?: string; user_lname?: string; user_email?: string }) => {
-                vsUserMap[u.user_id] = u;
+              uList.forEach((u: Record<string, unknown>) => {
+                const uid = Number(u.user_id);
+                vsUserMap[uid] = {
+                  user_fname: (u.user_fname as string) || "",
+                  user_lname: (u.user_lname as string) || "",
+                  user_email: (u.user_email as string) || "",
+                  user_contact: (u.user_contact as string) || "",
+                  user_position: (u.user_position as string) || "",
+                  gov_id_type: (u.gov_id_type as string) || "",
+                  gov_id_front_image_uuid: (u.gov_id_front_image_uuid as string) || "",
+                  gov_id_back_image_uuid: (u.gov_id_back_image_uuid as string) || "",
+                };
+              });
+            }
+
+            if (idVerRes.ok) {
+              const idVerJson = await idVerRes.json();
+              const idVerList = idVerJson.data || [];
+              idVerList.forEach((v: Record<string, unknown>) => {
+                const uid = Number(v.user_id);
+                if (!vsIdVerMap[uid]) {
+                  const frontUuid = (v.gov_id_front_image_uuid || v.gov_id_file_id) as string | null;
+                  const backUuid = (v.gov_id_back_image_uuid) as string | null;
+
+                  vsIdVerMap[uid] = {
+                    id: v.id,
+                    gov_id_type: v.gov_id_type || "Government ID",
+                    gov_id_front_image_uuid: frontUuid,
+                    gov_id_back_image_uuid: backUuid,
+                    gov_id_front_url: resolveAssetUrl(frontUuid),
+                    gov_id_back_url: resolveAssetUrl(backUuid),
+                    status: v.status || "pending",
+                    submitted_at: v.submitted_at || null,
+                  };
+                }
               });
             }
           }
 
           cus.forEach((cu) => {
             const cid = Number(cu.company_id);
-            const uid = Number(cu.user_id);
+            const rawUid = typeof cu.user_id === "object" && cu.user_id !== null ? (cu.user_id as Record<string, unknown>).user_id : cu.user_id;
+            const uid = Number(rawUid);
             const uInfo = vsUserMap[uid] || {};
+            const cuUserObj = typeof cu.user_id === "object" && cu.user_id !== null ? (cu.user_id as Record<string, unknown>) : null;
+
+            const userFname = String(uInfo.user_fname ?? cuUserObj?.user_fname ?? cu.user_fname ?? "").trim();
+            const userLname = String(uInfo.user_lname ?? cuUserObj?.user_lname ?? cu.user_lname ?? "").trim();
+            const userEmail = String(uInfo.user_email ?? cuUserObj?.user_email ?? cu.user_email ?? "").trim();
+            const userContact = String(uInfo.user_contact ?? cuUserObj?.user_contact ?? cu.user_contact ?? "").trim();
+            const userPosition = String(uInfo.user_position ?? cuUserObj?.user_position ?? cu.user_position ?? "").trim();
+
+            let idVer = vsIdVerMap[uid] || null;
+
+            // Fallback to user-level ID fields if identity_verifications record was empty
+            if (!idVer || (!idVer.gov_id_front_url && !idVer.gov_id_back_url)) {
+              const fUuid = uInfo.gov_id_front_image_uuid || idVer?.gov_id_front_image_uuid;
+              const bUuid = uInfo.gov_id_back_image_uuid || idVer?.gov_id_back_image_uuid;
+              if (fUuid || bUuid) {
+                idVer = {
+                  id: idVer?.id || 0,
+                  gov_id_type: idVer?.gov_id_type || uInfo.gov_id_type || "Government ID",
+                  gov_id_front_image_uuid: fUuid || null,
+                  gov_id_back_image_uuid: bUuid || null,
+                  gov_id_front_url: resolveAssetUrl(fUuid),
+                  gov_id_back_url: resolveAssetUrl(bUuid),
+                  status: idVer?.status || "pending",
+                  submitted_at: idVer?.submitted_at || null,
+                };
+              }
+            }
+
+            // Fallback to company documents if attached as GOV ID
+            if (!idVer || (!idVer.gov_id_front_url && !idVer.gov_id_back_url)) {
+              const companyDocs = (docMap[cid] || []) as Record<string, unknown>[];
+              const govDocs = companyDocs.filter((d) => {
+                const t = String(d.document_type || "").toUpperCase();
+                const n = String(d.document_name || "").toUpperCase();
+                return t.includes("GOVERN") || t.includes("GOV") || t.includes("ID") || n.includes("GOVERN") || n.includes("ID");
+              });
+
+              if (govDocs.length > 0) {
+                const frontDoc = govDocs.find((d) => String(d.document_type || d.document_name || "").toUpperCase().includes("FRONT")) || govDocs[0];
+                const backDoc = govDocs.find((d) => String(d.document_type || d.document_name || "").toUpperCase().includes("BACK")) || (govDocs.length > 1 ? govDocs[1] : null);
+
+                idVer = {
+                  id: 0,
+                  gov_id_type: (frontDoc.document_name as string) || "Government ID",
+                  gov_id_front_image_uuid: (frontDoc.directus_file_id as string) || null,
+                  gov_id_back_image_uuid: (backDoc?.directus_file_id as string) || null,
+                  gov_id_front_url: resolveAssetUrl(frontDoc.directus_file_id),
+                  gov_id_back_url: resolveAssetUrl(backDoc?.directus_file_id),
+                  status: "pending",
+                  submitted_at: (frontDoc.uploaded_at as string) || null,
+                };
+              }
+            }
+
             if (!userMap[cid]) userMap[cid] = [];
             userMap[cid].push({
               ...cu,
-              user_fname: uInfo.user_fname,
-              user_lname: uInfo.user_lname,
-              user_email: uInfo.user_email,
+              user_fname: userFname,
+              user_lname: userLname,
+              user_email: userEmail,
+              user_contact: userContact,
+              user_position: userPosition,
+              identity_verification: idVer,
             });
+          });
+
+          // Ensure every company has at least the creator user if no vs_company_user links exist
+          companies.forEach((c) => {
+            const cid = Number(c.company_id);
+            const creatorId = Number(c.created_by_user_id);
+            if (!userMap[cid] || userMap[cid].length === 0) {
+              if (creatorId && vsUserMap[creatorId]) {
+                const uInfo = vsUserMap[creatorId];
+                userMap[cid] = [
+                  {
+                    company_user_id: 0,
+                    company_id: cid,
+                    user_id: creatorId,
+                    company_user_role: "OWNER",
+                    is_primary_contact: 1,
+                    status: "ACTIVE",
+                    user_fname: uInfo.user_fname || "",
+                    user_lname: uInfo.user_lname || "",
+                    user_email: uInfo.user_email || "",
+                    user_contact: uInfo.user_contact || "",
+                    user_position: uInfo.user_position || "",
+                    identity_verification: vsIdVerMap[creatorId] || null,
+                  },
+                ];
+              }
+            }
           });
         }
       } catch (err) {
@@ -348,6 +492,135 @@ export async function POST(req: NextRequest) {
         { error: `Failed to update vs_company: ${patchRes.statusText} (${errText})` },
         { status: patchRes.status }
       );
+    }
+
+    // 1b. Automatically approve associated users and identity verifications when company is approved
+    if (action === "approve") {
+      try {
+        const [cuRes, compRes] = await Promise.all([
+          fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+          fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=created_by_user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+        ]);
+
+        const uids: number[] = [];
+        if (cuRes.ok) {
+          const cuJson = await cuRes.json();
+          (cuJson.data || []).forEach((item: Record<string, unknown>) => {
+            const raw = item.user_id;
+            const uid = Number(typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>).user_id : raw);
+            if (uid) uids.push(uid);
+          });
+        }
+
+        if (compRes.ok) {
+          const compJson = await compRes.json();
+          const creatorId = Number(compJson.data?.created_by_user_id);
+          if (creatorId) uids.push(creatorId);
+        }
+
+        const uniqueUids = Array.from(new Set(uids));
+
+        await Promise.all(
+          uniqueUids.map(async (uid) => {
+            // Update vs_user status to VERIFIED & active
+            await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
+              method: "PATCH",
+              headers: getDirectusHeaders(),
+              body: JSON.stringify({
+                status: "VERIFIED",
+                is_blocked: 0,
+                is_active: 1,
+              }),
+            });
+
+            // Update vs_identity_verifications to approved
+            const idVerFetch = await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_eq]=${uid}`, { headers: getDirectusHeaders(), cache: "no-store" });
+            if (idVerFetch.ok) {
+              const idVerJson = await idVerFetch.json();
+              const verifs = (idVerJson.data || []) as Record<string, unknown>[];
+              if (verifs.length > 0) {
+                for (const verif of verifs) {
+                  await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications/${verif.id}`, {
+                    method: "PATCH",
+                    headers: getDirectusHeaders(),
+                    body: JSON.stringify({
+                      status: "approved",
+                      reviewed_at: new Date().toISOString(),
+                      reviewed_by: adminId,
+                    }),
+                  });
+                }
+              } else {
+                // If user has no vs_identity_verifications entry, create an approved record
+                const uRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}?fields=gov_id_type,gov_id_front_image_uuid,gov_id_back_image_uuid`, { headers: getDirectusHeaders(), cache: "no-store" });
+                const uInfo = uRes.ok ? (await uRes.json()).data || {} : {};
+                if (uInfo.gov_id_front_image_uuid || uInfo.gov_id_back_image_uuid) {
+                  await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications`, {
+                    method: "POST",
+                    headers: getDirectusHeaders(),
+                    body: JSON.stringify({
+                      user_id: uid,
+                      type: "GOVERNMENT_ID",
+                      status: "approved",
+                      gov_id_type: uInfo.gov_id_type || "Government ID",
+                      gov_id_front_image_uuid: uInfo.gov_id_front_image_uuid || null,
+                      gov_id_back_image_uuid: uInfo.gov_id_back_image_uuid || null,
+                      reviewed_at: new Date().toISOString(),
+                      reviewed_by: adminId,
+                      submitted_at: new Date().toISOString(),
+                    }),
+                  });
+                }
+              }
+            }
+          })
+        );
+      } catch (userApproveErr) {
+        console.warn("Could not auto-approve company users:", userApproveErr);
+      }
+    }
+
+    // 1c. Flag/blacklist associated users when company is rejected
+    if (action === "reject") {
+      try {
+        const [cuRes, compRes] = await Promise.all([
+          fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+          fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=created_by_user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+        ]);
+
+        const uids: number[] = [];
+        if (cuRes.ok) {
+          const cuJson = await cuRes.json();
+          (cuJson.data || []).forEach((item: Record<string, unknown>) => {
+            const raw = item.user_id;
+            const uid = Number(typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>).user_id : raw);
+            if (uid) uids.push(uid);
+          });
+        }
+
+        if (compRes.ok) {
+          const compJson = await compRes.json();
+          const creatorId = Number(compJson.data?.created_by_user_id);
+          if (creatorId) uids.push(creatorId);
+        }
+
+        const uniqueUids = Array.from(new Set(uids));
+
+        await Promise.all(
+          uniqueUids.map(async (uid) => {
+            await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
+              method: "PATCH",
+              headers: getDirectusHeaders(),
+              body: JSON.stringify({
+                status: "REJECTED",
+                is_blocked: 1,
+              }),
+            });
+          })
+        );
+      } catch (userRejectErr) {
+        console.warn("Could not flag/blacklist company users on rejection:", userRejectErr);
+      }
     }
 
     // 2. Log verification entry into vs_company_verifications

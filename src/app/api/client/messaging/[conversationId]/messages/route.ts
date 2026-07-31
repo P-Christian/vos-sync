@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkRestriction } from "@/lib/status-validator";
+import { checkRestriction, checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -315,6 +315,18 @@ export async function POST(
     if (isRestricted) {
       return NextResponse.json(
         { error: "Your messaging privileges are temporarily suspended." },
+        { status: 403 }
+      );
+    }
+
+    // BUSINESS RULE: Only VERIFIED companies can send candidate messages
+    const { isVerified, verification_status } = await checkCompanyVerificationStatus(userId);
+    if (!isVerified) {
+      return NextResponse.json(
+        {
+          error: `Restricted: Your company verification status is currently ${verification_status}. Sending candidate messages is restricted until your company is verified by an admin.`,
+          verification_status,
+        },
         { status: 403 }
       );
     }

@@ -189,9 +189,31 @@ export async function GET(req: NextRequest) {
     const companyData = companyJson.data ?? null;
     const computedPercent = companyData ? calculateCompletionPercent(companyData) : 0;
 
+    let publicRejectionReason: string | null = (companyData?.rejection_reason as string) || null;
+    if (companyId) {
+      try {
+        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at&limit=1`;
+        const verifRes = await fetch(verifUrl, { headers: getHeaders(), cache: "no-store" });
+        if (verifRes.ok) {
+          const verifJson = await verifRes.json();
+          const latestV = verifJson.data?.[0];
+          if (latestV?.public_rejection_reason) {
+            publicRejectionReason = latestV.public_rejection_reason;
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to fetch latest vs_company_verifications in company-profile:", e);
+      }
+    }
+
     return NextResponse.json({
       company: companyData
-        ? { ...companyData, profile_completion_percent: computedPercent }
+        ? {
+            ...companyData,
+            profile_completion_percent: computedPercent,
+            rejection_reason: publicRejectionReason || companyData.rejection_reason || null,
+            public_rejection_reason: publicRejectionReason || companyData.rejection_reason || null,
+          }
         : null,
       meta: {
         company_user_role: links[0].company_user_role,

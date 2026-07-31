@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { sendOtpEmail } from "@/lib/mail";
+import { sendOtpEmail, sendEmployerSubmissionEmail } from "@/lib/mail";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -37,6 +37,61 @@ function validatePassword(password: string): boolean {
 
 function required(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+// ─────────────────────────────────────────────
+// GET HANDLER (DIRECTUS PROXY FOR MASTER DATA)
+// ─────────────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  try {
+    const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+    const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    const { searchParams } = new URL(req.url);
+    const directusCollection = searchParams.get("directusCollection");
+
+    if (!directusCollection) {
+      return NextResponse.json({ error: "Missing directusCollection parameter" }, { status: 400 });
+    }
+
+    if (!DIRECTUS_BASE) {
+      return NextResponse.json(
+        { error: "DIRECTUS base URL not configured" },
+        { status: 500 }
+      );
+    }
+
+    const proxyParams = new URLSearchParams(searchParams.toString());
+    proxyParams.delete("directusCollection");
+
+    const target = `${DIRECTUS_BASE}/items/${encodeURIComponent(
+      directusCollection
+    )}${proxyParams.toString() ? `?${proxyParams.toString()}` : ""}`;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+    if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+
+    const res = await fetch(target, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        "content-type": res.headers.get("content-type") || "application/json",
+      },
+    });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -202,6 +257,22 @@ export async function POST(req: NextRequest) {
     if (userExists) {
       const existingUser = existingUsers[0];
 
+      // Block if account was REJECTED or SUSPENDED
+      if (
+        existingUser.status === "REJECTED" ||
+        existingUser.verification_status === "REJECTED" ||
+        existingUser.is_blocked == 1 ||
+        existingUser.is_blocked === true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Registration Restricted: This work email address has been flagged/restricted due to a previous rejection. Please contact support.",
+          },
+          { status: 403 }
+        );
+      }
+
       // Already verified → block
       if (existingUser.otp_verified == 1 || existingUser.otp_verified === true) {
         return NextResponse.json(
@@ -290,8 +361,37 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-
+    // 5c. REJECTED TAX ID (TIN) BLACKLIST CHECK
     // ─────────────────────────────────────────
+    const compTin = String(company?.company_tin ?? "").trim();
+    if (compTin) {
+      const checkTinUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_tin][_eq]=${encodeURIComponent(compTin)}&fields=company_id,verification_status&limit=1`;
+      const tinCheckRes = await fetch(checkTinUrl, {
+        method: "GET",
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (tinCheckRes.ok) {
+        const tinCheckJson = await tinCheckRes.json();
+        const existingComps = tinCheckJson.data || [];
+        if (existingComps.length > 0) {
+          const compStatus = existingComps[0].verification_status;
+          if (compStatus === "REJECTED" || compStatus === "SUSPENDED") {
+            return NextResponse.json(
+              {
+                error:
+                  "Registration Restricted: The Tax Identification Number (TIN) submitted has been restricted due to a previous rejection. Please contact support.",
+              },
+              { status: 403 }
+            );
+          }
+          return NextResponse.json(
+            { error: "A company with this Tax Identification Number (TIN) is already registered." },
+            { status: 409 }
+          );
+        }
+      }
+    }
     // 6. GENERATE OTP + HASH PASSWORD
     // ─────────────────────────────────────────
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -320,6 +420,8 @@ export async function POST(req: NextRequest) {
       user_lname: String(account.user_lname ?? "").trim(),
       suffix_name: String(account.suffix_name ?? "").trim() || null,
       user_contact: contact,
+      // user_position maps the job title / role from signup form
+      user_position: String(account.user_job_title ?? account.job_title ?? "").trim() || null,
       role_id: 2,
       role: "CLIENT",
       hash_password: hashedPw,
@@ -330,6 +432,8 @@ export async function POST(req: NextRequest) {
       otp_sent_at: nowPH,
       terms_accepted_at: nowPH,
       privacy_accepted_at: nowPH,
+      registration_source: "WEB_SIGNUP",
+      status: "PENDING_VERIFICATION",
     };
 
     const userRes = await fetch(`${DIRECTUS_BASE}/items/vs_user`, {
@@ -365,6 +469,81 @@ export async function POST(req: NextRequest) {
     // ─────────────────────────────────────────
     // 8. CREATE VS_COMPANY (Transaction Step 2)
     // ─────────────────────────────────────────
+    let industryId: number | null = null;
+    let companySizeId: number | null = null;
+
+    // Resolve industry_id
+    const rawIndustryVal = company.industry_id ?? company.industry;
+    if (rawIndustryVal) {
+      if (!isNaN(Number(rawIndustryVal)) && Number(rawIndustryVal) > 0) {
+        industryId = Number(rawIndustryVal);
+      } else {
+        try {
+          const indRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_industry?limit=-1`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (indRes.ok) {
+            const indJson = await indRes.json();
+            const list: { industry_id: number; industry_name: string }[] = indJson?.data ?? [];
+            const target = String(rawIndustryVal).trim().toLowerCase();
+            const normalize = (s: string) => s.replace(/[\s\-_–—,]+/g, "").toLowerCase();
+
+            let match = list.find((i) => String(i.industry_name).trim().toLowerCase() === target);
+            if (!match) {
+              match = list.find((i) => normalize(String(i.industry_name)) === normalize(target));
+            }
+            if (!match) {
+              match = list.find((i) => String(i.industry_name).toLowerCase().includes(target) || target.includes(String(i.industry_name).toLowerCase()));
+            }
+            if (match) {
+              industryId = Number(match.industry_id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to lookup vs_industry:", e);
+        }
+      }
+    }
+
+    // Resolve company_size_id
+    const rawSizeVal = company.company_size_id ?? company.company_size;
+    if (rawSizeVal) {
+      if (!isNaN(Number(rawSizeVal)) && Number(rawSizeVal) > 0) {
+        companySizeId = Number(rawSizeVal);
+      } else {
+        try {
+          const sizeRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_company_size?limit=-1`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (sizeRes.ok) {
+            const sizeJson = await sizeRes.json();
+            const list: { company_size_id: number; company_size_name: string }[] = sizeJson?.data ?? [];
+            const target = String(rawSizeVal).trim().toLowerCase();
+            const normalize = (s: string) => s.replace(/[\s\-_–—employees]+/gi, "").toLowerCase();
+
+            let match = list.find((s) => String(s.company_size_name).trim().toLowerCase() === target);
+            if (!match) {
+              match = list.find((s) => normalize(String(s.company_size_name)) === normalize(target));
+            }
+            if (!match) {
+              match = list.find((s) => {
+                const normName = normalize(String(s.company_size_name));
+                const normTarget = normalize(target);
+                return normName.includes(normTarget) || normTarget.includes(normName);
+              });
+            }
+            if (match) {
+              companySizeId = Number(match.company_size_id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to lookup vs_company_size:", e);
+        }
+      }
+    }
+
     const slugify = (text: string) =>
       text
         .toString()
@@ -380,23 +559,55 @@ export async function POST(req: NextRequest) {
       String(company.company_name ?? "")
     ).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const getCountryAlpha2 = (countryInput?: string | null): string => {
+      if (!countryInput) return "PH";
+      const trimmed = countryInput.trim().toUpperCase();
+      if (trimmed.length === 2) return trimmed;
+      const map: Record<string, string> = {
+        PHILIPPINES: "PH",
+        "UNITED STATES": "US",
+        "UNITED STATES OF AMERICA": "US",
+        USA: "US",
+        JAPAN: "JP",
+        AUSTRALIA: "AU",
+        CANADA: "CA",
+        "UNITED KINGDOM": "GB",
+        UK: "GB",
+        SINGAPORE: "SG",
+        GERMANY: "DE",
+        FRANCE: "FR",
+        CHINA: "CN",
+        INDIA: "IN",
+        "SOUTH KOREA": "KR",
+        KOREA: "KR",
+      };
+      return map[trimmed] || map[trimmed.replace(/[\s_-]+/g, " ")] || "PH";
+    };
+
     const companyPayload = {
       company_code: companyCode,
       company_name: String(company.company_name ?? "").trim(),
       company_legal_name: String(company.company_name ?? "").trim(),
-      company_email: String(company.company_email ?? "").trim() || null,
-      company_contact: String(company.company_contact ?? "").trim() || null,
+      company_email: String(company.company_email ?? "").trim() || email,
+      company_contact:
+        String(company.company_contact ?? "").trim() || contact,
       company_website: String(company.company_website ?? "").trim() || null,
       company_description:
         String(company.company_description ?? "").trim() || null,
-      company_province: String(address.company_province ?? "").trim(),
-      company_city: String(address.company_city ?? "").trim(),
+      industry_id: industryId,
+      company_size_id: companySizeId,
+      company_country: getCountryAlpha2(
+        typeof address.company_country === "string" ? address.company_country : String(address.company_country ?? "")
+      ),
+      company_province: String(address.company_province ?? "").trim() || null,
+      company_city: String(address.company_city ?? "").trim() || null,
       company_brgy: String(address.company_brgy ?? "").trim() || null,
       company_address: String(address.company_address ?? "").trim() || null,
       company_zipCode: String(address.company_zipCode ?? "").trim() || null,
+      company_tin: String(payload.tin ?? "").trim() || null,
       verification_status: "DRAFT",
       is_active: 1,
-      is_deleted: 0,
+      is_public: 0,
       created_by_user_id: userId,
     };
 
@@ -483,12 +694,72 @@ export async function POST(req: NextRequest) {
     }
 
     // ─────────────────────────────────────────
-    // 10. SEND OTP EMAIL via Nodemailer
+    // 10. CREATE vs_notification_preference (marketing consent)
+    // ─────────────────────────────────────────
+    if (userId) {
+      try {
+        await fetch(`${DIRECTUS_BASE}/items/vs_notification_preference`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            user_id: userId,
+            category: "MARKETING_UPDATES",
+            email_enabled: payload.marketing_consent === true ? 1 : 0,
+            in_app_enabled: payload.marketing_consent === true ? 1 : 0,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to save marketing notification preference:", e);
+      }
+    }
+
+    // ─────────────────────────────────────────
+    // 11. CREATE vs_identity_verifications (if gov ID provided)
+    // ─────────────────────────────────────────
+    const govIdFrontFileId = (payload.gov_id_front_file_id || payload.gov_id_file_id) as string | undefined;
+    const govIdBackFileId = payload.gov_id_back_file_id as string | undefined;
+    const govIdType = payload.gov_id_type as string | undefined;
+
+    if ((govIdFrontFileId || govIdBackFileId) && userId) {
+      try {
+        const idVerPayload = {
+          user_id: userId,
+          type: "GOVERNMENT_ID",
+          status: "pending",
+          gov_id_type: govIdType || null,
+          gov_id_front_image_uuid: govIdFrontFileId || null,
+          gov_id_back_image_uuid: govIdBackFileId || null,
+          mobile_number: contact || null,
+          submitted_at: nowPH,
+        };
+        await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(idVerPayload),
+        });
+      } catch (e) {
+        // Non-critical — don't fail registration over this
+        console.error("Failed to create vs_identity_verifications record:", e);
+      }
+    }
+
+    // ─────────────────────────────────────────
+    // 11. SEND OTP EMAIL via Nodemailer
     // ─────────────────────────────────────────
     try {
       await sendOtpEmail(email, generatedOtp);
     } catch (e) {
       console.error("Nodemailer OTP dispatch failed (new user):", e);
+    }
+
+    try {
+      await sendEmployerSubmissionEmail({
+        email,
+        companyName: String(company?.company_name || "Company"),
+        recipientName: String(account?.user_fname || ""),
+      });
+    } catch (e) {
+      console.error("Failed to send employer submission receipt email:", e);
     }
 
     console.log(`[SIGNUP OTP] Email: ${email} | OTP: ${generatedOtp}`);
@@ -499,6 +770,7 @@ export async function POST(req: NextRequest) {
         "Registration successful. Please verify your email to activate your account.",
       otp_sent: true,
       email,
+      userId,
       otp_code:
         process.env.NEXT_PUBLIC_AUTH_DISABLED === "true"
           ? generatedOtp
@@ -506,15 +778,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error("API Route Registration Error:", error);
-    if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
-      return NextResponse.json({
-        success: true,
-        message: "Registration successful (Mock fallback on error)",
-        otp_sent: true,
-        email: payload?.account?.user_email || "test@company.com",
-        otp_code: "123456",
-      });
-    }
     return NextResponse.json(
       {
         error:

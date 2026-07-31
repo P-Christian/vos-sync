@@ -8,7 +8,7 @@ import { useTheme } from "next-themes";
 import {
     Search,
     ArrowUpRight,
-    Sparkles,
+
     Timer,
     CheckCircle2,
     Boxes,
@@ -569,9 +569,6 @@ export default function ERPMainDashboard() {
                         <div className={cn("mt-3 grid gap-4 lg:grid-cols-[1fr_520px] lg:items-start", isCompactHeader && "mt-2")}>
                             <div className="min-w-0">
                                 <div className="flex items-center gap-3">
-                                    <div className={cn("inline-flex items-center justify-center rounded-2xl border bg-background/70 shadow-sm", isCompactHeader ? "h-9 w-9" : "h-10 w-10")}>
-                                        <Sparkles className="h-5 w-5 text-muted-foreground" />
-                                    </div>
 
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">

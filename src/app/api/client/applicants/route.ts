@@ -207,6 +207,8 @@ function calculateProfileCompletion(
   return score;
 }
 
+import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+
 // GET — List all applicants for company jobs
 
 export async function GET(req: NextRequest) {
@@ -230,6 +232,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: "Invalid token." },
         { status: 401 }
+      );
+    }
+
+    // BUSINESS RULE: Only VERIFIED companies can browse candidate profiles
+    const { isVerified, verification_status } = await checkCompanyVerificationStatus(userId);
+    if (!isVerified) {
+      return NextResponse.json(
+        {
+          error: `Restricted: Your company verification status is currently ${verification_status}. Browsing candidate profiles is restricted until your company is verified by an admin.`,
+          verification_status,
+          applicants: [],
+        },
+        { status: 403 }
       );
     }
 

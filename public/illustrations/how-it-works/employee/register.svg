@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" rx="32" fill="#F8FAFC"/>
+  <!-- UI Window -->
+  <rect x="100" y="80" width="600" height="440" rx="20" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4"/>
+  <rect x="100" y="80" width="600" height="50" rx="20" fill="#F1F5F9"/>
+  <circle cx="135" cy="105" r="7" fill="#EF4444"/>
+  <circle cx="155" cy="105" r="7" fill="#F59E0B"/>
+  <circle cx="175" cy="105" r="7" fill="#10B981"/>
+  <!-- Form Elements -->
+  <rect x="150" y="160" width="240" height="18" rx="9" fill="#2563EB"/>
+  <rect x="150" y="210" width="500" height="48" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="170" y="226" width="160" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="150" y="280" width="500" height="48" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="170" y="296" width="200" height="16" rx="8" fill="#94A3B8"/>
+  <rect x="150" y="350" width="500" height="48" rx="12" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="170" y="366" width="140" height="16" rx="8" fill="#94A3B8"/>
+  <!-- Submit Button -->
+  <rect x="150" y="430" width="500" height="52" rx="14" fill="#2563EB"/>
+  <rect x="320" y="448" width="160" height="16" rx="8" fill="#FFFFFF"/>
+  <!-- Character Floating Badge -->
+  <circle cx="640" cy="180" r="45" fill="#DBEAFE"/>
+  <circle cx="640" cy="165" r="18" fill="#2563EB"/>
+  <path d="M605 210C605 195 620 188 640 188C660 188 675 195 675 210V225H605V210Z" fill="#2563EB"/>
+</svg>

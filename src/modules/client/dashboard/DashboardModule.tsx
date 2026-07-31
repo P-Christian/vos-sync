@@ -43,6 +43,10 @@ export default function DashboardModule({ userName }: { userName?: string }) {
           throw new Error("Failed to load dashboard metrics.");
         }
         const json = await response.json();
+        if (json.onboardingRequired) {
+          router.push("/vos-sync/client/company-profile");
+          return;
+        }
         setData(json);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "An error occurred fetching dashboard data.");
@@ -52,7 +56,7 @@ export default function DashboardModule({ userName }: { userName?: string }) {
     }
 
     fetchDashboard();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (
