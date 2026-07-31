@@ -82,9 +82,13 @@ export function DashboardSidebar({
     const handleFooterClick = async (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
         if (href === "/logout") {
             e.preventDefault();
+            console.log("[DashboardSidebar] Logout clicked. Cookie before:", document.cookie);
             try {
-                await fetch("/api/auth/logout", { method: "POST" });
+                const res = await fetch("/api/auth/logout", { method: "POST" });
+                console.log("[DashboardSidebar] /api/auth/logout status:", res.status);
             } finally {
+                document.cookie = "vos_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                console.log("[DashboardSidebar] Cookie after:", document.cookie);
                 document.body.style.display = 'none';
                 window.location.href = "/login";
             }

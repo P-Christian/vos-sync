@@ -111,7 +111,6 @@ export async function middleware(req: NextRequest) {
         }
  
         if (!isAuthorized) {
-            console.warn(`[Middleware] Unauthorized access detected for role_name: ${userRoleName || 'UNKNOWN'} (role_id: ${userRoleId}) to path: ${pathname}. Redirecting to user role dashboard.`);
             let roleDashboard = "/vos-sync/freelancer/dashboard";
             if (userRoleId === 2 || userRoleName === "CLIENT") {
                 roleDashboard = "/vos-sync/client/dashboard";
@@ -143,7 +142,16 @@ function redirectToLogin(req: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("next", req.nextUrl.pathname);
     const response = NextResponse.redirect(url);
+    const hostname = req.nextUrl.hostname;
+
     response.cookies.delete(COOKIE_NAME);
+    response.cookies.delete({ name: COOKIE_NAME, path: "/" });
+
+    response.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+    if (hostname) {
+        response.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+    }
+
     return response;
 }
 

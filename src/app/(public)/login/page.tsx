@@ -121,15 +121,19 @@ function LoginForm() {
 
             toast.success("Signed in", { description: "Welcome back." })
 
-            let defaultPath = "/main-dashboard"
+            console.log("[LoginForm] Login response payload:", data)
+
             const roleId = Number(data?.role_id);
-            if (roleId === 1) {
+            const roleStr = String(data?.role || data?.role_name || "").toUpperCase();
+
+            let defaultPath = "/main-dashboard"
+            if (roleId === 1 || roleStr === "FREELANCER") {
                 defaultPath = "/vos-sync/freelancer/dashboard"
-            } else if (roleId === 2) {
+            } else if (roleId === 2 || roleStr === "CLIENT" || roleStr === "EMPLOYER") {
                 defaultPath = "/vos-sync/client/dashboard"
-            } else if (roleId === 3) {
+            } else if (roleId === 3 || roleStr === "ADMIN") {
                 defaultPath = "/vos-sync/vos-admin"
-            } else if (roleId === 4) {
+            } else if (roleId === 4 || roleStr === "SCHOOL_ADMIN") {
                 defaultPath = "/vos-sync/school-admin"
             }
 
@@ -139,11 +143,15 @@ function LoginForm() {
             if (nextParam && nextParam !== "/login" && !nextParam.startsWith("/login")) {
                 const p = nextParam.toLowerCase()
                 let isAllowed = true
-                if (roleId === 1 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/client") || p.startsWith("/vos-sync/school-admin"))) {
+                const isFreelancer = roleId === 1 || roleStr === "FREELANCER"
+                const isClient = roleId === 2 || roleStr === "CLIENT" || roleStr === "EMPLOYER"
+                const isSchoolAdmin = roleId === 4 || roleStr === "SCHOOL_ADMIN"
+
+                if (isFreelancer && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/client") || p.startsWith("/vos-sync/school-admin"))) {
                     isAllowed = false
-                } else if (roleId === 2 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/school-admin"))) {
+                } else if (isClient && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/school-admin"))) {
                     isAllowed = false
-                } else if (roleId === 4 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/client"))) {
+                } else if (isSchoolAdmin && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/client"))) {
                     isAllowed = false
                 }
 
@@ -152,8 +160,9 @@ function LoginForm() {
                 }
             }
 
-            router.replace(targetPath)
-            router.refresh()
+            console.log(`[LoginForm] Redirecting user: roleId=${roleId}, roleStr=${roleStr} -> targetPath=${targetPath}`)
+
+            window.location.href = targetPath
         } catch (err: unknown) {
             const errorInfo = err as { message?: string };
             const raw = errorInfo?.message ? String(errorInfo.message) : "Network error. Please try again."

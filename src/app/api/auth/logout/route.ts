@@ -34,17 +34,22 @@ export async function POST(req: NextRequest) {
         reason: "User logged out",
     });
 
+    console.log(`[api/auth/logout] Logging out user_id=${userId}`);
+
     const res = NextResponse.json({ ok: true });
 
-    res.cookies.set({
-        name: COOKIE_NAME,
-        value: "",
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 0,
-    });
+    const hostname = req.nextUrl.hostname;
+
+    // Delete using Next.js cookie helper
+    res.cookies.delete(COOKIE_NAME);
+    res.cookies.delete({ name: COOKIE_NAME, path: "/" });
+
+    // Explicit Set-Cookie headers for guaranteed browser cookie eviction across custom hosts (e.g. vos-sync-local)
+    res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+    if (hostname) {
+        res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+        res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=.${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+    }
 
     return res;
 }
