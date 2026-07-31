@@ -133,8 +133,26 @@ function LoginForm() {
                 defaultPath = "/vos-sync/school-admin"
             }
 
-            const next = searchParams.get("next") || defaultPath
-            router.replace(next)
+            const nextParam = searchParams.get("next")
+            let targetPath = defaultPath
+
+            if (nextParam && nextParam !== "/login" && !nextParam.startsWith("/login")) {
+                const p = nextParam.toLowerCase()
+                let isAllowed = true
+                if (roleId === 1 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/client") || p.startsWith("/vos-sync/school-admin"))) {
+                    isAllowed = false
+                } else if (roleId === 2 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/school-admin"))) {
+                    isAllowed = false
+                } else if (roleId === 4 && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/freelancer") || p.startsWith("/vos-sync/client"))) {
+                    isAllowed = false
+                }
+
+                if (isAllowed) {
+                    targetPath = nextParam
+                }
+            }
+
+            router.replace(targetPath)
             router.refresh()
         } catch (err: unknown) {
             const errorInfo = err as { message?: string };

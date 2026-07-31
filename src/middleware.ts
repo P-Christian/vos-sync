@@ -98,20 +98,32 @@ export async function middleware(req: NextRequest) {
         }
 
         let isAuthorized = true;
+        const userRoleId = Number(payload.role_id);
         
-        if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER") {
+        if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER" && userRoleId !== 1) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN") {
+        } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN" && userRoleId !== 3) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT") {
+        } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT" && userRoleId !== 2) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN") {
+        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleId !== 4) {
             isAuthorized = false;
         }
  
         if (!isAuthorized) {
-            console.warn(`[Middleware] Unauthorized access detected for role_name: ${userRoleName || 'UNKNOWN'} to path: ${pathname}.`);
-            return redirectToLogin(req);
+            console.warn(`[Middleware] Unauthorized access detected for role_name: ${userRoleName || 'UNKNOWN'} (role_id: ${userRoleId}) to path: ${pathname}. Redirecting to user role dashboard.`);
+            let roleDashboard = "/vos-sync/freelancer/dashboard";
+            if (userRoleId === 2 || userRoleName === "CLIENT") {
+                roleDashboard = "/vos-sync/client/dashboard";
+            } else if (userRoleId === 3 || userRoleName === "ADMIN") {
+                roleDashboard = "/vos-sync/vos-admin";
+            } else if (userRoleId === 4 || userRoleName === "SCHOOL_ADMIN") {
+                roleDashboard = "/vos-sync/school-admin";
+            }
+            const url = req.nextUrl.clone();
+            url.pathname = roleDashboard;
+            url.searchParams.delete("next");
+            return NextResponse.redirect(url);
         }
  
         const response = NextResponse.next();
@@ -130,7 +142,9 @@ function redirectToLogin(req: NextRequest) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", req.nextUrl.pathname);
-    return NextResponse.redirect(url);
+    const response = NextResponse.redirect(url);
+    response.cookies.delete(COOKIE_NAME);
+    return response;
 }
 
 export const config = {
