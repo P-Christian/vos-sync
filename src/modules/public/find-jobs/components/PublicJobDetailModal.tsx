@@ -33,7 +33,7 @@ interface Props {
   onApplyClick: (job: PublicJobPosting) => void;
 }
 
-export function PublicJobDetailModal({ job, isOpen, onClose, onApplyClick }: Props) {
+export function PublicJobDetailModal({ job, isOpen, onClose, onApplyClick: _onApplyClick }: Props) {
   if (!job) return null;
 
   const openJobQuery = job.job_id ? `?open_job=${job.job_id}` : "";

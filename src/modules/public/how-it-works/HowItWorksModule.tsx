@@ -1,7 +1,7 @@
 // src/modules/public/how-it-works/HowItWorksModule.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { RoleKey } from "./types";
 import { ROLE_GUIDES } from "./config";
@@ -29,24 +29,19 @@ export default function HowItWorksModule({
   const router = useRouter();
   const pathname = usePathname();
 
-  const getRoleFromQuery = useCallback((): RoleKey => {
+  const getRoleFromQuery = (): RoleKey => {
     if (singleRoleMode) return defaultRole;
     const raw = searchParams.get("role")?.toLowerCase();
     if (raw === "employer") return "employer";
     if (raw === "school") return "school";
     if (raw === "employee") return "employee";
     return defaultRole;
-  }, [searchParams, defaultRole, singleRoleMode]);
+  };
 
-  const [activeRole, setActiveRole] = useState<RoleKey>(getRoleFromQuery());
-
-  useEffect(() => {
-    setActiveRole(getRoleFromQuery());
-  }, [getRoleFromQuery]);
+  const activeRole = getRoleFromQuery();
 
   const handleRoleChange = (newRole: RoleKey) => {
     if (singleRoleMode) return;
-    setActiveRole(newRole);
     const params = new URLSearchParams(searchParams.toString());
     params.set("role", newRole);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });

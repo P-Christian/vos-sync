@@ -36,16 +36,21 @@ export const metadata = {
     "Stay updated on job applications, interview schedules, and company activity on VOS Sync.",
 };
 
+function checkIsNewUser(dateStr?: string | null): boolean {
+  if (!dateStr) return true;
+  const accepted = new Date(dateStr).getTime();
+  if (isNaN(accepted)) return true;
+  const diffDays = (Date.now() - accepted) / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= 10;
+}
+
 export default async function FreelancerNotificationsPage() {
   const cookieStore = await cookies();
   const token = cookieStore.get("vos_access_token")?.value;
   const profile = token ? await getFreelancerProfile(token) : null;
 
   const termsAcceptedAt = (profile as Record<string, unknown> | null)?.terms_accepted_at as string | undefined;
-  const diffDays = termsAcceptedAt
-    ? (Date.now() - new Date(termsAcceptedAt).getTime()) / (1000 * 60 * 60 * 24)
-    : 0;
-  const showNewBadge = !termsAcceptedAt || (diffDays >= 0 && diffDays <= 10);
+  const showNewBadge = checkIsNewUser(termsAcceptedAt);
 
   const user = {
     name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",

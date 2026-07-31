@@ -2,8 +2,7 @@
 "use client";
 
 import React from "react";
-import { Filter, RotateCcw, Briefcase, Laptop, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Filter, RotateCcw, Briefcase, Laptop } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {

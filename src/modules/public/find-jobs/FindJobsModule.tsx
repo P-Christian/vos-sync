@@ -34,42 +34,50 @@ export default function FindJobsModule() {
   const [authModalJob, setAuthModalJob] = useState<PublicJobPosting | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (searchQuery.trim()) params.set("q", searchQuery.trim());
-      if (locationQuery.trim()) params.set("location", locationQuery.trim());
-      if (selectedJobType !== "All") params.set("job_type", selectedJobType);
-      if (selectedWorkSetup !== "All") params.set("work_setup", selectedWorkSetup);
-      params.set("page", String(page));
-      params.set("limit", "12");
-
-      const res = await fetch(`/api/public/find-jobs?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error("Failed to load public job postings.");
-      }
-      const data = await res.json();
-      setJobs(data.data || []);
-      setTotalJobs(data.meta?.total || 0);
-      setTotalPages(data.meta?.totalPages || 1);
-    } catch (err: unknown) {
-      console.error("fetchJobs error:", err);
-      setError(err instanceof Error ? err.message : "Unable to fetch job listings.");
-    } finally {
-      setLoading(false);
-    }
-  }, [searchQuery, locationQuery, selectedJobType, selectedWorkSetup, page]);
-
   useEffect(() => {
+    let isMounted = true;
+    const fetchJobs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.set("q", searchQuery.trim());
+        if (locationQuery.trim()) params.set("location", locationQuery.trim());
+        if (selectedJobType !== "All") params.set("job_type", selectedJobType);
+        if (selectedWorkSetup !== "All") params.set("work_setup", selectedWorkSetup);
+        params.set("page", String(page));
+        params.set("limit", "12");
+
+        const res = await fetch(`/api/public/find-jobs?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error("Failed to load public job postings.");
+        }
+        const data = await res.json();
+        if (isMounted) {
+          setJobs(data.data || []);
+          setTotalJobs(data.meta?.total || 0);
+          setTotalPages(data.meta?.totalPages || 1);
+        }
+      } catch (err: unknown) {
+        console.error("fetchJobs error:", err);
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : "Unable to fetch job listings.");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
     fetchJobs();
-  }, [fetchJobs]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [searchQuery, locationQuery, selectedJobType, selectedWorkSetup, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchJobs();
   };
 
   const handleQuickCategoryClick = (tag: string) => {

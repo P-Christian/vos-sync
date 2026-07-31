@@ -13,6 +13,17 @@ interface Props {
   onApplyClick: (job: PublicJobPosting) => void;
 }
 
+function getTimeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (hours < 1) return "Just posted";
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  return "Recently posted";
+}
+
 export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
   const formatSalary = (min?: number | null, max?: number | null, curr?: string) => {
     if (!min && !max) return "Competitive Salary";
@@ -21,17 +32,6 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
     if (min && max) return `${formatter.format(min)} - ${formatter.format(max)}`;
     if (min) return `From ${formatter.format(min)}`;
     return `Up to ${formatter.format(max!)}`;
-  };
-
-  const getTimeAgo = (dateStr: string) => {
-    const diffMs = Date.now() - new Date(dateStr).getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    if (hours < 1) return "Just posted";
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days === 1) return "1 day ago";
-    if (days < 30) return `${days} days ago`;
-    return "Recently posted";
   };
 
   return (
