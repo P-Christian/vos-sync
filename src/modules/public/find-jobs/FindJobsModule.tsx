@@ -1,7 +1,7 @@
 // src/modules/public/find-jobs/FindJobsModule.tsx
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   JobHeroBanner,
   JobFilterSidebar,
@@ -272,10 +272,6 @@ export default function FindJobsModule() {
         job={selectedJob}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
-        onApplyClick={(job) => {
-          setIsDetailOpen(false);
-          handleApplyClick(job);
-        }}
       />
 
       {/* 4. Guest Apply Auth Prompt Modal */}
