@@ -15,19 +15,23 @@ export async function POST(req: NextRequest) {
     const hashPassword = String(body?.hashPassword ?? body?.password ?? "").trim();
 
     try {
-        const { token, role_id } = await loginUser(email, hashPassword);
+        const { token, role_id, role, role_name } = await loginUser(email, hashPassword);
+
+        console.log(`[api/auth/login] Login success for ${email}: role_id=${role_id}, role=${role}, role_name=${role_name}`);
 
         const res = NextResponse.json(
-            { ok: true, message: "Login successful.", role_id },
+            { ok: true, message: "Login successful.", role_id, role, role_name },
             { headers: { "Cache-Control": "no-store" } }
         );
+
+        const isHttps = req.headers.get("x-forwarded-proto") === "https" || req.nextUrl.protocol === "https:";
 
         res.cookies.set({
             name: COOKIE_NAME,
             value: token,
             httpOnly: true,
             sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
+            secure: isHttps,
             path: "/",
             maxAge: COOKIE_MAX_AGE_CAP,
         });

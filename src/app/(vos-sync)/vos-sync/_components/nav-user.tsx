@@ -82,6 +82,8 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
         if (loggingOut) return
         setLoggingOut(true)
 
+        console.log("[NavUser] Client logout initiated. Document cookie before logout:", document.cookie)
+
         try {
             // If a parent provided a handler, use it.
             if (onLogout) {
@@ -90,8 +92,13 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
             }
 
             // Default wiring: clear HttpOnly cookie via Next route
-            await fetch("/api/auth/logout", { method: "POST" })
+            const res = await fetch("/api/auth/logout", { method: "POST" })
+            console.log("[NavUser] /api/auth/logout HTTP status:", res.status)
         } finally {
+            // Expire client-side cookie if present
+            document.cookie = "vos_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+            console.log("[NavUser] Client logout finished. Document cookie after logout:", document.cookie)
+
             // Hide the body to prevent bfcache flash on back navigation
             document.body.style.display = 'none';
             // Always redirect to login (hard refresh to clear client-side cache)

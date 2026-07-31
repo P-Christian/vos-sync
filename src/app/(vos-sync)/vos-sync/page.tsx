@@ -72,10 +72,30 @@ function buildHeaderUserFromToken(token: string | null | undefined) {
     };
 }
 
+import { redirect } from "next/navigation";
+
 export default async function Page() {
     // ✅ Next.js 16: cookies() is async
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value ?? null;
+
+    if (token) {
+        const payload = decodeJwtPayload(token);
+        if (payload) {
+            const roleId = Number(payload.role_id || 0);
+            const userRole = String(payload.role || payload.role_name || "").toUpperCase();
+
+            if (roleId === 3 || userRole === "ADMIN") {
+                redirect("/vos-sync/vos-admin");
+            } else if (roleId === 2 || userRole === "CLIENT" || userRole === "EMPLOYER") {
+                redirect("/vos-sync/client/dashboard");
+            } else if (roleId === 4 || userRole === "SCHOOL_ADMIN") {
+                redirect("/vos-sync/school-admin");
+            } else if (roleId === 1 || userRole === "FREELANCER") {
+                redirect("/vos-sync/freelancer/dashboard");
+            }
+        }
+    }
 
     const headerUser = buildHeaderUserFromToken(token);
 

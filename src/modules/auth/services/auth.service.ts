@@ -141,7 +141,9 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         .setExpirationTime('7d')
         .sign(secret);
 
-    return { token, role_id: user.role_id };
+    console.log(`[auth.service] User logged in: email=${user.user_email}, user_id=${user.user_id}, role=${user.role}, role_id=${user.role_id}, cleanRoleName=${cleanRoleName}`);
+
+    return { token, role_id: user.role_id, role: user.role, role_name: cleanRoleName };
 }
 
 export async function registerUser(body: unknown) {
