@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import { sendOtpEmail } from "@/lib/mail";
+import { sendOtpEmail, sendEmployerSubmissionEmail } from "@/lib/mail";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -257,6 +257,22 @@ export async function POST(req: NextRequest) {
     if (userExists) {
       const existingUser = existingUsers[0];
 
+      // Block if account was REJECTED or SUSPENDED
+      if (
+        existingUser.status === "REJECTED" ||
+        existingUser.verification_status === "REJECTED" ||
+        existingUser.is_blocked == 1 ||
+        existingUser.is_blocked === true
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Registration Restricted: This work email address has been flagged/restricted due to a previous rejection. Please contact support.",
+          },
+          { status: 403 }
+        );
+      }
+
       // Already verified → block
       if (existingUser.otp_verified == 1 || existingUser.otp_verified === true) {
         return NextResponse.json(
@@ -345,8 +361,37 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-
+    // 5c. REJECTED TAX ID (TIN) BLACKLIST CHECK
     // ─────────────────────────────────────────
+    const compTin = String(company?.company_tin ?? "").trim();
+    if (compTin) {
+      const checkTinUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_tin][_eq]=${encodeURIComponent(compTin)}&fields=company_id,verification_status&limit=1`;
+      const tinCheckRes = await fetch(checkTinUrl, {
+        method: "GET",
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (tinCheckRes.ok) {
+        const tinCheckJson = await tinCheckRes.json();
+        const existingComps = tinCheckJson.data || [];
+        if (existingComps.length > 0) {
+          const compStatus = existingComps[0].verification_status;
+          if (compStatus === "REJECTED" || compStatus === "SUSPENDED") {
+            return NextResponse.json(
+              {
+                error:
+                  "Registration Restricted: The Tax Identification Number (TIN) submitted has been restricted due to a previous rejection. Please contact support.",
+              },
+              { status: 403 }
+            );
+          }
+          return NextResponse.json(
+            { error: "A company with this Tax Identification Number (TIN) is already registered." },
+            { status: 409 }
+          );
+        }
+      }
+    }
     // 6. GENERATE OTP + HASH PASSWORD
     // ─────────────────────────────────────────
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -705,6 +750,16 @@ export async function POST(req: NextRequest) {
       await sendOtpEmail(email, generatedOtp);
     } catch (e) {
       console.error("Nodemailer OTP dispatch failed (new user):", e);
+    }
+
+    try {
+      await sendEmployerSubmissionEmail({
+        email,
+        companyName: String(company?.company_name || "Company"),
+        recipientName: String(account?.user_fname || ""),
+      });
+    } catch (e) {
+      console.error("Failed to send employer submission receipt email:", e);
     }
 
     console.log(`[SIGNUP OTP] Email: ${email} | OTP: ${generatedOtp}`);

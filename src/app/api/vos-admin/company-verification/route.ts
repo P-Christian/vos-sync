@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { sendEmployerApprovalEmail, sendEmployerRejectionEmail } from "@/lib/mail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -576,6 +577,49 @@ export async function POST(req: NextRequest) {
         );
       } catch (userApproveErr) {
         console.warn("Could not auto-approve company users:", userApproveErr);
+      }
+    }
+
+    // 1c. Flag/blacklist associated users when company is rejected
+    if (action === "reject") {
+      try {
+        const [cuRes, compRes] = await Promise.all([
+          fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+          fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=created_by_user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
+        ]);
+
+        const uids: number[] = [];
+        if (cuRes.ok) {
+          const cuJson = await cuRes.json();
+          (cuJson.data || []).forEach((item: Record<string, unknown>) => {
+            const raw = item.user_id;
+            const uid = Number(typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>).user_id : raw);
+            if (uid) uids.push(uid);
+          });
+        }
+
+        if (compRes.ok) {
+          const compJson = await compRes.json();
+          const creatorId = Number(compJson.data?.created_by_user_id);
+          if (creatorId) uids.push(creatorId);
+        }
+
+        const uniqueUids = Array.from(new Set(uids));
+
+        await Promise.all(
+          uniqueUids.map(async (uid) => {
+            await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
+              method: "PATCH",
+              headers: getDirectusHeaders(),
+              body: JSON.stringify({
+                status: "REJECTED",
+                is_blocked: 1,
+              }),
+            });
+          })
+        );
+      } catch (userRejectErr) {
+        console.warn("Could not flag/blacklist company users on rejection:", userRejectErr);
       }
     }
 

@@ -369,7 +369,7 @@ export default async function Page() {
                         <div className="flex items-center gap-4">
                           <span className="text-xs text-muted-foreground">{job.posted}</span>
                           <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
-                            <Link href={`/vos-sync/freelancer/jobs?open_job=${job.id}`}>Apply Now</Link>
+                            <Link href="/find-jobs">View Details</Link>
                           </Button>
                         </div>
                       </div>
@@ -382,7 +382,7 @@ export default async function Page() {
 
           <div className="mt-12 text-center">
             <Button size="lg" className="rounded-full px-8 cursor-pointer" asChild>
-              <Link href="/vos-sync/freelancer/jobs">Explore All Jobs</Link>
+              <Link href="/find-jobs">Explore All Jobs</Link>
             </Button>
           </div>
         </div>

@@ -30,3 +30,4 @@ export * from "./preference-check";
 export * from "./services/auth-mail";
 export * from "./services/job-mail";
 export * from "./services/notification-mail";
+export * from "./services/employer-mail";
