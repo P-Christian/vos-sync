@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" rx="32" fill="#F8FAFC"/>
+  <!-- UI Window -->
+  <rect x="100" y="80" width="600" height="440" rx="20" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4"/>
+  <!-- Candidate Header Profile -->
+  <rect x="140" y="120" width="100" height="100" rx="24" fill="#DBEAFE"/>
+  <circle cx="190" cy="155" r="22" fill="#2563EB"/>
+  <path d="M155 210C155 190 170 182 190 182C210 182 225 190 225 210V220H155V210Z" fill="#2563EB"/>
+  
+  <rect x="260" y="135" width="220" height="24" rx="12" fill="#1E293B"/>
+  <rect x="260" y="175" width="160" height="16" rx="8" fill="#64748B"/>
+
+  <!-- Skills Chips -->
+  <rect x="140" y="250" width="120" height="36" rx="18" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="2"/>
+  <rect x="165" y="262" width="70" height="12" rx="6" fill="#2563EB"/>
+
+  <rect x="270" y="250" width="140" height="36" rx="18" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="2"/>
+  <rect x="295" y="262" width="90" height="12" rx="6" fill="#2563EB"/>
+
+  <rect x="420" y="250" width="110" height="36" rx="18" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="2"/>
+  <rect x="445" y="262" width="60" height="12" rx="6" fill="#2563EB"/>
+
+  <!-- Experience Cards -->
+  <rect x="140" y="315" width="520" height="70" rx="16" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="170" y="335" width="180" height="16" rx="8" fill="#334155"/>
+  <rect x="170" y="360" width="120" height="10" rx="5" fill="#94A3B8"/>
+
+  <rect x="140" y="405" width="520" height="70" rx="16" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="170" y="425" width="220" height="16" rx="8" fill="#334155"/>
+  <rect x="170" y="450" width="140" height="10" rx="5" fill="#94A3B8"/>
+</svg>

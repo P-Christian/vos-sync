@@ -39,6 +39,7 @@ export function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8 font-medium text-sm text-muted-foreground">
           <Link href="/find-jobs" className="hover:text-foreground transition-colors">Find Jobs</Link>
+          <Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link>
           <Link href="#" className="hover:text-foreground transition-colors">Companies</Link>
           <Link href="#" className="hover:text-foreground transition-colors">Salaries</Link>
           <Link href="/career-advice" className="hover:text-foreground transition-colors">Career Advice</Link>
@@ -69,6 +70,7 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-background border-b border-border shadow-lg py-4 px-4 flex flex-col gap-4">
           <Link href="/find-jobs" className="text-muted-foreground hover:text-foreground font-medium py-2">Find Jobs</Link>
+          <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground font-medium py-2">How It Works</Link>
           <Link href="/dashboard/companies" className="text-muted-foreground hover:text-foreground font-medium py-2">Companies</Link>
           <Link href="/dashboard/salaries" className="text-muted-foreground hover:text-foreground font-medium py-2">Salaries</Link>
           <Link href="/career-advice" className="text-muted-foreground hover:text-foreground font-medium py-2">Career Advice</Link>

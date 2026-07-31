@@ -10,7 +10,7 @@ import {
   GuestAuthModal,
 } from "./components";
 import { PublicJobPosting } from "./types";
-import { Briefcase, Loader2, Sparkles, AlertCircle, ArrowLeft, ArrowRight, LayoutGrid, List } from "lucide-react";
+import { Briefcase, AlertCircle, ArrowLeft, ArrowRight, } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 

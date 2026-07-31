@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 
 export const AIPromotionCard: React.FC = () => {
@@ -11,7 +11,7 @@ export const AIPromotionCard: React.FC = () => {
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full opacity-20 bg-white blur-3xl pointer-events-none" />
 
       <div className="relative z-10 flex flex-col gap-4">
-        <Sparkles className="w-8 h-8 text-white/90" />
+       
         <div>
           <h3 className="text-lg font-bold mb-2">AI Profile Tune-up</h3>
           <p className="text-primary-foreground/80 text-sm leading-relaxed">

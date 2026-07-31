@@ -1,6 +1,6 @@
 import {
   BookOpen, PenLine, DollarSign, Search,
-  Clock, ChevronRight, ArrowRight, Sparkles, TrendingUp
+  Clock, ChevronRight, ArrowRight, TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 
@@ -137,7 +137,7 @@ export default function CareerAdvice() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 via-white to-white" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
-            <Sparkles className="w-3.5 h-3.5 mr-2 text-yellow-500" />
+        
             Career Advice
           </Badge>
           <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 max-w-4xl mx-auto leading-tight">

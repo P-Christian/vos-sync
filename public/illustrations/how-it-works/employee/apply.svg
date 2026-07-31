@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" rx="32" fill="#F8FAFC"/>
+  <!-- Main Card -->
+  <rect x="120" y="80" width="560" height="440" rx="24" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="4"/>
+  <rect x="160" y="130" width="220" height="24" rx="12" fill="#1E293B"/>
+  <rect x="160" y="165" width="160" height="14" rx="7" fill="#64748B"/>
+
+  <!-- Timeline Nodes -->
+  <g transform="translate(160, 230)">
+    <!-- Node 1: Submitted -->
+    <circle cx="24" cy="24" r="20" fill="#10B981"/>
+    <path d="M16 24L21 29L31 19" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+    <rect x="65" y="14" width="140" height="16" rx="8" fill="#1E293B"/>
+    <rect x="65" y="36" width="90" height="10" rx="5" fill="#94A3B8"/>
+    <line x1="24" y1="48" x2="24" y2="92" stroke="#10B981" stroke-width="4" stroke-dasharray="6 6"/>
+
+    <!-- Node 2: Reviewing -->
+    <circle cx="24" cy="116" r="20" fill="#2563EB"/>
+    <circle cx="24" cy="116" r="8" fill="#FFFFFF"/>
+    <rect x="65" y="106" width="160" height="16" rx="8" fill="#1E293B"/>
+    <rect x="65" y="128" width="110" height="10" rx="5" fill="#94A3B8"/>
+    <line x1="24" y1="140" x2="24" y2="184" stroke="#CBD5E1" stroke-width="4"/>
+
+    <!-- Node 3: Interview -->
+    <circle cx="24" cy="208" r="20" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="3"/>
+    <rect x="65" y="198" width="130" height="16" rx="8" fill="#94A3B8"/>
+  </g>
+</svg>

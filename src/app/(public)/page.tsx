@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   Search, MapPin, ChevronRight, CheckCircle2, ArrowRight,
   Megaphone, PenTool, Database, HeartPulse,
-  Code2, Sparkles, TrendingUp
+  Code2, TrendingUp
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -219,7 +219,7 @@ export default async function Page() {
           <StaggerContainer>
             <StaggerChild>
               <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
-                <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
+             
                 Over 10,000+ new jobs added this week
               </Badge>
             </StaggerChild>

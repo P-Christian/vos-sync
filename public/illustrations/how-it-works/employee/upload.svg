@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" rx="32" fill="#F8FAFC"/>
+  <!-- Upload Box -->
+  <rect x="150" y="100" width="500" height="400" rx="24" fill="#FFFFFF" stroke="#2563EB" stroke-width="4" stroke-dasharray="12 12"/>
+  <!-- Cloud Icon -->
+  <path d="M400 210C430 210 455 230 460 260C480 260 495 275 495 295C495 315 480 330 460 330H340C315 330 295 310 295 285C295 262 312 243 335 240C345 222 370 210 400 210Z" fill="#EFF6FF" stroke="#2563EB" stroke-width="6"/>
+  <path d="M400 310V255M400 255L375 280M400 255L425 280" stroke="#2563EB" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Document Pills -->
+  <rect x="220" y="370" width="160" height="50" rx="14" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="250" y="390" width="100" height="10" rx="5" fill="#2563EB"/>
+  
+  <rect x="420" y="370" width="160" height="50" rx="14" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
+  <rect x="450" y="390" width="100" height="10" rx="5" fill="#10B981"/>
+</svg>

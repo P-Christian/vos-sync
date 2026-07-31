@@ -26,7 +26,7 @@ import {
   Globe,
   Loader2,
   Building2,
-  Sparkles,
+
   Eye,
   Send,
   RefreshCw,
@@ -301,7 +301,7 @@ export default function CompanyProfileModule() {
                 <Building2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <CardTitle className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center justify-center gap-2">
-                <Sparkles className="h-5 w-5 text-emerald-500 animate-pulse" /> Welcome to VOS Sync!
+               Welcome to VOS Sync!
               </CardTitle>
               <p className="text-sm text-zinc-550 dark:text-zinc-400 max-w-md mx-auto">
                 Let&apos;s set up your company profile to start posting job listings, managing applications, and onboarding talent.
