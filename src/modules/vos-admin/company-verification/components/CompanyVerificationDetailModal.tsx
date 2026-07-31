@@ -123,6 +123,24 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
       : `/assets/${company.company_logo}`
     : null;
 
+  const getGovIdUrl = (uuidOrUrl: string | null | undefined): string | null => {
+    if (!uuidOrUrl || !uuidOrUrl.trim()) return null;
+    const t = uuidOrUrl.trim();
+    if (t.startsWith("http://") || t.startsWith("https://")) return t;
+    if (t.startsWith("/api/assets/")) return t;
+    if (t.startsWith("/assets/")) return `/api${t}`;
+    return `/api/assets/${t.split("/").pop()}`;
+  };
+
+  const primaryFrontUrl = getGovIdUrl(
+    primaryOwner?.identity_verification?.gov_id_front_url ||
+    primaryOwner?.identity_verification?.gov_id_front_image_uuid
+  );
+  const primaryBackUrl = getGovIdUrl(
+    primaryOwner?.identity_verification?.gov_id_back_url ||
+    primaryOwner?.identity_verification?.gov_id_back_image_uuid
+  );
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -552,27 +570,164 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
               </TabsContent>
 
               {/* TAB 3: CONTACTS & OWNERS */}
-              <TabsContent value="contact" className="space-y-4 text-xs outline-none">
-                <div className="bg-card border rounded-xl p-4 space-y-3">
-                  <h4 className="font-bold text-foreground flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-                    <UserCheck className="h-4 w-4 text-primary" />
-                    Primary Account Holder / Submitter
+              <TabsContent value="contact" className="space-y-6 text-xs outline-none">
+                {/* Primary Account Holder / Submitter */}
+                <div className="bg-card border rounded-xl p-5 space-y-4 shadow-2xs">
+                  <h4 className="font-bold text-foreground flex items-center justify-between border-b pb-2 text-xs uppercase tracking-wider text-muted-foreground">
+                    <span className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-primary" />
+                      Primary Account Owner & Representative
+                    </span>
+                    {primaryOwner && (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
+                        Primary Contact
+                      </Badge>
+                    )}
                   </h4>
+
                   {primaryOwner ? (
-                    <div className="grid grid-cols-2 gap-3 text-muted-foreground bg-muted/30 p-3 rounded-lg border">
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Full Name</span>
-                        <span className="font-semibold text-foreground text-sm">
-                          {primaryOwner.user_fname} {primaryOwner.user_lname}
-                        </span>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-xl border">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Full Name</span>
+                          <span className="font-semibold text-foreground text-sm">
+                            {`${primaryOwner.user_fname || ""} ${primaryOwner.user_lname || ""}`.trim() || "N/A"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Email Address</span>
+                          {primaryOwner.user_email ? (
+                            <a href={`mailto:${primaryOwner.user_email}`} className="font-semibold text-primary hover:underline text-sm">
+                              {primaryOwner.user_email}
+                            </a>
+                          ) : (
+                            <span className="font-semibold text-muted-foreground text-sm">N/A</span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Contact Phone</span>
+                          <span className="font-medium text-foreground">{primaryOwner.user_contact || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Role / Title</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="outline" className="text-[10px]">{primaryOwner.company_user_role}</Badge>
+                            {primaryOwner.user_position && (
+                              <span className="text-muted-foreground font-medium">({primaryOwner.user_position})</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Email Address</span>
-                        <span className="font-semibold text-foreground text-sm">{primaryOwner.user_email}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Company Role</span>
-                        <Badge variant="outline" className="text-[10px] mt-0.5">{primaryOwner.company_user_role}</Badge>
+
+                      {/* Government ID Verification Section for Primary Owner */}
+                      <div className="border rounded-xl p-4 bg-card space-y-3">
+                        <div className="flex items-center justify-between border-b pb-2">
+                          <h5 className="font-bold text-foreground text-xs uppercase tracking-wider flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                            Submitted Government Identification
+                          </h5>
+                          {primaryOwner.identity_verification?.gov_id_type ? (
+                            <Badge variant="secondary" className="text-[10px] font-semibold">
+                              ID Type: {primaryOwner.identity_verification.gov_id_type}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                              No ID Uploaded
+                            </Badge>
+                          )}
+                        </div>
+
+                        {primaryFrontUrl || primaryBackUrl ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                            {/* Front ID Card */}
+                            <div className="border rounded-xl p-3 bg-muted/20 space-y-2">
+                              <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
+                                <span>Government ID (Front)</span>
+                                {primaryFrontUrl && (
+                                  <a
+                                    href={`${primaryFrontUrl}?download`}
+                                    download
+                                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    <Download className="h-3 w-3" /> Download
+                                  </a>
+                                )}
+                              </div>
+                              {primaryFrontUrl ? (
+                                <div
+                                  onClick={() =>
+                                    openPreview({
+                                      url: primaryFrontUrl,
+                                      title: `${primaryOwner.user_fname} ${primaryOwner.user_lname} - Government ID (Front)`,
+                                      type: "cover",
+                                    })
+                                  }
+                                  className="h-40 w-full rounded-lg border bg-background overflow-hidden relative group cursor-pointer flex items-center justify-center"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={primaryFrontUrl}
+                                    alt="Government ID Front"
+                                    className="h-full w-full object-contain group-hover:scale-102 transition-transform"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                    <Maximize2 className="h-4 w-4" /> Click to Expand
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="h-40 w-full rounded-lg border border-dashed flex items-center justify-center text-muted-foreground text-xs">
+                                  Front ID Image Not Provided
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Back ID Card */}
+                            <div className="border rounded-xl p-3 bg-muted/20 space-y-2">
+                              <div className="flex items-center justify-between text-[11px] font-semibold text-foreground">
+                                <span>Government ID (Back)</span>
+                                {primaryBackUrl && (
+                                  <a
+                                    href={`${primaryBackUrl}?download`}
+                                    download
+                                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    <Download className="h-3 w-3" /> Download
+                                  </a>
+                                )}
+                              </div>
+                              {primaryBackUrl ? (
+                                <div
+                                  onClick={() =>
+                                    openPreview({
+                                      url: primaryBackUrl,
+                                      title: `${primaryOwner.user_fname} ${primaryOwner.user_lname} - Government ID (Back)`,
+                                      type: "cover",
+                                    })
+                                  }
+                                  className="h-40 w-full rounded-lg border bg-background overflow-hidden relative group cursor-pointer flex items-center justify-center"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={primaryBackUrl}
+                                    alt="Government ID Back"
+                                    className="h-full w-full object-contain group-hover:scale-102 transition-transform"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                                    <Maximize2 className="h-4 w-4" /> Click to Expand
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="h-40 w-full rounded-lg border border-dashed flex items-center justify-center text-muted-foreground text-xs">
+                                  Back ID Image Not Provided
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground text-xs">
+                            No government identification card uploaded for this account owner.
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -581,22 +736,76 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                 </div>
 
                 {/* All Associated Team Members */}
-                <div className="bg-card border rounded-xl p-4 space-y-3">
+                <div className="bg-card border rounded-xl p-5 space-y-4">
                   <h4 className="font-bold text-foreground text-xs uppercase tracking-wider text-muted-foreground">
                     All Associated Company Members ({company.users?.length || 0})
                   </h4>
-                  <div className="space-y-2">
-                    {company.users?.map((u) => (
-                      <div key={u.company_user_id} className="flex items-center justify-between border rounded-lg p-3 bg-muted/20">
-                        <div>
-                          <div className="font-bold text-foreground">
-                            {u.user_fname} {u.user_lname} {u.is_primary_contact ? "(Primary)" : ""}
+                  <div className="space-y-4">
+                    {company.users?.map((u) => {
+                      const uFrontUrl = getGovIdUrl(
+                        u.identity_verification?.gov_id_front_url ||
+                        u.identity_verification?.gov_id_front_image_uuid
+                      );
+                      const uBackUrl = getGovIdUrl(
+                        u.identity_verification?.gov_id_back_url ||
+                        u.identity_verification?.gov_id_back_image_uuid
+                      );
+
+                      return (
+                        <div key={u.company_user_id} className="border rounded-xl p-4 bg-muted/20 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="font-bold text-foreground text-sm">
+                                {`${u.user_fname || ""} ${u.user_lname || ""}`.trim() || "Account User"} {u.is_primary_contact ? "(Primary)" : ""}
+                              </div>
+                              <div className="text-muted-foreground text-xs flex items-center gap-2">
+                                <span>{u.user_email}</span>
+                                {u.user_contact && <span>• {u.user_contact}</span>}
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-[10px]">{u.company_user_role}</Badge>
                           </div>
-                          <div className="text-muted-foreground text-[11px]">{u.user_email}</div>
+
+                          {/* Government ID for team member */}
+                          {(uFrontUrl || uBackUrl) && (
+                            <div className="pt-2 border-t grid grid-cols-2 gap-3">
+                              {uFrontUrl && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    openPreview({
+                                      url: uFrontUrl,
+                                      title: `${u.user_fname} ${u.user_lname} - Government ID (Front)`,
+                                      type: "cover",
+                                    })
+                                  }
+                                  className="h-8 text-xs gap-1.5"
+                                >
+                                  <ExternalLink size={12} /> View Front ID
+                                </Button>
+                              )}
+                              {uBackUrl && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    openPreview({
+                                      url: uBackUrl,
+                                      title: `${u.user_fname} ${u.user_lname} - Government ID (Back)`,
+                                      type: "cover",
+                                    })
+                                  }
+                                  className="h-8 text-xs gap-1.5"
+                                >
+                                  <ExternalLink size={12} /> View Back ID
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <Badge variant="outline" className="text-[10px]">{u.company_user_role}</Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </TabsContent>

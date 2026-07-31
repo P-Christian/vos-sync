@@ -27,6 +27,18 @@ export interface CompanyUser {
   user_email?: string;
   user_fname?: string;
   user_lname?: string;
+  user_contact?: string;
+  user_position?: string;
+  identity_verification?: {
+    id: number;
+    gov_id_type?: string | null;
+    gov_id_front_image_uuid?: string | null;
+    gov_id_back_image_uuid?: string | null;
+    gov_id_front_url?: string | null;
+    gov_id_back_url?: string | null;
+    status?: string | null;
+    submitted_at?: string | null;
+  } | null;
 }
 
 export interface CompanyVerificationAttempt {

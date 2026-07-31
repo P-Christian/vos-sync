@@ -117,6 +117,10 @@ export async function markOTPVerified(userId: string | number) {
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
     const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+    const nowPHStr = new Date(Date.now() + 8 * 60 * 60 * 1000)
+        .toISOString()
+        .replace('T', ' ')
+        .substring(0, 19);
 
     const res = await fetch(url, {
         method: "PATCH",
@@ -125,7 +129,10 @@ export async function markOTPVerified(userId: string | number) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            otp_verified: 1
+            otp_verified: 1,
+            otp_verified_at: nowPHStr,
+            otp_code: null,
+            otp_expiry: null,
         }),
     });
 

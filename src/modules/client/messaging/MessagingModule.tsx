@@ -11,6 +11,7 @@ import ChatPanel from "./components/ChatPanel";
 import EmptyState from "./components/EmptyState";
 import { Conversation } from "./types";
 import { cn } from "@/lib/utils";
+import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 
 interface Props {
   currentUserId: number;
@@ -165,101 +166,103 @@ export default function MessagingModule({
   }, [clearMessages]);
 
   return (
-    <div className="space-y-6 client-page-transition">
-      <style>{`
-        @keyframes page-entry {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .client-page-transition {
-          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
+    <CompanyVerificationGuard moduleName="Candidate Messages">
+      <div className="space-y-6 client-page-transition">
+        <style>{`
+          @keyframes page-entry {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .client-page-transition {
+            animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        `}</style>
 
-      {/* ── Page Header ────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/2 bottom-0 h-24 w-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20 relative z-10 shrink-0">
-          <MessageSquare className="h-7 w-7" />
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-xl font-bold tracking-tight">Messages</h1>
-          <p className="text-sm text-zinc-300 mt-1">
-            Chat with freelancers and manage your conversations
-          </p>
-        </div>
-      </div>
-
-      {/* ── Error Banner ────────────────────────────────────────────────── */}
-      {convsError && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {convsError}
-          <button onClick={clearConvsError} className="ml-auto text-xs underline">
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {/* ── Main Chat Layout ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-        <div className="flex h-[calc(100vh-280px)] min-h-[500px]">
-          {/* Conversation List — hidden on mobile when chat is open */}
-          <div
-            className={cn(
-              "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",
-              mobileShowChat ? "hidden sm:flex" : "flex"
-            )}
-          >
-            <ConversationList
-              conversations={conversations}
-              activeConversationId={activeConversation?.conversation_id ?? null}
-              loading={convsLoading}
-              searchQuery={searchQuery}
-              showArchived={showArchived}
-              currentUserId={currentUserId}
-              onSelect={handleSelectConversation}
-              onArchive={handleArchive}
-              onSearch={setSearchQuery}
-              onRefresh={handleRefreshConversations}
-              onToggleArchived={handleToggleArchived}
-            />
+        {/* ── Page Header ────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute left-1/2 bottom-0 h-24 w-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20 relative z-10 shrink-0">
+            <MessageSquare className="h-7 w-7" />
           </div>
-
-          {/* Chat Panel */}
-          <div
-            className={cn(
-              "flex-1 min-w-0 h-full flex flex-col overflow-hidden",
-              mobileShowChat ? "flex" : "hidden sm:flex"
-            )}
-          >
-            {activeConversation ? (
-              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
-                <ChatPanel
-                  conversation={activeConversation}
-                  messages={messages}
-                  currentUserId={currentUserId}
-                  loading={msgsLoading}
-                  loadingOlder={loadingOlder}
-                  hasMore={hasMore}
-                  sending={sending}
-                  uploading={uploading}
-                  error={msgsError}
-                  onSend={handleSend}
-                  onRefresh={handleRefreshMessages}
-                  onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
-                  onBack={() => setMobileShowChat(false)}
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
-                <EmptyState />
-              </div>
-            )}
+          <div className="relative z-10">
+            <h1 className="text-xl font-bold tracking-tight">Messages</h1>
+            <p className="text-sm text-zinc-300 mt-1">
+              Chat with freelancers and manage your conversations
+            </p>
           </div>
         </div>
+
+        {/* ── Error Banner ────────────────────────────────────────────────── */}
+        {convsError && (
+          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {convsError}
+            <button onClick={clearConvsError} className="ml-auto text-xs underline">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* ── Main Chat Layout ────────────────────────────────────────────── */}
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
+          <div className="flex h-[calc(100vh-280px)] min-h-[500px]">
+            {/* Conversation List — hidden on mobile when chat is open */}
+            <div
+              className={cn(
+                "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",
+                mobileShowChat ? "hidden sm:flex" : "flex"
+              )}
+            >
+              <ConversationList
+                conversations={conversations}
+                activeConversationId={activeConversation?.conversation_id ?? null}
+                loading={convsLoading}
+                searchQuery={searchQuery}
+                showArchived={showArchived}
+                currentUserId={currentUserId}
+                onSelect={handleSelectConversation}
+                onArchive={handleArchive}
+                onSearch={setSearchQuery}
+                onRefresh={handleRefreshConversations}
+                onToggleArchived={handleToggleArchived}
+              />
+            </div>
+
+            {/* Chat Panel */}
+            <div
+              className={cn(
+                "flex-1 min-w-0 h-full flex flex-col overflow-hidden",
+                mobileShowChat ? "flex" : "hidden sm:flex"
+              )}
+            >
+              {activeConversation ? (
+                <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+                  <ChatPanel
+                    conversation={activeConversation}
+                    messages={messages}
+                    currentUserId={currentUserId}
+                    loading={msgsLoading}
+                    loadingOlder={loadingOlder}
+                    hasMore={hasMore}
+                    sending={sending}
+                    uploading={uploading}
+                    error={msgsError}
+                    onSend={handleSend}
+                    onRefresh={handleRefreshMessages}
+                    onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
+                    onBack={() => setMobileShowChat(false)}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+                  <EmptyState />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </CompanyVerificationGuard>
   );
 }

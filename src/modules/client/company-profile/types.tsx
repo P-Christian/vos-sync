@@ -42,6 +42,7 @@ export interface CompanyProfile {
   company_tags?: string | null;
   verification_status: VerificationStatus;
   rejection_reason?: string | null;
+  public_rejection_reason?: string | null;
   verification_remarks?: string | null;
   profile_completion_percent?: number;
   is_public: number | boolean;

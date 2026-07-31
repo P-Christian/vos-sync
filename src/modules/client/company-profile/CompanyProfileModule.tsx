@@ -76,6 +76,12 @@ export default function CompanyProfileModule() {
     if (!setupForm.company_legal_name.trim()) return setSetupError("Legal company name is required.");
     if (!setupForm.company_email.trim()) return setSetupError("Company email is required.");
     if (!setupForm.company_contact.trim()) return setSetupError("Company contact number is required.");
+
+    const phoneRegex = /^(?:\+?\d{1,4}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,9}$/;
+    if (!phoneRegex.test(setupForm.company_contact.trim())) {
+      return setSetupError("Please enter a valid company contact phone number (e.g. +63 912 345 6789 or 09123456789).");
+    }
+
     if (!setupForm.company_description.trim()) return setSetupError("Company description is required.");
 
     try {
@@ -653,6 +659,7 @@ export default function CompanyProfileModule() {
                 <CompanyStatus
                   status={company.verification_status}
                   remarks={company.rejection_reason || company.verification_remarks}
+                  publicRejectionReason={company.public_rejection_reason || company.rejection_reason || company.verification_remarks}
                 />
               </CardContent>
             </Card>

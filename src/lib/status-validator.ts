@@ -86,3 +86,40 @@ export async function checkUserStatus(userId: number): Promise<{ status: string;
     return null;
   }
 }
+
+/**
+ * Checks if the user's associated company is approved (vs_company.verification_status === "VERIFIED").
+ * Non-verified companies are restricted from posting jobs, browsing candidate profiles, or sending candidate messages.
+ */
+export async function checkCompanyVerificationStatus(userId: number): Promise<{
+  isVerified: boolean;
+  verification_status: string;
+  companyId: number | null;
+}> {
+  try {
+    const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`;
+    const linkRes = await fetch(linkUrl, { headers: getHeaders(), next: { revalidate: 10 } });
+    if (!linkRes.ok) return { isVerified: false, verification_status: "DRAFT", companyId: null };
+
+    const linkJson = await linkRes.json();
+    const link = linkJson.data?.[0];
+    if (!link?.company_id) return { isVerified: false, verification_status: "DRAFT", companyId: null };
+
+    const companyRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company/${link.company_id}?fields=company_id,verification_status`,
+      { headers: getHeaders(), next: { revalidate: 10 } }
+    );
+    if (!companyRes.ok) return { isVerified: false, verification_status: "DRAFT", companyId: link.company_id };
+
+    const companyJson = await companyRes.json();
+    const status = String(companyJson.data?.verification_status ?? "DRAFT").toUpperCase();
+    return {
+      isVerified: status === "VERIFIED",
+      verification_status: status,
+      companyId: link.company_id,
+    };
+  } catch (error) {
+    console.error(`[status-validator] Exception checking company verification status for user #${userId}:`, error);
+    return { isVerified: false, verification_status: "DRAFT", companyId: null };
+  }
+}

@@ -84,7 +84,8 @@ const VALID_STATUSES = [
   "REJECTED",
 ];
 
-// GET — Retrieve details profile for a single job seeker application
+import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+
 // GET — Retrieve details profile for a single job seeker application
 export async function GET(
   req: NextRequest,
@@ -110,6 +111,18 @@ export async function GET(
       return NextResponse.json(
         { error: "Invalid token." },
         { status: 401 }
+      );
+    }
+
+    // BUSINESS RULE: Only VERIFIED companies can view candidate details
+    const { isVerified, verification_status } = await checkCompanyVerificationStatus(requesterId);
+    if (!isVerified) {
+      return NextResponse.json(
+        {
+          error: `Restricted: Your company verification status is currently ${verification_status}. Viewing candidate details is restricted until your company is verified by an admin.`,
+          verification_status,
+        },
+        { status: 403 }
       );
     }
 

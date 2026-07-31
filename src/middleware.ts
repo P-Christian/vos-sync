@@ -54,14 +54,14 @@ export async function middleware(req: NextRequest) {
     try {
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
-        
+
         const userRoleName = typeof payload.role_name === 'string' ? payload.role_name.toUpperCase() : "";
         const pathLower = pathname.toLowerCase();
-        
+
         // Exclude suspended page and logout routes from redirection checks
         if (
-            pathLower !== "/vos-sync/suspended" && 
-            !pathLower.startsWith("/api/auth/logout") && 
+            pathLower !== "/vos-sync/suspended" &&
+            !pathLower.startsWith("/api/auth/logout") &&
             pathLower !== "/logout"
         ) {
             const userId = Number(payload.sub || payload.user_id || payload.id);
@@ -99,7 +99,7 @@ export async function middleware(req: NextRequest) {
 
         let isAuthorized = true;
         const userRoleId = Number(payload.role_id);
-        
+
         if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER" && userRoleId !== 1) {
             isAuthorized = false;
         } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN" && userRoleId !== 3) {
@@ -109,7 +109,7 @@ export async function middleware(req: NextRequest) {
         } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleId !== 4) {
             isAuthorized = false;
         }
- 
+
         if (!isAuthorized) {
             let roleDashboard = "/vos-sync/freelancer/dashboard";
             if (userRoleId === 2 || userRoleName === "CLIENT") {
@@ -124,12 +124,12 @@ export async function middleware(req: NextRequest) {
             url.searchParams.delete("next");
             return NextResponse.redirect(url);
         }
- 
+
         const response = NextResponse.next();
-        
+
         // Prevent browser caching (bfcache) so the back button forces a new request to middleware
         response.headers.set('Cache-Control', 'no-store, max-age=0');
-        
+
         return response;
     } catch (err) {
         console.error("[Middleware] JWT verification failed:", err);
@@ -142,16 +142,17 @@ function redirectToLogin(req: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("next", req.nextUrl.pathname);
     const response = NextResponse.redirect(url);
-    const hostname = req.nextUrl.hostname;
-
     response.cookies.delete(COOKIE_NAME);
-    response.cookies.delete({ name: COOKIE_NAME, path: "/" });
-
-    response.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
-    if (hostname) {
-        response.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
-    }
-
+    response.cookies.set({
+        name: COOKIE_NAME,
+        value: "",
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        expires: new Date(0),
+        maxAge: 0,
+    });
     return response;
 }
 

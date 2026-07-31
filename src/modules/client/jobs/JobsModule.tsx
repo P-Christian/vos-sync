@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, CheckCircle, Plus } from "lucide-react";
+import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import { JobPosting, JobFormData, JobStatus } from "./types";
 
 export default function JobsModule() {
@@ -179,133 +180,127 @@ export default function JobsModule() {
   const draftCount = jobs.filter((j) => j.status === "DRAFT").length;
 
   return (
-    <div className="space-y-6 client-page-transition">
-      <style>{`
-        @keyframes page-entry {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .client-page-transition {
-          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Job Postings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {activeCount} active &bull; {draftCount} draft
-          </p>
-        </div>
-        <Button
-          onClick={handleNewJob}
-          className="h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto shadow-sm border-0"
-        >
-          <Plus className="h-4 w-4" />
-          New Job Post
-        </Button>
-      </div>
-
-      {/* Messages */}
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          {successMessage}
-        </div>
-      )}
-      {error && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
-
-      {/* Filter & Job List */}
-      <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between p-6  border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10">
-          <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
-            All Postings
-          </CardTitle>
-          <Select
-            value={filterStatus}
-            onValueChange={(v) => setFilterStatus(v as JobStatus | "ALL")}
+    <CompanyVerificationGuard moduleName="Job Postings">
+      <div className="space-y-6 client-page-transition">
+        <style>{`
+          @keyframes page-entry {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .client-page-transition {
+            animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        `}</style>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Job Postings</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {activeCount} active &bull; {draftCount} draft
+            </p>
+          </div>
+          <Button
+            onClick={handleNewJob}
+            className="h-10 bg-[#14a800] hover:bg-[#118f00] text-white rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto shadow-sm border-0"
           >
-            <SelectTrigger className="h-8 w-36 text-xs rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL" className="text-sm">All Status</SelectItem>
-              <SelectItem value="ACTIVE" className="text-sm">Active</SelectItem>
-              <SelectItem value="DRAFT" className="text-sm">Draft</SelectItem>
-              <SelectItem value="CLOSED" className="text-sm">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-        </CardHeader>
-        <CardContent className="p-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 gap-3">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span className="text-sm text-zinc-400 animate-pulse">Loading job postings...</span>
-            </div>
-          ) : (
-            <>
-              <JobList
-                jobs={jobs}
-                onView={handleViewJob}
-                onEdit={handleEditJob}
-                onStatusChange={changeJobStatus}
-              />
-              <JobDetailSheet
-                job={selectedJob as any}
-                open={isPreviewOpen}
-                onClose={() => {
-                  setIsPreviewOpen(false);
-                  setSelectedJob(null);
-                }}
-                onApply={() => { }}
-              />
-              {/* <JobForm
-                data={formData}
-                onChange={handleFieldChange}
-                onCancel={handleClose}
-                onSubmit={handleSave}
-                saving={saving}
-                editingJob={!!editingJob}
-              /> */}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <Plus className="h-4 w-4" />
+            New Job Post
+          </Button>
+        </div>
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-5xl w-full h-[85vh] max-h-[85vh] flex flex-col p-6 overflow-hidden">
-          <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800">
-            <DialogTitle className="text-base font-bold">
-              {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
-            </DialogTitle>
-            <DialogDescription className="sr-only">
-              Fill out the details of the job posting below.
-            </DialogDescription>
-          </DialogHeader>
+        {/* Messages */}
+        {successMessage && (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
+            <CheckCircle className="h-4 w-4 shrink-0" />
+            {successMessage}
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </div>
+        )}
 
-          {error && (
-            <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {error}
-            </div>
-          )}
-          <JobForm
-            data={formData}
-            onChange={handleFieldChange}
-            onCancel={handleClose}
-            onSubmit={handleSave}
-            saving={saving}
-            editingJob={!!editingJob}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Filter & Job List */}
+        <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between p-6  border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/10">
+            <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100">
+              All Postings
+            </CardTitle>
+            <Select
+              value={filterStatus}
+              onValueChange={(v) => setFilterStatus(v as JobStatus | "ALL")}
+            >
+              <SelectTrigger className="h-8 w-36 text-xs rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL" className="text-sm">All Status</SelectItem>
+                <SelectItem value="ACTIVE" className="text-sm">Active</SelectItem>
+                <SelectItem value="DRAFT" className="text-sm">Draft</SelectItem>
+                <SelectItem value="CLOSED" className="text-sm">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardHeader>
+          <CardContent className="p-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-16 gap-3">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-sm text-zinc-400 animate-pulse">Loading job postings...</span>
+              </div>
+            ) : (
+              <>
+                <JobList
+                  jobs={jobs}
+                  onView={handleViewJob}
+                  onEdit={handleEditJob}
+                  onStatusChange={changeJobStatus}
+                />
+                <JobDetailSheet
+                  job={selectedJob as any}
+                  open={isPreviewOpen}
+                  onClose={() => {
+                    setIsPreviewOpen(false);
+                    setSelectedJob(null);
+                  }}
+                  onApply={() => { }}
+                />
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Create / Edit Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-5xl w-full h-[85vh] max-h-[85vh] flex flex-col p-6 overflow-hidden">
+            <DialogHeader className="pb-2 border-b border-zinc-100 dark:border-zinc-800">
+              <DialogTitle className="text-base font-bold">
+                {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                Fill out the details of the job posting below.
+              </DialogDescription>
+            </DialogHeader>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                {error}
+              </div>
+            )}
+            <JobForm
+              data={formData}
+              onChange={handleFieldChange}
+              onCancel={handleClose}
+              onSubmit={handleSave}
+              saving={saving}
+              editingJob={!!editingJob}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </CompanyVerificationGuard>
   );
 }
 

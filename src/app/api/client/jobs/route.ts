@@ -177,16 +177,14 @@ export async function POST(req: NextRequest) {
     if (!body.salary_min && !body.salary_max && !body.salary_negotiable)
       errors.push("Salary information is required.");
 
-    // BUSINESS RULE: Only VERIFIED companies can publish active jobs
-    // Unverified companies may save drafts but cannot submit active listings
-    const targetStatus = body.status ?? "ACTIVE";
-    if (targetStatus === "ACTIVE" && verification_status !== "VERIFIED") {
+    // BUSINESS RULE: Only VERIFIED companies can post jobs
+    if (verification_status !== "VERIFIED") {
       return NextResponse.json(
         {
           error:
-            "Job posting is only available for verified companies. Your account is currently " +
-            (verification_status ?? "PENDING") +
-            ". You may save it as a DRAFT instead.",
+            "Posting jobs is restricted for unapproved companies. Your company verification status is currently " +
+            (verification_status ?? "DRAFT") +
+            ". Admin approval is required before you can post jobs.",
         },
         { status: 403 }
       );
@@ -196,6 +194,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
 
     const nowPH = getPHTimeString();
+
+    const targetStatus = body.status ?? "ACTIVE";
 
     const jobPayload = {
       company_id: companyId,
