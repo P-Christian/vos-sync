@@ -11,12 +11,66 @@ export interface EmployerMailParams {
 const PLATFORM_NAME = process.env.NEXT_PUBLIC_APP_NAME || "VOS-Sync";
 const BASE_APP_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
 
+// 1. Upon Account Creation and OTP Verified (To Employer)
+
+export function employerAccountCreationTemplate({ companyName, recipientName }: EmployerMailParams) {
+  const subject = `Welcome to ${PLATFORM_NAME} — Account Created`;
+  const greeting = recipientName ? `Hello ${recipientName},` : "Hello,";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f6f9; color: #1e293b; margin: 0; padding: 20px; }
+          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+          .header { text-align: center; border-b: 1px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; }
+          .brand { font-size: 22px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px; }
+          .title { font-size: 18px; font-weight: 700; color: #0f172a; margin-top: 10px; }
+          .content { font-size: 14px; line-height: 1.6; color: #334155; }
+          .badge-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center; }
+          .badge-title { font-weight: 700; color: #1e40af; font-size: 14px; margin-bottom: 4px; }
+          .badge-desc { font-size: 13px; color: #1e3a8a; }
+          .footer { margin-top: 32px; border-t: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="brand">🎉 Welcome to ${PLATFORM_NAME}</div>
+            <div class="title">Employer Account Created</div>
+          </div>
+          <div class="content">
+            <p>${greeting}</p>
+            <p>Welcome to <strong>${PLATFORM_NAME}</strong>! Your employer account for <strong>${companyName}</strong> has been successfully created and your email address is verified.</p>
+            
+            <div class="badge-box">
+              <div class="badge-title">📋 Next Steps: Verification Required</div>
+              <div class="badge-desc">Please complete your company profile and submit your documents for verification.</div>
+            </div>
+
+            <p>Completing your organization profile and uploading valid identification will allow our compliance team to verify your account, granting full access to post job openings and connect with top candidates.</p>
+            <p>If you have any questions, feel free to contact our support team.</p>
+            <p>Best regards,<br><strong>The ${PLATFORM_NAME} Team</strong></p>
+          </div>
+          <div class="footer">
+            &copy; ${new Date().getFullYear()} ${PLATFORM_NAME}. All rights reserved.
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return { subject, html };
+}
+
 /**
- * 1. Upon Submission (To Employer)
+ * 2. Upon Submission (To Employer)
  * Subject: We received your Employer Registration — [Company Name]
  * Body: Confirms receipt and informs them that account is under manual verification (typically takes 8–24 hours).
  */
-export function employerSubmissionTemplate({ companyName, recipientName }: EmployerMailParams) {
+export function employerVerificationTemplate({ companyName, recipientName }: EmployerMailParams) {
   const subject = `We received your Employer Registration — ${companyName}`;
   const greeting = recipientName ? `Hello ${recipientName},` : "Hello,";
 
@@ -69,7 +123,7 @@ export function employerSubmissionTemplate({ companyName, recipientName }: Emplo
 }
 
 /**
- * 2. Upon Admin Approval (To Employer)
+ * 3. Upon Admin Approval (To Employer)
  * Subject: Account Approved: Welcome to [Platform Name]!
  * Body: Business profile verified, CTA link to log in and create first job post.
  */
@@ -134,7 +188,7 @@ export function employerApprovalTemplate({ companyName, recipientName, loginUrl 
 }
 
 /**
- * 3. Upon Admin Rejection (To Employer)
+ * 4. Upon Admin Rejection (To Employer)
  * Subject: Update regarding your Employer Account Application — [Company Name]
  * Body: Politeness notification stating registration was not approved, dynamic rejection reason, support info.
  */

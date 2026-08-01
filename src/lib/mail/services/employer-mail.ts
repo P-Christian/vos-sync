@@ -2,21 +2,39 @@
 
 import { sendMail } from "../index";
 import {
-  employerSubmissionTemplate,
+  employerAccountCreationTemplate,
+  employerVerificationTemplate,
   employerApprovalTemplate,
   employerRejectionTemplate,
   EmployerMailParams,
 } from "../templates/employer";
 
 /**
- * Send receipt confirmation upon Employer Registration submission
+ * Send email upon Employer Account Creation & OTP Verification
+ */
+export async function sendEmployerAccountCreationEmail({
+  email,
+  companyName,
+  recipientName,
+}: EmployerMailParams & { email: string }) {
+  const template = employerAccountCreationTemplate({ companyName, recipientName });
+
+  return sendMail({
+    to: email,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+/**
+ * Send receipt confirmation upon Employer Registration / Document Verification submission
  */
 export async function sendEmployerSubmissionEmail({
   email,
   companyName,
   recipientName,
 }: EmployerMailParams & { email: string }) {
-  const template = employerSubmissionTemplate({ companyName, recipientName });
+  const template = employerVerificationTemplate({ companyName, recipientName });
 
   return sendMail({
     to: email,

@@ -16,6 +16,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { validatePasswordStrict } from '@/lib/password-validation';
+import PasswordRequirementsChecklist from '@/components/auth/PasswordRequirementsChecklist';
+import TurnstileWidget from '@/components/auth/TurnstileWidget';
 
 // ─── Types & Country Data ─────────────────────────────────────────────────────
 
@@ -323,6 +326,7 @@ export default function SignupPage() {
   // ── Client Step 4: Compliance ─────────────────────────────────────────────
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   // ── Shared OTP ────────────────────────────────────────────────────────────
   const [otp, setOtp] = useState('');
@@ -468,7 +472,7 @@ export default function SignupPage() {
       }
     }
     if (!step1.password) e.password = 'Password is required';
-    else if (step1.password.length < 8) e.password = 'Password must be at least 8 characters';
+    else if (!validatePasswordStrict(step1.password)) e.password = 'Password does not meet security requirements';
     if (!step1.confirmPassword) e.confirmPassword = 'Please confirm your password';
     else if (step1.confirmPassword !== step1.password) e.confirmPassword = 'Passwords do not match';
     setErrors(e);
@@ -635,6 +639,7 @@ export default function SignupPage() {
         terms_accepted: true,
         privacy_accepted: true,
         marketing_consent: marketingConsent,
+        turnstileToken,
       };
 
       const res = await fetch('/api/client/registration', {
@@ -728,7 +733,7 @@ export default function SignupPage() {
       }
     }
     if (!formData.password) e.password = 'Password is required';
-    else if (formData.password.length < 8) e.password = 'Password must be at least 8 characters';
+    else if (!validatePasswordStrict(formData.password)) e.password = 'Password does not meet security requirements';
     if (!formData.country) e.country = 'Country is required';
     if (!freelancerTermsAgreed) e.terms = 'You must agree to the Terms of Service to continue';
     setFreelancerErrors(e);
@@ -746,7 +751,7 @@ export default function SignupPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'FREELANCER' }),
+        body: JSON.stringify({ ...formData, role: 'FREELANCER', turnstileToken }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error('Signup failed', { description: data.message || 'An error occurred' }); return; }
@@ -868,37 +873,40 @@ export default function SignupPage() {
               {errors.email && <p className="text-xs text-destructive mt-1 font-medium">{errors.email}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground">
-                  Password <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Input id="c-password" type={showPassword ? 'text' : 'password'} value={step1.password}
-                    onChange={e => s1Set('password', e.target.value)} disabled={loading} placeholder="8+ characters"
-                    className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.password && 'border-destructive')} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-foreground">
+                    Password <span className="text-destructive">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input id="c-password" type={showPassword ? 'text' : 'password'} value={step1.password}
+                      onChange={e => s1Set('password', e.target.value)} disabled={loading} placeholder="8+ characters"
+                      className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.password && 'border-destructive')} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-xs text-destructive mt-1 font-medium">{errors.password}</p>}
                 </div>
-                {errors.password && <p className="text-xs text-destructive mt-1 font-medium">{errors.password}</p>}
-              </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-foreground">
-                  Confirm Password <span className="text-destructive">*</span>
-                </label>
-                <div className="relative">
-                  <Input id="c-confirm" type={showConfirmPassword ? 'text' : 'password'} value={step1.confirmPassword}
-                    onChange={e => s1Set('confirmPassword', e.target.value)} disabled={loading} placeholder="Repeat password"
-                    className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.confirmPassword && 'border-destructive')} />
-                  <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-foreground">
+                    Confirm Password <span className="text-destructive">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input id="c-confirm" type={showConfirmPassword ? 'text' : 'password'} value={step1.confirmPassword}
+                      onChange={e => s1Set('confirmPassword', e.target.value)} disabled={loading} placeholder="Repeat password"
+                      className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.confirmPassword && 'border-destructive')} />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="text-xs text-destructive mt-1 font-medium">{errors.confirmPassword}</p>}
                 </div>
-                {errors.confirmPassword && <p className="text-xs text-destructive mt-1 font-medium">{errors.confirmPassword}</p>}
               </div>
+              <PasswordRequirementsChecklist password={step1.password} confirmPassword={step1.confirmPassword} className="mt-1" />
             </div>
           </div>
         </div>
@@ -954,8 +962,8 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <Button type="button" onClick={handleStep1Next} disabled={loading}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-base">
+        <Button type="button" onClick={handleStep1Next} disabled={loading || !validatePasswordStrict(step1.password)}
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-base disabled:opacity-50">
           Continue to ID Upload →
         </Button>
 
@@ -1136,23 +1144,7 @@ export default function SignupPage() {
         </div>
 
         <div className="space-y-5">
-          {/* Industry */}
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-foreground">
-              Industry / Sector <span className="text-destructive">*</span>
-            </label>
-            <Select value={company.industry} onValueChange={val => cSet('industry', val)} disabled={loading}>
-              <SelectTrigger className={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.industry && 'border-destructive')}>
-                <SelectValue placeholder="Select industry..." />
-              </SelectTrigger>
-              <SelectContent>
-                {fetchedIndustries.map(i => (
-                  <SelectItem key={i.industry_id} value={i.industry_name}>{i.industry_name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.industry && <p className="text-xs text-destructive mt-1 font-medium">{errors.industry}</p>}
-          </div>
+
 
           {/* Company Name */}
           <div className="space-y-1">
@@ -1165,20 +1157,29 @@ export default function SignupPage() {
             {errors.companyName && <p className="text-xs text-destructive mt-1 font-medium">{errors.companyName}</p>}
           </div>
 
-          {/* Website + Company Size */}
+          {/* Industry / Sector + Company Size */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-foreground">Company Website / Social URL</label>
-              <Input value={company.websiteUrl} onChange={e => cSet('websiteUrl', e.target.value)}
-                disabled={loading} placeholder="https://..."
-                className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+              <label className="block text-sm font-medium text-foreground">
+                Industry / Sector <span className="text-destructive">*</span>
+              </label>
+              <SearchableLocationSelect
+                options={fetchedIndustries.map(i => ({ code: i.industry_name, name: i.industry_name }))}
+                value={company.industry}
+                onChange={(_code, name) => cSet('industry', name)}
+                placeholder="Select industry..."
+                error={errors.industry}
+                disabled={loading}
+              />
+              {errors.industry && <p className="text-xs text-destructive mt-1 font-medium">{errors.industry}</p>}
             </div>
+
             <div className="space-y-1">
               <label className="block text-sm font-medium text-foreground">
                 Company Size <span className="text-destructive">*</span>
               </label>
               <Select value={company.companySize} onValueChange={val => cSet('companySize', val)} disabled={loading}>
-                <SelectTrigger className={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.companySize && 'border-destructive')}>
+                <SelectTrigger className={cn('!h-12 w-full border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.companySize && 'border-destructive')}>
                   <SelectValue placeholder="Select size..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1189,6 +1190,14 @@ export default function SignupPage() {
               </Select>
               {errors.companySize && <p className="text-xs text-destructive mt-1 font-medium">{errors.companySize}</p>}
             </div>
+          </div>
+
+          {/* Company Website */}
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-foreground">Company Website / Social URL</label>
+            <Input value={company.websiteUrl} onChange={e => cSet('websiteUrl', e.target.value)}
+              disabled={loading} placeholder="https://..."
+              className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
           </div>
 
           {/* Location */}
@@ -1288,9 +1297,17 @@ export default function SignupPage() {
             </div>
             <div className="space-y-1">
               <label className="block text-sm font-medium text-foreground">TIN / Business Reg. No.</label>
-              <Input value={company.tin} onChange={e => setCompany(prev => ({ ...prev, tin: e.target.value }))}
+              <Input value={company.tin} onChange={e => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                const parts: string[] = [];
+                for (let i = 0; i < digits.length; i += 3) {
+                  parts.push(digits.slice(i, i + 3));
+                }
+                const formatted = parts.join('-');
+                setCompany(prev => ({ ...prev, tin: formatted }));
+              }}
                 disabled={loading} placeholder="e.g. 123-456-789-000"
-                className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+                className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary font-mono" />
             </div>
           </div>
 
@@ -1360,25 +1377,22 @@ export default function SignupPage() {
               className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', errors.terms && 'border-destructive')} />
             <span className={cn('text-sm leading-snug select-none', errors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
               Yes, I understand and agree to the{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
+              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
               <span className="text-destructive ml-0.5">*</span>
             </span>
           </label>
           {errors.terms && <p className="text-xs text-destructive mt-1.5 font-medium pl-7">{errors.terms}</p>}
         </div>
 
-        {/* CAPTCHA Placeholder */}
-        <div className="rounded-xl border-2 border-dashed border-border bg-muted/20 p-5 flex items-center gap-4">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Shield size={16} className="text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">CAPTCHA / Bot Protection</p>
-            <p className="text-xs text-muted-foreground">Verifying you&apos;re human... (reCAPTCHA will appear here)</p>
-          </div>
-        </div>
+        {/* CAPTCHA / Bot Protection */}
+        
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken('')}
+          />
+   
 
         {/* Submit */}
         <Button type="button" onClick={handleStep4Submit} disabled={loading || !termsAgreed}
@@ -1484,20 +1498,23 @@ export default function SignupPage() {
           {freelancerErrors.contact && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.contact}</p>}
         </div>
 
-        <div className="space-y-1">
-          <label htmlFor="password" className="block text-sm font-medium text-foreground">
-            Password <span className="text-destructive">*</span>
-          </label>
-          <div className="relative">
-            <Input type={freelancerShowPassword ? 'text' : 'password'} id="password" value={formData.password}
-              onChange={handleFreelancerChange} disabled={loading} placeholder="Password (8 or more characters)"
-              className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.password && 'border-destructive focus-visible:border-destructive text-destructive')} />
-            <button type="button" onClick={() => setFreelancerShowPassword(!freelancerShowPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
-              {freelancerShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          <div className="space-y-1">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground">
+              Password <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <Input type={freelancerShowPassword ? 'text' : 'password'} id="password" value={formData.password}
+                onChange={handleFreelancerChange} disabled={loading} placeholder="Password (8 or more characters)"
+                className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.password && 'border-destructive focus-visible:border-destructive text-destructive')} />
+              <button type="button" onClick={() => setFreelancerShowPassword(!freelancerShowPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                {freelancerShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {freelancerErrors.password && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.password}</p>}
           </div>
-          {freelancerErrors.password && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.password}</p>}
+          <PasswordRequirementsChecklist password={formData.password} className="mt-1" />
         </div>
 
         <div className="space-y-1">
@@ -1540,9 +1557,17 @@ export default function SignupPage() {
           </div>
         </div>
 
-        <Button type="submit" disabled={loading}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
-          {loading ? 'Creating...' : 'Create my account'}
+        {/* CAPTCHA / Bot Protection */}
+        <div className="rounded-xl border border-border/80 bg-muted/20 p-4 my-2">
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken('')}
+          />
+        </div>
+
+        <Button type="submit" disabled={loading || !validatePasswordStrict(formData.password)}
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50">
+          {loading ? 'Creating...' : 'Create Job Seeker Account'}
         </Button>
       </form>
 
