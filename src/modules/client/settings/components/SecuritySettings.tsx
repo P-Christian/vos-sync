@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { validatePasswordStrict } from "@/lib/password-validation";
+import PasswordRequirementsChecklist from "@/components/auth/PasswordRequirementsChecklist";
 
 interface SecuritySettingsProps {
   saving: boolean;
@@ -33,8 +35,8 @@ export default function SecuritySettings({
       setLocalError("Current password is required.");
       return;
     }
-    if (!form.new_password || form.new_password.length < 8) {
-      setLocalError("New password must be at least 8 characters long.");
+    if (!form.new_password || !validatePasswordStrict(form.new_password)) {
+      setLocalError("New password does not meet all security requirements.");
       return;
     }
     if (form.new_password !== form.confirm_password) {
@@ -114,11 +116,13 @@ export default function SecuritySettings({
           />
         </div>
 
+        <PasswordRequirementsChecklist password={form.new_password || ""} confirmPassword={form.confirm_password} />
+
         <div className="pt-2">
           <Button
             type="submit"
-            disabled={saving}
-            className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm"
+            disabled={saving || !validatePasswordStrict(form.new_password || "")}
+            className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm disabled:opacity-50"
           >
             {saving ? (
               <>

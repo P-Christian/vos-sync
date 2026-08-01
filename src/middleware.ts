@@ -32,9 +32,40 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
+    if (pathname === "/login" || pathname === "/signup") {
+        const token = req.cookies.get(COOKIE_NAME)?.value;
+        if (token) {
+            try {
+                const secret = new TextEncoder().encode(JWT_SECRET);
+                const { payload } = await jose.jwtVerify(token, secret);
+                const userRoleId = Number(payload.role_id);
+                const userRoleName = typeof payload.role_name === "string" ? payload.role_name : (typeof payload.role === "string" ? payload.role : "");
+                const roleUpper = userRoleName.toUpperCase();
+
+                let roleDashboard = "/vos-sync/freelancer/dashboard";
+                if (userRoleId === 2 || roleUpper === "CLIENT" || roleUpper === "EMPLOYER") {
+                    roleDashboard = "/vos-sync/client/dashboard";
+                } else if (userRoleId === 3 || roleUpper === "ADMIN") {
+                    roleDashboard = "/vos-sync/vos-admin";
+                } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN") {
+                    roleDashboard = "/vos-sync/school-admin";
+                }
+
+                const url = req.nextUrl.clone();
+                url.pathname = roleDashboard;
+                url.searchParams.delete("next");
+                return NextResponse.redirect(url);
+            } catch {
+                // Stale or invalid token — clear and proceed to login/signup page
+                const response = NextResponse.next();
+                response.cookies.delete(COOKIE_NAME);
+                return response;
+            }
+        }
+        return NextResponse.next();
+    }
+
     if (
-        pathname === "/login" ||
-        pathname === "/signup" ||
         pathname.startsWith("/api/auth/login") ||
         pathname.startsWith("/api/auth/signup") ||
         pathname.startsWith("/api/auth/logout")

@@ -4,6 +4,9 @@ import * as jose from "jose";
 import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken, getRoleById } from "./auth.repo";
 import { sendOTP, sendPasswordResetOTP } from "./email.service";
 import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
+import { validatePasswordStrict } from "@/lib/password-validation";
+import { sendEmployerAccountCreationEmail } from "@/lib/mail";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 // ⚠️ TESTING: 1 min — CHANGE TO 15 * 60 * 1000 (15 min) FOR PRODUCTION
@@ -160,6 +163,16 @@ export async function registerUser(body: unknown) {
         throw new Error("Missing required fields.");
     }
 
+    const turnstileToken = (body as { turnstileToken?: string; "cf-turnstile-response"?: string })?.turnstileToken || (body as { "cf-turnstile-response"?: string })?.["cf-turnstile-response"];
+    const turnstileResult = await verifyTurnstileToken(turnstileToken);
+    if (!turnstileResult.success) {
+        throw new Error(turnstileResult.message || "Security CAPTCHA verification failed.");
+    }
+
+    if (!validatePasswordStrict(password)) {
+        throw new Error("Password does not meet security requirements.");
+    }
+
     const existingUser = await getUserByEmail(email);
     if (existingUser) {
         throw new Error("Email is already registered.");
@@ -281,6 +294,34 @@ export async function confirmOTP(userId: string | number, code: string) {
 
     await markOTPVerified(userId);
 
+    // Send Welcome Account Creation email for Client/Employer accounts
+    if (user.role_id === 2 || String(user.role).toUpperCase() === 'CLIENT' || String(user.role).toUpperCase() === 'EMPLOYER') {
+        try {
+            const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+            const envToken = process.env.DIRECTUS_STATIC_TOKEN;
+            let companyName = "your organization";
+
+            if (envApiBase) {
+                const headers: Record<string, string> = { "Content-Type": "application/json" };
+                if (envToken) headers["Authorization"] = `Bearer ${envToken}`;
+                const compRes = await fetch(`${envApiBase}/items/vs_company_user?filter[user_id][_eq]=${user.user_id}&fields=company_id.company_name`, { headers, cache: "no-store" });
+                if (compRes.ok) {
+                    const compJson = await compRes.json();
+                    const foundName = compJson?.data?.[0]?.company_id?.company_name;
+                    if (foundName) companyName = String(foundName);
+                }
+            }
+
+            await sendEmployerAccountCreationEmail({
+                email: user.user_email,
+                companyName,
+                recipientName: user.user_fname,
+            });
+        } catch (e) {
+            console.error("Failed to send employer account creation email upon OTP verification:", e);
+        }
+    }
+
     createAuditRecordRepo({
         event_type: "OTP_VERIFY_SUCCESS",
         event_category: "AUTHENTICATION",
@@ -362,6 +403,10 @@ export async function requestPasswordReset(email: string) {
 export async function confirmPasswordReset(userId: string | number, code: string, newPassword: string) {
     if (!userId || !code || !newPassword) {
         throw new Error('User ID, OTP code, and new password are required.');
+    }
+
+    if (!validatePasswordStrict(newPassword)) {
+        throw new Error('New password does not meet security requirements.');
     }
 
     const user = await getUserById(userId);

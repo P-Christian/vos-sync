@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { KeyRound, Mail, ShieldCheck, Briefcase, Eye, EyeOff } from "lucide-react"
 import { toast } from "sonner"
+import { validatePasswordStrict } from "@/lib/password-validation"
+import PasswordRequirementsChecklist from "@/components/auth/PasswordRequirementsChecklist"
 
 
 import { Button } from "@/components/ui/button"
@@ -87,8 +89,8 @@ function ForgotPasswordForm() {
 
     const handlePasswordSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newPassword || newPassword.length < 8) {
-            toast.error("Invalid password", { description: "Password must be at least 8 characters." })
+        if (!newPassword || !validatePasswordStrict(newPassword)) {
+            toast.error("Invalid password", { description: "Password does not meet all security requirements." })
             return
         }
         if (newPassword !== confirmPassword) {
@@ -258,55 +260,59 @@ function ForgotPasswordForm() {
                                     <p className="text-sm text-muted-foreground mt-1">Please enter a new strong password.</p>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="new-password">New Password</label>
-                                        <div className="relative">
-                                            <Input 
-                                                id="new-password" 
-                                                type={showPw ? "text" : "password"} 
-                                                placeholder="Enter new password" 
-                                                value={newPassword}
-                                                onChange={(e) => setNewPassword(e.target.value)}
-                                                disabled={loading}
-                                                className="h-11 pr-12"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowPw(s => !s)}
-                                                disabled={loading}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                                {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                            </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="new-password">New Password</label>
+                                            <div className="relative">
+                                                <Input 
+                                                    id="new-password" 
+                                                    type={showPw ? "text" : "password"} 
+                                                    placeholder="Enter new password" 
+                                                    value={newPassword}
+                                                    onChange={(e) => setNewPassword(e.target.value)}
+                                                    disabled={loading}
+                                                    className="h-11 pr-12"
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowPw(s => !s)}
+                                                    disabled={loading}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                >
+                                                    {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="confirm-password">Confirm Password</label>
+                                            <div className="relative">
+                                                <Input 
+                                                    id="confirm-password" 
+                                                    type={showConfirmPw ? "text" : "password"} 
+                                                    placeholder="Confirm new password" 
+                                                    value={confirmPassword}
+                                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                                    disabled={loading}
+                                                    className="h-11 pr-12"
+                                                />
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => setShowConfirmPw(s => !s)}
+                                                    disabled={loading}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                >
+                                                    {showConfirmPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div>
-                                        <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="confirm-password">Confirm Password</label>
-                                        <div className="relative">
-                                            <Input 
-                                                id="confirm-password" 
-                                                type={showConfirmPw ? "text" : "password"} 
-                                                placeholder="Confirm new password" 
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                disabled={loading}
-                                                className="h-11 pr-12"
-                                            />
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setShowConfirmPw(s => !s)}
-                                                disabled={loading}
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                            >
-                                                {showConfirmPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                                            </button>
-                                        </div>
-                                    </div>
+                                    <PasswordRequirementsChecklist password={newPassword} confirmPassword={confirmPassword} className="mt-1" />
                                 </div>
 
-                                <Button type="submit" className="w-full h-11 text-base font-medium" disabled={loading}>
+                                <Button type="submit" className="w-full h-11 text-base font-medium disabled:opacity-50" disabled={loading || !validatePasswordStrict(newPassword)}>
                                     {loading ? "Updating..." : "Reset Password"}
                                 </Button>
                             </form>

@@ -77,6 +77,13 @@ function LoginForm() {
 
     const [errors, setErrors] = React.useState<FieldErrors>({})
 
+    React.useEffect(() => {
+        if (typeof document !== "undefined" && document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/)) {
+            const nextParam = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
+            router.replace(nextParam)
+        }
+    }, [router, searchParams])
+
     const validate = React.useCallback((): boolean => {
         const next: FieldErrors = {}
 

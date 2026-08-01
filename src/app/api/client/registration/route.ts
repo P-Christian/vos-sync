@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { sendOtpEmail, sendEmployerSubmissionEmail } from "@/lib/mail";
 import { getPHTimeString } from "@/lib/utils";
+import { validatePasswordStrict } from "@/lib/password-validation";
+import { verifyTurnstileToken } from "@/lib/turnstile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ function validateContact(contact: string): boolean {
 }
 
 function validatePassword(password: string): boolean {
-  return typeof password === "string" && password.length >= 8;
+  return validatePasswordStrict(password);
 }
 
 function required(value: unknown): boolean {
@@ -158,7 +160,7 @@ export async function POST(req: NextRequest) {
     if (!password) {
       validationErrors.push("Password is required.");
     } else if (!validatePassword(password)) {
-      validationErrors.push("Password must be at least 8 characters.");
+      validationErrors.push("Password does not meet security requirements (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character).");
     }
 
     const confirmPassword = String(account?.confirmPassword ?? "");
@@ -177,6 +179,20 @@ export async function POST(req: NextRequest) {
     if (!payload.privacy_accepted) {
       validationErrors.push(
         "You must accept the Privacy Policy to register."
+      );
+    }
+
+    // ─────────────────────────────────────────
+    // CAPTCHA / TURNSTILE VERIFICATION
+    // ─────────────────────────────────────────
+    const turnstileToken = typeof payload.turnstileToken === "string" ? payload.turnstileToken : (typeof payload["cf-turnstile-response"] === "string" ? payload["cf-turnstile-response"] : undefined);
+    const turnstileResult = await verifyTurnstileToken(
+      turnstileToken,
+      req.headers.get("x-forwarded-for") || undefined
+    );
+    if (!turnstileResult.success) {
+      validationErrors.push(
+        turnstileResult.message || "Security CAPTCHA verification failed."
       );
     }
 
@@ -737,6 +753,17 @@ export async function POST(req: NextRequest) {
           headers: getHeaders(),
           body: JSON.stringify(idVerPayload),
         });
+
+        // Send Document Verification Submission Email upon document submission
+        try {
+          await sendEmployerSubmissionEmail({
+            email,
+            companyName: String(company?.company_name || "Company"),
+            recipientName: String(account?.user_fname || ""),
+          });
+        } catch (mailErr) {
+          console.error("Failed to send employer document verification receipt email:", mailErr);
+        }
       } catch (e) {
         // Non-critical — don't fail registration over this
         console.error("Failed to create vs_identity_verifications record:", e);
@@ -750,16 +777,6 @@ export async function POST(req: NextRequest) {
       await sendOtpEmail(email, generatedOtp);
     } catch (e) {
       console.error("Nodemailer OTP dispatch failed (new user):", e);
-    }
-
-    try {
-      await sendEmployerSubmissionEmail({
-        email,
-        companyName: String(company?.company_name || "Company"),
-        recipientName: String(account?.user_fname || ""),
-      });
-    } catch (e) {
-      console.error("Failed to send employer submission receipt email:", e);
     }
 
     console.log(`[SIGNUP OTP] Email: ${email} | OTP: ${generatedOtp}`);
