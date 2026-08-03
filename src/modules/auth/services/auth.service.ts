@@ -150,13 +150,18 @@ export async function loginUser(email: string, hashPasswordParam: string) {
 }
 
 export async function registerUser(body: unknown) {
-    const { email, password, firstName, lastName, contact, role } = body as {
+    const { email, password, firstName, lastName, contact, role, province, city, barangay, street, jobTitle } = body as {
         email?: string;
         password?: string;
         firstName?: string;
         lastName?: string;
         contact?: string;
         role?: string;
+        province?: string;
+        city?: string;
+        barangay?: string;
+        street?: string;
+        jobTitle?: string;
     };
 
     if (!email || !password || !firstName || !lastName || !contact || !role) {
@@ -195,7 +200,11 @@ export async function registerUser(body: unknown) {
         user_contact: contact,
         role: String(role).toUpperCase(),
         role_id: role_id,
-        user_status: "Active"
+        user_status: "Active",
+        user_province: province || null,
+        user_city: city || null,
+        user_brgy: street ? `${street}, ${barangay}` : (barangay || null),
+        user_position: jobTitle || null,
     };
 
     const newUser = await createUser(newUserPayload);
@@ -218,6 +227,44 @@ export async function registerUser(body: unknown) {
                     profile_visibility: "Public"
                 })
             });
+
+            // 1. Associate Job Preferences (Employment Setup)
+            const employmentTypes = (body as any).employmentTypes || [];
+            const country = (body as any).country || "Philippines";
+            const locationPref = [city, province, country].filter(Boolean).join(", ");
+            await fetch(`${envApiBase}/items/vs_job_preferences`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${envToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    user_id: newUser.user_id,
+                    work_setup: employmentTypes.length > 0 ? employmentTypes.join(", ") : null,
+                    preferred_location: locationPref || null
+                })
+            });
+
+            // 2. Associate Skills
+            const skills = (body as any).skills || "";
+            if (skills) {
+                await associateSkills(newUser.user_id, skills);
+            }
+
+            // 3. Associate Resume
+            const resumeFileId = (body as any).resumeFileId;
+            const resumeFileName = (body as any).resumeFileName;
+            if (resumeFileId) {
+                await associateResume(newUser.user_id, resumeFileId, resumeFileName);
+            }
+
+            // 4. Associate Gov ID verification (optional during sign-up)
+            const govIdType = (body as any).govIdType;
+            const govIdFrontFileId = (body as any).govIdFrontFileId;
+            const govIdBackFileId = (body as any).govIdBackFileId;
+            if (govIdFrontFileId) {
+                await associateGovId(newUser.user_id, govIdType, govIdFrontFileId, govIdBackFileId);
+            }
         } catch (err) {
             console.error("Failed to seed job seeker profile on registration:", err);
         }
@@ -465,5 +512,112 @@ export async function confirmPasswordReset(userId: string | number, code: string
     });
 
     return { ok: true };
+}
+
+async function associateSkills(userId: number, skillsStr: string) {
+    if (!skillsStr.trim()) return;
+    const skillNames = skillsStr.split(',').map(s => s.trim()).filter(Boolean);
+    const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const envToken = process.env.DIRECTUS_STATIC_TOKEN;
+    if (!envApiBase || !envToken) return;
+
+    for (const name of skillNames) {
+        try {
+            // Check if skill exists
+            const checkUrl = `${envApiBase}/items/vs_master_skills?filter[skill_name][_eq]=${encodeURIComponent(name)}&fields=id&limit=1`;
+            const checkRes = await fetch(checkUrl, {
+                headers: { "Authorization": `Bearer ${envToken}` }
+            });
+            let skillId: number | null = null;
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                if (checkData.data && checkData.data.length > 0) {
+                    skillId = checkData.data[0].id;
+                }
+            }
+
+            // Create skill if not exists
+            if (!skillId) {
+                const createRes = await fetch(`${envApiBase}/items/vs_master_skills`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${envToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ skill_name: name })
+                });
+                if (createRes.ok) {
+                    const createData = await createRes.json();
+                    skillId = createData.data?.id;
+                }
+            }
+
+            // Add to vs_user_skills_map
+            if (skillId) {
+                await fetch(`${envApiBase}/items/vs_user_skills_map`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${envToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ user_id: userId, skill_id: skillId })
+                });
+            }
+        } catch (err) {
+            console.error(`Failed to associate skill "${name}":`, err);
+        }
+    }
+}
+
+async function associateResume(userId: number, fileId: string, fileName: string) {
+    const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const envToken = process.env.DIRECTUS_STATIC_TOKEN;
+    if (!envApiBase || !envToken || !fileId) return;
+
+    try {
+        await fetch(`${envApiBase}/items/vs_job_seeker_resumes`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${envToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                file_url: `${envApiBase}/assets/${fileId}`,
+                file_name: fileName || "Resume.pdf",
+                is_primary: true,
+                uploaded_at: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        console.error("Failed to associate resume file:", err);
+    }
+}
+
+async function associateGovId(userId: number, govIdType: string, frontId: string, backId: string) {
+    const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const envToken = process.env.DIRECTUS_STATIC_TOKEN;
+    if (!envApiBase || !envToken || !frontId) return;
+
+    try {
+        await fetch(`${envApiBase}/items/vs_identity_verifications`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${envToken}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                type: 'gov_id',
+                status: 'pending',
+                gov_id_type: govIdType,
+                gov_id_front_image_uuid: frontId,
+                gov_id_selfie_image_uuid: backId || null,
+                submitted_at: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        console.error("Failed to associate government ID verification record:", err);
+    }
 }
 

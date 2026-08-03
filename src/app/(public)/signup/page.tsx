@@ -70,6 +70,13 @@ const CLIENT_STEPS = [
   { step: 5, label: 'Verify Email' },
 ];
 
+const FREELANCER_STEPS = [
+  { step: 1, label: 'Account Info' },
+  { step: 2, label: 'Profile Details' },
+  { step: 3, label: 'Verification' },
+];
+
+
 // ─── Location Option ──────────────────────────────────────────────────────────
 
 interface LocationOption { code: string; name: string; }
@@ -163,10 +170,10 @@ function PhoneCountryPicker({
 
 // ─── StepIndicator ────────────────────────────────────────────────────────────
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
+function StepIndicator({ currentStep, steps = CLIENT_STEPS }: { currentStep: number; steps?: Array<{ step: number; label: string }> }) {
   return (
     <div className="flex items-start justify-center mb-8">
-      {CLIENT_STEPS.map((s, i) => (
+      {steps.map((s, i) => (
         <React.Fragment key={s.step}>
           <div className="flex flex-col items-center gap-1.5 w-14">
             <div className={cn(
@@ -186,7 +193,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
               {s.label}
             </span>
           </div>
-          {i < CLIENT_STEPS.length - 1 && (
+          {i < steps.length - 1 && (
             <div className={cn(
               'h-0.5 flex-1 mt-[18px] transition-colors duration-200',
               currentStep > s.step ? 'bg-primary' : 'bg-border'
@@ -338,15 +345,36 @@ function SignupPageContent() {
   const [otpEmail, setOtpEmail] = useState('');
 
   // ── Freelancer (state preserved from existing impl) ───────────────────────
+  const [freelancerStep, setFreelancerStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', jobTitle: '',
-    password: '', country: 'Philippines', contact: '',
+    password: '', confirmPassword: '', country: 'Philippines', contact: '',
+    province: '', provinceCode: '', city: '', cityCode: '',
+    barangay: '', street: '',
+    skills: '', // primary skill/domain
   });
   const [freelancerSelectedCountry, setFreelancerSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
   const [freelancerShowPassword, setFreelancerShowPassword] = useState(false);
+  const [freelancerShowConfirmPassword, setFreelancerShowConfirmPassword] = useState(false);
+  const [freelancerEmploymentTypes, setFreelancerEmploymentTypes] = useState<string[]>([]);
   const [freelancerTermsAgreed, setFreelancerTermsAgreed] = useState(false);
+  const [freelancerMarketingConsent, setFreelancerMarketingConsent] = useState(true);
   const [freelancerErrors, setFreelancerErrors] = useState<Record<string, string>>({});
   const [freelancerUserId, setFreelancerUserId] = useState<number | null>(null);
+
+  // Resume file state
+  const [freelancerResumeFile, setFreelancerResumeFile] = useState<File | null>(null);
+  const [freelancerResumeFileName, setFreelancerResumeFileName] = useState<string | null>(null);
+  const [freelancerResumeFileId, setFreelancerResumeFileId] = useState<string | null>(null);
+
+  // Gov ID state
+  const [freelancerGovIdType, setFreelancerGovIdType] = useState('');
+  const [freelancerGovIdFrontFile, setFreelancerGovIdFrontFile] = useState<File | null>(null);
+  const [freelancerGovIdFrontFileId, setFreelancerGovIdFrontFileId] = useState<string | null>(null);
+  const [freelancerGovIdFrontPreview, setFreelancerGovIdFrontPreview] = useState<string | null>(null);
+  const [freelancerGovIdBackFile, setFreelancerGovIdBackFile] = useState<File | null>(null);
+  const [freelancerGovIdBackFileId, setFreelancerGovIdBackFileId] = useState<string | null>(null);
+  const [freelancerGovIdBackPreview, setFreelancerGovIdBackPreview] = useState<string | null>(null);
 
   // ── School Signup State ───────────────────────────────────────────────────
   const [schoolFormData, setSchoolFormData] = useState({
@@ -426,7 +454,9 @@ function SignupPageContent() {
   const fetchCities = useCallback(async (provinceCode: string) => {
     setLoadingCities(true);
     setCities([]);
-    setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '' }));
+    if (step === 'client') {
+      setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '' }));
+    }
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`, { cache: 'force-cache' });
       if (!res.ok) throw new Error('Failed to load cities');
@@ -437,24 +467,25 @@ function SignupPageContent() {
     } finally {
       setLoadingCities(false);
     }
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     const isClientStep3 = clientStep === 3 && company.companyCountryCode === 'PH';
     const isSchoolStep = step === 'school';
-    if ((isClientStep3 || isSchoolStep) && provinces.length === 0) {
+    const isFreelancerStep2 = step === 'freelancer' && freelancerStep === 2 && freelancerSelectedCountry.code === 'PH';
+    if ((isClientStep3 || isSchoolStep || isFreelancerStep2) && provinces.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProvinces();
     }
-  }, [clientStep, step, company.companyCountryCode, provinces.length, fetchProvinces]);
+  }, [clientStep, step, freelancerStep, company.companyCountryCode, freelancerSelectedCountry.code, provinces.length, fetchProvinces]);
 
   useEffect(() => {
-    const provinceCode = company.companyProvinceCode || schoolFormData.provinceCode;
-    if (provinceCode && (company.companyCountryCode === 'PH' || step === 'school')) {
+    const provinceCode = company.companyProvinceCode || schoolFormData.provinceCode || formData.provinceCode;
+    if (provinceCode && (company.companyCountryCode === 'PH' || step === 'school' || (step === 'freelancer' && freelancerSelectedCountry.code === 'PH'))) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchCities(provinceCode);
     }
-  }, [company.companyProvinceCode, schoolFormData.provinceCode, company.companyCountryCode, step, fetchCities]);
+  }, [company.companyProvinceCode, schoolFormData.provinceCode, formData.provinceCode, company.companyCountryCode, freelancerSelectedCountry.code, step, fetchCities]);
 
 
   // ── Selection Handlers ────────────────────────────────────────────────────
@@ -478,7 +509,56 @@ function SignupPageContent() {
     setStep('selection');
     setUserType(null);
     setClientStep(1);
+    setFreelancerStep(1);
     setErrors({});
+    setFreelancerErrors({});
+    setSchoolErrors({});
+    
+    // Reset Client Form
+    setStep1({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '', jobTitle: '', contact: '' });
+    setCompany({
+      companyName: '', industry: '', websiteUrl: '', companySize: '',
+      companyCountryCode: 'PH', companyCountryName: 'Philippines',
+      companyProvinceCode: '', companyProvince: '', companyCityCode: '', companyCity: '',
+      companyBarangay: '', companyStreet: '', landline: '', tin: ''
+    });
+    setGovIdType('');
+    setGovIdFrontFile(null);
+    setGovIdFrontFileId(null);
+    setGovIdFrontPreview(null);
+    setGovIdBackFile(null);
+    setGovIdBackFileId(null);
+    setGovIdBackPreview(null);
+    setTermsAgreed(false);
+    setMarketingConsent(false);
+    setTurnstileToken('');
+
+    // Reset Freelancer Form
+    setFormData({
+      firstName: '', lastName: '', email: '', jobTitle: '',
+      password: '', confirmPassword: '', country: 'Philippines', contact: '',
+      province: '', provinceCode: '', city: '', cityCode: '', barangay: '', street: '', skills: ''
+    });
+    setFreelancerEmploymentTypes([]);
+    setFreelancerResumeFile(null);
+    setFreelancerResumeFileName(null);
+    setFreelancerResumeFileId(null);
+    setFreelancerGovIdType('');
+    setFreelancerGovIdFrontFile(null);
+    setFreelancerGovIdFrontFileId(null);
+    setFreelancerGovIdFrontPreview(null);
+    setFreelancerGovIdBackFile(null);
+    setFreelancerGovIdBackFileId(null);
+    setFreelancerGovIdBackPreview(null);
+    setFreelancerTermsAgreed(false);
+    setFreelancerMarketingConsent(true);
+
+    // Reset School Form
+    setSchoolFormData({
+      firstName: '', lastName: '', contact: '', email: '', password: '', confirmPassword: '',
+      schoolName: '', schoolType: 'University', province: '', provinceCode: '', city: '', cityCode: ''
+    });
+    setSchoolTermsAgreed(false);
   };
 
   // Auto-detect invite type=school or token in URL params
@@ -746,7 +826,7 @@ function SignupPageContent() {
         return;
       }
       toast.success('Email verified!', { description: 'Welcome to VOS Sync.' });
-      router.push('/vos-sync/client/company-profile');
+      window.location.href = '/vos-sync/client/company-profile';
     } catch {
       toast.error('Verification failed', { description: 'Network error.' });
     } finally {
@@ -763,7 +843,7 @@ function SignupPageContent() {
   };
 
   const handleFreelancerCountryChange = (val: string) => {
-    setFormData(prev => ({ ...prev, country: val }));
+    setFormData(prev => ({ ...prev, country: val, provinceCode: '', province: '', cityCode: '', city: '' }));
     const match = COUNTRIES.find(c => c.name.toLowerCase() === val.toLowerCase());
     if (match) setFreelancerSelectedCountry(match);
     if (freelancerErrors.country) setFreelancerErrors(prev => ({ ...prev, country: '' }));
@@ -776,7 +856,7 @@ function SignupPageContent() {
     if (freelancerErrors.contact) setFreelancerErrors(prev => ({ ...prev, contact: '' }));
   };
 
-  const validateFreelancerForm = (): boolean => {
+  const validateFreelancerStep1 = (): Record<string, string> => {
     const e: Record<string, string> = {};
     if (!formData.firstName.trim()) e.firstName = 'First name is required';
     if (!formData.lastName.trim()) e.lastName = 'Last name is required';
@@ -793,24 +873,156 @@ function SignupPageContent() {
     }
     if (!formData.password) e.password = 'Password is required';
     else if (!validatePasswordStrict(formData.password)) e.password = 'Password does not meet security requirements';
-    if (!formData.country) e.country = 'Country is required';
-    if (!freelancerTermsAgreed) e.terms = 'You must agree to the Terms of Service to continue';
+    if (formData.password !== formData.confirmPassword) {
+      e.confirmPassword = 'Passwords do not match';
+    }
     setFreelancerErrors(e);
-    return Object.keys(e).length === 0;
+    return e;
+  };
+
+  const handleFreelancerStep1Next = () => {
+    const errs = validateFreelancerStep1();
+    if (Object.keys(errs).length === 0) {
+      setFreelancerStep(2);
+      window.scrollTo(0, 0);
+    } else {
+      const errorDetails = Object.values(errs).join(', ');
+      toast.error('Validation Error', { description: errorDetails || 'Please check the form fields.' });
+    }
+  };
+
+  const validateFreelancerStep2 = (): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (!formData.country) e.country = 'Country is required';
+    if (freelancerSelectedCountry.code === 'PH') {
+      if (!formData.provinceCode) e.province = 'Province is required';
+      if (!formData.cityCode) e.city = 'City / Municipality is required';
+    }
+    if (freelancerEmploymentTypes.length === 0) {
+      e.employmentTypes = 'Please select at least one employment type interest';
+    }
+    if (!formData.skills.trim()) {
+      e.skills = 'Please enter at least one primary skill';
+    }
+    if (freelancerResumeFile) {
+      const allowedExts = ['.pdf', '.docx'];
+      const fileExt = freelancerResumeFile.name.substring(freelancerResumeFile.name.lastIndexOf('.')).toLowerCase();
+      if (!allowedExts.includes(fileExt)) {
+        e.resume = 'Invalid resume format. Only .pdf and .docx are accepted.';
+      }
+      if (freelancerResumeFile.size > 10 * 1024 * 1024) {
+        e.resume = 'Resume file size exceeds the 10MB limit.';
+      }
+    }
+    setFreelancerErrors(e);
+    return e;
+  };
+
+  const handleFreelancerStep2Next = async () => {
+    const errs = validateFreelancerStep2();
+    if (Object.keys(errs).length > 0) {
+      const errorDetails = Object.values(errs).join(', ');
+      toast.error('Validation Error', { description: errorDetails || 'Please check the form fields.' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (freelancerResumeFile && !freelancerResumeFileId) {
+        const fd = new FormData();
+        fd.append('file', freelancerResumeFile);
+        fd.append('govIdType', 'Resume/CV');
+        fd.append('folder', 'c380f14b-75d1-4b61-b2b4-9a6e596f3162');
+        const res = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          toast.error('Resume upload failed', { description: data.error || 'Could not upload resume.' });
+          setLoading(false);
+          return;
+        }
+        setFreelancerResumeFileId(data.fileId);
+      }
+      setFreelancerStep(3);
+      window.scrollTo(0, 0);
+    } catch {
+      toast.error('Upload failed', { description: 'Network error. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateFreelancerStep3 = (): Record<string, string> => {
+    const e: Record<string, string> = {};
+    if (!freelancerTermsAgreed) e.terms = 'You must agree to the Terms of Service to continue';
+    if (freelancerGovIdType || freelancerGovIdFrontFile || freelancerGovIdBackFile) {
+      if (!freelancerGovIdType) e.govIdType = 'Please select a government ID type';
+      if (!freelancerGovIdFrontFile) e.govIdFront = 'Please upload the front side of your ID';
+      if (!freelancerGovIdBackFile) e.govIdBack = 'Please upload the back side of your ID';
+    }
+    setFreelancerErrors(e);
+    return e;
   };
 
   const handleFreelancerSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault();
-    if (!validateFreelancerForm()) {
-      toast.error('Validation Error', { description: 'Please fill out all required fields.' });
+    const errs = validateFreelancerStep3();
+    if (Object.keys(errs).length > 0) {
+      const errorDetails = Object.values(errs).join(', ');
+      toast.error('Validation Error', { description: errorDetails || 'Please check the form fields.' });
       return;
     }
     setLoading(true);
     try {
+      let frontId = freelancerGovIdFrontFileId;
+      let backId = freelancerGovIdBackFileId;
+
+      if (freelancerGovIdFrontFile && !frontId) {
+        const fdFront = new FormData();
+        fdFront.append('file', freelancerGovIdFrontFile);
+        fdFront.append('govIdType', `${freelancerGovIdType} (Front)`);
+        fdFront.append('folder', 'e81cc874-8036-4655-8bbb-1524a194866b');
+        const resFront = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdFront });
+        const dataFront = await resFront.json();
+        if (!resFront.ok) {
+          toast.error('Front ID upload failed', { description: dataFront.error || 'Could not upload front ID.' });
+          setLoading(false);
+          return;
+        }
+        frontId = dataFront.fileId;
+        setFreelancerGovIdFrontFileId(frontId);
+      }
+
+      if (freelancerGovIdBackFile && !backId) {
+        const fdBack = new FormData();
+        fdBack.append('file', freelancerGovIdBackFile);
+        fdBack.append('govIdType', `${freelancerGovIdType} (Back)`);
+        fdBack.append('folder', 'e81cc874-8036-4655-8bbb-1524a194866b');
+        const resBack = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdBack });
+        const dataBack = await resBack.json();
+        if (!resBack.ok) {
+          toast.error('Back ID upload failed', { description: dataBack.error || 'Could not upload back ID.' });
+          setLoading(false);
+          return;
+        }
+        backId = dataBack.fileId;
+        setFreelancerGovIdBackFileId(backId);
+      }
+
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, role: 'FREELANCER', turnstileToken }),
+        body: JSON.stringify({
+          ...formData,
+          role: 'FREELANCER',
+          turnstileToken,
+          employmentTypes: freelancerEmploymentTypes,
+          resumeFileId: freelancerResumeFileId,
+          resumeFileName: freelancerResumeFileName,
+          govIdType: freelancerGovIdType,
+          govIdFrontFileId: frontId,
+          govIdBackFileId: backId,
+          marketingConsent: freelancerMarketingConsent,
+        }),
       });
       const data = await res.json();
       if (!res.ok) { toast.error('Signup failed', { description: data.message || 'An error occurred' }); return; }
@@ -822,6 +1034,15 @@ function SignupPageContent() {
       toast.error('Signup failed', { description: 'Network error.' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFreelancerBack = () => {
+    if (freelancerStep === 1) {
+      handleBackToSelection();
+    } else {
+      setFreelancerStep(prev => prev - 1);
+      window.scrollTo(0, 0);
     }
   };
 
@@ -838,9 +1059,9 @@ function SignupPageContent() {
       if (!res.ok) { toast.error('Verification failed', { description: data.message || 'Invalid code.' }); return; }
       toast.success('Verified!', { description: 'Welcome to VOS Sync.' });
       if (data?.role_id === 1) {
-        router.push('/vos-sync/freelancer/dashboard');
+        window.location.href = '/vos-sync/freelancer/dashboard';
       } else {
-        router.push('/main-dashboard');
+        window.location.href = '/main-dashboard';
       }
     } catch {
       toast.error('Verification failed', { description: 'Network error.' });
@@ -1496,71 +1717,60 @@ function SignupPageContent() {
 
   // ─── Render: Freelancer Form ──────────────────────────────────────────────
 
-  const renderFreelancerForm = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
-      <div className="mb-6">
-        <button onClick={handleBackToSelection} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft size={16} className="mr-2" />Back to selection
-        </button>
+  const renderFreelancerStep1 = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <label htmlFor="firstName" className="block text-sm font-medium text-foreground">
+            First name <span className="text-destructive">*</span>
+          </label>
+          <Input id="firstName" value={formData.firstName} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. Jane"
+            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.firstName && 'border-destructive focus-visible:border-destructive text-destructive')} />
+          {freelancerErrors.firstName && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.firstName}</p>}
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="lastName" className="block text-sm font-medium text-foreground">
+            Last name <span className="text-destructive">*</span>
+          </label>
+          <Input id="lastName" value={formData.lastName} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. Doe"
+            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.lastName && 'border-destructive focus-visible:border-destructive text-destructive')} />
+          {freelancerErrors.lastName && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.lastName}</p>}
+        </div>
       </div>
 
-      <div className="text-center mb-8">
-        <h1 className="text-3xl md:text-4xl font-medium text-primary">Create your Job Seeker account</h1>
-        <p className="mt-3 text-muted-foreground">Explore job opportunities and apply with confidence.</p>
+      <div className="space-y-1">
+        <label htmlFor="email" className="block text-sm font-medium text-foreground">
+          Email Address <span className="text-destructive">*</span>
+        </label>
+        <Input type="email" id="email" value={formData.email} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. jane.doe@example.com"
+          className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.email && 'border-destructive focus-visible:border-destructive text-destructive')} />
+        {freelancerErrors.email && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.email}</p>}
       </div>
 
-      <form className="space-y-6" onSubmit={handleFreelancerSubmit} noValidate>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label htmlFor="firstName" className="block text-sm font-medium text-foreground">
-              First name <span className="text-destructive">*</span>
-            </label>
-            <Input id="firstName" value={formData.firstName} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. Jane"
-              className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.firstName && 'border-destructive focus-visible:border-destructive text-destructive')} />
-            {freelancerErrors.firstName && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.firstName}</p>}
-          </div>
-          <div className="space-y-1">
-            <label htmlFor="lastName" className="block text-sm font-medium text-foreground">
-              Last name <span className="text-destructive">*</span>
-            </label>
-            <Input id="lastName" value={formData.lastName} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. Doe"
-              className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.lastName && 'border-destructive focus-visible:border-destructive text-destructive')} />
-            {freelancerErrors.lastName && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.lastName}</p>}
-          </div>
-        </div>
+      <div className="space-y-1">
+        <label htmlFor="jobTitle" className="block text-sm font-medium text-foreground">
+          Job Title / Role <span className="text-destructive">*</span>
+        </label>
+        <Input id="jobTitle" value={formData.jobTitle} onChange={handleFreelancerChange} disabled={loading}
+          placeholder="e.g. HR Manager, Recruiter, Managing Director, Founder"
+          className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.jobTitle && 'border-destructive focus-visible:border-destructive text-destructive')} />
+        {freelancerErrors.jobTitle && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.jobTitle}</p>}
+      </div>
 
-        <div className="space-y-1">
-          <label htmlFor="email" className="block text-sm font-medium text-foreground">
-            Email Address <span className="text-destructive">*</span>
-          </label>
-          <Input type="email" id="email" value={formData.email} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. jane.doe@example.com"
-            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.email && 'border-destructive focus-visible:border-destructive text-destructive')} />
-          {freelancerErrors.email && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.email}</p>}
-        </div>
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-foreground">
+          Contact Number <span className="text-destructive">*</span>
+        </label>
+        <PhoneCountryPicker selectedCountry={freelancerSelectedCountry}
+          onSelectCountry={handleFreelancerCountryFromPicker}
+          phoneValue={formData.contact}
+          onPhoneChange={val => { setFormData(prev => ({ ...prev, contact: val })); if (freelancerErrors.contact) setFreelancerErrors(prev => ({ ...prev, contact: '' })); }}
+          error={freelancerErrors.contact} disabled={loading} />
+        {freelancerErrors.contact && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.contact}</p>}
+      </div>
 
-        <div className="space-y-1">
-          <label htmlFor="jobTitle" className="block text-sm font-medium text-foreground">
-            Job Title / Role <span className="text-destructive">*</span>
-          </label>
-          <Input id="jobTitle" value={formData.jobTitle} onChange={handleFreelancerChange} disabled={loading}
-            placeholder="e.g. HR Manager, Recruiter, Managing Director, Founder"
-            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.jobTitle && 'border-destructive focus-visible:border-destructive text-destructive')} />
-          {freelancerErrors.jobTitle && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.jobTitle}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-foreground">
-            Contact Number <span className="text-destructive">*</span>
-          </label>
-          <PhoneCountryPicker selectedCountry={freelancerSelectedCountry}
-            onSelectCountry={handleFreelancerCountryFromPicker}
-            phoneValue={formData.contact}
-            onPhoneChange={val => { setFormData(prev => ({ ...prev, contact: val })); if (freelancerErrors.contact) setFreelancerErrors(prev => ({ ...prev, contact: '' })); }}
-            error={freelancerErrors.contact} disabled={loading} />
-          {freelancerErrors.contact && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.contact}</p>}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div className="space-y-4">
           <div className="space-y-1">
             <label htmlFor="password" className="block text-sm font-medium text-foreground">
               Password <span className="text-destructive">*</span>
@@ -1576,8 +1786,39 @@ function SignupPageContent() {
             </div>
             {freelancerErrors.password && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.password}</p>}
           </div>
-          <PasswordRequirementsChecklist password={formData.password} className="mt-1" />
+
+          <div className="space-y-1">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
+              Confirm Password <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <Input type={freelancerShowConfirmPassword ? 'text' : 'password'} id="confirmPassword" value={formData.confirmPassword}
+                onChange={handleFreelancerChange} disabled={loading} placeholder="Confirm Password"
+                className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.confirmPassword && 'border-destructive focus-visible:border-destructive text-destructive')} />
+              <button type="button" onClick={() => setFreelancerShowConfirmPassword(!freelancerShowConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                {freelancerShowConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {freelancerErrors.confirmPassword && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.confirmPassword}</p>}
+          </div>
         </div>
+        <PasswordRequirementsChecklist password={formData.password} className="mt-1" />
+      </div>
+
+      <Button type="button" onClick={handleFreelancerStep1Next}
+        disabled={loading || !formData.firstName.trim() || !formData.lastName.trim() || !formData.email.trim() || !formData.jobTitle.trim() || !formData.contact.trim() || !formData.password || !formData.confirmPassword || formData.password !== formData.confirmPassword || !validatePasswordStrict(formData.password)}
+        className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+        Continue
+      </Button>
+    </div>
+  );
+
+  const renderFreelancerStep2 = () => (
+    <div className="space-y-6">
+      {/* Location */}
+      <div className="space-y-4 border-b border-border/60 pb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Location Details</p>
 
         <div className="space-y-1">
           <label htmlFor="country" className="block text-sm font-medium text-foreground">
@@ -1594,49 +1835,289 @@ function SignupPageContent() {
           {freelancerErrors.country && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.country}</p>}
         </div>
 
-        <div className="space-y-4 mt-6">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <Checkbox id="f-marketing-checkbox" defaultChecked className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
-            <span className="text-sm text-muted-foreground leading-tight select-none">
-              Send me helpful emails to find rewarding work and job leads.
-            </span>
-          </label>
+        {freelancerSelectedCountry.code === 'PH' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-foreground">
+                Province <span className="text-destructive">*</span>
+              </label>
+              <SearchableLocationSelect options={provinces} value={formData.provinceCode}
+                onChange={(code, name) => setFormData(prev => ({ ...prev, provinceCode: code, province: name, cityCode: '', city: '' }))}
+                placeholder="Search province..." disabled={loading || loadingProvinces} error={freelancerErrors.province} />
+              {freelancerErrors.province && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.province}</p>}
+            </div>
 
-          <div>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox id="f-terms-checkbox" checked={freelancerTermsAgreed}
-                onCheckedChange={val => { setFreelancerTermsAgreed(Boolean(val)); if (freelancerErrors.terms) setFreelancerErrors(prev => ({ ...prev, terms: '' })); }}
-                className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', freelancerErrors.terms && 'border-destructive')} />
-              <span className={cn('text-sm leading-tight select-none', freelancerErrors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
-                Yes, I understand and agree to the{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
-                <span className="text-destructive ml-0.5">*</span>
-              </span>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-foreground">
+                City / Municipality <span className="text-destructive">*</span>
+              </label>
+              <SearchableLocationSelect options={cities} value={formData.cityCode}
+                onChange={(code, name) => setFormData(prev => ({ ...prev, cityCode: code, city: name }))}
+                placeholder="Search city..." disabled={!formData.provinceCode || loading || loadingCities} error={freelancerErrors.city} />
+              {freelancerErrors.city && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.city}</p>}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label htmlFor="barangay" className="block text-sm font-medium text-foreground">
+              Barangay (Optional)
             </label>
-            {freelancerErrors.terms && <p className="text-xs text-destructive mt-1.5 font-medium pl-7">{freelancerErrors.terms}</p>}
+            <Input id="barangay" value={formData.barangay} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. Brgy. 76"
+              className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="street" className="block text-sm font-medium text-foreground">
+              Street Address (Optional)
+            </label>
+            <Input id="street" value={formData.street} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. 123 Maple Street"
+              className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
           </div>
         </div>
+      </div>
 
-        {/* CAPTCHA / Bot Protection */}
-        <div className="rounded-xl border border-border/80 bg-muted/20 p-4 my-2">
-          <TurnstileWidget
-            onVerify={(token) => setTurnstileToken(token)}
-            onExpire={() => setTurnstileToken('')}
-          />
+      {/* Work Preferences */}
+      <div className="space-y-4 border-b border-border/60 pb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Work Intent & Availability</p>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground">
+            Employment Type Interest <span className="text-destructive">*</span>
+          </label>
+          <div className="flex flex-wrap gap-4 mt-2">
+            {['On-site', 'Hybrid', 'Remote'].map(type => (
+              <label key={type} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                <Checkbox checked={freelancerEmploymentTypes.includes(type)}
+                  onCheckedChange={checked => {
+                    if (checked) {
+                      setFreelancerEmploymentTypes(prev => [...prev, type]);
+                    } else {
+                      setFreelancerEmploymentTypes(prev => prev.filter(t => t !== type));
+                    }
+                  }} />
+                <span>{type}</span>
+              </label>
+            ))}
+          </div>
+          {freelancerErrors.employmentTypes && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.employmentTypes}</p>}
         </div>
 
-        <Button type="submit" disabled={loading || !validatePasswordStrict(formData.password)}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50">
-          {loading ? 'Creating...' : 'Create Job Seeker Account'}
-        </Button>
-      </form>
+        <div className="space-y-1">
+          <label htmlFor="skills" className="block text-sm font-medium text-foreground">
+            Primary Skills / Domain <span className="text-destructive">*</span>
+          </label>
+          <Input id="skills" value={formData.skills} onChange={handleFreelancerChange} disabled={loading}
+            placeholder="e.g. React, Node.js, UI/UX Design (comma separated)"
+            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.skills && 'border-destructive')} />
+          {freelancerErrors.skills && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.skills}</p>}
+        </div>
 
-      <div className="mt-8 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
-        <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+        {/* Resume CV upload */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground">
+            Upload Resume / CV (Optional)
+          </label>
+          <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:bg-muted/10 transition-colors cursor-pointer relative">
+            <input type="file" accept=".pdf,.docx" disabled={loading}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setFreelancerResumeFile(file);
+                  setFreelancerResumeFileName(file.name);
+                }
+              }}
+              className="absolute inset-0 opacity-0 cursor-pointer" />
+            <div className="flex flex-col items-center justify-center gap-2">
+              <Upload size={32} className="text-muted-foreground" />
+              <p className="text-sm font-semibold">{freelancerResumeFileName || 'Click or drag file here to upload'}</p>
+              <p className="text-xs text-muted-foreground">Accepted formats: .pdf, .docx (Max size: 10MB)</p>
+            </div>
+          </div>
+          {freelancerResumeFileName && (
+            <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-lg text-sm border border-border/80">
+              <span className="font-medium truncate max-w-[80%]">{freelancerResumeFileName}</span>
+              <button type="button" onClick={() => { setFreelancerResumeFile(null); setFreelancerResumeFileName(null); setFreelancerResumeFileId(null); }}
+                className="text-destructive hover:underline font-semibold cursor-pointer">Remove</button>
+            </div>
+          )}
+          {freelancerErrors.resume && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.resume}</p>}
+        </div>
       </div>
+
+      <Button type="button" onClick={handleFreelancerStep2Next}
+        disabled={loading || !formData.country || (freelancerSelectedCountry.code === 'PH' && (!formData.provinceCode || !formData.cityCode)) || freelancerEmploymentTypes.length === 0 || !formData.skills.trim()}
+        className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+        {loading ? 'Uploading Resume...' : 'Continue'}
+      </Button>
+    </div>
+  );
+
+  const renderFreelancerStep3 = () => (
+    <form className="space-y-6" onSubmit={handleFreelancerSubmit} noValidate>
+      {/* Gov ID Card Upload (Optional during sign-up) */}
+      <div className="space-y-4 border-b border-border/60 pb-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Government Valid ID (Optional)</p>
+        
+        <div className="space-y-1">
+          <label htmlFor="flGovIdType" className="block text-sm font-medium text-foreground">
+            Government ID Type
+          </label>
+          <Select value={freelancerGovIdType} onValueChange={setFreelancerGovIdType} disabled={loading}>
+            <SelectTrigger id="flGovIdType" className="h-12 border-2 border-border focus:ring-0 focus:border-primary text-base">
+              <SelectValue placeholder="Select ID Type" />
+            </SelectTrigger>
+            <SelectContent>
+              {GOV_ID_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Front ID */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">Front Side of ID</label>
+            <div className="border-2 border-dashed border-border rounded-xl p-4 text-center hover:bg-muted/10 transition-colors relative h-36 flex flex-col justify-center items-center">
+              <input type="file" accept="image/*,application/pdf" disabled={loading}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFreelancerGovIdFrontFile(file);
+                    if (file.type.startsWith('image/')) {
+                      setFreelancerGovIdFrontPreview(URL.createObjectURL(file));
+                    } else {
+                      setFreelancerGovIdFrontPreview(null);
+                    }
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer" />
+              {freelancerGovIdFrontPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={freelancerGovIdFrontPreview} alt="Front ID Preview" className="max-h-full object-contain" />
+              ) : (
+                <>
+                  <Upload size={24} className="text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground font-semibold">{freelancerGovIdFrontFile?.name || 'Upload Front ID'}</span>
+                </>
+              )}
+            </div>
+            {freelancerGovIdFrontFile && (
+              <button type="button" onClick={() => { setFreelancerGovIdFrontFile(null); setFreelancerGovIdFrontPreview(null); setFreelancerGovIdFrontFileId(null); }}
+                className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Front ID</button>
+            )}
+          </div>
+
+          {/* Back ID */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground">Back Side of ID / Selfie</label>
+            <div className="border-2 border-dashed border-border rounded-xl p-4 text-center hover:bg-muted/10 transition-colors relative h-36 flex flex-col justify-center items-center">
+              <input type="file" accept="image/*,application/pdf" disabled={loading}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setFreelancerGovIdBackFile(file);
+                    if (file.type.startsWith('image/')) {
+                      setFreelancerGovIdBackPreview(URL.createObjectURL(file));
+                    } else {
+                      setFreelancerGovIdBackPreview(null);
+                    }
+                  }
+                }}
+                className="absolute inset-0 opacity-0 cursor-pointer" />
+              {freelancerGovIdBackPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={freelancerGovIdBackPreview} alt="Back ID Preview" className="max-h-full object-contain" />
+              ) : (
+                <>
+                  <Upload size={24} className="text-muted-foreground mb-1" />
+                  <span className="text-xs text-muted-foreground font-semibold">{freelancerGovIdBackFile?.name || 'Upload Back ID'}</span>
+                </>
+              )}
+            </div>
+            {freelancerGovIdBackFile && (
+              <button type="button" onClick={() => { setFreelancerGovIdBackFile(null); setFreelancerGovIdBackPreview(null); setFreelancerGovIdBackFileId(null); }}
+                className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Back ID</button>
+            )}
+          </div>
+        </div>
+        {freelancerErrors.govIdType && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.govIdType}</p>}
+        {freelancerErrors.govIdFront && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.govIdFront}</p>}
+      </div>
+
+      {/* Compliance Preferences */}
+      <div className="space-y-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <Checkbox id="f-marketing-checkbox" checked={freelancerMarketingConsent}
+            onCheckedChange={val => setFreelancerMarketingConsent(Boolean(val))}
+            className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
+          <span className="text-sm text-muted-foreground leading-tight select-none">
+            Send me helpful emails to find rewarding work and job leads.
+          </span>
+        </label>
+
+        <div>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <Checkbox id="f-terms-checkbox" checked={freelancerTermsAgreed}
+              onCheckedChange={val => { setFreelancerTermsAgreed(Boolean(val)); if (freelancerErrors.terms) setFreelancerErrors(prev => ({ ...prev, terms: '' })); }}
+              className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', freelancerErrors.terms && 'border-destructive')} />
+            <span className={cn('text-sm leading-tight select-none', freelancerErrors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
+              Yes, I understand and agree to the{' '}
+              <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
+              <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
+              <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+              <span className="text-destructive ml-0.5">*</span>
+            </span>
+          </label>
+          {freelancerErrors.terms && <p className="text-xs text-destructive mt-1.5 font-medium pl-7">{freelancerErrors.terms}</p>}
+        </div>
+      </div>
+
+      {/* CAPTCHA / Bot Protection */}
+      <div className="rounded-xl border border-border/80 bg-muted/20 p-4 my-2">
+        <TurnstileWidget
+          onVerify={(token) => setTurnstileToken(token)}
+          onExpire={() => setTurnstileToken('')}
+        />
+      </div>
+
+      <Button type="submit"
+        disabled={loading || !freelancerTermsAgreed || !turnstileToken || (Boolean(freelancerGovIdType || freelancerGovIdFrontFile || freelancerGovIdBackFile) && (!freelancerGovIdType || !freelancerGovIdFrontFile || !freelancerGovIdBackFile))}
+        className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+        {loading ? 'Creating...' : 'Create Job Seeker Account'}
+      </Button>
+    </form>
+  );
+
+  const renderFreelancerForm = () => (
+    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
+      <div className="mb-6">
+        <button onClick={handleFreelancerBack} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft size={16} className="mr-2" />
+          {freelancerStep === 1 ? 'Back to selection' : `Back to Step ${freelancerStep - 1}`}
+        </button>
+      </div>
+
+      <StepIndicator currentStep={freelancerStep} steps={FREELANCER_STEPS} />
+
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-medium text-primary">Create your Job Seeker account</h1>
+        <p className="mt-3 text-muted-foreground">
+          {freelancerStep === 1 && 'Set up your basic login and contact credentials.'}
+          {freelancerStep === 2 && 'Tell us about your professional skills and location.'}
+          {freelancerStep === 3 && 'Upload your validation document and finalize security.'}
+        </p>
+      </div>
+
+      {freelancerStep === 1 && renderFreelancerStep1()}
+      {freelancerStep === 2 && renderFreelancerStep2()}
+      {freelancerStep === 3 && renderFreelancerStep3()}
+
+      {freelancerStep === 1 && (
+        <div className="mt-8 text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+        </div>
+      )}
     </div>
   );
 
@@ -1757,7 +2238,7 @@ function SignupPageContent() {
         return;
       }
       toast.success('Account verified!', { description: 'Welcome to VOS Sync. You can now log in.' });
-      router.push('/login');
+      window.location.href = '/login';
     } catch {
       toast.error('Verification failed', { description: 'Network error.' });
     } finally {
