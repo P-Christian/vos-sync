@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApplicants } from "./hooks/useApplicants";
 import ApplicantList from "./components/ApplicantList";
 import ApplicantFilters from "./components/ApplicantFilters";
 import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle } from "lucide-react";
+import { Users, AlertCircle  } from "lucide-react";
 import { Applicant, ApplicationStatus } from "./types";
 import {
   Dialog,
@@ -22,12 +22,22 @@ import { useInterviews } from "../interviews/hooks/useInterviews";
 import InterviewForm from "../interviews/components/InterviewForm";
 import { InterviewFormData } from "../interviews/types";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
+import { useJobs } from "../jobs/hooks/useJobs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import BestMatchesTab from "./components/BestMatchesTab";
 
 interface ApplicantsModuleProps {
   initialApplicationId?: number;
 }
 
-export default function ApplicantsModule({ initialApplicationId }: ApplicantsModuleProps = {}) {
+export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModuleProps = {}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const jobIdParam = searchParams.get("job_id");
+  const activeTab = searchParams.get("tab") || "applicants";
+
   const {
     applicants,
     loading,
@@ -54,6 +64,8 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
     EMPTY_FORM: EMPTY_INTERVIEW_FORM,
   } = useInterviews();
 
+  const { jobs: allJobs, fetchJobs: fetchAllJobs } = useJobs();
+
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(() => Boolean(initialApplicationId));
@@ -76,14 +88,43 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
   }
 
   useEffect(() => {
-    fetchApplicants();
-  }, [fetchApplicants]);
+    fetchAllJobs();
+  }, [fetchAllJobs]);
+
+  const jobId = jobIdParam ? parseInt(jobIdParam, 10) : undefined;
+
+  useEffect(() => {
+    fetchApplicants(filterStatus, jobId);
+  }, [fetchApplicants, filterStatus, jobId]);
 
   useEffect(() => {
     if (initialApplicationId) {
       fetchApplicantDetail(initialApplicationId);
     }
   }, [initialApplicationId, fetchApplicantDetail]);
+
+  const handleJobChange = (value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (value && value !== "ALL") {
+      params.set("job_id", value);
+      if (!params.has("tab")) {
+        params.set("tab", "applicants");
+      }
+    } else {
+      params.delete("job_id");
+      params.delete("tab");
+    }
+    router.push(`/vos-sync/client/applicants?${params.toString()}`);
+  };
+
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", value);
+    router.push(`/vos-sync/client/applicants?${params.toString()}`);
+  };
+
+  const selectedJob = allJobs.find((j) => j.job_id === jobId);
+  const selectedJobTitle = selectedJob?.job_title || "";
 
   const handleUpdateStatus = (applicant: Applicant) => {
     setSelectedApplicant(applicant);
@@ -137,8 +178,6 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
     }
   };
 
-  const router = useRouter();
-
   const handleViewScheduledInterview = (interviewId: number) => {
     router.push(`/vos-sync/client/interviews?interview_id=${interviewId}`);
   };
@@ -169,6 +208,26 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
               </p>
             </div>
           </div>
+
+          {/* Job Selector Dropdown */}
+          <div className="relative z-10 w-full sm:w-72">
+            <Select
+              value={jobIdParam || "ALL"}
+              onValueChange={handleJobChange}
+            >
+              <SelectTrigger className="h-10 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
+                <SelectValue placeholder="Filter by Job Posting" />
+              </SelectTrigger>
+              <SelectContent className="max-w-md">
+                <SelectItem value="ALL">All Job Postings</SelectItem>
+                {allJobs.map((j) => (
+                  <SelectItem key={j.job_id} value={String(j.job_id)}>
+                    {j.job_title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Error Banner */}
@@ -179,36 +238,101 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
           </div>
         )}
 
-        {/* Filters + List */}
-        <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
-              Candidates
-            </CardTitle>
-            <ApplicantFilters
-              search={search}
-              onSearchChange={setSearch}
-              status={filterStatus}
-              onStatusChange={setFilterStatus}
-            />
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-16 gap-3">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <span className="text-sm text-zinc-400 animate-pulse">Loading candidates...</span>
-              </div>
-            ) : (
-              <ApplicantList
-                applicants={applicants}
-                onUpdateStatus={handleUpdateStatus}
-                onScheduleInterview={handleOpenSchedule}
-                onViewScheduledInterview={handleViewScheduledInterview}
-                onViewDetails={handleViewDetails}
+        {/* Candidates View: Tabs if jobId is selected, else standard list */}
+        {jobIdParam ? (
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2 mb-4 gap-2">
+              <TabsList className="bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl h-10 w-fit shrink-0">
+                <TabsTrigger value="applicants" className="rounded-lg px-4 py-1.5 text-xs font-semibold">
+                  All Applicants
+                </TabsTrigger>
+                <TabsTrigger value="best-matches" className="rounded-lg px-4 py-1.5 text-xs font-semibold gap-1.5">
+                
+                  Best Matches
+                </TabsTrigger>
+              </TabsList>
+              {selectedJobTitle && (
+                <span className="text-xs text-zinc-500 font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-100 dark:border-indigo-900/30 truncate max-w-full">
+                  Job: {selectedJobTitle}
+                </span>
+              )}
+            </div>
+
+            <TabsContent value="applicants" className="mt-0 outline-none">
+              <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
+                    Candidates
+                  </CardTitle>
+                  <ApplicantFilters
+                    search={search}
+                    onSearchChange={setSearch}
+                    status={filterStatus}
+                    onStatusChange={setFilterStatus}
+                  />
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center py-16 gap-3">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span className="text-sm text-zinc-400 animate-pulse">Loading candidates...</span>
+                    </div>
+                  ) : (
+                    <ApplicantList
+                      applicants={applicants}
+                      onUpdateStatus={handleUpdateStatus}
+                      onScheduleInterview={handleOpenSchedule}
+                      onViewScheduledInterview={handleViewScheduledInterview}
+                      onViewDetails={handleViewDetails}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="best-matches" className="mt-0 outline-none">
+              {selectedJob && (
+                <BestMatchesTab
+                  job={selectedJob}
+                  applicants={applicants}
+                  loading={loading}
+                  onViewDetails={handleViewDetails}
+                  onScheduleInterview={handleOpenSchedule}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
+                Candidates
+              </CardTitle>
+              <ApplicantFilters
+                search={search}
+                onSearchChange={setSearch}
+                status={filterStatus}
+                onStatusChange={setFilterStatus}
               />
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-16 gap-3">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <span className="text-sm text-zinc-400 animate-pulse">Loading candidates...</span>
+                </div>
+              ) : (
+                <ApplicantList
+                  applicants={applicants}
+                  onUpdateStatus={handleUpdateStatus}
+                  onScheduleInterview={handleOpenSchedule}
+                  onViewScheduledInterview={handleViewScheduledInterview}
+                  onViewDetails={handleViewDetails}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Status Update Dialog */}
         <StatusUpdateDrawer
@@ -280,6 +404,19 @@ export default function ApplicantsModule({ initialApplicationId }: ApplicantsMod
         />
       </div>
     </CompanyVerificationGuard>
+  );
+}
+
+export default function ApplicantsModule({ initialApplicationId }: ApplicantsModuleProps = {}) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-32 gap-3">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <span className="text-sm text-zinc-400 animate-pulse">Loading applicant dashboard...</span>
+      </div>
+    }>
+      <ApplicantsModuleInner initialApplicationId={initialApplicationId} />
+    </Suspense>
   );
 }
 

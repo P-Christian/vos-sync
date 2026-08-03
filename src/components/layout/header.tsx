@@ -40,13 +40,13 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-8 font-medium text-sm text-muted-foreground">
           <Link href="/find-jobs" className="hover:text-foreground transition-colors">Find Jobs</Link>
           <Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link>
-          <Link href="#" className="hover:text-foreground transition-colors">Companies</Link>
-          <Link href="#" className="hover:text-foreground transition-colors">Salaries</Link>
+          <Link href="/companies" className="hover:text-foreground transition-colors">Companies</Link>
+          {/* <Link href="#" className="hover:text-foreground transition-colors">Salaries</Link> */}
           <Link href="/career-advice" className="hover:text-foreground transition-colors">Career Advice</Link>
           <Link href="/about-us" className="hover:text-foreground transition-colors">About Us</Link>
           <Link href="/contact-us" className="hover:text-foreground transition-colors">Contact</Link>
         </nav>
-
+ 
         <div className="hidden md:flex items-center gap-4">
           <ThemeSelector />
           <Button asChild variant="ghost" className="font-medium cursor-pointer text-foreground hover:bg-muted">
@@ -56,7 +56,7 @@ export function Header() {
             <Link href="/signup">Sign Up</Link>
           </Button>
         </div>
-
+ 
         {/* Mobile Menu Toggle */}
         <div className="flex md:hidden items-center gap-2">
           <ThemeSelector />
@@ -65,14 +65,14 @@ export function Header() {
           </button>
         </div>
       </div>
-
+ 
       {/* Mobile Nav Dropdown */}
       {mobileMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-background border-b border-border shadow-lg py-4 px-4 flex flex-col gap-4">
           <Link href="/find-jobs" className="text-muted-foreground hover:text-foreground font-medium py-2">Find Jobs</Link>
           <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground font-medium py-2">How It Works</Link>
-          <Link href="/dashboard/companies" className="text-muted-foreground hover:text-foreground font-medium py-2">Companies</Link>
-          <Link href="/dashboard/salaries" className="text-muted-foreground hover:text-foreground font-medium py-2">Salaries</Link>
+          <Link href="/companies" className="text-muted-foreground hover:text-foreground font-medium py-2">Companies</Link>
+          {/* <Link href="/dashboard/salaries" className="text-muted-foreground hover:text-foreground font-medium py-2">Salaries</Link> */}
           <Link href="/career-advice" className="text-muted-foreground hover:text-foreground font-medium py-2">Career Advice</Link>
           <Link href="/about-us" className="text-muted-foreground hover:text-foreground font-medium py-2">About Us</Link>
           <Link href="/contact-us" className="text-muted-foreground hover:text-foreground font-medium py-2">Contact</Link>

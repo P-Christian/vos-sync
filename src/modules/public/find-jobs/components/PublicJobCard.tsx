@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Building2, MapPin, Briefcase, DollarSign, Clock, ShieldCheck, ArrowRight } from "lucide-react";
+import { Building2, MapPin, Briefcase,  Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PublicJobPosting } from "../types";
@@ -100,7 +100,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
       <div className="pt-3 border-t flex items-center justify-between gap-2 text-xs">
         <div className="space-y-0.5">
           <span className="font-bold text-foreground text-sm flex items-center gap-1">
-            <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+        
             {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
           </span>
           <span className="text-[10px] text-muted-foreground flex items-center gap-1">

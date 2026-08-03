@@ -5,6 +5,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Users, Clock, Briefcase, Pencil, Landmark, Banknote, ExternalLink } from "lucide-react";
+import { MapPin, Users, Clock, Briefcase, Pencil, Landmark, Banknote, ExternalLink    } from "lucide-react";
 import JobStatusBadge from "./JobStatusBadge";
 import { JobPosting, JobStatus, JOB_TYPE_LABELS } from "../types";
 
@@ -158,11 +159,35 @@ export default function JobCard({
             </div>
 
             {/* Salary badge */}
-            <div className="pt-0.5">
+            <div className="pt-0.5 flex flex-wrap items-center justify-between gap-4 w-full">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/20 px-3 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-800/20">
                 <Banknote className="h-3.5 w-3.5" />
                 {formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, salaryType)}
               </span>
+
+              {/* Primary ATS actions */}
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}&tab=applicants`}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 text-xs gap-1.5 rounded-lg border-zinc-200 hover:border-indigo-500 hover:text-indigo-600 dark:border-zinc-800 dark:hover:border-indigo-400 transition-all duration-200 font-semibold"
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    View Applicants
+                  </Button>
+                </Link>
+
+                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}&tab=best-matches`}>
+                  <Button
+                    size="sm"
+                    className="h-8 px-3 text-xs gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-sm border-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                   
+                    Best Matches
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
 

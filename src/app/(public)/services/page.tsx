@@ -23,7 +23,7 @@ export default function Page() {
                 </div>
 
                 <Button asChild className="cursor-pointer">
-                    <Link href="/contact">
+                    <Link href="contact-us">
                         Request a quote <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                 </Button>
@@ -95,7 +95,7 @@ export default function Page() {
                             <Link href="/about">About us</Link>
                         </Button>
                         <Button asChild className="cursor-pointer">
-                            <Link href="/contact">Contact</Link>
+                            <Link href="/contact-us">Contact</Link>
                         </Button>
                     </div>
                 </CardContent>

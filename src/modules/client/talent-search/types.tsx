@@ -1,0 +1,163 @@
+// src/modules/client/talent-search/types.tsx
+
+// ─────────────────────────────────────────────
+// Talent Search Types
+// ─────────────────────────────────────────────
+
+export type AvailabilityStatus = "AVAILABLE" | "EMPLOYED" | "OPEN" | "IMMEDIATELY_AVAILABLE";
+
+export type ExperienceLevel = "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "MANAGER" | "EXECUTIVE";
+
+export interface TalentWorkExperience {
+  company_name: string;
+  job_title: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_current_role: boolean;
+  employment_type: string | null;
+}
+
+export interface TalentEducation {
+  school_name: string | null;
+  school_id: number | null;
+  course_name: string | null;
+  start_date: string | null;
+  end_date: string | null;
+}
+
+/** Lightweight talent card (search results) */
+export interface TalentCard {
+  user_id: number;
+  profile_id: number;
+  name: string;
+  email: string;
+  profile_image_url: string | null;
+  headline: string | null;
+  summary: string | null;
+  location: string;
+  skills: string[];
+  experience_years: number;
+  work_experience: TalentWorkExperience[];
+  education: TalentEducation[];
+  availability_status: AvailabilityStatus;
+  is_saved: boolean;
+  match_score: number;
+}
+
+/** Full talent profile (drawer / detail view) */
+export interface TalentProfile {
+  user_id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  profile_image_url: string | null;
+  gender: string | null;
+  nationality: string | null;
+  location: string;
+  headline: string | null;
+  summary: string | null;
+  expected_salary: number | null;
+  profile_visibility: string;
+  availability_status: "AVAILABLE" | "EMPLOYED" | "OPEN" | "IMMEDIATELY_AVAILABLE";
+  skills: string[];
+  experience_years: number;
+  work_experience: Array<{
+    id: number;
+    company_name: string;
+    job_title: string;
+    location: string | null;
+    location_type: string | null;
+    employment_type: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    is_current_role: boolean;
+    description: string | null;
+    skills: string[];
+  }>;
+  education: Array<{
+    id: number;
+    school_name: string | null;
+    school_location: string | null;
+    course_name: string | null;
+    start_date: string | null;
+    end_date: string | null;
+  }>;
+  certifications: Array<{
+    id: number;
+    certificate_name: string;
+    issuing_organization: string;
+    issue_date: string | null;
+    credential_url: string | null;
+  }>;
+  social_links: Array<{
+    id: number;
+    platform_name: string;
+    profile_url: string;
+  }>;
+  resumes: Array<{
+    id: number;
+    file_url: string;
+    file_name: string | null;
+    is_primary: boolean;
+    uploaded_at: string | null;
+  }>;
+  is_saved: boolean;
+  saved_notes: string | null;
+}
+
+/** Saved talent list item */
+export interface SavedTalent {
+  id: number;
+  talent_user_id: number;
+  folder_name: string;
+  notes: string | null;
+  created_at: string | null;
+  name: string;
+  email: string | null;
+  profile_image_url: string | null;
+  location: string | null;
+  headline: string | null;
+  skills: string[];
+}
+
+/** Search filters */
+export interface TalentFilters {
+  keyword: string;
+  skills: string[];
+  location: string;
+  experience_level: ExperienceLevel | "";
+  availability: AvailabilityStatus | "";
+  school_id: string;
+}
+
+export const EMPTY_FILTERS: TalentFilters = {
+  keyword: "",
+  skills: [],
+  location: "",
+  experience_level: "",
+  availability: "",
+  school_id: "",
+};
+
+export const EXPERIENCE_LEVEL_LABELS: Record<ExperienceLevel, string> = {
+  ENTRY: "Entry Level (0–2 yrs)",
+  JUNIOR: "Junior (0–3 yrs)",
+  MID: "Mid Level (2–6 yrs)",
+  SENIOR: "Senior (5+ yrs)",
+  MANAGER: "Manager (7+ yrs)",
+  EXECUTIVE: "Executive (10+ yrs)",
+};
+
+export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
+  AVAILABLE: "Available",
+  IMMEDIATELY_AVAILABLE: "Immediately Available",
+  EMPLOYED: "Currently Employed",
+  OPEN: "Open to Opportunities",
+};
+
+export const MATCH_SCORE_LABEL = (score: number): { label: string; color: string } => {
+  if (score >= 85) return { label: "Excellent Match", color: "text-emerald-600" };
+  if (score >= 70) return { label: "Good Match", color: "text-blue-600" };
+  if (score >= 50) return { label: "Fair Match", color: "text-amber-600" };
+  return { label: "Low Match", color: "text-zinc-500" };
+};
