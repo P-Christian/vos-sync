@@ -1,4 +1,4 @@
-export type SchoolStatus = 'Active' | 'Inactive';
+export type SchoolStatus = 'Active' | 'Inactive' | 'Draft' | 'Pending';
 export type SchoolType = 'University' | 'College' | 'Technical/Vocational' | 'Other';
 
 export interface VsSchoolAdmin {
@@ -26,6 +26,7 @@ export interface VsSchool {
   postal_code: string | null;
   country: string;
   school_status: SchoolStatus;
+  profile_completion_percent: number;
   created_by: number;
   created_at: string;
   updated_by: number | null;
@@ -36,6 +37,7 @@ export interface SchoolWithStats extends VsSchool {
   course_count: number;
   student_count: number;
 }
+
 
 export interface VsSchoolCourse {
   school_course_id: number;

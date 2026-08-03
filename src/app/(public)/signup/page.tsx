@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Briefcase, User, Eye, EyeOff, Check, ArrowLeft, ChevronDown, Search,
-  Upload, X, FileText, Shield, Building2,
+  Upload, X, FileText, Shield, Building2, GraduationCap
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -272,17 +272,21 @@ function SearchableLocationSelect({
 
 // ─── Main SignupPage ──────────────────────────────────────────────────────────
 
-type MainStep = 'selection' | 'client' | 'client-otp' | 'freelancer' | 'freelancer-otp';
+type MainStep = 'selection' | 'client' | 'client-otp' | 'freelancer' | 'freelancer-otp' | 'school' | 'school-otp';
 
-export default function SignupPage() {
+function SignupPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryType = searchParams.get('type');
+  const inviteToken = searchParams.get('token');
 
   // ── Navigation ────────────────────────────────────────────────────────────
   const [step, setStep] = useState<MainStep>('selection');
   const [clientStep, setClientStep] = useState(1);
-  const [userType, setUserType] = useState<'client' | 'freelancer' | null>(null);
+  const [userType, setUserType] = useState<'client' | 'freelancer' | 'school' | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
 
   // ── Client Step 1: Basic Info ─────────────────────────────────────────────
   const [step1, setStep1] = useState({
@@ -343,6 +347,28 @@ export default function SignupPage() {
   const [freelancerTermsAgreed, setFreelancerTermsAgreed] = useState(false);
   const [freelancerErrors, setFreelancerErrors] = useState<Record<string, string>>({});
   const [freelancerUserId, setFreelancerUserId] = useState<number | null>(null);
+
+  // ── School Signup State ───────────────────────────────────────────────────
+  const [schoolFormData, setSchoolFormData] = useState({
+    firstName: '',
+    lastName: '',
+    contact: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    schoolName: '',
+    schoolType: 'University' as 'University' | 'College' | 'Technical/Vocational' | 'Other',
+    province: '',
+    provinceCode: '',
+    city: '',
+    cityCode: '',
+  });
+  const [schoolSelectedCountry, setSchoolSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
+  const [schoolShowPassword, setSchoolShowPassword] = useState(false);
+  const [schoolTermsAgreed, setSchoolTermsAgreed] = useState(false);
+  const [schoolErrors, setSchoolErrors] = useState<Record<string, string>>({});
+  const [schoolUserId, setSchoolUserId] = useState<number | null>(null);
+
 
   // ── Master Data Fetching (vs_company_size & vs_industry) ─────────────────
   const [fetchedCompanySizes, setFetchedCompanySizes] = useState<{ company_size_id: number; company_size_name: string }[]>([]);
@@ -414,28 +440,34 @@ export default function SignupPage() {
   }, []);
 
   useEffect(() => {
-    if (clientStep === 3 && company.companyCountryCode === 'PH' && provinces.length === 0) {
+    const isClientStep3 = clientStep === 3 && company.companyCountryCode === 'PH';
+    const isSchoolStep = step === 'school';
+    if ((isClientStep3 || isSchoolStep) && provinces.length === 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProvinces();
     }
-  }, [clientStep, company.companyCountryCode, provinces.length, fetchProvinces]);
+  }, [clientStep, step, company.companyCountryCode, provinces.length, fetchProvinces]);
 
   useEffect(() => {
-    if (company.companyProvinceCode && company.companyCountryCode === 'PH') {
+    const provinceCode = company.companyProvinceCode || schoolFormData.provinceCode;
+    if (provinceCode && (company.companyCountryCode === 'PH' || step === 'school')) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchCities(company.companyProvinceCode);
+      fetchCities(provinceCode);
     }
-  }, [company.companyProvinceCode, company.companyCountryCode, fetchCities]);
+  }, [company.companyProvinceCode, schoolFormData.provinceCode, company.companyCountryCode, step, fetchCities]);
+
 
   // ── Selection Handlers ────────────────────────────────────────────────────
 
-  const handleSelection = (type: 'client' | 'freelancer') => setUserType(type);
+  const handleSelection = (type: 'client' | 'freelancer' | 'school') => setUserType(type);
 
   const handleProceedToForm = () => {
     if (!userType) return;
     if (userType === 'client') {
       setStep('client');
       setClientStep(1);
+    } else if (userType === 'school') {
+      setStep('school');
     } else {
       setStep('freelancer');
     }
@@ -448,6 +480,33 @@ export default function SignupPage() {
     setClientStep(1);
     setErrors({});
   };
+
+  // Auto-detect invite type=school or token in URL params
+  useEffect(() => {
+    if (queryType === 'school' || inviteToken) {
+      setUserType('school');
+      setStep('school');
+      if (inviteToken) {
+        setLoading(true);
+        fetch(`/api/auth/school-register?token=${inviteToken}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.valid) {
+              setSchoolFormData(prev => ({
+                ...prev,
+                schoolName: data.school_name || '',
+                email: data.invited_email || '',
+              }));
+            } else {
+              toast.error('Invitation link is invalid or expired.');
+            }
+          })
+          .catch(() => toast.error('Error validating invitation link.'))
+          .finally(() => setLoading(false));
+      }
+    }
+  }, [queryType, inviteToken]);
+
 
   // ── Client Step 1 ─────────────────────────────────────────────────────────
 
@@ -806,27 +865,29 @@ export default function SignupPage() {
       </div>
 
       <div className="flex flex-col gap-4 max-w-xl mx-auto mb-10">
-        {(['client', 'freelancer'] as const).map(type => (
-          <button key={type} onClick={() => handleSelection(type)}
+        {([
+          { type: 'client', label: 'Employer / Client', desc: 'Recruit employees and professionals for your organization.', icon: <Briefcase size={28} /> },
+          { type: 'freelancer', label: 'Job Seeker', desc: 'Explore job opportunities and apply with confidence.', icon: <User size={28} /> },
+          { type: 'school', label: 'School / Institution', desc: 'Register your educational institution and courses.', icon: <GraduationCap size={28} /> }
+        ] as const).map(item => (
+          <button key={item.type} onClick={() => handleSelection(item.type)}
             className="group relative flex items-center justify-between p-6 border-2 border-border rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-muted/50"
           >
             <div className="flex items-center gap-5">
               <div className="p-3 bg-muted text-foreground rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
-                {type === 'client' ? <Briefcase size={28} /> : <User size={28} />}
+                {item.icon}
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-foreground">
-                  {type === 'client' ? "Employer / Client" : "Job Seeker"}
+                  {item.label}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {type === 'client'
-                    ? "Recruit employees and professionals for your organization."
-                    : "Explore job opportunities and apply with confidence."}
+                  {item.desc}
                 </p>
               </div>
             </div>
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ml-4 ${userType === type ? 'border-primary bg-primary' : 'border-border'}`}>
-              {userType === type && <Check size={16} className="text-white" />}
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 ml-4 ${userType === item.type ? 'border-primary bg-primary' : 'border-border'}`}>
+              {userType === item.type && <Check size={16} className="text-white" />}
             </div>
           </button>
         ))}
@@ -836,13 +897,14 @@ export default function SignupPage() {
         <Button onClick={handleProceedToForm} disabled={!userType}
           className={`w-full py-6 rounded-full font-medium text-white transition-colors text-lg ${userType ? 'bg-primary hover:bg-primary/90' : 'bg-muted-foreground/30 cursor-not-allowed hover:bg-muted-foreground/30'}`}
         >
-          {userType === 'client' ? 'Create Employer Account' : userType === 'freelancer' ? 'Create Job Seeker Account' : 'Create Account'}
+          {userType === 'client' ? 'Create Employer Account' : userType === 'freelancer' ? 'Create Job Seeker Account' : userType === 'school' ? 'Create School Account' : 'Create Account'}
         </Button>
       </div>
     </div>
   );
 
   // ─── Render: Client Step 1 ────────────────────────────────────────────────
+
 
   const renderClientStep1 = () => (
     <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-8">
@@ -1600,6 +1662,300 @@ export default function SignupPage() {
     </div>
   );
 
+  // ─── School Signup Submit Handlers ────────────────────────────────────────
+
+  const validateSchoolForm = () => {
+    const e: Record<string, string> = {};
+    if (!schoolFormData.firstName.trim()) e.firstName = 'First name is required';
+    if (!schoolFormData.lastName.trim()) e.lastName = 'Last name is required';
+    if (!schoolFormData.email.trim()) e.email = 'Email address is required';
+    else if (!/\S+@\S+\.\S+/.test(schoolFormData.email)) e.email = 'Please enter a valid email';
+    
+    if (!schoolFormData.contact.trim()) {
+      e.contact = 'Contact number is required';
+    } else {
+      const full = `${schoolSelectedCountry.dialCode} ${schoolFormData.contact.trim()}`;
+      if (!schoolSelectedCountry.regex.test(full) && !schoolSelectedCountry.regex.test(schoolFormData.contact.trim())) {
+        e.contact = `Invalid format for ${schoolSelectedCountry.name}.`;
+      }
+    }
+
+    if (!schoolFormData.schoolName.trim()) e.schoolName = 'School Name is required';
+    if (!schoolFormData.province.trim()) e.province = 'Province is required';
+    if (!schoolFormData.city.trim()) e.city = 'City / Municipality is required';
+
+    if (!schoolFormData.password) e.password = 'Password is required';
+    else if (!validatePasswordStrict(schoolFormData.password)) e.password = 'Password does not meet requirements';
+    if (schoolFormData.password !== schoolFormData.confirmPassword) e.confirmPassword = 'Passwords do not match';
+
+    if (!schoolTermsAgreed) e.terms = 'You must agree to the terms';
+
+    setSchoolErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSchoolSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateSchoolForm()) {
+      toast.error('Please fix the validation errors.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const dialCode = schoolSelectedCountry.dialCode;
+      const rawContact = schoolFormData.contact.trim().replace(/^0/, '');
+      const fullContact = `${dialCode}${rawContact}`;
+
+      const res = await fetch('/api/auth/school-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: inviteToken || undefined,
+          user_fname: schoolFormData.firstName.trim(),
+          user_lname: schoolFormData.lastName.trim(),
+          user_contact: fullContact,
+          user_email: schoolFormData.email.trim().toLowerCase(),
+          password: schoolFormData.password,
+          school_name: schoolFormData.schoolName.trim(),
+          school_type: schoolFormData.schoolType,
+          city_municipality: schoolFormData.city,
+          province: schoolFormData.province,
+          turnstileToken
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('Signup failed', { description: data.error || 'Could not register school.' });
+        return;
+      }
+
+      toast.success('Registration successful!', { description: 'Please check your email for the verification code.' });
+      setSchoolUserId(data.userId);
+      setOtpEmail(schoolFormData.email.trim());
+      setStep('school-otp');
+    } catch {
+      toast.error('Signup failed', { description: 'Network error.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSchoolOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: schoolUserId, code: otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error('Verification failed', { description: data.message || 'Invalid code.' });
+        return;
+      }
+      toast.success('Account verified!', { description: 'Welcome to VOS Sync. You can now log in.' });
+      router.push('/login');
+    } catch {
+      toast.error('Verification failed', { description: 'Network error.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Render: School Form ──────────────────────────────────────────────────
+
+  const renderSchoolForm = () => (
+    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
+      <div className="mb-6">
+        <button onClick={handleBackToSelection} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+          <ArrowLeft size={16} className="mr-2" />Back to selection
+        </button>
+      </div>
+
+      <div className="text-center mb-8">
+        <h1 className="text-3xl md:text-4xl font-medium text-primary">Register your School</h1>
+        <p className="mt-3 text-muted-foreground">Submit institution details and set up admin access.</p>
+      </div>
+
+      <form className="space-y-6" onSubmit={handleSchoolSubmit} noValidate>
+        {/* Personal Details */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Personal Info</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">First name <span className="text-destructive">*</span></label>
+              <Input id="s-fname" value={schoolFormData.firstName}
+                onChange={e => setSchoolFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="First Name" className={cn('h-12 border-2', schoolErrors.firstName && 'border-destructive')} />
+              {schoolErrors.firstName && <p className="text-xs text-destructive mt-1">{schoolErrors.firstName}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Last name <span className="text-destructive">*</span></label>
+              <Input id="s-lname" value={schoolFormData.lastName}
+                onChange={e => setSchoolFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Last Name" className={cn('h-12 border-2', schoolErrors.lastName && 'border-destructive')} />
+              {schoolErrors.lastName && <p className="text-xs text-destructive mt-1">{schoolErrors.lastName}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">Mobile Number <span className="text-destructive">*</span></label>
+            <PhoneCountryPicker selectedCountry={schoolSelectedCountry}
+              onSelectCountry={setSchoolSelectedCountry}
+              phoneValue={schoolFormData.contact}
+              onPhoneChange={val => setSchoolFormData(prev => ({ ...prev, contact: val }))}
+              error={schoolErrors.contact} disabled={loading} />
+            {schoolErrors.contact && <p className="text-xs text-destructive mt-1">{schoolErrors.contact}</p>}
+          </div>
+        </div>
+
+        {/* Institution Details */}
+        <div className="space-y-4 pt-4 border-t border-border/60">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">School Details</p>
+          
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">School / University Name <span className="text-destructive">*</span></label>
+            <Input id="s-name" value={schoolFormData.schoolName}
+              onChange={e => setSchoolFormData(prev => ({ ...prev, schoolName: e.target.value }))}
+              disabled={!!inviteToken || loading}
+              placeholder="Full official school name" className={cn('h-12 border-2', schoolErrors.schoolName && 'border-destructive')} />
+            {schoolErrors.schoolName && <p className="text-xs text-destructive mt-1">{schoolErrors.schoolName}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">School Type <span className="text-destructive">*</span></label>
+            <Select value={schoolFormData.schoolType} 
+              onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as any }))} disabled={loading}>
+              <SelectTrigger className="h-12 border-2 text-base">
+                <SelectValue placeholder="Select School Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="University">University</SelectItem>
+                <SelectItem value="College">College</SelectItem>
+                <SelectItem value="Technical/Vocational">Technical/Vocational</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-sm font-medium">School Contact / Login Email <span className="text-destructive">*</span></label>
+            <Input id="s-email" type="email" value={schoolFormData.email}
+              onChange={e => setSchoolFormData(prev => ({ ...prev, email: e.target.value }))}
+              disabled={!!inviteToken || loading}
+              placeholder="e.g. admin@school.edu" className={cn('h-12 border-2', schoolErrors.email && 'border-destructive')} />
+            {schoolErrors.email && <p className="text-xs text-destructive mt-1">{schoolErrors.email}</p>}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">Province <span className="text-destructive">*</span></label>
+              <SearchableLocationSelect options={provinces} value={schoolFormData.provinceCode}
+                onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, provinceCode: code, province: name, cityCode: '', city: '' }))}
+                placeholder="Search province..." loading={loadingProvinces} error={schoolErrors.province} />
+              {schoolErrors.province && <p className="text-xs text-destructive mt-1">{schoolErrors.province}</p>}
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium">City / Municipality <span className="text-destructive">*</span></label>
+              <SearchableLocationSelect options={cities} value={schoolFormData.cityCode}
+                onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, cityCode: code, city: name }))}
+                placeholder="Search city..." disabled={!schoolFormData.provinceCode} loading={loadingCities} error={schoolErrors.city} />
+              {schoolErrors.city && <p className="text-xs text-destructive mt-1">{schoolErrors.city}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Credentials */}
+        <div className="space-y-4 pt-4 border-t border-border/60">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Admin Credentials</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Password <span className="text-destructive">*</span></label>
+                <div className="relative">
+                  <Input id="s-password" type={schoolShowPassword ? 'text' : 'password'} value={schoolFormData.password}
+                    onChange={e => setSchoolFormData(prev => ({ ...prev, password: e.target.value }))}
+                    placeholder="8+ characters" className={cn('h-12 pr-12 border-2', schoolErrors.password && 'border-destructive')} />
+                  <button type="button" onClick={() => setSchoolShowPassword(!schoolShowPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {schoolShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {schoolErrors.password && <p className="text-xs text-destructive mt-1">{schoolErrors.password}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Confirm Password <span className="text-destructive">*</span></label>
+                <Input id="s-confirm" type={schoolShowPassword ? 'text' : 'password'} value={schoolFormData.confirmPassword}
+                  onChange={e => setSchoolFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm password" className={cn('h-12 border-2', schoolErrors.confirmPassword && 'border-destructive')} />
+                {schoolErrors.confirmPassword && <p className="text-xs text-destructive mt-1">{schoolErrors.confirmPassword}</p>}
+              </div>
+            </div>
+            <PasswordRequirementsChecklist password={schoolFormData.password} confirmPassword={schoolFormData.confirmPassword} className="mt-1" />
+          </div>
+        </div>
+
+        {/* Terms */}
+        <div className="space-y-4 pt-4 border-t border-border/60">
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <Checkbox id="s-terms-checkbox" checked={schoolTermsAgreed}
+                onCheckedChange={val => setSchoolTermsAgreed(Boolean(val))}
+                className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', schoolErrors.terms && 'border-destructive')} />
+              <span className={cn('text-sm leading-tight select-none', schoolErrors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
+                Yes, I understand and agree to the{' '}
+                <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
+                <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
+                <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+                <span className="text-destructive ml-0.5">*</span>
+              </span>
+            </label>
+            {schoolErrors.terms && <p className="text-xs text-destructive mt-1.5 font-medium pl-7">{schoolErrors.terms}</p>}
+          </div>
+        </div>
+
+        {/* CAPTCHA / Bot Protection */}
+        <div className="rounded-xl border border-border/80 bg-muted/20 p-4 my-2">
+          <TurnstileWidget
+            onVerify={(token) => setTurnstileToken(token)}
+            onExpire={() => setTurnstileToken('')}
+          />
+        </div>
+
+        <Button type="submit" disabled={loading || !validatePasswordStrict(schoolFormData.password)}
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50">
+          {loading ? 'Creating...' : 'Create School Account'}
+        </Button>
+      </form>
+    </div>
+  );
+
+  // ─── Render: School OTP ───────────────────────────────────────────────────
+
+  const renderSchoolOtpScreen = () => (
+    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
+      <div className="mb-8">
+        <h1 className="text-3xl font-medium text-primary mb-4">Verify your school email</h1>
+        <p className="text-muted-foreground text-sm">
+          We&apos;ve sent a 6-digit verification code to <strong>{otpEmail}</strong>. Please enter it below to verify your account.
+        </p>
+      </div>
+      <form onSubmit={handleSchoolOtpSubmit} className="space-y-6">
+        <Input id="s-otp" type="text" maxLength={6} value={otp}
+          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
+          className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+        <Button type="submit" disabled={loading || otp.length !== 6}
+          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
+          {loading ? 'Verify & Finish' : 'Verify Email'}
+        </Button>
+      </form>
+    </div>
+  );
+
   // ─── Root Render ──────────────────────────────────────────────────────────
 
   return (
@@ -1618,6 +1974,22 @@ export default function SignupPage() {
       {step === 'client-otp' && renderClientOtpScreen()}
       {step === 'freelancer' && renderFreelancerForm()}
       {step === 'freelancer-otp' && renderFreelancerOtpScreen()}
+      {step === 'school' && renderSchoolForm()}
+      {step === 'school-otp' && renderSchoolOtpScreen()}
     </div>
   );
 }
+
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <SignupPageContent />
+    </Suspense>
+  );
+}
+
