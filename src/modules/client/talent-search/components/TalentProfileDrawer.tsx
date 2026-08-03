@@ -3,6 +3,7 @@
 // src/modules/client/talent-search/components/TalentProfileDrawer.tsx
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
   Sheet,
   SheetContent,
@@ -81,10 +82,13 @@ export default function TalentProfileDrawer({
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
                   {profile.profile_image_url ? (
-                    <img
+                    <Image
                       src={profile.profile_image_url}
                       alt={profile.name}
+                      width={64}
+                      height={64}
                       className="h-16 w-16 rounded-2xl object-cover border-2 border-white/20 shrink-0"
+                      unoptimized
                     />
                   ) : (
                     <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-white font-bold text-xl border-2 border-white/20 shrink-0">

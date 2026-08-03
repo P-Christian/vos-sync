@@ -3,6 +3,7 @@
 // src/modules/client/talent-search/components/SavedTalentPanel.tsx
 
 import React, { useEffect } from "react";
+import Image from "next/image";
 import { Bookmark, MapPin, Loader2, AlertCircle, Trash2, Eye, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedTalent } from "../types";
@@ -84,10 +85,13 @@ export default function SavedTalentPanel({
             >
               {/* Avatar */}
               {s.profile_image_url ? (
-                <img
+                <Image
                   src={s.profile_image_url}
                   alt={s.name}
+                  width={40}
+                  height={40}
                   className="h-10 w-10 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
+                  unoptimized
                 />
               ) : (
                 <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">

@@ -3,6 +3,7 @@
 // src/modules/client/talent-search/components/TalentCard.tsx
 
 import React from "react";
+import Image from "next/image";
 import { MapPin, Briefcase, BookmarkPlus, BookmarkCheck,   Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,10 +44,13 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
         {/* Avatar */}
         <div className="shrink-0">
           {talent.profile_image_url ? (
-            <img
+            <Image
               src={talent.profile_image_url}
               alt={talent.name}
+              width={48}
+              height={48}
               className="h-12 w-12 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700"
+              unoptimized
             />
           ) : (
             <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-base">
