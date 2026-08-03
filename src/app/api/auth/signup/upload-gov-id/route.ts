@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get("file");
+    const folder = formData.get("folder");
 
     if (!file || !(file instanceof File)) {
       return NextResponse.json(
@@ -54,22 +55,24 @@ export async function POST(req: NextRequest) {
       "image/jpg",
       "image/png",
       "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/msword",
     ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         {
           error:
-            "Invalid file type. Only .jpg, .jpeg, .png, and .pdf files are accepted.",
+            "Invalid file type. Only .jpg, .jpeg, .png, .pdf, and .docx files are accepted.",
         },
         { status: 400 }
       );
     }
 
-    // Validate file size (5MB max)
-    const MAX_SIZE = 5 * 1024 * 1024;
+    // Validate file size (10MB max)
+    const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: "File size exceeds the 5MB limit." },
+        { error: "File size exceeds the 10MB limit." },
         { status: 400 }
       );
     }
@@ -77,6 +80,9 @@ export async function POST(req: NextRequest) {
     // Upload to Directus using static token
     const directusForm = new FormData();
     directusForm.append("file", file);
+    if (folder) {
+      directusForm.append("folder", String(folder));
+    }
 
     const res = await fetch(`${DIRECTUS_BASE}/files`, {
       method: "POST",

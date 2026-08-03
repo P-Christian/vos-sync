@@ -8,7 +8,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
-import { cn } from "@/lib/utils";
 
 // ==========================================
 // MOCK DATA
@@ -26,25 +25,25 @@ const VALUES = [
     icon: HeartHandshake,
     title: "People First",
     desc: "We put job seekers and employers at the center of every product decision we make.",
-    className: "bg-primary/10 text-primary",
+    color: "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400",
   },
   {
     icon: Shield,
     title: "Trust & Safety",
     desc: "Every listing is verified. We work hard to keep our platform free from scams and bad actors.",
-    className: "bg-secondary text-secondary-foreground",
+    color: "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400",
   },
   {
     icon: Zap,
     title: "Speed Matters",
     desc: "Hiring moves fast. Our platform is designed to match candidates and companies in days, not months.",
-    className: "bg-accent text-accent-foreground",
+    color: "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400",
   },
   {
     icon: Star,
     title: "Quality over Quantity",
     desc: "We curate opportunities so that every listing on our platform is worth your time.",
-    className: "bg-muted text-foreground",
+    color: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400",
   },
 ];
 
@@ -71,28 +70,28 @@ export default function AboutUs() {
     <div className="bg-background text-foreground font-sans pt-16">
       {/* HERO */}
       <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-muted via-background to-background" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="absolute top-0 right-0 -z-10 translate-x-1/3 -translate-y-1/4 opacity-30">
-          <div className="w-[500px] h-[500px] rounded-full bg-primary/10 blur-3xl mix-blend-multiply" />
+          <div className="w-[500px] h-[500px] rounded-full bg-blue-50 dark:bg-blue-950/20 blur-3xl mix-blend-multiply" />
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <StaggerContainer>
             <StaggerChild>
-              <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-background/80 backdrop-blur-sm text-sm text-foreground">
-                <HeartHandshake className="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+              <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm text-sm border-zinc-200 dark:border-zinc-800">
+                <HeartHandshake className="w-3.5 h-3.5 mr-2 text-zinc-500" />
                 Our Story
               </Badge>
             </StaggerChild>
             <StaggerChild>
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
+              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
                 We believe everyone deserves{" "}
-                <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
                   meaningful work.
                 </span>
               </h1>
             </StaggerChild>
             <StaggerChild>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
                 VosSync was built to bridge the gap between ambitious professionals and the companies building tomorrow. We&apos;re not just a job board — we&apos;re a career partner.
               </p>
             </StaggerChild>
@@ -101,14 +100,14 @@ export default function AboutUs() {
       </section>
 
       {/* STATS BAR */}
-      <section className="border-y border-border bg-muted/30 py-12">
+      <section className="border-y border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/20 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {STATS.map((stat) => (
               <StaggerChild key={stat.label}>
                 <div className="text-center">
-                  <p className="text-4xl font-extrabold text-foreground tracking-tight">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mt-1 font-medium">{stat.label}</p>
+                  <p className="text-4xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">{stat.value}</p>
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-medium">{stat.label}</p>
                 </div>
               </StaggerChild>
             ))}
@@ -121,12 +120,12 @@ export default function AboutUs() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16 items-center">
             <SlideUp className="lg:w-1/2">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Our Mission</p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Mission</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6">
                 To make job searching{" "}
-                <span className="text-muted-foreground">faster, fairer, and more human.</span>
+                <span className="text-zinc-500 dark:text-zinc-400">faster, fairer, and more human.</span>
               </h2>
-              <p className="text-muted-foreground text-lg leading-relaxed mb-6">
+              <p className="text-zinc-500 dark:text-zinc-400 text-lg leading-relaxed mb-6">
                 Traditional job platforms are broken — riddled with ghost listings, impossible ATS systems, and one-size-fits-all applications. We built VosSync to fix that.
               </p>
               <div className="space-y-4">
@@ -136,10 +135,10 @@ export default function AboutUs() {
                   "One-click applications that respect your time",
                 ].map((item, i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <div className="mt-1 bg-primary/10 p-1.5 rounded-full">
-                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    <div className="mt-1 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-full">
+                      <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />
                     </div>
-                    <p className="text-muted-foreground">{item}</p>
+                    <p className="text-zinc-600 dark:text-zinc-300">{item}</p>
                   </div>
                 ))}
               </div>
@@ -149,12 +148,12 @@ export default function AboutUs() {
               {TEAM_HIGHLIGHTS.map((item) => (
                 <StaggerChild key={item.title}>
                   <HoverScale className="h-full">
-                    <div className="border border-border rounded-2xl p-6 bg-card text-card-foreground hover:shadow-md transition-all duration-200 hover:border-primary/40 h-full">
-                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mb-4">
-                        <item.icon className="w-5 h-5 text-primary" />
+                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 h-full">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+                        <item.icon className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
                       </div>
-                      <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">{item.title}</h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{item.desc}</p>
                     </div>
                   </HoverScale>
                 </StaggerChild>
@@ -165,12 +164,12 @@ export default function AboutUs() {
       </section>
 
       {/* VALUES */}
-      <section className="py-24 bg-muted/30 border-y border-border">
+      <section className="py-24 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Our Values</p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">What we stand for</h2>
-            <p className="text-muted-foreground">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Values</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">What we stand for</h2>
+            <p className="text-zinc-500 dark:text-zinc-400">
               These aren&apos;t just words on a wall. They&apos;re the principles that guide every feature we build.
             </p>
           </div>
@@ -179,12 +178,12 @@ export default function AboutUs() {
             {VALUES.map((val) => (
               <StaggerChild key={val.title}>
                 <HoverScale className="h-full">
-                  <div className="group border border-border rounded-2xl p-6 bg-card text-card-foreground hover:shadow-md hover:border-primary/40 transition-all duration-200 h-full">
-                    <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center mb-4", val.className)}>
+                  <div className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 h-full">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${val.color}`}>
                       <val.icon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-base font-bold text-foreground mb-2">{val.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{val.desc}</p>
+                    <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2">{val.title}</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{val.desc}</p>
                   </div>
                 </HoverScale>
               </StaggerChild>
@@ -198,9 +197,9 @@ export default function AboutUs() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16">
             <SlideUp className="lg:w-1/3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Timeline</p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">How we got here</h2>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Timeline</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">How we got here</h2>
+              <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed">
                 VosSync didn&apos;t start as a billion-dollar idea. It started with a simple observation: job searching was painful, and it didn&apos;t have to be.
               </p>
             </SlideUp>
@@ -211,16 +210,16 @@ export default function AboutUs() {
                   <StaggerChild key={m.year}>
                     <div className="flex gap-6 relative">
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0 z-10">
+                        <div className="w-10 h-10 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs font-bold shrink-0 z-10">
                           {m.year.slice(2)}
                         </div>
                         {i < MILESTONES.length - 1 && (
-                          <div className="w-px flex-1 bg-border my-1" />
+                          <div className="w-px flex-1 bg-zinc-200 dark:bg-zinc-800 my-1" />
                         )}
                       </div>
                       <div className={`pb-8 ${i < MILESTONES.length - 1 ? "" : ""}`}>
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">{m.year}</p>
-                        <p className="text-foreground/80 font-medium">{m.event}</p>
+                        <p className="text-xs font-semibold text-zinc-400 dark:text-zinc-500 mb-1">{m.year}</p>
+                        <p className="text-zinc-700 dark:text-zinc-300 font-medium">{m.event}</p>
                       </div>
                     </div>
                   </StaggerChild>
@@ -234,19 +233,19 @@ export default function AboutUs() {
       {/* CTA */}
       <section className="py-20">
         <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-primary rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
             <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground tracking-tight mb-4">Join us in building the future of work</h2>
-              <p className="text-primary-foreground/80 mb-8 max-w-xl mx-auto text-lg">
+              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
+              <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
                 Whether you&apos;re hiring or being hired — VosSync is built for you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90 rounded-full px-8 cursor-pointer">
+                <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
                   <Link href="/signup">Get Started Free</Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground bg-transparent hover:bg-primary-foreground/10 hover:text-primary-foreground rounded-full px-8 cursor-pointer">
+                <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
                   <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
                 </Button>
               </div>

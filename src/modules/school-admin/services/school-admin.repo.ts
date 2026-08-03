@@ -66,6 +66,14 @@ export async function updateSchoolRepo(schoolId: number, payload: Partial<VsScho
   return json.data;
 }
 
+export async function fetchSchoolByIdRepo(schoolId: number): Promise<VsSchool | null> {
+  const url = `${DIRECTUS_BASE}/items/vs_school/${schoolId}?fields=*`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data || null;
+}
+
 export async function createCourseRepo(payload: Partial<VsSchoolCourse>): Promise<VsSchoolCourse> {
   const url = `${DIRECTUS_BASE}/items/vs_school_course`;
   const res = await fetch(url, {
