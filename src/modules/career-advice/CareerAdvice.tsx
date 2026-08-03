@@ -90,39 +90,39 @@ const GUIDES = [
     title: "Resume Writing Guide",
     desc: "Build a standout resume that passes ATS filters and impresses hiring managers. Includes templates and real examples.",
     articles: 24,
-    color: "bg-blue-50 text-blue-600",
+    color: "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400",
   },
   {
     icon: BookOpen,
     title: "Interview Preparation",
     desc: "From phone screens to panel interviews — everything you need to walk in confident and walk out with an offer.",
     articles: 18,
-    color: "bg-emerald-50 text-emerald-600",
+    color: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400",
   },
   {
     icon: DollarSign,
     title: "Salary Negotiation",
     desc: "Don't leave money on the table. Learn how to research, benchmark, and negotiate the compensation you deserve.",
     articles: 12,
-    color: "bg-amber-50 text-amber-600",
+    color: "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400",
   },
   {
     icon: Search,
     title: "Job Search Strategy",
     desc: "A system for finding and landing roles faster — with tactics for networking, outreach, and staying organized.",
     articles: 21,
-    color: "bg-purple-50 text-purple-600",
+    color: "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400",
   },
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Resume Tips": "bg-blue-50 text-blue-700",
-  "Interview Prep": "bg-emerald-50 text-emerald-700",
-  "Salary Guide": "bg-amber-50 text-amber-700",
-  "Job Search": "bg-purple-50 text-purple-700",
-  "Remote Work": "bg-teal-50 text-teal-700",
-  "Career Change": "bg-rose-50 text-rose-700",
-  "Career Strategy": "bg-zinc-100 text-zinc-700",
+  "Resume Tips": "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400",
+  "Interview Prep": "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400",
+  "Salary Guide": "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400",
+  "Job Search": "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400",
+  "Remote Work": "bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-400",
+  "Career Change": "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400",
+  "Career Strategy": "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300",
 };
 
 // ==========================================
@@ -131,22 +131,21 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function CareerAdvice() {
   return (
-    <div className="bg-white text-zinc-950 font-sans pt-16">
+    <div className="bg-background text-foreground font-sans pt-16">
       {/* HERO */}
       <section className="relative overflow-hidden pt-20 pb-20 md:pt-28 md:pb-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 via-white to-white" />
+        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 backdrop-blur-sm text-sm">
-        
+          <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm text-sm border-zinc-200 dark:border-zinc-800">
             Career Advice
           </Badge>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 mb-6 max-w-4xl mx-auto leading-tight">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
             Level up your{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
               career game.
             </span>
           </h1>
-          <p className="text-xl text-zinc-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             Expert articles, step-by-step guides, and real-world strategies for every stage of your career journey.
           </p>
 
@@ -155,7 +154,7 @@ export default function CareerAdvice() {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.label}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-zinc-200 text-sm text-zinc-600 bg-white hover:bg-zinc-900 hover:text-white hover:border-zinc-900 transition-all duration-150 cursor-pointer font-medium"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-900 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-900 hover:border-zinc-900 dark:hover:border-zinc-100 transition-all duration-150 cursor-pointer font-medium"
               >
                 {cat.label}
                 <span className="text-xs opacity-60">({cat.count})</span>
@@ -166,19 +165,19 @@ export default function CareerAdvice() {
       </section>
 
       {/* FEATURED ARTICLE */}
-      <section className="py-16 border-t border-zinc-100">
+      <section className="py-16 border-t border-zinc-100 dark:border-zinc-850">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Editor&apos;s Pick</p>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Featured Article</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Editor&apos;s Pick</p>
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Featured Article</h2>
             </div>
             <Button variant="ghost" className="hidden md:flex group cursor-pointer text-zinc-600">
               See all articles <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
 
-          <div className="group border border-zinc-200 rounded-3xl overflow-hidden hover:shadow-xl hover:border-zinc-300 transition-all duration-300 bg-white cursor-pointer">
+          <div className="group border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 bg-white dark:bg-zinc-900/60 cursor-pointer">
             <div className="grid grid-cols-1 lg:grid-cols-5">
               {/* Visual placeholder */}
               <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-700 p-12 flex flex-col justify-between min-h-[280px]">
@@ -196,18 +195,18 @@ export default function CareerAdvice() {
                 <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[FEATURED_ARTICLE.category] || "bg-zinc-100 text-zinc-700"}`}>
                   {FEATURED_ARTICLE.category}
                 </Badge>
-                <h3 className="text-2xl md:text-3xl font-bold text-zinc-900 mb-4 leading-snug group-hover:text-zinc-700 transition-colors">
+                <h3 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4 leading-snug group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
                   {FEATURED_ARTICLE.title}
                 </h3>
-                <p className="text-zinc-500 mb-6 leading-relaxed">{FEATURED_ARTICLE.excerpt}</p>
+                <p className="text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed">{FEATURED_ARTICLE.excerpt}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-zinc-400">
+                  <div className="flex items-center gap-3 text-sm text-zinc-400 dark:text-zinc-500">
                     <Clock className="w-4 h-4" />
                     <span>{FEATURED_ARTICLE.readTime}</span>
                     <span>·</span>
                     <span>{FEATURED_ARTICLE.date}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="rounded-full cursor-pointer group-hover:bg-zinc-900 group-hover:text-white group-hover:border-zinc-900 transition-all">
+                  <Button size="sm" variant="outline" className="rounded-full cursor-pointer group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 group-hover:text-white dark:group-hover:text-zinc-900 group-hover:border-zinc-900 dark:group-hover:border-zinc-100 transition-all border-zinc-200 dark:border-zinc-800">
                     Read now <ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </div>
@@ -222,8 +221,8 @@ export default function CareerAdvice() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Latest</p>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-900">Recent Articles</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Latest</p>
+              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Recent Articles</h2>
             </div>
           </div>
 
@@ -231,30 +230,30 @@ export default function CareerAdvice() {
             {ARTICLES.map((article) => (
               <div
                 key={article.id}
-                className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md hover:border-zinc-300 transition-all duration-200 cursor-pointer flex flex-col"
+                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer flex flex-col"
               >
                 <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[article.category] || "bg-zinc-100 text-zinc-700"}`}>
                   {article.category}
                 </Badge>
-                <h3 className="text-base font-bold text-zinc-900 mb-2 group-hover:text-zinc-700 transition-colors leading-snug flex-1">
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors leading-snug flex-1">
                   {article.title}
                 </h3>
-                <p className="text-sm text-zinc-500 mb-4 leading-relaxed line-clamp-2">{article.excerpt}</p>
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100">
-                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-relaxed line-clamp-2">{article.excerpt}</p>
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{article.readTime}</span>
                     <span>·</span>
                     <span>{article.date}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-10 text-center">
-            <Button size="lg" variant="outline" className="rounded-full px-8 cursor-pointer">
+            <Button size="lg" variant="outline" className="rounded-full px-8 cursor-pointer border-zinc-200 dark:border-zinc-800">
               Load more articles
             </Button>
           </div>
@@ -262,12 +261,12 @@ export default function CareerAdvice() {
       </section>
 
       {/* GUIDES SECTION */}
-      <section className="py-20 bg-zinc-50 border-y border-zinc-100">
+      <section className="py-20 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Structured Learning</p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 mb-4">In-depth guides</h2>
-            <p className="text-zinc-500">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Structured Learning</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">In-depth guides</h2>
+            <p className="text-zinc-500 dark:text-zinc-400">
               Our curated guide collections take you from beginner to confident, step by step.
             </p>
           </div>
@@ -276,16 +275,16 @@ export default function CareerAdvice() {
             {GUIDES.map((guide) => (
               <div
                 key={guide.title}
-                className="group border border-zinc-200 rounded-2xl p-6 bg-white hover:shadow-md hover:border-zinc-300 transition-all duration-200 cursor-pointer"
+                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer"
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${guide.color}`}>
                   <guide.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-zinc-900 mb-2 group-hover:text-zinc-700 transition-colors">{guide.title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed mb-4">{guide.desc}</p>
-                <div className="flex items-center justify-between pt-4 border-t border-zinc-100">
-                  <span className="text-xs text-zinc-400">{guide.articles} articles</span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />
+                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">{guide.title}</h3>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">{guide.desc}</p>
+                <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{guide.articles} articles</span>
+                  <ChevronRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
@@ -296,19 +295,19 @@ export default function CareerAdvice() {
       {/* NEWSLETTER CTA */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
             <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Get career tips in your inbox</h2>
-              <p className="text-zinc-400 mb-8 max-w-xl mx-auto text-lg">
+              <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
                 Weekly advice from industry experts — no spam, no filler. Just insights that move your career forward.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 rounded-full px-8 cursor-pointer">
+                <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
                   <Link href="/signup">Subscribe Free</Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-zinc-700 text-white bg-transparent hover:bg-zinc-800 hover:text-white rounded-full px-8 cursor-pointer">
+                <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
                   <Link href="/">Browse Jobs <ArrowRight className="ml-2 w-4 h-4" /></Link>
                 </Button>
               </div>
