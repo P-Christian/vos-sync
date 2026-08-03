@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SchoolWithStats, VsSchool } from "../types/school-admin.types";
 import { toast } from "sonner";
-import { Loader2, Upload, Building2 } from "lucide-react";
+import { Loader2, Building2 } from "lucide-react";
 
 export function SchoolAdminProfile({ 
   school, 
@@ -38,6 +38,7 @@ export function SchoolAdminProfile({
   // Keep formData in sync if school props update
   useEffect(() => {
     if (!isEditing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         school_name: school.school_name || "",
         school_type: school.school_type || "University",
@@ -108,6 +109,7 @@ export function SchoolAdminProfile({
       {/* School Name & Logo Top Row Component */}
       <div className="flex items-center gap-4 bg-card border rounded-xl p-6 shadow-sm">
         {logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img 
             src={logoSrc} 
             alt="School Logo" 

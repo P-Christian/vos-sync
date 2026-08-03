@@ -229,8 +229,20 @@ export async function registerUser(body: unknown) {
             });
 
             // 1. Associate Job Preferences (Employment Setup)
-            const employmentTypes = (body as any).employmentTypes || [];
-            const country = (body as any).country || "Philippines";
+            interface SignupBody {
+                employmentTypes?: string[];
+                country?: string;
+                skills?: string;
+                resumeFileId?: string;
+                resumeFileName?: string;
+                govIdType?: string;
+                govIdFrontFileId?: string;
+                govIdBackFileId?: string;
+            }
+            const payload = body as SignupBody;
+
+            const employmentTypes = payload.employmentTypes || [];
+            const country = payload.country || "Philippines";
             const locationPref = [city, province, country].filter(Boolean).join(", ");
             await fetch(`${envApiBase}/items/vs_job_preferences`, {
                 method: "POST",
@@ -246,24 +258,24 @@ export async function registerUser(body: unknown) {
             });
 
             // 2. Associate Skills
-            const skills = (body as any).skills || "";
+            const skills = payload.skills || "";
             if (skills) {
                 await associateSkills(newUser.user_id, skills);
             }
 
             // 3. Associate Resume
-            const resumeFileId = (body as any).resumeFileId;
-            const resumeFileName = (body as any).resumeFileName;
+            const resumeFileId = payload.resumeFileId;
+            const resumeFileName = payload.resumeFileName;
             if (resumeFileId) {
                 await associateResume(newUser.user_id, resumeFileId, resumeFileName);
             }
 
             // 4. Associate Gov ID verification (optional during sign-up)
-            const govIdType = (body as any).govIdType;
-            const govIdFrontFileId = (body as any).govIdFrontFileId;
-            const govIdBackFileId = (body as any).govIdBackFileId;
+            const govIdType = payload.govIdType;
+            const govIdFrontFileId = payload.govIdFrontFileId;
+            const govIdBackFileId = payload.govIdBackFileId;
             if (govIdFrontFileId) {
-                await associateGovId(newUser.user_id, govIdType, govIdFrontFileId, govIdBackFileId);
+                await associateGovId(newUser.user_id, govIdType || "", govIdFrontFileId, govIdBackFileId);
             }
         } catch (err) {
             console.error("Failed to seed job seeker profile on registration:", err);
@@ -569,7 +581,7 @@ async function associateSkills(userId: number, skillsStr: string) {
     }
 }
 
-async function associateResume(userId: number, fileId: string, fileName: string) {
+async function associateResume(userId: number, fileId: string, fileName?: string) {
     const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
     const envToken = process.env.DIRECTUS_STATIC_TOKEN;
     if (!envApiBase || !envToken || !fileId) return;
@@ -594,7 +606,7 @@ async function associateResume(userId: number, fileId: string, fileName: string)
     }
 }
 
-async function associateGovId(userId: number, govIdType: string, frontId: string, backId: string) {
+async function associateGovId(userId: number, govIdType: string, frontId: string, backId?: string) {
     const envApiBase = process.env.NEXT_PUBLIC_API_BASE_URL;
     const envToken = process.env.DIRECTUS_STATIC_TOKEN;
     if (!envApiBase || !envToken || !frontId) return;

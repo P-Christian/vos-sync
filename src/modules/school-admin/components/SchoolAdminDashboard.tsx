@@ -1,6 +1,5 @@
 import { Building2, GraduationCap, Users, AlertCircle } from "lucide-react";
 import { SchoolWithStats } from "../types/school-admin.types";
-import Link from "next/link";
 
 export function SchoolAdminDashboard({ school }: { school: SchoolWithStats }) {
   const isDraft = school.school_status === "Draft";

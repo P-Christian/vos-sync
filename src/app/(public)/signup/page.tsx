@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
   Briefcase, User, Eye, EyeOff, Check, ArrowLeft, ChevronDown, Search,
   Upload, X, FileText, Shield, Building2, GraduationCap
@@ -282,7 +282,6 @@ function SearchableLocationSelect({
 type MainStep = 'selection' | 'client' | 'client-otp' | 'freelancer' | 'freelancer-otp' | 'school' | 'school-otp';
 
 function SignupPageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const queryType = searchParams.get('type');
   const inviteToken = searchParams.get('token');
@@ -564,6 +563,7 @@ function SignupPageContent() {
   // Auto-detect invite type=school or token in URL params
   useEffect(() => {
     if (queryType === 'school' || inviteToken) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserType('school');
       setStep('school');
       if (inviteToken) {
@@ -2309,7 +2309,7 @@ function SignupPageContent() {
           <div className="space-y-1">
             <label className="block text-sm font-medium">School Type <span className="text-destructive">*</span></label>
             <Select value={schoolFormData.schoolType} 
-              onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as any }))} disabled={loading}>
+              onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as 'University' | 'College' | 'Technical/Vocational' | 'Other' }))} disabled={loading}>
               <SelectTrigger className="h-12 border-2 text-base">
                 <SelectValue placeholder="Select School Type" />
               </SelectTrigger>
