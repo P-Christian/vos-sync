@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SchoolWithStats, VsSchool } from "../types/school-admin.types";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Building2 } from "lucide-react";
 
 export function SchoolAdminProfile({ 
   school, 
@@ -18,14 +18,17 @@ export function SchoolAdminProfile({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState<Partial<VsSchool>>({
     school_name: school.school_name || "",
     school_type: school.school_type || "University",
     school_email: school.school_email || "",
     school_contact_no: school.school_contact_no || "",
     school_website: school.school_website || "",
+    school_logo_url: school.school_logo_url || "",
     school_description: school.school_description || "",
     address_line: school.address_line || "",
+    barangay: school.barangay || "",
     city_municipality: school.city_municipality || "",
     province: school.province || "",
     postal_code: school.postal_code || "",
@@ -42,8 +45,10 @@ export function SchoolAdminProfile({
         school_email: school.school_email || "",
         school_contact_no: school.school_contact_no || "",
         school_website: school.school_website || "",
+        school_logo_url: school.school_logo_url || "",
         school_description: school.school_description || "",
         address_line: school.address_line || "",
+        barangay: school.barangay || "",
         city_municipality: school.city_municipality || "",
         province: school.province || "",
         postal_code: school.postal_code || "",
@@ -52,7 +57,36 @@ export function SchoolAdminProfile({
     }
   }, [school, isEditing]);
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    setUploading(true);
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+
+    try {
+      const res = await fetch("/api/school-admin/school/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to upload image.");
+      }
+
+      const fileJson = await res.json();
+      const fileId = fileJson.id; // Generated Directus file UUID
+
+      setFormData(prev => ({ ...prev, school_logo_url: fileId }));
+      toast.success("Logo uploaded successfully. Save changes to apply.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Logo upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +101,31 @@ export function SchoolAdminProfile({
     }
   };
 
+  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+  const logoSrc = formData.school_logo_url ? `${apiBase}/assets/${formData.school_logo_url}` : null;
+
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
+      {/* School Name & Logo Top Row Component */}
+      <div className="flex items-center gap-4 bg-card border rounded-xl p-6 shadow-sm">
+        {logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img 
+            src={logoSrc} 
+            alt="School Logo" 
+            className="w-16 h-16 rounded-lg object-contain border bg-white p-1"
+          />
+        ) : (
+          <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center border">
+            <Building2 className="w-8 h-8 text-muted-foreground" />
+          </div>
+        )}
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">{school.school_name}</h2>
+          <p className="text-sm text-muted-foreground">{school.school_type}</p>
+        </div>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -131,6 +188,31 @@ export function SchoolAdminProfile({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="school_logo_file">School Logo</Label>
+                <div className="flex items-center gap-3">
+                  <Input 
+                    id="school_logo_file" 
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={!isEditing || uploading}
+                    className="h-12 flex-1 file:bg-primary file:text-white file:border-0 file:rounded-md file:px-4 file:h-full file:cursor-pointer"
+                  />
+                  {uploading && <Loader2 className="animate-spin text-primary w-5 h-5 shrink-0" />}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="school_website">Website URL</Label>
+                <Input 
+                  id="school_website" 
+                  value={formData.school_website || ""}
+                  onChange={(e) => setFormData({...formData, school_website: e.target.value})}
+                  disabled={!isEditing}
+                  placeholder="https://example.com"
+                />
+              </div>
+
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="school_description">Description</Label>
                 <Textarea 
@@ -156,6 +238,15 @@ export function SchoolAdminProfile({
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="barangay">Barangay</Label>
+                  <Input 
+                    id="barangay" 
+                    value={formData.barangay || ""}
+                    onChange={(e) => setFormData({...formData, barangay: e.target.value})}
+                    disabled={!isEditing}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="city_municipality">City/Municipality</Label>
                   <Input 
                     id="city_municipality" 
@@ -173,6 +264,15 @@ export function SchoolAdminProfile({
                     onChange={(e) => setFormData({...formData, province: e.target.value})}
                     disabled={!isEditing}
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="postal_code">Postal Code</Label>
+                  <Input 
+                    id="postal_code" 
+                    value={formData.postal_code || ""}
+                    onChange={(e) => setFormData({...formData, postal_code: e.target.value})}
+                    disabled={!isEditing}
                   />
                 </div>
               </div>
