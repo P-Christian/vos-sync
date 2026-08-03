@@ -1,8 +1,10 @@
 // src/modules/public/how-it-works/HowItWorksModule.tsx
 "use client";
 
-import React from "react";
+
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { RoleKey } from "./types";
 import { ROLE_GUIDES } from "./config";
 import {
@@ -29,6 +31,9 @@ export default function HowItWorksModule({
   const router = useRouter();
   const pathname = usePathname();
 
+  const isPublicPage = pathname === "/how-it-works" || pathname === "/how-it-works/";
+  const showBackButton = singleRoleMode || (!isPublicPage && (pathname?.includes("/client") || pathname?.includes("/freelancer") || pathname?.includes("/school-admin")));
+
   const getRoleFromQuery = (): RoleKey => {
     if (singleRoleMode) return defaultRole;
     const raw = searchParams.get("role")?.toLowerCase();
@@ -50,7 +55,22 @@ export default function HowItWorksModule({
   const currentGuide = ROLE_GUIDES[activeRole] || ROLE_GUIDES[defaultRole] || ROLE_GUIDES.employee;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
+      {/* Top Left Go Back button for client, employee, and school guide pages (excluding public landing page) */}
+      {showBackButton && (
+        <div className="absolute top-4 left-4 sm:top-6 sm:left-8 z-30">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-xs font-semibold cursor-pointer shadow-xs bg-background/90 backdrop-blur-xs hover:bg-muted text-foreground border-border px-3 py-2 rounded-lg transition-all"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Go Back</span>
+          </Button>
+        </div>
+      )}
+
       {/* 1. Hero Section */}
       <HeroSection />
 

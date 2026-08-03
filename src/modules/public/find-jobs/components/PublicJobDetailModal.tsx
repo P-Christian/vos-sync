@@ -17,7 +17,6 @@ import {
   Building2,
   MapPin,
   Briefcase,
-  DollarSign,
   ShieldCheck,
   ArrowRight,
   LogIn,
@@ -103,7 +102,7 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Salary Range</span>
               <span className="font-extrabold text-foreground text-sm flex items-center gap-1 mt-0.5">
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+               
                 {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
               </span>
             </div>

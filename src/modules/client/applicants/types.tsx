@@ -39,7 +39,12 @@ export interface Applicant {
   applied_at?: string;
   status_updated_at?: string;
   profile_image_url?: string | null;
+  applicant_profile_image_url?: string | null;
   active_interview_id?: number | null;
+  location?: string;
+  education_school?: string;
+  education_course?: string;
+  screening_answers_count?: number;
 }
 
 export interface WorkExperienceItem {

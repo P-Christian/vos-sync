@@ -79,7 +79,30 @@ const FREELANCER_STEPS = [
 
 // ─── Location Option ──────────────────────────────────────────────────────────
 
+// ─── Location Option ──────────────────────────────────────────────────────────
+
 interface LocationOption { code: string; name: string; }
+
+// ─── Phone Formatting Helper ──────────────────────────────────────────────────
+
+export function formatPhoneNumber(val: string): string {
+  const digits = val.replace(/\D/g, '');
+  if (!digits) return '';
+
+  const is434 = digits.startsWith('0') || digits.length > 10;
+  const maxDigits = is434 ? 11 : 10;
+  const sliced = digits.slice(0, maxDigits);
+
+  if (is434) {
+    if (sliced.length <= 4) return sliced;
+    if (sliced.length <= 7) return `${sliced.slice(0, 4)}-${sliced.slice(4)}`;
+    return `${sliced.slice(0, 4)}-${sliced.slice(4, 7)}-${sliced.slice(7)}`;
+  } else {
+    if (sliced.length <= 3) return sliced;
+    if (sliced.length <= 6) return `${sliced.slice(0, 3)}-${sliced.slice(3)}`;
+    return `${sliced.slice(0, 3)}-${sliced.slice(3, 6)}-${sliced.slice(6)}`;
+  }
+}
 
 // ─── PhoneCountryPicker ───────────────────────────────────────────────────────
 
@@ -130,7 +153,7 @@ function PhoneCountryPicker({
           </span>
           <input
             type="tel" disabled={disabled} value={phoneValue}
-            onChange={e => onPhoneChange(e.target.value)} placeholder="Enter number"
+            onChange={e => onPhoneChange(formatPhoneNumber(e.target.value))} placeholder="Enter number"
             className="w-full h-full bg-transparent border-0 outline-none text-foreground text-sm font-medium placeholder:text-muted-foreground/60"
           />
         </div>
@@ -605,8 +628,15 @@ function SignupPageContent() {
     if (!step1.contact.trim()) {
       e.contact = 'Mobile number is required';
     } else {
+      const cleanDigits = step1.contact.replace(/\D/g, '');
       const full = `${contactCountry.dialCode} ${step1.contact.trim()}`;
-      if (!contactCountry.regex.test(full) && !contactCountry.regex.test(step1.contact.trim())) {
+      const fullClean = `${contactCountry.dialCode} ${cleanDigits}`;
+      if (
+        !contactCountry.regex.test(full) &&
+        !contactCountry.regex.test(step1.contact.trim()) &&
+        !contactCountry.regex.test(fullClean) &&
+        !contactCountry.regex.test(cleanDigits)
+      ) {
         e.contact = `Invalid format for ${contactCountry.name}. Example: ${contactCountry.dialCode} ${contactCountry.example}`;
       }
     }
@@ -742,7 +772,7 @@ function SignupPageContent() {
 
     try {
       const dialCode = contactCountry.dialCode;
-      const rawContact = step1.contact.trim().replace(/^0/, '');
+      const rawContact = step1.contact.replace(/\D/g, '').replace(/^0/, '');
       const fullContact = `${dialCode}${rawContact}`;
 
       const payload = {
@@ -866,8 +896,15 @@ function SignupPageContent() {
     if (!formData.contact.trim()) {
       e.contact = 'Contact number is required';
     } else {
+      const cleanDigits = formData.contact.replace(/\D/g, '');
       const full = `${freelancerSelectedCountry.dialCode} ${formData.contact.trim()}`;
-      if (!freelancerSelectedCountry.regex.test(full) && !freelancerSelectedCountry.regex.test(formData.contact.trim())) {
+      const fullClean = `${freelancerSelectedCountry.dialCode} ${cleanDigits}`;
+      if (
+        !freelancerSelectedCountry.regex.test(full) &&
+        !freelancerSelectedCountry.regex.test(formData.contact.trim()) &&
+        !freelancerSelectedCountry.regex.test(fullClean) &&
+        !freelancerSelectedCountry.regex.test(cleanDigits)
+      ) {
         e.contact = `Invalid number format for ${freelancerSelectedCountry.name}. Example: ${freelancerSelectedCountry.dialCode} ${freelancerSelectedCountry.example}`;
       }
     }

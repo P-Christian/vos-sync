@@ -334,3 +334,48 @@ html.theme-switching * {
     @apply bg-background text-foreground;
   }
 }
+
+/* ============================================================
+   INFINITE SCROLL MARQUEE ANIMATIONS
+============================================================ */
+@keyframes marquee-ltr {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-rtl {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee-ltr {
+  animation: marquee-ltr 40s linear infinite;
+}
+
+.animate-marquee-rtl {
+  animation: marquee-rtl 40s linear infinite;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-ltr,
+  .animate-marquee-rtl {
+    animation: none !important;
+    transform: none !important;
+  }
+  .company-marquee-track {
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+  .company-marquee-item {
+    scroll-snap-align: start;
+  }
+}

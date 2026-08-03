@@ -203,6 +203,30 @@ async function getJobScreeningQuestions(jobIds: number[]): Promise<Record<number
   return result;
 }
 
+async function getApplicantsCounts(jobIds: number[]): Promise<Record<number, number>> {
+  const result: Record<number, number> = {};
+  jobIds.forEach(id => { result[id] = 0; });
+  if (jobIds.length === 0) return result;
+
+  try {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id&limit=5000`, {
+      headers: getHeaders(),
+      cache: "no-store"
+    });
+    if (!res.ok) return result;
+    const json = await res.json();
+    const apps: { job_id: number }[] = json.data || [];
+    apps.forEach((app) => {
+      if (result[app.job_id] !== undefined) {
+        result[app.job_id]++;
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching applicants counts:", err);
+  }
+  return result;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA SERIALIZER HELPERS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +235,8 @@ function mapToFrontendJob(
   rawJob: DirectusJobPosting,
   skills: { id: number; skill_name: string; source?: string; confidence_score?: number | null }[],
   benefits: string[],
-  screeningQuestions: string[]
+  screeningQuestions: string[],
+  applicantsCount = 0
 ): JobPosting {
   const descriptionObj = {
     text: rawJob.job_description || "",
@@ -246,6 +271,7 @@ function mapToFrontendJob(
     salary_negotiable: !!rawJob.salary_negotiable,
     experience_level: rawJob.experience_level as ExperienceLevel | null,
     status: rawJob.status as JobStatus,
+    applicants_count: applicantsCount,
     created_at: rawJob.created_at,
     updated_at: rawJob.updated_at,
     // Flat fields fallback
@@ -507,17 +533,19 @@ export async function getJobs(companyId: number, status: string | null): Promise
   if (rawJobs.length === 0) return [];
 
   const jobIds = rawJobs.map((j) => j.job_id);
-  const [skillsMap, benefitsMap, questionsMap] = await Promise.all([
+  const [skillsMap, benefitsMap, questionsMap, applicantsCountsMap] = await Promise.all([
     getJobSkills(jobIds),
     getJobBenefits(jobIds),
-    getJobScreeningQuestions(jobIds)
+    getJobScreeningQuestions(jobIds),
+    getApplicantsCounts(jobIds)
   ]);
 
   return rawJobs.map((j) => mapToFrontendJob(
     j,
     skillsMap[j.job_id] || [],
     benefitsMap[j.job_id] || [],
-    questionsMap[j.job_id] || []
+    questionsMap[j.job_id] || [],
+    applicantsCountsMap[j.job_id] || 0
   ));
 }
 
@@ -536,17 +564,19 @@ export async function getJob(id: string): Promise<JobPosting> {
   if (!rawJob) throw new Error("Job not found.");
 
   const jobId = rawJob.job_id;
-  const [skillsMap, benefitsMap, questionsMap] = await Promise.all([
+  const [skillsMap, benefitsMap, questionsMap, applicantsCountsMap] = await Promise.all([
     getJobSkills([jobId]),
     getJobBenefits([jobId]),
-    getJobScreeningQuestions([jobId])
+    getJobScreeningQuestions([jobId]),
+    getApplicantsCounts([jobId])
   ]);
 
   return mapToFrontendJob(
     rawJob,
     skillsMap[jobId] || [],
     benefitsMap[jobId] || [],
-    questionsMap[jobId] || []
+    questionsMap[jobId] || [],
+    applicantsCountsMap[jobId] || 0
   );
 }
 

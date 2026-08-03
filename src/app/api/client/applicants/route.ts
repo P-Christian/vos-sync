@@ -88,7 +88,9 @@ interface VsUser {
   user_lname: string;
   user_email: string;
   user_position?: string | null;
-   profile_image_url?: string | null;
+  profile_image_url?: string | null;
+  user_city?: string | null;
+  user_province?: string | null;
 }
 
 interface SkillMap {
@@ -347,9 +349,11 @@ export async function GET(req: NextRequest) {
       workRes,
       resumeRes,
       interviewsRes,
+      educationRes,
+      screeningAnswersRes,
     ] = await Promise.all([
       fetch(
-        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_position,profile_image_url&limit=500`,
+        `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_position,profile_image_url,user_city,user_province&limit=500`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -387,6 +391,22 @@ export async function GET(req: NextRequest) {
           cache: "no-store",
         }
       ),
+
+      fetch(
+        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,school_name_raw,course_name_raw&limit=1000`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      ),
+
+      fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application_answer?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,question_id&limit=1000`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      ),
     ]);
 
     const users: VsUser[] =
@@ -413,6 +433,16 @@ export async function GET(req: NextRequest) {
       interviewsRes.ok
         ? (await interviewsRes.json()).data ?? []
         : [];
+
+    const educationRows: { user_id: number; school_name_raw?: string | null; course_name_raw?: string | null }[] =
+      educationRes.ok
+        ? (await educationRes.json()).data ?? []
+        : [];
+
+    const screeningAnswerRows: { application_id: number; question_id: number }[] =
+      screeningAnswersRes.ok
+        ? (await screeningAnswersRes.json()).data ?? []
+        : [];
     
     // ------------------------------
     // Maps
@@ -435,8 +465,23 @@ export async function GET(req: NextRequest) {
 
     const activeInterviewsMap: Record<number, number> = {};
 
+    const educationMap: Record<number, { school_name_raw?: string | null; course_name_raw?: string | null }> = {};
+
+    const screeningCountMap: Record<number, number> = {};
+
     interviewRows.forEach((row) => {
       activeInterviewsMap[row.application_id] = row.interview_id;
+    });
+
+    educationRows.forEach((row) => {
+      educationMap[row.user_id] = {
+        school_name_raw: row.school_name_raw,
+        course_name_raw: row.course_name_raw,
+      };
+    });
+
+    screeningAnswerRows.forEach((row) => {
+      screeningCountMap[row.application_id] = (screeningCountMap[row.application_id] || 0) + 1;
     });
 
     users.forEach((user) => {
@@ -492,6 +537,8 @@ export async function GET(req: NextRequest) {
       const resumeCount =
         resumeMap[application.user_id] ?? 0;
 
+      const userEdu = educationMap[application.user_id];
+
       return {
         ...application,
 
@@ -524,6 +571,15 @@ export async function GET(req: NextRequest) {
           workExperience.length,
 
         resume_count: resumeCount,
+
+        location: user
+          ? [user.user_city, user.user_province].filter(Boolean).join(", ")
+          : "",
+
+        education_school: userEdu?.school_name_raw ?? "",
+        education_course: userEdu?.course_name_raw ?? "",
+
+        screening_answers_count: screeningCountMap[application.application_id] ?? 0,
 
         profile_completion:
           calculateProfileCompletion(

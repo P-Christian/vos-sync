@@ -169,9 +169,9 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   // Jobstreet style steps
   const steps = [
     { id: "documents", label: "Choose documents" },
-    ...(hasScreening ? [{ id: "questions", label: "Answer employer questions" }] : []),
+    { id: "questions", label: "Answer screening questions" },
     { id: "profile", label: "Update Profile Details" },
-    { id: "review", label: "Review and submit" }
+    { id: "review", label: "Review and submit" },
   ];
 
   const totalSteps = steps.length;
@@ -429,34 +429,70 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             )}
 
             {/* STEP 2: Screening Questions */}
-            {stepInfo.id === "questions" && hasScreening && (
+            {stepInfo.id === "questions" && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <HelpCircle className="h-3.5 w-3.5" />
-                  Employer Questions
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <HelpCircle className="h-4 w-4 text-primary" />
+                    Employer Screening Questions
+                  </div>
+                  {hasScreening && (
+                    <Badge variant="outline" className="text-[11px] font-normal border-primary/30 text-primary">
+                      {formData.screening_answers.filter((a) => a.answer_text.trim().length > 0).length} of{" "}
+                      {job.screening_questions?.length} answered
+                    </Badge>
+                  )}
                 </div>
-                {job.screening_questions?.map((question, i) => {
-                  const qText = typeof question === "object" && question !== null ? question.question_text : String(question);
-                  return (
-                    <div key={i} className="space-y-1.5 p-3.5 border rounded-xl bg-muted/20">
-                      <Label
-                        htmlFor={`screening-answer-${i}`}
-                        className="text-sm font-semibold leading-snug text-foreground"
-                      >
-                        {qText}
-                      </Label>
-                      <Textarea
-                        id={`screening-answer-${i}`}
-                        placeholder="Your answer..."
-                        value={formData.screening_answers[i]?.answer_text ?? ""}
-                        onChange={(e) => handleAnswerChange(i, e.target.value)}
-                        rows={3}
-                        className="resize-none text-sm rounded-xl bg-background"
-                        disabled={saving}
-                      />
+
+                {hasScreening ? (
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Please answer the following question{job.screening_questions!.length > 1 ? "s" : ""} from the employer to help them evaluate your application.
+                    </p>
+                    {job.screening_questions?.map((question, i) => {
+                      const qText =
+                        typeof question === "object" && question !== null
+                          ? question.question_text
+                          : String(question);
+                      const currentAnswer = formData.screening_answers[i]?.answer_text ?? "";
+                      return (
+                        <div
+                          key={i}
+                          className="space-y-2 p-4 border rounded-xl bg-card transition-colors focus-within:border-primary/50 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <Label
+                              htmlFor={`screening-answer-${i}`}
+                              className="text-sm font-semibold leading-snug text-foreground flex gap-2"
+                            >
+                              <span className="text-primary font-bold">{i + 1}.</span>
+                              <span>{qText}</span>
+                            </Label>
+                          </div>
+                          <Textarea
+                            id={`screening-answer-${i}`}
+                            placeholder="Type your answer here..."
+                            value={currentAnswer}
+                            onChange={(e) => handleAnswerChange(i, e.target.value)}
+                            rows={3}
+                            className="resize-none text-sm rounded-xl bg-background border-muted"
+                            disabled={saving}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-xl bg-muted/20 text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-1">
+                      <CheckCircle className="h-5 w-5" />
                     </div>
-                  );
-                })}
+                    <h4 className="text-sm font-semibold text-foreground">No Screening Questions Required</h4>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      The employer has not specified any screening questions for this role. Click <strong>Continue</strong> to proceed to your profile details.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -629,23 +665,38 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   </div>
 
                   {/* Screening answers */}
-                  {hasScreening && (
-                    <div className="p-4 space-y-3 bg-background">
-                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Employer Questions Answers</span>
-                      {job.screening_questions?.map((question, i) => {
-                        const qText = typeof question === "object" && question !== null ? question.question_text : String(question);
+                  <div className="p-4 space-y-3 bg-background">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      Employer Screening Questions
+                    </span>
+                    {hasScreening ? (
+                      job.screening_questions?.map((question, i) => {
+                        const qText =
+                          typeof question === "object" && question !== null
+                            ? question.question_text
+                            : String(question);
                         const aText = formData.screening_answers[i]?.answer_text;
                         return (
                           <div key={i} className="space-y-1 bg-muted/30 p-3 rounded-xl border">
-                            <p className="font-semibold text-foreground text-xs">{qText}</p>
+                            <p className="font-semibold text-foreground text-xs">
+                              {i + 1}. {qText}
+                            </p>
                             <p className="text-muted-foreground text-xs whitespace-pre-wrap mt-0.5">
-                              {aText || <span className="italic text-zinc-400 text-[11px]">No answer provided</span>}
+                              {aText ? (
+                                aText
+                              ) : (
+                                <span className="italic text-zinc-400 text-[11px]">No answer provided</span>
+                              )}
                             </p>
                           </div>
                         );
-                      })}
-                    </div>
-                  )}
+                      })
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">
+                        No screening questions required for this position.
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {/* Explicit Consent Checkbox */}
                 <div className="flex items-start gap-2.5 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-background mt-3">

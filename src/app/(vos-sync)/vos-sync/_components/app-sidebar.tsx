@@ -65,7 +65,7 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search } from "lucide-react";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
@@ -135,6 +135,7 @@ export function AppSidebar({
                 { label: "Company Profile", href: "/vos-sync/client/company-profile", icon: User },
                 { label: "Manage Jobs", href: "/vos-sync/client/jobs", icon: Briefcase },
                 { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
+                { label: "Talent Search", href: "/vos-sync/client/talent-search", icon: Search },
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
                 { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
                 { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },
