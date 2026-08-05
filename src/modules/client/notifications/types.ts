@@ -33,6 +33,7 @@ export const NOTIFICATION_CATEGORIES = {
   APPLICATION_RECEIVED: "APPLICATION_RECEIVED",
   APPLICATION_WITHDRAWN: "APPLICATION_WITHDRAWN",
   APPLICATION_STATUS_UPDATED: "APPLICATION_STATUS_UPDATED",
+  INVITATION_RECEIVED: "INVITATION_RECEIVED",
   MESSAGE_RECEIVED: "MESSAGE_RECEIVED",
   UNREAD_MESSAGE_REMINDER: "UNREAD_MESSAGE_REMINDER",
   INTERVIEW_SCHEDULED: "INTERVIEW_SCHEDULED",
@@ -53,6 +54,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   APPLICATION_RECEIVED: "New application received",
   APPLICATION_WITHDRAWN: "Candidate withdrew application",
   APPLICATION_STATUS_UPDATED: "Application status updated",
+  INVITATION_RECEIVED: "Received invitation from company",
   // Messages
   MESSAGE_RECEIVED: "New message received",
   UNREAD_MESSAGE_REMINDER: "Unread message reminder",
@@ -82,6 +84,7 @@ export const NOTIFICATION_CATEGORY_ICONS: Record<string, string> = {
   APPLICATION_RECEIVED: "FileText",
   APPLICATION_WITHDRAWN: "FileX",
   APPLICATION_STATUS_UPDATED: "RefreshCw",
+  INVITATION_RECEIVED: "Send",
   MESSAGE_RECEIVED: "MessageSquare",
   UNREAD_MESSAGE_REMINDER: "Clock",
   INTERVIEW_SCHEDULED: "Calendar",
@@ -145,10 +148,10 @@ export const NOTIFICATION_CATEGORIES_BY_GROUP: NotificationCategoryGroup[] = [
     title: "Team Activity",
     description: "Updates on team member job posts and hiring actions.",
     categories: [
-      { category: "JOB_APPROVED", label: "Team member posted a job / Job approved", defaultEmail: true, defaultInApp: true },
-      { category: "JOB_REJECTED", label: "Job rejected", defaultEmail: true, defaultInApp: true },
-      { category: "JOB_EXPIRED", label: "Job expired", defaultEmail: true, defaultInApp: true },
-      { category: "TEAM_ACTIVITY", label: "Team member updated hiring status", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_APPROVED", label: "Job posting approved", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_REJECTED", label: "Job posting rejected", defaultEmail: true, defaultInApp: true },
+      { category: "JOB_EXPIRED", label: "Job posting expired", defaultEmail: true, defaultInApp: true },
+      { category: "TEAM_ACTIVITY", label: "Team member activity", defaultEmail: true, defaultInApp: true },
     ],
   },
   {

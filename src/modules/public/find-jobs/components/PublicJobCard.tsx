@@ -34,6 +34,10 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
     return `Up to ${formatter.format(max!)}`;
   };
 
+  const companyUrl = job.company_code
+    ? `/companies/${job.company_code}`
+    : `/companies?search=${encodeURIComponent(job.company_name ?? "")}`;
+
   return (
     <div
       onClick={() => onSelectJob(job)}
@@ -43,7 +47,14 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
         {/* Top Header: Logo + Title + Verified Badge */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-xl border bg-muted/40 overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <a
+              href={companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="h-12 w-12 rounded-xl border bg-muted/40 overflow-hidden flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+              title={`View ${job.company_name} details`}
+            >
               {job.company_logo_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -54,12 +65,19 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
               ) : (
                 <Building2 className="h-6 w-6 text-muted-foreground" />
               )}
-            </div>
+            </a>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-xs text-muted-foreground truncate max-w-[200px]">
+                <a
+                  href={companyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-xs text-muted-foreground hover:text-primary hover:underline transition-colors truncate max-w-[200px]"
+                  title={`View ${job.company_name} details`}
+                >
                   {job.company_name}
-                </span>
+                </a>
                 {job.company_verification_status === "VERIFIED" && (
                   <span title="Verified Employer" className="inline-flex">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />

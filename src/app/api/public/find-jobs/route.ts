@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     const companyMap: Record<number, Record<string, unknown>> = {};
 
     if (companyIds.length > 0) {
-      const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name,company_logo,company_city,company_province,company_address,company_website,verification_status&limit=-1`;
+      const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_code,company_name,company_logo,company_city,company_province,company_address,company_website,verification_status&limit=-1`;
       const compRes = await fetch(compUrl, { headers: getDirectusHeaders(), cache: "no-store" });
       if (compRes.ok) {
         const compJson = await compRes.json();
@@ -225,6 +225,7 @@ export async function GET(req: NextRequest) {
       return {
         job_id: Number(j.job_id || j.id),
         company_id: cid,
+        company_code: (comp.company_code as string) || null,
         company_name: (comp.company_name as string) || (j.company_name as string) || "Hiring Organization",
         company_logo_url: logoUrl,
         company_location: compLoc || jobLoc,

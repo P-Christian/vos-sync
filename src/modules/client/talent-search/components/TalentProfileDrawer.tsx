@@ -19,13 +19,14 @@ import {
   Send, BookmarkPlus, BookmarkCheck, Loader2, AlertCircle,   Download, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TalentProfile } from "../types";
-import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon } from "../utils/talentUtils";
+import { TalentProfile, MatchBreakdown } from "../types";
+import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon, getImageUrl } from "../utils/talentUtils";
 
 interface TalentProfileDrawerProps {
   open: boolean;
   profile: TalentProfile | null;
-  matchScore?: number;
+  matchScore?: number | null;
+  matchBreakdown?: MatchBreakdown | null;
   loading: boolean;
   error: string;
   onClose: () => void;
@@ -38,6 +39,7 @@ export default function TalentProfileDrawer({
   open,
   profile,
   matchScore,
+  matchBreakdown,
   loading,
   error,
   onClose,
@@ -49,12 +51,13 @@ export default function TalentProfileDrawer({
 
   const initials = profile ? getInitials(profile.name) : "";
   const scoreClass = matchScore !== undefined ? matchScoreColor(matchScore) : "";
+  const avatarSrc = profile ? getImageUrl(profile.profile_image_url) : "";
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-xl p-0 flex flex-col overflow-hidden"
+        className="w-full sm:max-w-xl p-0 flex flex-col h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800"
       >
         {/* Loading */}
         {loading && (
@@ -81,9 +84,9 @@ export default function TalentProfileDrawer({
               <SheetHeader className="relative z-10">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  {profile.profile_image_url ? (
+                  {avatarSrc ? (
                     <Image
-                      src={profile.profile_image_url}
+                      src={avatarSrc}
                       alt={profile.name}
                       width={64}
                       height={64}
@@ -114,10 +117,9 @@ export default function TalentProfileDrawer({
 
                 {/* Stats row */}
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
-                  {matchScore !== undefined && (
+                  {matchScore !== null && matchScore !== undefined && (
                     <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1", scoreClass)}>
-                
-                      {matchScore}% Match
+                      {matchScore}% Compatibility
                     </span>
                   )}
                   {profile.experience_years > 0 && (
@@ -143,8 +145,8 @@ export default function TalentProfileDrawer({
               </SheetHeader>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex gap-2 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-900">
+            {/* Actions */}
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
               <Button
                 id={`drawer-save-${profile.user_id}`}
                 variant="outline"
@@ -188,6 +190,79 @@ export default function TalentProfileDrawer({
               <div className="flex-1 overflow-y-auto px-6 pb-8">
                 {/* ── OVERVIEW ── */}
                 <TabsContent value="overview" className="mt-4 space-y-5">
+                  {/* Browse Mode Helper Banner */}
+                  {!matchBreakdown && (
+                    <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-0.5">
+                        Compatibility Score
+                      </span>
+                      Search for a role, select required skills, or choose a job posting to evaluate candidate match.
+                    </div>
+                  )}
+
+                  {/* Match Breakdown Card */}
+                  {matchBreakdown && (
+                    <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
+                          Candidate Compatibility Breakdown
+                        </h4>
+                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                          {matchBreakdown.overallScore}%
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                          <span className="text-zinc-400 block text-[11px]">Skills (45%)</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.skills} / 45 pts</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                          <span className="text-zinc-400 block text-[11px]">Relevant Exp (20%)</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                            {matchBreakdown.experience.score} / 20 pts
+                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 block font-medium">
+                              ({matchBreakdown.experience.relevantYears} yrs relevant)
+                            </span>
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                          <span className="text-zinc-400 block text-[11px]">Education (10%)</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.education} / 10 pts</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                          <span className="text-zinc-400 block text-[11px]">Certifications (10%)</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.certifications} / 10 pts</span>
+                        </div>
+                      </div>
+
+                      {/* Matched vs Ignored roles breakdown */}
+                      {(matchBreakdown.experience.matchedRoles.length > 0 || matchBreakdown.experience.ignoredRoles.length > 0) && (
+                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5">
+                          {matchBreakdown.experience.matchedRoles.length > 0 && (
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Relevant Roles:</span>
+                              <span className="text-zinc-700 dark:text-zinc-300 font-medium">
+                                {matchBreakdown.experience.matchedRoles.join(", ")}
+                              </span>
+                            </div>
+                          )}
+                          {matchBreakdown.experience.ignoredRoles.length > 0 && (
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-zinc-400 font-medium shrink-0">✕ Unrelated Roles:</span>
+                              <span className="text-zinc-500 dark:text-zinc-400 line-through">
+                                {matchBreakdown.experience.ignoredRoles.join(", ")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Summary */}
                   {profile.summary && (
                     <div>

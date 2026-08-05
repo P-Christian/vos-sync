@@ -8,7 +8,7 @@ import { MapPin, Briefcase, BookmarkPlus, BookmarkCheck,   Eye } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TalentCard as TalentCardType } from "../types";
-import { getInitials, matchScoreColor, formatExperienceYears, truncate } from "../utils/talentUtils";
+import { getInitials, matchScoreColor, formatExperienceYears, truncate, getImageUrl } from "../utils/talentUtils";
 
 interface TalentCardProps {
   talent: TalentCardType;
@@ -20,6 +20,7 @@ interface TalentCardProps {
 export default function TalentCardComponent({ talent, onViewProfile, onToggleSave, saving }: TalentCardProps) {
   const initials = getInitials(talent.name);
   const scoreClass = matchScoreColor(talent.match_score);
+  const avatarSrc = getImageUrl(talent.profile_image_url);
 
   return (
     <div
@@ -31,21 +32,22 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
         "hover:-translate-y-0.5"
       )}
     >
-      {/* Match Score badge */}
-      <div className={cn("absolute top-4 right-4 px-2 py-0.5 rounded-full text-xs font-bold border", scoreClass)}>
-        <span className="flex items-center gap-1">
-         
-          {talent.match_score}%
-        </span>
-      </div>
+      {/* Match Score badge (Search mode only) */}
+      {talent.match_score !== null && talent.match_score !== undefined && (
+        <div className={cn("absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-xs font-bold border", scoreClass)}>
+          <span className="flex items-center gap-1">
+            {talent.match_score}% Match
+          </span>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-start gap-3">
         {/* Avatar */}
         <div className="shrink-0">
-          {talent.profile_image_url ? (
+          {avatarSrc ? (
             <Image
-              src={talent.profile_image_url}
+              src={avatarSrc}
               alt={talent.name}
               width={48}
               height={48}
@@ -74,10 +76,17 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
       </div>
 
       {/* Experience */}
-      {talent.experience_years > 0 && (
+      {(talent.experience_years > 0 || (talent.relevant_experience_years ?? 0) > 0) && (
         <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
           <Briefcase className="h-3.5 w-3.5 text-indigo-400" />
-          {formatExperienceYears(talent.experience_years)} experience
+          <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+            {formatExperienceYears(talent.relevant_experience_years ?? talent.experience_years)} relevant exp
+          </span>
+          {talent.experience_years > (talent.relevant_experience_years ?? talent.experience_years) && (
+            <span className="text-zinc-400 text-[11px]">
+              ({formatExperienceYears(talent.experience_years)} total)
+            </span>
+          )}
           {talent.work_experience[0] && (
             <span className="text-zinc-300 dark:text-zinc-600 mx-1">·</span>
           )}

@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     }
 
     const savedRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_saved_talent?filter[company_id][_eq]=${companyId}&fields=id,talent_user_id,folder_name,notes,created_at&sort[]=-created_at&limit=-1`,
+      `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&fields=saved_applicant_id,applicant_user_id,notes,created_at&sort[]=-created_at&limit=-1`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -63,14 +63,14 @@ export async function GET(req: NextRequest) {
     }
 
     const savedJson = await savedRes.json();
-    const savedRows: Array<{ id: number; talent_user_id: number; folder_name?: string; notes?: string; created_at?: string }> =
+    const savedRows: Array<{ saved_applicant_id: number; applicant_user_id: number; notes?: string; created_at?: string }> =
       savedJson.data ?? [];
 
     if (savedRows.length === 0) {
       return NextResponse.json({ saved: [] });
     }
 
-    const userIds = savedRows.map((s) => s.talent_user_id);
+    const userIds = savedRows.map((s) => s.applicant_user_id);
 
     // Fetch basic user info + profile
     const [usersRes, profilesRes, skillsRes] = await Promise.all([
@@ -108,20 +108,20 @@ export async function GET(req: NextRequest) {
     }
 
     const saved = savedRows.map((s) => {
-      const user = usersMap.get(s.talent_user_id);
-      const profile = profilesMap.get(s.talent_user_id);
+      const user = usersMap.get(s.applicant_user_id);
+      const profile = profilesMap.get(s.applicant_user_id);
       return {
-        id: s.id,
-        talent_user_id: s.talent_user_id,
-        folder_name: s.folder_name ?? "Default",
+        id: s.saved_applicant_id,
+        talent_user_id: s.applicant_user_id,
+        folder_name: "Default",
         notes: s.notes ?? null,
         created_at: s.created_at ?? null,
-        name: user ? `${user.user_fname} ${user.user_lname}`.trim() : `Talent #${s.talent_user_id}`,
+        name: user ? `${user.user_fname} ${user.user_lname}`.trim() : `Talent #${s.applicant_user_id}`,
         email: user?.user_email ?? null,
         profile_image_url: user?.profile_image_url ?? null,
         location: [user?.user_city, user?.user_province].filter(Boolean).join(", ") || null,
         headline: profile?.profile_headline ?? null,
-        skills: skillsMap.get(s.talent_user_id) ?? [],
+        skills: skillsMap.get(s.applicant_user_id) ?? [],
       };
     });
 
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { talent_user_id, notes, folder_name } = body;
+    const { talent_user_id, notes } = body;
 
     if (!talent_user_id) {
       return NextResponse.json({ error: "talent_user_id is required." }, { status: 400 });
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
 
     // Check if already saved
     const existingRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_saved_talent?filter[company_id][_eq]=${companyId}&filter[talent_user_id][_eq]=${talent_user_id}&fields=id&limit=1`,
+      `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&filter[applicant_user_id][_eq]=${talent_user_id}&fields=saved_applicant_id&limit=1`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -177,15 +177,16 @@ export async function POST(req: NextRequest) {
     // Add UTC+8 for PH timezone
     const nowUTC8 = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace("Z", "");
 
-    const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_saved_talent`, {
+    const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_saved_applicant`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
         company_id: companyId,
-        talent_user_id: Number(talent_user_id),
-        folder_name: folder_name || "Default",
+        applicant_user_id: Number(talent_user_id),
         notes: notes || null,
+        created_by: userId,
         created_at: nowUTC8,
+        updated_at: nowUTC8,
       }),
     });
 

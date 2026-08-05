@@ -173,36 +173,7 @@ const TRUSTED_COMPANIES = ["Google", "Microsoft", "Meta", "Amazon", "Netflix", "
 // MAIN PAGE COMPONENT
 // ==========================================
 
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { decodeJwtPayload } from "@/lib/auth-utils";
-
-const COOKIE_NAME = "vos_access_token";
-
 export default async function Page() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-
-  if (token) {
-    const payload = decodeJwtPayload(token);
-    if (payload) {
-      const userRole = String(payload.role || "").toUpperCase();
-      const roleId = Number(payload.role_id || 0);
-
-      if (userRole === "CLIENT" || userRole === "EMPLOYER" || roleId === 2) {
-        redirect("/vos-sync/client/dashboard");
-      } else if (userRole === "FREELANCER" || roleId === 1) {
-        redirect("/vos-sync/freelancer/dashboard");
-      } else if (userRole === "ADMIN" || roleId === 3) {
-        redirect("/vos-sync/vos-admin");
-      } else if (userRole === "SCHOOL_ADMIN" || roleId === 4) {
-        redirect("/vos-sync/school-admin");
-      } else {
-        redirect("/main-dashboard");
-      }
-    }
-  }
-
   const jobs = await getFeaturedJobs();
 
   return (
