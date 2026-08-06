@@ -28,12 +28,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
+import InterviewDateTimePicker, { getInterviewDisplayLabel } from "./InterviewDateTimePicker";
 import {
   CalendarDays,
   AlertTriangle,
   Clock,
-  Calendar as CalendarIcon,
   Lock,
   CheckCircle,
   User,
@@ -86,13 +85,6 @@ function extractDateStr(dateStr?: string): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateToYYYYMMDD(d: Date): string {
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 function formatTimeRange(dateStr: string, durationMinutes: number = 60): string {
   const norm = dateStr.replace(" ", "T");
   const start = new Date(norm);
@@ -105,17 +97,6 @@ function formatTimeRange(dateStr: string, durationMinutes: number = 60): string 
   return `${formatTime(start)} – ${formatTime(end)}`;
 }
 
-// Generate time slots from 08:00 AM to 06:00 PM (30-min intervals)
-const GENERATED_TIME_SLOTS = (() => {
-  const slots: string[] = [];
-  for (let hour = 8; hour <= 18; hour++) {
-    const h = String(hour).padStart(2, "0");
-    slots.push(`${h}:00`);
-    if (hour < 18) slots.push(`${h}:30`);
-  }
-  return slots;
-})();
-
 export default function InterviewForm({
   data,
   onChange,
@@ -125,7 +106,6 @@ export default function InterviewForm({
   availableJobs = [],
   availableApplicants = [],
 }: InterviewFormProps) {
-  const [popoverOpen, setPopoverOpen] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string>("");
 
   const selectedDateStr = extractDateStr(data.scheduled_at);
@@ -139,15 +119,6 @@ export default function InterviewForm({
       }
     }
   }, [data.application_ids, availableApplicants]);
-
-  const selectedDateObj = useMemo(() => {
-    if (!selectedDateStr) return undefined;
-    const parts = selectedDateStr.split("-");
-    if (parts.length === 3) {
-      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-    }
-    return undefined;
-  }, [selectedDateStr]);
 
   const activeExistingInterviews = useMemo(() => {
     return existingInterviews.filter((iv) => {
@@ -216,24 +187,6 @@ export default function InterviewForm({
     return { isBooked: false };
   };
 
-  const handleCalendarSelect = (day: Date | undefined) => {
-    if (!day) return;
-    const ymd = formatDateToYYYYMMDD(day);
-    const timePart = data.scheduled_at.includes("T")
-      ? data.scheduled_at.split("T")[1]
-      : "09:00";
-    onChange("scheduled_at", `${ymd}T${timePart}`);
-  };
-
-  const handleSlotSelect = (timeSlot: string) => {
-    const baseDate = selectedDateStr || formatDateToYYYYMMDD(new Date());
-    onChange("scheduled_at", `${baseDate}T${timeSlot}`);
-  };
-
-  const currentTimeStr = data.scheduled_at.includes("T")
-    ? data.scheduled_at.split("T")[1].slice(0, 5)
-    : "";
-
   // Candidates filtered by selected job AND excluding REJECTED or WITHDRAWN applicants
   const filteredApplicants = useMemo(() => {
     const nonRejected = availableApplicants.filter(
@@ -245,7 +198,6 @@ export default function InterviewForm({
 
   const handleJobSelect = (jobId: string) => {
     setSelectedJobId(jobId);
-    // Auto clear previous candidate selection when job changes
     onChange("application_ids", []);
   };
 
@@ -386,7 +338,7 @@ export default function InterviewForm({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2 space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="sched-at" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                 Scheduled Date & Time <span className="text-rose-500">*</span>
               </Label>
               {scheduledDatesSet.size > 0 && (
@@ -397,58 +349,17 @@ export default function InterviewForm({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Input
-                id="sched-at"
-                type="datetime-local"
-                value={data.scheduled_at}
-                onChange={(e) => onChange("scheduled_at", e.target.value)}
-                className={`h-9 text-sm rounded-lg flex-1 ${
-                  conflict ? "border-rose-500 focus:ring-rose-500" : ""
-                }`}
-              />
-
-              {/* Popover Calendar */}
-              <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 rounded-lg border-zinc-200 dark:border-zinc-800 gap-1.5 shrink-0 font-semibold"
-                    title="View Calendar with Scheduled Dots"
-                  >
-                    <CalendarIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                    <span className="hidden sm:inline text-xs">Calendar</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-auto p-3">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1 pb-1 border-b border-zinc-100 dark:border-zinc-900">
-                      <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                        <CalendarDays className="h-3.5 w-3.5 text-indigo-500" />
-                        Select Date
-                      </span>
-                      <span className="text-[10px] text-zinc-400 flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> = Booked
-                      </span>
-                    </div>
-
-                    <Calendar
-                      mode="single"
-                      selected={selectedDateObj}
-                      onSelect={handleCalendarSelect}
-                      modifiers={{
-                        hasInterview: (date) => {
-                          const ymd = formatDateToYYYYMMDD(date);
-                          return scheduledDatesSet.has(ymd);
-                        },
-                      }}
-                      className="rounded-lg border-0"
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
+            {/* Custom InterviewDateTimePicker Component */}
+            <InterviewDateTimePicker
+              value={data.scheduled_at}
+              onChange={(val) => onChange("scheduled_at", val)}
+              durationMinutes={data.duration_minutes}
+              scheduledDatesSet={scheduledDatesSet}
+              existingInterviews={existingInterviews}
+              dateInterviews={dateInterviews}
+              getSlotStatus={getSlotStatus}
+              hasConflict={Boolean(conflict)}
+            />
 
             {errors.scheduled_at && (
               <p className="text-[11px] text-rose-500">{errors.scheduled_at}</p>
@@ -476,95 +387,9 @@ export default function InterviewForm({
             <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
             <span>
               <strong>Schedule Overlap Warning:</strong> Time slot conflicts with{" "}
-              <strong>{conflict.applications?.[0]?.applicant_name || `Interview #${conflict.interview_id}`}</strong> at{" "}
+              <strong>{getInterviewDisplayLabel(conflict)}</strong> at{" "}
               {formatTimeRange(conflict.scheduled_at, conflict.duration_minutes)} (enforcing 15m buffer).
             </span>
-          </div>
-        )}
-
-        {/* Interactive Time Slot Grid for Selected Date */}
-        {selectedDateStr && (
-          <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                Select Time Slot for {selectedDateStr}
-              </span>
-              <span className="text-[10px] text-zinc-400">15m Buffer Enforced</span>
-            </div>
-
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-              {GENERATED_TIME_SLOTS.map((timeSlot) => {
-                const { isBooked, booking } = getSlotStatus(timeSlot);
-                const isSelected = currentTimeStr === timeSlot;
-
-                if (isBooked && booking) {
-                  return (
-                    <Popover key={timeSlot}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          disabled
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-[11px] px-1.5 font-semibold rounded-md border-rose-200 bg-rose-50/60 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/40 dark:text-rose-400 cursor-not-allowed opacity-80 flex items-center justify-center gap-1"
-                        >
-                          <Lock className="h-3 w-3 shrink-0" />
-                          <span>{timeSlot}</span>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent side="top" className="w-64 p-3 text-xs space-y-1.5 shadow-lg">
-                        <div className="font-bold text-rose-600 flex items-center gap-1">
-                          <Lock className="h-3.5 w-3.5" /> Booked Interview Slot
-                        </div>
-                        <div className="space-y-1 text-zinc-700 dark:text-zinc-300">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <User className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>Candidate: <strong>{booking.applications?.[0]?.applicant_name || `Interview #${booking.interview_id}`}</strong></span>
-                          </div>
-                          {booking.applications?.[0]?.job_title && (
-                            <div className="flex items-center gap-1.5 font-medium">
-                              <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
-                              <span>Role: {booking.applications[0].job_title}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                            <span>Time: {formatTimeRange(booking.scheduled_at, booking.duration_minutes)}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-medium">
-                            {booking.interview_format === "ONLINE" ? (
-                              <Video className="h-3.5 w-3.5 text-indigo-500" />
-                            ) : booking.interview_format === "ONSITE" ? (
-                              <Building className="h-3.5 w-3.5 text-emerald-500" />
-                            ) : (
-                              <Phone className="h-3.5 w-3.5 text-amber-500" />
-                            )}
-                            <span>Format: {INTERVIEW_FORMAT_LABELS[booking.interview_format] || booking.interview_format}</span>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  );
-                }
-
-                return (
-                  <Button
-                    key={timeSlot}
-                    type="button"
-                    variant={isSelected ? "default" : "outline"}
-                    onClick={() => handleSlotSelect(timeSlot)}
-                    className={`h-7 text-[11px] px-1.5 font-semibold rounded-md transition-all ${
-                      isSelected
-                        ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-2xs font-bold"
-                        : "border-emerald-200/80 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
-                    }`}
-                  >
-                    <CheckCircle className="h-3 w-3 shrink-0" />
-                    <span>{timeSlot}</span>
-                  </Button>
-                );
-              })}
-            </div>
           </div>
         )}
 
@@ -580,7 +405,7 @@ export default function InterviewForm({
 
             <div className="flex flex-wrap gap-2">
               {dateInterviews.map((iv) => {
-                const mainName = iv.applications?.[0]?.applicant_name;
+                const label = getInterviewDisplayLabel(iv);
                 return (
                   <Popover key={iv.interview_id}>
                     <PopoverTrigger asChild>
@@ -593,15 +418,13 @@ export default function InterviewForm({
                         <span className="font-bold text-zinc-800 dark:text-zinc-200">
                           {formatTimeRange(iv.scheduled_at, iv.duration_minutes)}
                         </span>
-                        {mainName && (
-                          <span className="text-zinc-500 font-medium">({mainName})</span>
-                        )}
+                        <span className="text-zinc-500 font-medium">({label})</span>
                       </button>
                     </PopoverTrigger>
                     <PopoverContent side="top" className="w-72 p-3 text-xs space-y-2 shadow-xl">
                       <div className="font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5 border-b pb-1.5">
                         <User className="h-4 w-4 text-indigo-500" />
-                        {mainName || `Interview #${iv.interview_id}`}
+                        {label}
                       </div>
                       <div className="space-y-1 text-zinc-600 dark:text-zinc-300">
                         {iv.applications?.[0]?.job_title && (
