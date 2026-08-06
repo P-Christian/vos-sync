@@ -21,6 +21,7 @@ export default function TalentSearchBar({
   keyword,
   jobIdForMatch,
   onKeywordChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onJobIdChange,
   onSearch,
   onReset,

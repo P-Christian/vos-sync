@@ -49,9 +49,9 @@ export default function InviteDialog({
 
   useEffect(() => {
     if (!open) return;
-    setMessage(DEFAULT_MESSAGE(talentName));
 
     async function fetchCompanyJobs() {
+      setMessage(DEFAULT_MESSAGE(talentName));
       setLoadingJobs(true);
       try {
         const res = await fetch("/api/client/jobs");

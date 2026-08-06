@@ -195,10 +195,10 @@ export interface TalentResult {
     mode: MatchMode;
     overallScore: number;
     rankingScore: number;
-    confidence: any;
-    sections: any[];
-    explanation: any;
-    evidence: any[];
+    confidence: MatchResult["confidence"];
+    sections: MatchResult["compatibility"]["sections"];
+    explanation: MatchResult["explanation"];
+    evidence: MatchResult["evidence"];
   } | null;
   ai_explanation: string | null;
 }
@@ -627,7 +627,7 @@ export async function GET(req: NextRequest) {
         const item = normalizedProfilesMap.get(candidate.id);
         if (!item) return null;
 
-        const { profile, user, skills, work, edu, certs, social, normalized } = item;
+        const { profile, user, work, edu, normalized } = item;
 
         // Run VOS Sync Matching Engine Pipeline
         const engineResult = runMatchingEngine(normalized, matchContext);
@@ -650,14 +650,14 @@ export async function GET(req: NextRequest) {
           summary: normalized.summary,
           location: normalized.location,
           skills: normalized.skills,
-          experience_years: work.reduce((acc: number, w: any) => {
+          experience_years: work.reduce((acc: number, w: { start_date?: string; end_date?: string; is_current_role?: boolean }) => {
             if (!w.start_date) return acc;
             const s = new Date(w.start_date);
             const e = w.is_current_role ? new Date() : w.end_date ? new Date(w.end_date) : new Date();
             return acc + Math.max(0, (e.getFullYear() - s.getFullYear()));
           }, 0),
           relevant_experience_years: relYears,
-          work_experience: work.slice(0, 3).map((w: any) => ({
+          work_experience: work.slice(0, 3).map((w: { company_name?: string; job_title?: string; start_date?: string; end_date?: string; is_current_role?: boolean; employment_type?: string }) => ({
             company_name: w.company_name,
             job_title: w.job_title,
             start_date: w.start_date ?? null,
@@ -665,7 +665,7 @@ export async function GET(req: NextRequest) {
             is_current_role: w.is_current_role ?? false,
             employment_type: w.employment_type ?? null,
           })),
-          education: edu.slice(0, 2).map((e: any) => ({
+          education: edu.slice(0, 2).map((e: { school_id?: { school_name?: string; school_id?: number }; school_course_id?: { course_name?: string }; start_date?: string; end_date?: string }) => ({
             school_name: e.school_id?.school_name ?? null,
             school_id: e.school_id?.school_id ?? null,
             course_name: e.school_course_id?.course_name ?? null,
