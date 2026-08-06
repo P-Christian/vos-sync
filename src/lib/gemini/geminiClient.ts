@@ -1,12 +1,12 @@
 // src/lib/gemini/geminiClient.ts
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.0-flash";
 const GEMINI_TIMEOUT_MS = 5000;
 
 export async function callGemini(prompt: string): Promise<string> {
   if (!GEMINI_API_KEY) {
-    console.error("[gemini] ❌ GEMINI_API_KEY is not set in .env.local");
+    console.warn("[gemini] ⚠️ GEMINI_API_KEY is not set in environment.");
     throw new Error("GEMINI_API_KEY is not set in environment.");
   }
 

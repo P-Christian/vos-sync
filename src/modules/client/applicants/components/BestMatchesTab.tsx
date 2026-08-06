@@ -1,22 +1,31 @@
 // src/modules/client/applicants/components/BestMatchesTab.tsx
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { JobPosting } from "../../jobs/types";
 import { Applicant } from "../types";
-import { calculateMatch } from "../utils/matchEngine";
+import { calculateMatch, MatchResult } from "../utils/matchEngine";
+import { processBestMatchAI } from "../services/bestMatchAIService";
+import {
+  getBestMatchCache,
+  setBestMatchCache,
+  CandidateMatch,
+} from "../hooks/useBestMatchCache";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
- 
   CalendarPlus,
   Eye,
   TrendingUp,
   MapPin,
   Briefcase,
   ChevronRight,
+  CheckCircle2,
+  AlertCircle,
+  BrainCircuit,
+  Loader2,
 } from "lucide-react";
 
 interface BestMatchesTabProps {
@@ -34,40 +43,107 @@ export default function BestMatchesTab({
   onViewDetails,
   onScheduleInterview,
 }: BestMatchesTabProps) {
-  // Compute match results for all applicants
-  const matchResults = useMemo(() => {
-    return applicants
-      .map((applicant) => {
-        const match = calculateMatch(job, applicant);
-        return {
-          applicant,
-          match,
-        };
-      })
-      // Sort by highest overall score first
-      .sort((a, b) => b.match.overallScore - a.match.overallScore);
-  }, [job, applicants]);
-
+  const [processing, setProcessing] = useState<boolean>(false);
+  const [progressStep, setProgressStep] = useState<string>("Finding Candidates...");
+  const [candidateMatches, setCandidateMatches] = useState<CandidateMatch[]>([]);
   const [selectedResultIndex, setSelectedResultIndex] = useState<number>(0);
+  const isRunningRef = useRef<boolean>(false);
 
-  // Selected candidate's match results
-  const selectedResult = matchResults[selectedResultIndex];
+  // Map of applicant ID to deterministic MatchResult for detailed breakdown
+  const ruleMatchesMap = useRef<Map<number, MatchResult>>(new Map());
 
-  if (loading) {
+  useEffect(() => {
+    if (loading || !job || applicants.length === 0) {
+      setCandidateMatches([]);
+      return;
+    }
+
+    // 1. Check Session Storage Cache
+    const cached = getBestMatchCache(job.job_id, applicants.length, job.updated_at);
+    if (cached && cached.candidates.length > 0) {
+      setCandidateMatches(cached.candidates);
+
+      // Populate rule matches map locally for breakdown details
+      const map = new Map<number, MatchResult>();
+      for (const applicant of applicants) {
+        map.set(applicant.application_id, calculateMatch(job, applicant));
+      }
+      ruleMatchesMap.current = map;
+      setProcessing(false);
+      return;
+    }
+
+    // 2. Prevent duplicate calls using concurrency lock
+    if (isRunningRef.current) return;
+
+    const runAnalysis = async () => {
+      isRunningRef.current = true;
+      setProcessing(true);
+
+      try {
+        const { candidateMatches: results, ruleMatches } = await processBestMatchAI(
+          job,
+          applicants,
+          (step) => setProgressStep(step)
+        );
+
+        ruleMatchesMap.current = ruleMatches;
+        setCandidateMatches(results);
+
+        // Cache results in session storage
+        setBestMatchCache(
+          job.job_id,
+          applicants.length,
+          job.updated_at || new Date().toISOString(),
+          results
+        );
+      } catch (err) {
+        console.error("[BestMatchesTab] Analysis error:", err);
+      } finally {
+        setProcessing(false);
+        isRunningRef.current = false;
+      }
+    };
+
+    runAnalysis();
+  }, [job, applicants, loading]);
+
+  if (loading || processing) {
+    const steps = ["Finding Candidates...", "Ranking Skills...", "Analyzing with Gemini..."];
+    const currentStepIdx = steps.indexOf(progressStep);
+    const progressPercent = Math.max(30, ((currentStepIdx + 1) / steps.length) * 100);
+
     return (
-      <div className="flex items-center justify-center py-20 gap-3">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-sm text-zinc-400 animate-pulse">Calculating best matches...</span>
+      <div className="flex flex-col items-center justify-center py-16 px-4 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-sm max-w-md mx-auto">
+        <div className="p-3 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl mb-4 text-indigo-600 dark:text-indigo-400">
+          <BrainCircuit className="h-7 w-7 animate-pulse" />
+        </div>
+        <h3 className="font-bold text-zinc-800 dark:text-zinc-100 text-base mb-1">
+          {progressStep}
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 text-center">
+          Evaluating applicant qualifications and generating recruiter recommendations.
+        </p>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full overflow-hidden mb-3">
+          <div
+            className="bg-indigo-600 h-full rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] font-semibold text-zinc-400">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <span>Please wait a moment...</span>
+        </div>
       </div>
     );
   }
 
-  if (applicants.length === 0) {
+  if (applicants.length === 0 || candidateMatches.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center bg-white/40 dark:bg-zinc-950/40 rounded-2xl border border-zinc-150 dark:border-zinc-800">
-        {/* <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl mb-4 text-[#14a800]">
-          <Sparkles className="h-8 w-8 animate-pulse" />
-        </div> */}
+      <div className="flex flex-col items-center justify-center py-16 text-center bg-white/40 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
         <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 text-sm">No match data available</h3>
         <p className="text-xs text-zinc-400 mt-1 max-w-xs">
           Matches will be calculated as soon as candidates apply to this job.
@@ -76,17 +152,14 @@ export default function BestMatchesTab({
     );
   }
 
-  const badgeColors: Record<string, string> = {
-    highly_recommended: "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-800 dark:text-indigo-400",
-    good_match: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400",
-    potential_match: "bg-zinc-50 border-zinc-200 text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400",
-  };
-
-  const badgeTextGradients: Record<string, string> = {
-    highly_recommended: "from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400",
-    good_match: "from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400",
-    potential_match: "from-zinc-600 to-zinc-800 dark:from-zinc-400 dark:to-zinc-300",
-  };
+  // Selected candidate's match results
+  const selectedMatch = candidateMatches[selectedResultIndex] || candidateMatches[0];
+  const selectedApplicant = applicants.find(
+    (a) => a.application_id === selectedMatch.applicationId
+  );
+  const selectedRuleMatch = selectedApplicant
+    ? ruleMatchesMap.current.get(selectedApplicant.application_id) || calculateMatch(job, selectedApplicant)
+    : null;
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return "text-indigo-600 dark:text-indigo-400";
@@ -113,28 +186,31 @@ export default function BestMatchesTab({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ── Left Column: Candidate List (Grid Span 7) ────── */}
       <div className="lg:col-span-7 space-y-3">
-        <div className="p-1.5 bg-zinc-50/50 dark:bg-zinc-900/30 border border-zinc-200/50 dark:border-zinc-850 rounded-xl flex items-center justify-between px-3">
-          <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-            Candidates sorted by best fit
+        <div className="p-2 bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center justify-between px-3.5">
+          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            Best Match Recommendations
           </span>
-          <span className="text-xs text-zinc-500 font-medium">
-            {applicants.length} matching profile{(applicants.length !== 1) ? "s" : ""}
+          <span className="text-xs text-zinc-500 font-semibold">
+            {candidateMatches.length} candidate{candidateMatches.length !== 1 ? "s" : ""} evaluated
           </span>
         </div>
 
         <div className="space-y-3">
-          {matchResults.map(({ applicant, match }, index) => {
+          {candidateMatches.map((cMatch, index) => {
+            const applicantObj = applicants.find((a) => a.application_id === cMatch.applicationId);
+            if (!applicantObj) return null;
+
             const isSelected = selectedResultIndex === index;
-            const profileImage = applicant.applicant_profile_image_url;
+            const profileImage = applicantObj.applicant_profile_image_url;
 
             return (
               <Card
-                key={applicant.application_id}
+                key={cMatch.applicationId}
                 onClick={() => setSelectedResultIndex(index)}
                 className={`
                   cursor-pointer transition-all duration-200 border relative overflow-hidden group
-                  ${isSelected 
-                    ? "border-indigo-500 bg-indigo-50/10 dark:bg-indigo-950/10 shadow-md ring-1 ring-indigo-500/30" 
+                  ${isSelected
+                    ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-1 ring-indigo-500/30"
                     : "border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-950/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
                   }
                 `}
@@ -143,83 +219,77 @@ export default function BestMatchesTab({
                 <div
                   className={`
                     absolute left-0 top-0 bottom-0 w-1 transition-all duration-300
-                    ${match.overallScore >= 85 ? "bg-indigo-500" : match.overallScore >= 70 ? "bg-emerald-500" : "bg-zinc-400"}
+                    ${cMatch.finalScore >= 85 ? "bg-indigo-500" : cMatch.finalScore >= 70 ? "bg-emerald-500" : "bg-amber-500"}
                   `}
                 />
 
                 <CardContent className="p-4 pl-5">
                   <div className="flex items-start gap-4">
                     {/* Candidate Avatar */}
-                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-850 border border-zinc-200/30 flex items-center justify-center">
-                      {profileImage ? (
-                        <Image
-                          src={`/api/client/assets/${profileImage}`}
-                          alt={applicant.applicant_name}
-                          width={44}
-                          height={44}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <span className="font-bold text-xs text-zinc-500">
-                          {initials(applicant.applicant_name)}
-                        </span>
-                      )}
+                    <div className="relative shrink-0">
+                      <div className="h-11 w-11 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-850 border border-zinc-200/50 flex items-center justify-center">
+                        {profileImage ? (
+                          <Image
+                            src={`/api/client/assets/${profileImage}`}
+                            alt={applicantObj.applicant_name}
+                            width={44}
+                            height={44}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-bold text-xs text-zinc-500">
+                            {initials(applicantObj.applicant_name)}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 group-hover:text-indigo-600 transition-colors">
-                          {applicant.applicant_name}
+                          {applicantObj.applicant_name}
                         </h4>
-                        
+
                         {/* Match Score Badge */}
-                        <div className={`px-2.5 py-0.5 rounded-full border text-xs font-extrabold flex items-center gap-1 ${getScoreBg(match.overallScore)} ${getScoreColor(match.overallScore)}`}>
-                         
-                          {match.overallScore}% Match
+                        <div
+                          className={`px-2.5 py-0.5 rounded-full border text-xs font-extrabold flex items-center gap-1 ${getScoreBg(
+                            cMatch.finalScore
+                          )} ${getScoreColor(cMatch.finalScore)}`}
+                        >
+                          {cMatch.finalScore}% Match
                         </div>
                       </div>
 
-                      {/* Candidate details preview */}
-                      <div className="flex flex-wrap items-center gap-x-3 mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      {/* AI Recruiter Summary Line */}
+                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2 leading-snug">
+                        {cMatch.explanation}
+                      </p>
+
+                      {/* Candidate Meta Info */}
+                      <div className="flex flex-wrap items-center gap-x-3 mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                         <span className="flex items-center gap-1 font-medium">
                           <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
-                          {applicant.experience_years} years experience
+                          {applicantObj.experience_years} years experience
                         </span>
-                        
-                        {applicant.location && (
+
+                        {applicantObj.location && (
                           <>
-                            <span className="h-3 w-px bg-zinc-250 dark:bg-zinc-850" />
+                            <span className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                              {applicant.location}
+                              {applicantObj.location}
                             </span>
                           </>
                         )}
                       </div>
-
-                      {/* Matching Skills tag preview */}
-                      {match.matchingSkills.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1 mt-3">
-                          {match.matchingSkills.slice(0, 3).map((skill) => (
-                            <Badge
-                              key={skill}
-                              variant="outline"
-                              className="text-[10px] font-semibold py-0.5 px-2 bg-emerald-50/40 text-emerald-700 dark:bg-emerald-950/10 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30"
-                            >
-                              ✓ {skill}
-                            </Badge>
-                          ))}
-                          {match.matchingSkills.length > 3 && (
-                            <span className="text-[10px] text-zinc-400 font-bold ml-1">
-                              +{match.matchingSkills.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                     <div className="flex items-center shrink-0">
-                      <ChevronRight className={`h-5 w-5 transition-transform duration-200 ${isSelected ? "text-indigo-500 translate-x-0.5" : "text-zinc-300 dark:text-zinc-700"}`} />
+                      <ChevronRight
+                        className={`h-5 w-5 transition-transform duration-200 ${
+                          isSelected ? "text-indigo-500 translate-x-0.5" : "text-zinc-300 dark:text-zinc-700"
+                        }`}
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -229,200 +299,122 @@ export default function BestMatchesTab({
         </div>
       </div>
 
-      {/* ── Right Column: Match Breakdown & Details (Grid Span 5) ────── */}
+      {/* ── Right Column: Selected Candidate Detailed Insights (Grid Span 5) ────── */}
       <div className="lg:col-span-5 lg:sticky lg:top-4">
-        {selectedResult ? (
-          <Card className="border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md shadow-xl overflow-hidden">
-            
-            {/* Gradient Highlight Header */}
-            <div className={`h-2 w-full bg-gradient-to-r ${badgeTextGradients[selectedResult.match.badge.variant]}`} />
+        {selectedMatch && selectedApplicant ? (
+          <Card className="border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md shadow-lg overflow-hidden">
+            <div
+              className={`h-1.5 w-full ${
+                selectedMatch.finalScore >= 85
+                  ? "bg-indigo-600"
+                  : selectedMatch.finalScore >= 70
+                  ? "bg-emerald-600"
+                  : "bg-amber-500"
+              }`}
+            />
 
-            <CardHeader className="pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className={`px-2.5 py-0.5 font-bold border text-[10px] rounded-full uppercase tracking-wider ${badgeColors[selectedResult.match.badge.variant]}`}>
-                  {selectedResult.match.badge.label}
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-zinc-200 dark:border-zinc-800">
+                  {selectedMatch.finalScore >= 85
+                    ? "Highly Recommended"
+                    : selectedMatch.finalScore >= 70
+                    ? "Good Match"
+                    : "Potential Match"}
                 </Badge>
-                
-                <div className={`px-2 py-0.5 text-xs font-bold rounded-lg border flex items-center gap-1 ml-auto ${getScoreBg(selectedResult.match.overallScore)} ${getScoreColor(selectedResult.match.overallScore)}`}>
-                  {selectedResult.match.overallScore}% Fit
+
+                <div
+                  className={`px-2.5 py-0.5 text-xs font-extrabold rounded-lg border ${getScoreBg(
+                    selectedMatch.finalScore
+                  )} ${getScoreColor(selectedMatch.finalScore)}`}
+                >
+                  {selectedMatch.finalScore}% Overall Score
                 </div>
               </div>
 
-              <CardTitle className="text-lg font-extrabold text-zinc-900 dark:text-zinc-50">
-                {selectedResult.applicant.applicant_name}
+              <CardTitle className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
+                {selectedApplicant.applicant_name}
               </CardTitle>
-              <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                {selectedResult.match.badge.description}
-              </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              
-              {/* Match Breakdown Section */}
-              <div className="space-y-3">
-                <h5 className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Fit Breakdown
-                </h5>
-
-                <div className="space-y-2.5 bg-zinc-50/50 dark:bg-zinc-900/10 border border-zinc-100 dark:border-zinc-900/40 p-4 rounded-2xl">
-                  {/* Skill Fit */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-600 dark:text-zinc-400">Technical Skills</span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-200">{selectedResult.match.breakdown.skills}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${selectedResult.match.breakdown.skills}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Experience Fit */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-600 dark:text-zinc-400">Experience Alignment</span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-200">{selectedResult.match.breakdown.experience}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${selectedResult.match.breakdown.experience}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Location Fit */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-600 dark:text-zinc-400">Location & Work Arrangement</span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-200">{selectedResult.match.breakdown.location}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${selectedResult.match.breakdown.location}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Education Fit */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-600 dark:text-zinc-400">Education Level</span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-200">{selectedResult.match.breakdown.education}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${selectedResult.match.breakdown.education}%` }} />
-                    </div>
-                  </div>
-
-                  {/* Screening Questions Fit */}
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-zinc-600 dark:text-zinc-400">Screening Completion</span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-200">{selectedResult.match.breakdown.screening}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${selectedResult.match.breakdown.screening}%` }} />
-                    </div>
-                  </div>
-                </div>
+            <CardContent className="space-y-5 text-xs">
+              {/* Recruiter Recommendation Summary */}
+              <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-1">
+                <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                  Recruiter AI Evaluation
+                </span>
+                <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
+                  {selectedMatch.explanation}
+                </p>
               </div>
 
-              {/* Skills Analysis */}
-              <div className="space-y-3">
-                <h5 className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
-                 
-                  Skills Comparison
-                </h5>
-
-                <div className="space-y-3 bg-zinc-50/50 dark:bg-zinc-900/10 border border-zinc-100 dark:border-zinc-900/40 p-4 rounded-2xl">
-                  {/* Matching Skills */}
-                  <div>
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 block mb-1.5 uppercase">
-                      Matching Skills ({selectedResult.match.matchingSkills.length})
-                    </span>
-                    {selectedResult.match.matchingSkills.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedResult.match.matchingSkills.map((skill) => (
-                          <Badge
-                            key={skill}
-                            variant="secondary"
-                            className="bg-emerald-100/50 border border-emerald-200/50 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40 text-[10px] font-semibold py-0.5 px-2 rounded-lg"
-                          >
-                            ✓ {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-400 italic block">No exact matching skills.</span>
-                    )}
-                  </div>
-
-                  {/* Related / Might Have Skills */}
-                  <div>
-                    <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 block mb-1.5 uppercase">
-                      Related / Might Have Skills ({selectedResult.match.relatedSkills?.length || 0})
-                    </span>
-                    {selectedResult.match.relatedSkills && selectedResult.match.relatedSkills.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedResult.match.relatedSkills.map((rel, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            title={rel.reason}
-                            className="bg-indigo-50/70 border border-indigo-200/60 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-900/40 text-[10px] font-semibold py-0.5 px-2 rounded-lg cursor-help"
-                          >
-                            ⚡ {rel.requiredSkill}{" "}
-                            <span className="text-[9px] font-normal opacity-80">(has {rel.candidateSkill})</span>
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-400 italic block">No related skill matches.</span>
-                    )}
-                  </div>
-
-                  {/* Missing Skills */}
-                  <div>
-                    <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 block mb-1.5 uppercase">
-                      Missing Skills ({selectedResult.match.missingSkills.length})
-                    </span>
-                    {selectedResult.match.missingSkills.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedResult.match.missingSkills.map((skill) => (
-                          <Badge
-                            key={skill}
-                            variant="outline"
-                            className="bg-rose-50/30 border border-rose-200/40 text-rose-700 dark:bg-rose-950/10 dark:text-rose-450 dark:border-rose-900/30 text-[10px] font-semibold py-0.5 px-2 rounded-lg"
-                          >
-                            • {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-400 italic block">None! Meets all skill requirements.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Extra Alignment Indicators */}
-              <div className="grid grid-cols-2 gap-3 text-xs bg-zinc-50/50 dark:bg-zinc-900/10 border border-zinc-100 dark:border-zinc-900/40 p-4 rounded-2xl">
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-400 block mb-0.5 uppercase">Experience Fit</span>
-                  <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
-                    <Briefcase className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                    {selectedResult.applicant.experience_years} years (Req: {job.experience_level || "Any"})
+              {/* Strengths */}
+              {selectedMatch.strengths && selectedMatch.strengths.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+                    Key Strengths
                   </span>
+                  <div className="space-y-1.5">
+                    {selectedMatch.strengths.map((str, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-zinc-700 dark:text-zinc-300">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                        <span>{str}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] font-bold text-zinc-400 block mb-0.5 uppercase">Location Match</span>
-                  <span className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                    {selectedResult.match.breakdown.location >= 100 ? "Perfect Match" : "Acceptable Fit"}
-                  </span>
-                </div>
-              </div>
+              )}
 
-              {/* Action Buttons */}
+              {/* Weaknesses / Gaps */}
+              {selectedMatch.weaknesses && selectedMatch.weaknesses.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
+                    Development Areas / Gaps
+                  </span>
+                  <div className="space-y-1.5">
+                    {selectedMatch.weaknesses.map((weak, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-zinc-700 dark:text-zinc-300">
+                        <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                        <span>{weak}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Skill Breakdown details if available */}
+              {selectedRuleMatch && (
+                <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-900">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                    Technical Skills Match ({selectedRuleMatch.matchingSkills.length})
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedRuleMatch.matchingSkills.map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="secondary"
+                        className="bg-emerald-50 border border-emerald-200/50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[10px] py-0.5 px-2 rounded-md"
+                      >
+                        ✓ {skill}
+                      </Badge>
+                    ))}
+                    {selectedRuleMatch.missingSkills.map((skill) => (
+                      <Badge
+                        key={skill}
+                        variant="outline"
+                        className="bg-rose-50/50 border border-rose-200/40 text-rose-600 dark:bg-rose-950/10 dark:text-rose-400 text-[10px] py-0.5 px-2 rounded-md"
+                      >
+                        • {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
               <div className="flex gap-2 pt-2">
                 <Button
-                  onClick={() => onViewDetails(selectedResult.applicant)}
+                  onClick={() => onViewDetails(selectedApplicant)}
                   variant="outline"
                   size="sm"
                   className="flex-1 h-9 rounded-lg font-semibold text-xs gap-1.5"
@@ -431,19 +423,18 @@ export default function BestMatchesTab({
                   View Profile
                 </Button>
 
-                {selectedResult.applicant.application_status !== "REJECTED" &&
-                selectedResult.applicant.application_status !== "HIRED" && (
-                  <Button
-                    onClick={() => onScheduleInterview(selectedResult.applicant)}
-                    size="sm"
-                    className="flex-1 h-9 rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-bold text-xs"
-                  >
-                    <CalendarPlus className="h-4 w-4" />
-                    Schedule Interview
-                  </Button>
-                )}
+                {selectedApplicant.application_status !== "REJECTED" &&
+                  selectedApplicant.application_status !== "HIRED" && (
+                    <Button
+                      onClick={() => onScheduleInterview(selectedApplicant)}
+                      size="sm"
+                      className="flex-1 h-9 rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-bold text-xs"
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                      Schedule Interview
+                    </Button>
+                  )}
               </div>
-
             </CardContent>
           </Card>
         ) : null}

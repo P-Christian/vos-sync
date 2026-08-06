@@ -42,7 +42,7 @@ ${candidateBlock}
 Respond with ONLY a JSON array. No markdown, no explanation, no extra text:
 [{"id": <number>, "explanation": "<1-2 sentences>"}]`;
 
-  const raw = await callGeminiSafe(prompt );
+  const raw = await callGeminiSafe(prompt);
   if (!raw) return results;
 
   // Strip markdown fences if Gemini wraps the response anyway
@@ -70,12 +70,24 @@ Respond with ONLY a JSON array. No markdown, no explanation, no extra text:
       entry.explanation.length >= 10 &&
       validIds.has(entry.id)
     ) {
-      // Trim to 2 sentences max as a safety net
-      const sentences = entry.explanation.match(/[^.!?]+[.!?]+/g) ?? [];
+      // Trim to 2 sentences max as a safety net (split on sentence end punctuation followed by whitespace to avoid splitting decimals like 6.3)
+      const sentences = entry.explanation.split(/(?<=[.!?])\s+/).filter(Boolean);
       const trimmed = sentences.slice(0, 2).join(" ").trim() || entry.explanation.slice(0, 200);
       results.set(entry.id, trimmed);
     }
   }
 
   return results;
+}
+
+/**
+ * Generate a single candidate match explanation by wrapping batch explainer.
+ */
+export async function generateMatchExplanation(
+  query: string,
+  candidate: ExplainCandidate
+): Promise<string | null> {
+  if (!query || !candidate) return null;
+  const resMap = await generateBatchExplanations(query, [{ ...candidate, id: 1 }]);
+  return resMap.get(1) ?? null;
 }

@@ -8,7 +8,7 @@ import ApplicantFilters from "./components/ApplicantFilters";
 import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle  } from "lucide-react";
+import { Users, AlertCircle, ArrowLeft } from "lucide-react";
 import { Applicant, ApplicationStatus } from "./types";
 import {
   Dialog,
@@ -24,7 +24,6 @@ import { InterviewFormData } from "../interviews/types";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import { useJobs } from "../jobs/hooks/useJobs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import BestMatchesTab from "./components/BestMatchesTab";
 
 interface ApplicantsModuleProps {
@@ -36,7 +35,15 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   const searchParams = useSearchParams();
 
   const jobIdParam = searchParams.get("job_id");
-  const activeTab = searchParams.get("tab") || "applicants";
+  const tabParam = searchParams.get("tab");
+
+  const [showBestMatches, setShowBestMatches] = useState<boolean>(tabParam === "best-matches");
+
+  useEffect(() => {
+    if (tabParam === "best-matches") {
+      setShowBestMatches(true);
+    }
+  }, [tabParam]);
 
   const {
     applicants,
@@ -58,6 +65,8 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   } = useApplicants();
 
   const {
+    interviews,
+    loadInterviews,
     saving: scheduling,
     error: scheduleError,
     createInterview,
@@ -107,19 +116,23 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     const params = new URLSearchParams(window.location.search);
     if (value && value !== "ALL") {
       params.set("job_id", value);
-      if (!params.has("tab")) {
-        params.set("tab", "applicants");
-      }
     } else {
       params.delete("job_id");
       params.delete("tab");
+      setShowBestMatches(false);
     }
     router.push(`/vos-sync/client/applicants?${params.toString()}`);
   };
 
-  const handleTabChange = (value: string) => {
+  const toggleBestMatches = () => {
+    const nextState = !showBestMatches;
+    setShowBestMatches(nextState);
     const params = new URLSearchParams(window.location.search);
-    params.set("tab", value);
+    if (nextState) {
+      params.set("tab", "best-matches");
+    } else {
+      params.delete("tab");
+    }
     router.push(`/vos-sync/client/applicants?${params.toString()}`);
   };
 
@@ -148,20 +161,20 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   };
 
   const handleOpenSchedule = (applicant: Applicant) => {
+    loadInterviews();
     setInterviewFormData({
       ...EMPTY_INTERVIEW_FORM,
-      application_id: applicant.application_id.toString(),
+      application_ids: [applicant.application_id],
     });
     setInterviewErrors({});
     setInterviewDialogOpen(true);
   };
 
-  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: string | number) => {
+  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: any) => {
     setInterviewFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveInterview = async () => {
-    // Basic frontend validation
     const errors: Partial<Record<keyof InterviewFormData, string>> = {};
     if (!interviewFormData.scheduled_at) errors.scheduled_at = "Scheduled Date & Time is required.";
     if (!interviewFormData.interview_format) errors.interview_format = "Interview format is required.";
@@ -174,7 +187,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     const ok = await createInterview(interviewFormData);
     if (ok) {
       setInterviewDialogOpen(false);
-      fetchApplicants(); // refresh applicant list to show new scheduled status
+      fetchApplicants();
     }
   };
 
@@ -209,24 +222,46 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             </div>
           </div>
 
-          {/* Job Selector Dropdown */}
-          <div className="relative z-10 w-full sm:w-72">
-            <Select
-              value={jobIdParam || "ALL"}
-              onValueChange={handleJobChange}
-            >
-              <SelectTrigger className="h-10 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
-                <SelectValue placeholder="Filter by Job Posting" />
-              </SelectTrigger>
-              <SelectContent className="max-w-md">
-                <SelectItem value="ALL">All Job Postings</SelectItem>
-                {allJobs.map((j) => (
-                  <SelectItem key={j.job_id} value={String(j.job_id)}>
-                    {j.job_title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Action Toolbar & Job Selector */}
+          <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto">
+            {/* Best Match AI Action Button */}
+            {selectedJob && (
+              <Button
+                onClick={toggleBestMatches}
+                variant={showBestMatches ? "secondary" : "default"}
+                className={`h-10 text-xs px-4 rounded-xl font-bold transition-all ${
+                  showBestMatches
+                    ? "bg-white text-zinc-900 hover:bg-zinc-100"
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
+                }`}
+              >
+                {showBestMatches ? (
+                  <span className="flex items-center gap-1.5">
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    All Applicants
+                  </span>
+                ) : (
+                  "Best Match AI"
+                )}
+              </Button>
+            )}
+
+            {/* Job Selector Dropdown */}
+            <div className="w-full sm:w-64">
+              <Select value={jobIdParam || "ALL"} onValueChange={handleJobChange}>
+                <SelectTrigger className="h-10 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
+                  <SelectValue placeholder="Filter by Job Posting" />
+                </SelectTrigger>
+                <SelectContent className="max-w-md">
+                  <SelectItem value="ALL">All Job Postings</SelectItem>
+                  {allJobs.map((j) => (
+                    <SelectItem key={j.job_id} value={String(j.job_id)}>
+                      {j.job_title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -238,70 +273,24 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           </div>
         )}
 
-        {/* Candidates View: Tabs if jobId is selected, else standard list */}
-        {jobIdParam ? (
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-2 mb-4 gap-2">
-              <TabsList className="bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl h-10 w-fit shrink-0">
-                <TabsTrigger value="applicants" className="rounded-lg px-4 py-1.5 text-xs font-semibold">
-                  All Applicants
-                </TabsTrigger>
-                <TabsTrigger value="best-matches" className="rounded-lg px-4 py-1.5 text-xs font-semibold gap-1.5">
-                
-                  Best Matches
-                </TabsTrigger>
-              </TabsList>
-              {selectedJobTitle && (
-                <span className="text-xs text-zinc-500 font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 rounded-lg border border-indigo-100 dark:border-indigo-900/30 truncate max-w-full">
-                  Job: {selectedJobTitle}
-                </span>
-              )}
-            </div>
+        {/* Selected Job Sub-Header if filter applied */}
+        {selectedJobTitle && (
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-semibold text-zinc-500">
+              Filtering candidates for: <strong className="text-zinc-800 dark:text-zinc-200">{selectedJobTitle}</strong>
+            </span>
+          </div>
+        )}
 
-            <TabsContent value="applicants" className="mt-0 outline-none">
-              <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
-                    Candidates
-                  </CardTitle>
-                  <ApplicantFilters
-                    search={search}
-                    onSearchChange={setSearch}
-                    status={filterStatus}
-                    onStatusChange={setFilterStatus}
-                  />
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="flex items-center justify-center py-16 gap-3">
-                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      <span className="text-sm text-zinc-400 animate-pulse">Loading candidates...</span>
-                    </div>
-                  ) : (
-                    <ApplicantList
-                      applicants={applicants}
-                      onUpdateStatus={handleUpdateStatus}
-                      onScheduleInterview={handleOpenSchedule}
-                      onViewScheduledInterview={handleViewScheduledInterview}
-                      onViewDetails={handleViewDetails}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="best-matches" className="mt-0 outline-none">
-              {selectedJob && (
-                <BestMatchesTab
-                  job={selectedJob}
-                  applicants={applicants}
-                  loading={loading}
-                  onViewDetails={handleViewDetails}
-                  onScheduleInterview={handleOpenSchedule}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+        {/* Main Content Area */}
+        {showBestMatches && selectedJob ? (
+          <BestMatchesTab
+            job={selectedJob}
+            applicants={applicants}
+            loading={loading}
+            onViewDetails={handleViewDetails}
+            onScheduleInterview={handleOpenSchedule}
+          />
         ) : (
           <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
             <CardHeader className="pb-3">
@@ -351,7 +340,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
               <DialogTitle className="text-sm font-bold">Schedule Interview for Candidate</DialogTitle>
             </DialogHeader>
             {scheduleError && (
-              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 {scheduleError}
               </div>
@@ -361,6 +350,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
               onChange={handleInterviewFieldChange}
               errors={interviewErrors}
               disableApplicationId={true}
+              existingInterviews={interviews}
             />
             <DialogFooter className="mt-4">
               <Button
@@ -409,14 +399,15 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
 export default function ApplicantsModule({ initialApplicationId }: ApplicantsModuleProps = {}) {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center py-32 gap-3">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-sm text-zinc-400 animate-pulse">Loading applicant dashboard...</span>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-32 gap-3">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="text-sm text-zinc-400 animate-pulse">Loading applicant dashboard...</span>
+        </div>
+      }
+    >
       <ApplicantsModuleInner initialApplicationId={initialApplicationId} />
     </Suspense>
   );
 }
-

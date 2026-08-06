@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { TalentProfile, MatchBreakdown } from "../types";
 import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon, getImageUrl } from "../utils/talentUtils";
+import { getCachedExplanation, setCachedExplanation } from "@/lib/gemini/useExplanationCache";
 
 interface TalentProfileDrawerProps {
   open: boolean;
@@ -56,12 +57,30 @@ export default function TalentProfileDrawer({
   const [fetchingExplanation, setFetchingExplanation] = useState(false);
 
   useEffect(() => {
-    if (!open || !profile || aiExplanation || !searchKeyword) {
+    if (!open || !profile || !searchKeyword) {
       setLazyExplanation(null);
       setFetchingExplanation(false);
       return;
     }
 
+    // 1. Eager explanation already provided by the search result batch —
+    //    cache it so reopening this drawer costs nothing.
+    if (aiExplanation) {
+      setCachedExplanation(searchKeyword, profile.user_id, aiExplanation);
+      setLazyExplanation(null);
+      setFetchingExplanation(false);
+      return;
+    }
+
+    // 2. Check sessionStorage before making any network call.
+    const cached = getCachedExplanation(searchKeyword, profile.user_id);
+    if (cached) {
+      setLazyExplanation(cached);
+      setFetchingExplanation(false);
+      return;
+    }
+
+    // 3. Cache miss — fetch lazily from the explain endpoint.
     let isMounted = true;
     setFetchingExplanation(true);
 
@@ -82,6 +101,7 @@ export default function TalentProfileDrawer({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (isMounted && data?.explanation) {
+          setCachedExplanation(searchKeyword, profile.user_id, data.explanation);
           setLazyExplanation(data.explanation);
         }
       })

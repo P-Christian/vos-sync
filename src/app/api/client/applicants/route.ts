@@ -293,6 +293,7 @@ export async function GET(req: NextRequest) {
     if (jobIds.length === 0) {
       return NextResponse.json({
         applicants: [],
+        jobs: [],
       });
     }
     
@@ -595,9 +596,11 @@ export async function GET(req: NextRequest) {
     });
 
 
+    const jobOptions = jobs.map((j) => ({ job_id: j.job_id, job_title: j.job_title }));
+
     return NextResponse.json({
       applicants,
-      
+      jobs: jobOptions,
     });
 
     
