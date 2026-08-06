@@ -7,14 +7,13 @@ import {
   normalizeRawCandidate,
   MatchMode,
   MatchContext,
+  MatchResult,
   cleanText,
   analyzeQuery,
   retrieveCandidatePool,
 } from "@/modules/matching-engine";
 import { expandQueryWithGemini, shouldExpandWithGemini } from "@/lib/gemini/queryUnderstanding";
 import { rerankCandidatesWithGemini } from "@/lib/gemini/aiReranker";
-import { generateBatchExplanations } from "@/lib/gemini/matchExplainer";
-
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -160,457 +159,49 @@ function resolveRoleTaxonomy(
   };
 }
 
-
-interface WorkRow {
-  company_name: string;
-  job_title: string;
-  job_description?: string | null;
-  start_date?: string;
-  end_date?: string;
-  is_current_role?: boolean;
+export interface TalentResult {
+  user_id: number;
+  profile_id: number;
+  name: string;
+  email: string;
+  profile_image_url: string | null;
+  headline: string | null;
+  summary: string | null;
+  location: string;
+  skills: string[];
+  experience_years: number;
+  relevant_experience_years: number;
+  work_experience: Array<{
+    company_name: string;
+    job_title: string;
+    start_date: string | null;
+    end_date: string | null;
+    is_current_role: boolean;
+    employment_type: string | null;
+  }>;
+  education: Array<{
+    school_name: string | null;
+    school_id: number | null;
+    course_name: string | null;
+    start_date: string | null;
+    end_date: string | null;
+  }>;
+  availability_status: string;
+  is_saved: boolean;
+  match_score: number | null;
+  ranking_score: number | null;
+  match_result: MatchResult | null;
+  match_breakdown: {
+    mode: MatchMode;
+    overallScore: number;
+    rankingScore: number;
+    confidence: any;
+    sections: any[];
+    explanation: any;
+    evidence: any[];
+  } | null;
+  ai_explanation: string | null;
 }
-
-interface RelevantExperienceResult {
-  relevantYears: number;
-  totalYears: number;
-  matchedRoles: string[];
-  ignoredRoles: string[];
-}
-
-function calcRelevantExperience(
-  workRows: WorkRow[],
-  targetRoleOrKeyword: string,
-  targetSkills: string[],
-  taxonomyContext?: ResolvedTaxonomyContext
-): RelevantExperienceResult {
-  let totalMonths = 0;
-  let relevantMonths = 0;
-  const matchedRoles: string[] = [];
-  const ignoredRoles: string[] = [];
-
-  const targetLower = targetRoleOrKeyword.toLowerCase();
-  // Use DB-resolved category only — no hardcoded fallback
-  const targetCategory = taxonomyContext?.category_code ?? null;
-  const lowerTargetSkills = targetSkills.map((s) => s.toLowerCase());
-  const expandedAliases = taxonomyContext?.expanded_aliases.map((a) => a.toLowerCase()) ?? [];
-
-  for (const exp of workRows) {
-    if (!exp.start_date) continue;
-    const start = new Date(exp.start_date);
-    const end = exp.is_current_role ? new Date() : exp.end_date ? new Date(exp.end_date) : new Date();
-    const months = Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
-    totalMonths += months;
-
-    const titleLower = (exp.job_title || "").toLowerCase();
-    const descLower = (exp.job_description || "").toLowerCase();
-
-    // Relevance check 1: DB expanded alias match on title/description
-    //   (covers category-level matching since aliases span all roles in a category)
-    const isAliasMatch = expandedAliases.some(
-      (alias) => alias.length > 2 && (titleLower.includes(alias) || descLower.includes(alias))
-    );
-
-    // Relevance check 2: Direct keyword match on title/description
-    const isKeywordMatch = Boolean(
-      targetLower && (titleLower.includes(targetLower) || descLower.includes(targetLower))
-    );
-
-    // Relevance check 3: Target category match via expanded aliases on work title
-    //   fullstack overlaps with both frontend and backend
-    const isCategoryMatch =
-      targetCategory &&
-      expandedAliases.some((alias) => titleLower.includes(alias)) &&
-      (targetCategory === "fullstack" ||
-        expandedAliases.some((a) => titleLower.includes(a)));
-
-    // Relevance check 4: Title or description mentions any of the target skills
-    const isSkillMatch = lowerTargetSkills.some((s) => titleLower.includes(s) || descLower.includes(s));
-
-    if (
-      isAliasMatch ||
-      isKeywordMatch ||
-      isCategoryMatch ||
-      isSkillMatch ||
-      (!targetRoleOrKeyword && targetSkills.length === 0)
-    ) {
-      relevantMonths += months;
-      matchedRoles.push(exp.job_title);
-    } else {
-      ignoredRoles.push(exp.job_title);
-    }
-  }
-
-  return {
-    relevantYears: Number((relevantMonths / 12).toFixed(1)),
-    totalYears: Number((totalMonths / 12).toFixed(1)),
-    matchedRoles: Array.from(new Set(matchedRoles)),
-    ignoredRoles: Array.from(new Set(ignoredRoles)),
-  };
-}
-
-function calcRelevantEducation(
-  eduRows: Array<{ school_course_id?: { course_name?: string }; course_name_raw?: string }>,
-  targetSkills: string[],
-  targetRole: string
-): number {
-  if (eduRows.length === 0) return 3;
-
-  const highTechKeywords = [
-    "computer science",
-    "information technology",
-    "software",
-    "computer engineering",
-    "web development",
-    "data science",
-    "marketing",
-    "communication",
-    "business",
-  ];
-  const medTechKeywords = [
-    "mathematics",
-    "physics",
-    "engineering",
-    "information systems",
-    "cyber",
-    "technology",
-    "arts",
-    "design",
-  ];
-
-  for (const edu of eduRows) {
-    const course = (edu.school_course_id?.course_name || edu.course_name_raw || "").toLowerCase();
-    if (!course) continue;
-
-    if (highTechKeywords.some((kw) => course.includes(kw))) return 10;
-    if (medTechKeywords.some((kw) => course.includes(kw))) return 7;
-  }
-  return 4;
-}
-
-function calcRelevantCertifications(
-  certRows: Array<{ certificate_name: string; issuing_organization?: string }>,
-  targetSkills: string[]
-): number {
-  if (certRows.length === 0) return 0;
-  const lowerSkills = targetSkills.map((s) => s.toLowerCase());
-
-  let score = 0;
-  for (const cert of certRows) {
-    const certName = (cert.certificate_name || "").toLowerCase();
-    const isRelevant =
-      lowerSkills.some((s) => certName.includes(s)) ||
-      [
-        "aws",
-        "azure",
-        "gcp",
-        "google",
-        "cisco",
-        "scrum",
-        "pmp",
-        "comptia",
-        "oracle",
-        "microsoft",
-        "react",
-        "node",
-        "java",
-        "python",
-        "kubernetes",
-        "certified",
-        "meta",
-        "hubspot",
-      ].some((kw) => certName.includes(kw));
-
-    if (isRelevant) score += 5;
-    else score += 2;
-  }
-  return Math.min(score, 10);
-}
-
-function calcPortfolioScore(
-  socialLinks: Array<{ platform_name: string; profile_url: string }>,
-  profileSummary?: string,
-  workMediaCount = 0
-): number {
-  let score = 0;
-  const github = socialLinks.some(
-    (s) =>
-      s.platform_name?.toLowerCase().includes("github") ||
-      s.profile_url?.toLowerCase().includes("github.com")
-  );
-  const portfolio = socialLinks.some(
-    (s) =>
-      s.platform_name?.toLowerCase().includes("portfolio") ||
-      s.platform_name?.toLowerCase().includes("website") ||
-      s.profile_url?.startsWith("http")
-  );
-
-  if (github) score += 2;
-  if (portfolio) score += 2;
-  if (workMediaCount > 0 || (profileSummary && profileSummary.length > 50)) score += 1;
-
-  return Math.min(score, 5);
-}
-
-function calcAvailabilityScore(availability: string): number {
-  switch (availability?.toUpperCase()) {
-    case "IMMEDIATELY_AVAILABLE":
-    case "AVAILABLE":
-      return 5;
-    case "OPEN":
-      return 3;
-    case "EMPLOYED":
-      return 1;
-    default:
-      return 0;
-  }
-}
-
-export interface MatchBreakdown {
-  overallScore: number;
-  skills: number;
-  experience: {
-    score: number;
-    relevantYears: number;
-    totalYears: number;
-    matchedRoles: string[];
-    ignoredRoles: string[];
-  };
-  education: number;
-  certifications: number;
-  availability: number;
-  location: number;
-  portfolio: number;
-}
-
-export type ScoringMode = "job_match" | "skill_match" | "role_similarity" | "filters_only" | "browse";
-
-interface CompatibilityScoreResult {
-  overallScore: number;
-  breakdown: MatchBreakdown;
-}
-
-function computeCompatibilityScore(params: {
-  scoringMode: ScoringMode;
-  skillsRequested: string[];
-  candidateSkills: string[];
-  workRows: WorkRow[];
-  eduRows: Array<{ school_course_id?: { course_name?: string }; course_name_raw?: string }>;
-  certRows: Array<{ certificate_name: string; issuing_organization?: string }>;
-  socialLinks: Array<{ platform_name: string; profile_url: string }>;
-  requiredExperienceYears: number;
-  targetRoleOrKeyword: string;
-  requiredLocation: string;
-  candidateLocation: string;
-  availability: string;
-  headline?: string | null;
-  profileSummary?: string;
-  workMediaCount?: number;
-  taxonomyContext?: ResolvedTaxonomyContext;
-}): CompatibilityScoreResult {
-  const {
-    scoringMode,
-    skillsRequested,
-    candidateSkills,
-    workRows,
-    eduRows,
-    certRows,
-    socialLinks,
-    requiredExperienceYears,
-    targetRoleOrKeyword,
-    requiredLocation,
-    candidateLocation,
-    availability,
-    headline,
-    profileSummary,
-    workMediaCount = 0,
-    taxonomyContext,
-  } = params;
-
-  const expRes = calcRelevantExperience(workRows, targetRoleOrKeyword, skillsRequested, taxonomyContext);
-
-  // ── MODE 3: ROLE SIMILARITY MODE (Keyword Search without explicit skills / job_id) ──
-  if (scoringMode === "role_similarity") {
-    const aliasWeightModifier = taxonomyContext?.match_weight ?? 1.0;
-    const targetLower = targetRoleOrKeyword.toLowerCase();
-    const expandedAliases = taxonomyContext?.expanded_aliases.map((a) => a.toLowerCase()) ?? [targetLower];
-
-    // 1. Role Similarity (50 Points Max)
-    let roleMatchScore = 15; // default base match
-
-    // Check candidate headline and all past/current work titles
-    const candidateTitles = [
-      headline || "",
-      ...workRows.map((w) => w.job_title || ""),
-    ].filter(Boolean).map((t) => t.toLowerCase());
-
-    const hasExactKeywordInTitle = candidateTitles.some(
-      (t) => t.includes(targetLower) || targetLower.includes(t)
-    );
-
-    const hasAliasMatchInTitle = candidateTitles.some((t) =>
-      expandedAliases.some((alias) => alias.length > 2 && (t.includes(alias) || alias.includes(t)))
-    );
-
-    if (hasExactKeywordInTitle) {
-      roleMatchScore = Math.round(50 * aliasWeightModifier);
-    } else if (hasAliasMatchInTitle) {
-      roleMatchScore = Math.round(45 * aliasWeightModifier);
-    } else {
-      // Check summary / text match
-      const summaryLower = (profileSummary || "").toLowerCase();
-      const hasWordMatch = expandedAliases.some((alias) => summaryLower.includes(alias));
-      if (hasWordMatch) {
-        roleMatchScore = 30;
-      } else {
-        roleMatchScore = 20;
-      }
-    }
-
-    // 2. Relevant Experience Match (25 Points Max)
-    let expScore = 10;
-    if (expRes.relevantYears >= 5) {
-      expScore = 25;
-    } else if (expRes.relevantYears >= 3) {
-      expScore = 20;
-    } else if (expRes.relevantYears >= 1) {
-      expScore = 15;
-    } else if (expRes.relevantYears > 0) {
-      expScore = 10;
-    } else {
-      expScore = 5;
-    }
-
-    // 3. Inferred Skills Bonus (15 Points Max - NO penalty for unrequested skills)
-    let skillsScore = 5;
-    if (skillsRequested.length > 0) {
-      const lowerCandidateSkills = candidateSkills.map((s) => s.toLowerCase());
-      const matchedCount = skillsRequested.filter((s) => lowerCandidateSkills.includes(s.toLowerCase())).length;
-      if (matchedCount >= 3) {
-        skillsScore = 15;
-      } else if (matchedCount >= 1) {
-        skillsScore = 12;
-      } else if (candidateSkills.length > 0) {
-        skillsScore = 8;
-      }
-    } else if (candidateSkills.length > 0) {
-      skillsScore = 10;
-    }
-
-    // 4. Education & Certs (10 Points Max: 5 Edu + 5 Certs)
-    const eduRaw = calcRelevantEducation(eduRows, skillsRequested, targetRoleOrKeyword);
-    const eduScore = Math.round((eduRaw / 10) * 5); // scale to 5 max
-
-    const certsRaw = calcRelevantCertifications(certRows, skillsRequested);
-    const certsScore = Math.round((certsRaw / 10) * 5); // scale to 5 max
-
-    const availScore = calcAvailabilityScore(availability);
-    const locationScore = (!requiredLocation || requiredLocation.toLowerCase() === "remote" || candidateLocation.toLowerCase().includes(requiredLocation.toLowerCase())) ? 5 : 2;
-    const portfolioScore = calcPortfolioScore(socialLinks, profileSummary, workMediaCount);
-
-    const total = Math.min(100, roleMatchScore + expScore + skillsScore + eduScore + certsScore);
-
-    return {
-      overallScore: total,
-      breakdown: {
-        overallScore: total,
-        skills: skillsScore,
-        experience: {
-          score: expScore,
-          relevantYears: expRes.relevantYears,
-          totalYears: expRes.totalYears,
-          matchedRoles: expRes.matchedRoles,
-          ignoredRoles: expRes.ignoredRoles,
-        },
-        education: eduScore,
-        certifications: certsScore,
-        availability: availScore,
-        location: locationScore,
-        portfolio: portfolioScore,
-      },
-    };
-  }
-
-  // ── MODES 1 & 2: JOB MATCHING / SKILL FILTER MATCHING MODE (Detailed Requirements) ──
-
-  // 1. Skills Match (45%)
-  let skillsScore = 0;
-  if (skillsRequested.length > 0) {
-    const lowerCandidateSkills = candidateSkills.map((s) => s.toLowerCase());
-    const matched = skillsRequested.filter((s) => lowerCandidateSkills.includes(s.toLowerCase())).length;
-    skillsScore = Math.round(Math.min(matched / skillsRequested.length, 1) * 45);
-  } else {
-    skillsScore = candidateSkills.length > 0 ? 35 : 20;
-  }
-
-  // 2. Relevant Experience Match (20%)
-  let expScore = 0;
-  if (requiredExperienceYears > 0) {
-    const ratio = Math.min(expRes.relevantYears / requiredExperienceYears, 1.2);
-    expScore = Math.round(Math.min(ratio, 1) * 20);
-  } else {
-    expScore = expRes.relevantYears > 0 ? Math.min(Math.round(expRes.relevantYears * 4), 20) : 5;
-  }
-
-  // 3. Education Match (10%)
-  const educationScore = calcRelevantEducation(eduRows, skillsRequested, targetRoleOrKeyword);
-
-  // 4. Certifications Match (10%)
-  const certsScore = calcRelevantCertifications(certRows, skillsRequested);
-
-  // 5. Availability (5%)
-  const availScore = calcAvailabilityScore(availability);
-
-  // 6. Location (5%)
-  let locationScore = 0;
-  if (!requiredLocation || requiredLocation.toLowerCase() === "remote") {
-    locationScore = 5;
-  } else if (candidateLocation && candidateLocation.toLowerCase().includes(requiredLocation.toLowerCase())) {
-    locationScore = 5;
-  } else {
-    locationScore = 2;
-  }
-
-  // 7. Portfolio (5%)
-  const portfolioScore = calcPortfolioScore(socialLinks, profileSummary, workMediaCount);
-
-  // Apply alias match weight modifier if taxonomy resolved
-  const aliasWeightModifier = taxonomyContext?.match_weight ?? 1.0;
-
-  const total = Math.min(
-    100,
-    Math.round(
-      (skillsScore +
-        expScore +
-        educationScore +
-        certsScore +
-        availScore +
-        locationScore +
-        portfolioScore) *
-        aliasWeightModifier
-    )
-  );
-
-  return {
-    overallScore: total,
-    breakdown: {
-      overallScore: total,
-      skills: skillsScore,
-      experience: {
-        score: expScore,
-        relevantYears: expRes.relevantYears,
-        totalYears: expRes.totalYears,
-        matchedRoles: expRes.matchedRoles,
-        ignoredRoles: expRes.ignoredRoles,
-      },
-      education: educationScore,
-      certifications: certsScore,
-      availability: availScore,
-      location: locationScore,
-      portfolio: portfolioScore,
-    },
-  };
-}
-
 
 export async function GET(req: NextRequest) {
   try {
@@ -987,42 +578,6 @@ export async function GET(req: NextRequest) {
       taxonomyContext,
     };
 
-    interface TalentResult {
-      user_id: number;
-      profile_id: number;
-      name: string;
-      email: string;
-      profile_image_url: string | null;
-      headline: string | null;
-      summary: string | null;
-      location: string;
-      skills: string[];
-      experience_years: number;
-      relevant_experience_years: number;
-      work_experience: Array<{
-        company_name: string;
-        job_title: string;
-        start_date: string | null;
-        end_date: string | null;
-        is_current_role: boolean;
-        employment_type: string | null;
-      }>;
-      education: Array<{
-        school_name: string | null;
-        school_id: number | null;
-        course_name: string | null;
-        start_date: string | null;
-        end_date: string | null;
-      }>;
-      availability_status: string;
-      is_saved: boolean;
-      match_score: number | null;
-      ranking_score: number | null;
-      match_result: any | null;
-      match_breakdown: any | null;
-      ai_explanation: string | null;
-    }
-
     // Layer 1: High-Recall Candidate Retrieval Filter (Jaro-Winkler, Levenshtein, Token Overlap, Taxonomy Expansion)
     const normalizedProfilesMap = new Map();
     const normalizedProfilesList = [];
@@ -1195,6 +750,9 @@ export async function GET(req: NextRequest) {
 
     // ────────────────────────────────────────────
     // 6. Gemini Layer B: AI Reranking (job match mode only, top 50)
+    // Note: Layer B semantic reranking requires both an active job posting (jobIdForMatch)
+    // and a search query prompt (keyword) to semantically measure relevance against the prompt.
+    // When no search keyword is provided, candidates remain ordered deterministically by Layer 2 ranking_score.
     // ────────────────────────────────────────────
     let aiReranked = false;
     if (jobIdForMatch && keyword && filtered.length > 1) {
@@ -1222,30 +780,15 @@ export async function GET(req: NextRequest) {
     const paginated = filtered.slice((page - 1) * limit, page * limit);
 
     // ────────────────────────────────────────────
-    // 7. Gemini Layer C: Match Explanations (top 10 on page, job match mode only)
+    // 7. Gemini Layer C: Match Explanations (Lazy execution on drawer open)
+    // Note: Layer C match explanations are handled lazily via POST /api/client/talent-search/explain
+    // when a candidate profile drawer is opened by the recruiter, preventing unnecessary Gemini API calls on page turns.
     // ────────────────────────────────────────────
-    let finalTalents = paginated;
-    if (jobIdForMatch && keyword && paginated.length > 0) {
-      console.log(`[talent-search] 🤖 Gemini Layer C: generating explanations for top ${Math.min(paginated.length, 10)} candidates...`);
-      const explainTop = paginated.slice(0, 10).map((t) => ({
-        id: t.user_id,
-        name: t.name,
-        title: t.headline,
-        skills: t.skills,
-        summary: t.summary,
-        experience_years: t.experience_years,
-      }));
-      const explanations = await generateBatchExplanations(keyword, explainTop);
-      finalTalents = paginated.map((t) => ({
-        ...t,
-        ai_explanation: explanations.get(t.user_id) ?? null,
-      }));
-    }
 
     return NextResponse.json({
       search_mode: searchMode,
       search_context: searchMode === "search" ? taxonomyContext : null,
-      talents: finalTalents,
+      talents: paginated,
       total,
       page,
       limit,

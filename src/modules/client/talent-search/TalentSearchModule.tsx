@@ -455,6 +455,7 @@ export default function TalentSearchModule() {
           matchScore={activeCard?.match_score}
           matchBreakdown={activeCard?.match_breakdown}
           aiExplanation={activeCard?.ai_explanation ?? null}
+          searchKeyword={filters.keyword}
           loading={drawerLoading}
           error={drawerError}
           onClose={() => {

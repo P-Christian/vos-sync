@@ -2,7 +2,7 @@
 
 // src/modules/client/talent-search/components/TalentProfileDrawer.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Sheet,
@@ -28,6 +28,7 @@ interface TalentProfileDrawerProps {
   matchScore?: number | null;
   matchBreakdown?: MatchBreakdown | null;
   aiExplanation?: string | null;
+  searchKeyword?: string;
   loading: boolean;
   error: string;
   onClose: () => void;
@@ -42,6 +43,7 @@ export default function TalentProfileDrawer({
   matchScore,
   matchBreakdown,
   aiExplanation,
+  searchKeyword,
   loading,
   error,
   onClose,
@@ -50,6 +52,50 @@ export default function TalentProfileDrawer({
   saving,
 }: TalentProfileDrawerProps) {
   const [tab, setTab] = useState("overview");
+  const [lazyExplanation, setLazyExplanation] = useState<string | null>(null);
+  const [fetchingExplanation, setFetchingExplanation] = useState(false);
+
+  useEffect(() => {
+    if (!open || !profile || aiExplanation || !searchKeyword) {
+      setLazyExplanation(null);
+      setFetchingExplanation(false);
+      return;
+    }
+
+    let isMounted = true;
+    setFetchingExplanation(true);
+
+    fetch("/api/client/talent-search/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword: searchKeyword,
+        candidate: {
+          name: profile.name,
+          title: profile.headline ?? null,
+          skills: profile.skills ?? [],
+          summary: profile.summary ?? null,
+          experience_years: profile.experience_years ?? 0,
+        },
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.explanation) {
+          setLazyExplanation(data.explanation);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setFetchingExplanation(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, profile, aiExplanation, searchKeyword]);
+
+  const activeExplanation = aiExplanation || lazyExplanation;
 
   const initials = profile ? getInitials(profile.name) : "";
   const scoreClass = matchScore !== undefined ? matchScoreColor(matchScore) : "";
@@ -148,10 +194,16 @@ export default function TalentProfileDrawer({
             </div>
 
             {/* Gemini AI Match Explanation */}
-            {aiExplanation && (
+            {activeExplanation && (
               <div className="mx-6 mt-3 mb-1 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex gap-2.5 items-start">
                 <span className="text-base shrink-0 mt-0.5">✦</span>
-                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">{aiExplanation}</p>
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">{activeExplanation}</p>
+              </div>
+            )}
+            {fetchingExplanation && !activeExplanation && (
+              <div className="mx-6 mt-3 mb-1 px-4 py-2.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/40 flex gap-2 items-center text-xs text-indigo-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500 shrink-0" />
+                <span>Generating AI match insight…</span>
               </div>
             )}
 

@@ -1,0 +1,48 @@
+# vos-sync
+
+# Features
+- ## Client Features
+    - ### Jobs Posting
+        - Rule Based Skill Intelligence Engine
+            - Global, reusable matching engine (`src/lib/skill-matcher`)
+            - Preserves `vs_master_skills` table schema without modifications
+            - Relational schema support (`vs_skill_category`, `vs_skill_alias`, `vs_skill_relation`, `vs_skill_hierarchy`)
+            - Multi-tier matching logic: Exact Match (100%), Alias Normalization (100%), Explicit Technology Relations (75-95%), Hierarchy Trees (85%), and Category Families (65%)
+            - Integrated into candidate matching and applicant ranking
+    - ### Company Profile
+        - Interactive Cover & Logo Image Preview
+            - Visual hover cues with overlay indicators on cover banner and profile logo
+            - Click-to-open lightbox modal (`Dialog`) using Next.js `<Image>` for full-resolution view
+    - ### Job Browse
+        - Clickable Company Profile Links
+            - Company name and logo avatar in job cards and job details open the public company profile in a new browser tab (`target="_blank"`)
+    - ### Talent Search
+        - Profile Image Asset URL Resolution
+            - Implemented `getImageUrl` helper to resolve Directus file UUIDs into full asset URLs using `NEXT_PUBLIC_API_BASE_URL`
+            - Ensured proper avatar rendering across talent search cards (`TalentCard`), talent drawer (`TalentProfileDrawer`), and saved candidates panel (`SavedTalentPanel`)
+        - `vs_saved_applicant` Schema Integration
+            - Updated API routes (`saved-talent`, `talent-search`, `talent-profile`) to query and persist saved applicants via `vs_saved_applicant` table (`saved_applicant_id`, `company_id`, `applicant_user_id`, `notes`, `created_by`, `created_at`, `updated_at`)
+        - `vs_applicant_invitation` Schema Integration
+            - Aligned invitation API endpoints (`/api/client/talent-invitation`) to query and persist records via `vs_applicant_invitation` collection (`invitation_id`, `company_id`, `applicant_user_id`, `job_id`, `subject`, `message`, `status`, `response_message`, `responded_at`, `expires_at`, `created_by`, `created_at`, `updated_at`)
+        - Candidate Compatibility Engine & DB-Backed Role Taxonomy Infrastructure
+            - **Database-Backed Role Taxonomy (`vs_role_category`, `vs_role_title`, `vs_role_title_alias`, `vs_role_skill_mapping`)**:
+                - Built SQL schema (`vs_role_taxonomy_schema.sql`) for DB-driven role classification, canonical job titles, title aliases with `normalized_alias` & `match_weight`, and weighted skills linked to `vs_master_skills` with `is_required` flags.
+                - Replaced static dictionaries with dynamic DB lookup and runtime alias expansion via Directus `/items/vs_role_title_alias`.
+            - **Tokenized & Taxonomy-Expanded Keyword Matching**:
+                - Solved exact contiguous string matching limitations: searching `"social media creator"` automatically resolves to canonical role **Social Media Specialist** (Category: *Digital Marketing & Social Media*) and expands aliases (*Social Media Strategist*, *Content Creator*, *Social Media Specialist*), matching profiles like *"Freelance Social Media Strategist"*.
+                - Exposes `search_context` in API response (`keyword`, `resolved_role`, `category_name`, `matched_alias`, `match_weight`).
+            - **Search Modes (`search_mode`)**:
+                - **Browse Mode** (`search_mode: "browse"`): Suppresses misleading match percentages when browsing without criteria (`match_score: null`, `match_breakdown: null`) and sorts candidates by profile completeness.
+            - **Search Modes (`search_mode`)**:
+                - **Browse Mode** (`search_mode: "browse"`): Suppresses misleading match percentages when browsing without criteria (`match_score: null`, `match_breakdown: null`) and sorts candidates by profile completeness.
+                - **Search Mode** (`search_mode: "search"`): Calculates exact 7-factor candidate compatibility scores (45% Skills, 20% Relevant Exp, 10% Edu, 10% Certs, 5% Availability, 5% Location, 5% Portfolio) and ranks by match score.
+        - Two-Layer Matching Pipeline with High-Recall Retrieval
+            - **Layer 1 — Fuzzy Retrieval** (`src/modules/matching-engine/retrieval/`): High-recall candidate pool using Jaro-Winkler character similarity, Levenshtein distance, token intersection, and taxonomy alias expansion. Candidates scoring above a retrieval threshold enter the pool regardless of title format differences.
+            - **Layer 2 — Compatibility Engine**: Deterministic multi-factor scoring (role evaluator, experience evaluator, skill evaluator) run only on the retrieved pool.
+            - **Compound Word Handling**: Queries like `"webdeveloper"`, `"web-developer"`, `"web developer"` all resolve correctly via compound token splitting against target vocabulary.
+            - **Ranking without Rejection**: Candidates are ranked by compatibility score. No secondary keyword gate discards candidates after scoring — the score determines position, not keyword presence.
+        - Gemini AI Integration (`src/lib/gemini/`)
+            - **Layer A — Query Understanding** (`queryUnderstanding.ts`): Natural language employer queries (e.g. `"I need someone who builds websites with React"`) are resolved into a canonical role (`"React Developer"`) and inferred skills before retrieval, using Gemini API. Runs before taxonomy resolution and Layer 1 so the resolved role drives the entire pipeline.
+            - **Layer B — AI Reranking** (`aiReranker.ts`): When a job posting is active, Gemini semantically reorders the top 50 scored candidates by relevance to the employer's query. Falls back to Layer 2 score order on API failure or timeout.
+            - **Layer C — Match Explanation** (`matchExplainer.ts`): Generates a 1–2 sentence human-readable explanation for the top 10 candidates per page explaining why they match the search, displayed as an insight card in the profile drawer.
+            - **Gemini Client** (`geminiClient.ts`): Lightweight `fetch`-based client reading `GEMINI_API_KEY` and `GEMINI_MODEL` from `.env.local`. 5-second hard timeout on all requests with silent fallback — Gemini failure never breaks search results.

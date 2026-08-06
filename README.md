@@ -31,6 +31,67 @@
             - **Tokenized & Taxonomy-Expanded Keyword Matching**:
                 - Solved exact contiguous string matching limitations: searching `"social media creator"` automatically resolves to canonical role **Social Media Specialist** (Category: *Digital Marketing & Social Media*) and expands aliases (*Social Media Strategist*, *Content Creator*, *Social Media Specialist*), matching profiles like *"Freelance Social Media Strategist"*.
                 - Exposes `search_context` in API response (`keyword`, `resolved_role`, `category_name`, `matched_alias`, `match_weight`).
-            - **Search Modes (`search_mode`)**:
-                - **Browse Mode** (`search_mode: "browse"`): Suppresses misleading match percentages when browsing without criteria (`match_score: null`, `match_breakdown: null`) and sorts candidates by profile completeness.
-                - **Search Mode** (`search_mode: "search"`): Calculates exact 7-factor candidate compatibility scores (45% Skills, 20% Relevant Exp, 10% Edu, 10% Certs, 5% Availability, 5% Location, 5% Portfolio) and ranks by match score.
+        - Modular Matching Engine Architecture (`src/modules/matching-engine/`)
+            ```text
+            src/modules/matching-engine/
+            ├── retrieval/
+            ├── normalizers/
+            ├── evaluators/
+            ├── engine/
+            ├── confidence/
+            └── explanation/
+            ```
+        - Engine Match Modes (`MatchMode`)
+            - `BROWSE`: Suppresses misleading match percentages when browsing without criteria (`match_score: null`, `match_breakdown: null`) and orders candidates by profile completeness and recent activity.
+            - `ROLE_SIMILARITY`: Evaluates canonical role fit and title similarity.
+            - `SKILL_MATCH`: Evaluates candidates strictly against targeted skill matrices.
+            - `JOB_MATCH`: Multi-factor evaluation matched directly against active job posting requirements.
+            - `HYBRID`: Combined keyword, taxonomy, role, and skill matching.
+            - `AI_RERANK`: Semantic reranking over candidate pool.
+        - Two-Layer Matching Pipeline: Retrieval vs. Compatibility Metrics
+            - **Layer 1 — High-Recall Retrieval** (`src/modules/matching-engine/retrieval/`): Optimizes recall and produces an internal candidate pool using Jaro-Winkler character similarity, Levenshtein distance, token intersection, compound word splitting, and taxonomy alias expansion. The retrieval score remains internal and is never presented as the recruiter-facing match percentage.
+            - **Layer 2 — Compatibility Engine & Separated Metrics**: Multi-factor scoring (role, experience, skills, education, certifications, availability, location, portfolio) evaluated on retrieved candidates:
+                - `compatibility_score`: Candidate fit against the recruiter’s search criteria.
+                - `ranking_score`: Internal ordering score incorporating compatibility fit, profile completeness, and candidate activity.
+            - **Ranking without Rejection**: Candidates are ranked by compatibility and ranking score. No secondary keyword gate discards candidates after scoring — position is determined by score, not hard keyword exclusion.
+        - Gemini AI Integration & Operational Controls (`src/lib/gemini/`)
+            - **Layer A — Query Understanding** (`queryUnderstanding.ts`): Attempts to resolve natural-language queries (e.g. `"I need someone who builds websites with React"`) into a canonical role and inferred skills before retrieval. Gemini-inferred roles and skills are merged with the normalized original query and database taxonomy. A low-confidence or failed Gemini result never replaces or suppresses deterministic retrieval.
+            - **Layer B — AI Reranking** (`aiReranker.ts`): When active, semantically reorders a bounded top set of candidates (up to 50) by relevance to the employer prompt, falling back gracefully to Layer 2 score order on API timeout or failure.
+            - **Layer C — Match Explanation** (`matchExplainer.ts`): Lazy on-demand explanation endpoint (`POST /api/client/talent-search/explain`) called when a candidate drawer is opened, avoiding unnecessary AI calls on page turns.
+            - **AI Efficiency Controls**:
+                - Query-result caching
+                - Minimum-confidence gate
+                - Bypass AI call for clear title or skill searches
+                - AI reranking limited to a bounded candidate set
+                - Structured-output validation
+                - Model fallback configuration
+                - Deduplication of concurrent identical requests
+        - Recommended Final Matching Flow
+            ```text
+            Recruiter Query
+                    ↓
+            Generic text normalization
+                    ↓
+            Optional Gemini query enrichment
+                    ↓
+            Database taxonomy resolution
+                    ↓
+            Layer 1: High-recall fuzzy retrieval
+                    ↓
+            Layer 2: Deterministic compatibility engine
+                    ↓
+            Internal ranking score
+                    ↓
+            Optional Gemini reranking of bounded top candidates
+                    ↓
+            Optional explanation generation
+                    ↓
+            Paginated results
+            ```
+        - Implementation Strengths
+            - Search no longer depends on exact title strings.
+            - Retrieval and scoring are separated.
+            - Low-scoring candidates are ranked rather than discarded by a second strict gate.
+            - The role taxonomy is maintained through database data rather than source-code dictionaries.
+            - Gemini failures are designed not to break core search.
+            - Browse mode no longer presents arbitrary compatibility percentages.
