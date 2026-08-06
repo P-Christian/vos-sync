@@ -9,6 +9,31 @@
             - Relational schema support (`vs_skill_category`, `vs_skill_alias`, `vs_skill_relation`, `vs_skill_hierarchy`)
             - Multi-tier matching logic: Exact Match (100%), Alias Normalization (100%), Explicit Technology Relations (75-95%), Hierarchy Trees (85%), and Category Families (65%)
             - Integrated into candidate matching and applicant ranking
+        - ### Best Match AI (Review Candidates)
+        - AI Recruiter Match Explainer & Skill Scoring (`bestMatchAIService.ts` & `BestMatchesTab.tsx`)
+            - Deterministic match engine ranks top candidates using weighted scoring (40% skills, 25% experience, 15% location, 10% education, 10% screening).
+            - Gemini AI evaluates top candidates and generates recruiter explanations, key strengths, and development areas.
+            - Clean recommendation layout without numbered ranking badges or grayscaling, using vibrant theme indicators.
+            - Smart Session Storage Cache (`useBestMatchCache.ts`): Stores analysis results per job ID in `sessionStorage` (`vos_sync_best_matches_[jobId]`), featuring automatic cache invalidation when applicant count or job posting updates.
+            - UX Enhancements: Concurrency locking against duplicate calls and a multi-step loader (*Finding Candidates...* → *Ranking Skills...* → *Analyzing with Gemini...*).
+    - ### Interview Management
+        - Batch Interview Architecture & Junction Table Engine (`vs_interview_application` & `types.ts`)
+            - Integrated `vs_interview_application` junction table separating schedule-level data (`vs_interview`) from candidate-level data.
+            - Recruiter Scheduling Workflow (`InterviewForm.tsx`): 2-step job-first candidate selection (Target Job Position dropdown → Candidate Name multi-select checklist).
+            - Excludes `REJECTED` and `WITHDRAWN` applicants automatically from candidate attendee selection lists.
+            - Evaluation Immutability & Lock (`InterviewEvaluationModal.tsx`): Locks submitted candidate evaluations in `🔒 Read-Only` mode to prevent accidental overwrites while preserving feedback visibility.
+            - Instant Real-Time Data Refresh (`useInterviews.ts`): Automatically re-fetches interview list state (`loadInterviews()`) upon saving evaluations without requiring a full browser page reload.
+            - Payload Enriched API (`/api/client/applicants`): Returns company `jobs` array alongside candidate applicants to populate target job dropdown.
+            - Supports both single candidate interviews and batch candidate interviews (`applications: InterviewApplication[]`).
+            - Individual candidate attendance tracking (`PENDING`, `ATTENDED`, `NO_SHOW`).
+            - Candidate-specific feedback and decision recording per attendee.
+            - Excludes inactive statuses (`COMPLETED`, `CANCELLED`, `NO_SHOW`); only active `SCHEDULED`, `CONFIRMED`, and `RESCHEDULED` interviews block calendar slots.
+            - Enforces 15-minute buffer after meetings to prevent back-to-back recruiter burnout.
+            - Server-side schedule overlap validation on `POST` and `PATCH` endpoints returning HTTP 409 Conflict to prevent race conditions.
+            - Interactive time slot picker grid disabling booked/buffered slots (`🔒 Booked`) and highlighting available slots (`🟢 Available`).
+            - Rich popover details on booked badges/slots revealing Candidate Name, Position Title, Time, and Format.
+            - Color legend bar: `🟢 Available`, `🔴 Booked`, `🟡 Selected`, `⚠️ Conflict`.
+            - Strict company-scoped schedule isolation (`company_id`).
     - ### Company Profile
         - Interactive Cover & Logo Image Preview
             - Visual hover cues with overlay indicators on cover banner and profile logo

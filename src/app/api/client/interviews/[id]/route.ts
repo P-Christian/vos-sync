@@ -29,34 +29,36 @@ function getUserIdFromToken(token: string): number | null {
     const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
     const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
     return id != null ? Number(id) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function formatInterviewDateTime(dateTimeStr: string): string {
   try {
     const dateObj = new Date(dateTimeStr.replace(" ", "T"));
     if (isNaN(dateObj.getTime())) return dateTimeStr;
-    
+
     const formattedDate = dateObj.toLocaleDateString("en-US", {
       weekday: "short",
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-    
+
     const formattedTime = dateObj.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
       hour12: true,
     });
-    
+
     return `${formattedDate} at ${formattedTime}`;
   } catch {
     return dateTimeStr;
   }
 }
 
-// ─── PATCH — Update interview status, details, evaluation ratings, or cancel ──
+// ─── PATCH — Update interview schedule details or candidate evaluation ─────────
 
 export async function PATCH(
   req: NextRequest,
@@ -64,10 +66,10 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const interviewId = parseInt(id, 10);
+    const targetId = parseInt(id, 10);
 
-    if (!interviewId || isNaN(interviewId)) {
-      return NextResponse.json({ error: "Invalid interview ID." }, { status: 400 });
+    if (!targetId || isNaN(targetId)) {
+      return NextResponse.json({ error: "Invalid ID parameter." }, { status: 400 });
     }
 
     const token =
@@ -85,6 +87,7 @@ export async function PATCH(
     const nowPH = getPHTimeString();
 
     if (type === "DETAILS") {
+      const interviewId = targetId;
       const updateData: Record<string, unknown> = {
         updated_by_user_id: userId,
         updated_at: nowPH,
@@ -98,8 +101,51 @@ export async function PATCH(
       if (payload?.meeting_link !== undefined) updateData.meeting_link = payload.meeting_link;
       if (payload?.meeting_location !== undefined) updateData.meeting_location = payload.meeting_location;
       if (payload?.interview_notes !== undefined) updateData.interview_notes = payload.interview_notes;
-      if (payload?.candidate_notes !== undefined) updateData.candidate_notes = payload.candidate_notes;
       if (payload?.cancel_reason !== undefined) updateData.cancel_reason = payload.cancel_reason;
+
+      if (payload?.scheduled_at) {
+        const currIvRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=company_id,duration_minutes`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (currIvRes.ok) {
+          const currIv = (await currIvRes.json()).data;
+          const targetCompanyId = currIv?.company_id;
+
+          if (targetCompanyId) {
+            const newStart = new Date(payload.scheduled_at.replace(" ", "T")).getTime();
+            if (!isNaN(newStart)) {
+              const durMinutes = Number(payload.duration_minutes || currIv?.duration_minutes) || 60;
+              const durationMs = durMinutes * 60 * 1000;
+              const bufferMs = 15 * 60 * 1000;
+              const newEndWithBuffer = newStart + durationMs + bufferMs;
+
+              const overlapRes = await fetch(
+                `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${targetCompanyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&filter[interview_id][_neq]=${interviewId}&fields=interview_id,scheduled_at,duration_minutes&limit=100`,
+                { headers: getHeaders(), cache: "no-store" }
+              );
+
+              if (overlapRes.ok) {
+                const existingActive = (await overlapRes.json()).data ?? [];
+                for (const existing of existingActive) {
+                  const exStart = new Date(existing.scheduled_at.replace(" ", "T")).getTime();
+                  if (isNaN(exStart)) continue;
+                  const exEnd = exStart + (existing.duration_minutes || 60) * 60 * 1000;
+
+                  if (newStart < (exEnd + bufferMs) && newEndWithBuffer > exStart) {
+                    return NextResponse.json(
+                      {
+                        error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)} (including 15m buffer).`,
+                      },
+                      { status: 409 }
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 
       const res = await fetch(`${DIRECTUS_BASE}/items/vs_interview/${interviewId}`, {
         method: "PATCH",
@@ -116,141 +162,56 @@ export async function PATCH(
         );
       }
 
-      if (payload?.interview_status === "RESCHEDULED") {
-        try {
-          const updatedIvRes = await fetch(
-            `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=*`,
-            { headers: getHeaders(), cache: "no-store" }
-          );
-          if (updatedIvRes.ok) {
-            const ivData = (await updatedIvRes.json()).data;
-            if (ivData?.application_id) {
-              const appRes = await fetch(
-                `${DIRECTUS_BASE}/items/vs_job_application/${ivData.application_id}?fields=user_id,job_id`,
-                { headers: getHeaders(), cache: "no-store" }
-              );
-              if (appRes.ok) {
-                const appData = (await appRes.json()).data;
-                const candidateUserId = appData?.user_id;
-
-                if (candidateUserId) {
-                  const userRes = await fetch(
-                    `${DIRECTUS_BASE}/items/vs_user/${candidateUserId}?fields=user_email,user_fname,user_lname`,
-                    { headers: getHeaders(), cache: "no-store" }
-                  );
-                  if (userRes.ok) {
-                    const candidate = (await userRes.json()).data;
-
-                    if (candidate?.user_email) {
-                      let jobTitle = "Unknown Role";
-                      let companyName = "Employer";
-
-                      if (appData.job_id) {
-                        const jobRes = await fetch(
-                          `${DIRECTUS_BASE}/items/vs_job_posting/${appData.job_id}?fields=job_title,company_id`,
-                          { headers: getHeaders(), cache: "no-store" }
-                        );
-                        if (jobRes.ok) {
-                          const jobData = (await jobRes.json()).data;
-                          if (jobData?.job_title) jobTitle = jobData.job_title;
-                          if (jobData?.company_id) {
-                            const compRes = await fetch(
-                              `${DIRECTUS_BASE}/items/vs_company/${jobData.company_id}?fields=company_name`,
-                              { headers: getHeaders(), cache: "no-store" }
-                            );
-                            if (compRes.ok) {
-                              companyName = (await compRes.json()).data?.company_name || companyName;
-                            }
-                          }
-                        }
-                      }
-
-                      const rescheduleEmailEnabled = await isEmailEnabledForUser(candidateUserId, "INTERVIEW_RESCHEDULED");
-                      if (rescheduleEmailEnabled) {
-                        await sendInterviewRescheduledEmail(candidate.user_email, {
-                          candidateName: `${candidate.user_fname} ${candidate.user_lname}`.trim(),
-                          companyName,
-                          jobTitle,
-                          scheduledAt: ivData.scheduled_at,
-                          timezone: ivData.timezone || "Asia/Manila",
-                          durationMinutes: ivData.duration_minutes || 60,
-                          interviewFormat: ivData.interview_format || "ONLINE",
-                          meetingLink: ivData.meeting_link || null,
-                          meetingLocation: ivData.meeting_location || null,
-                          candidateNotes: ivData.candidate_notes || null,
-                        }).catch((e) => console.error("Error sending reschedule email:", e));
-                      }
-
-                      await createSystemMessage({
-                        clientId: userId,
-                        freelancerId: candidateUserId,
-                        jobId: appData.job_id ?? null,
-                        text: `Interview rescheduled for ${ivData.scheduled_at}.`,
-                        senderId: userId,
-                        systemEventType: "INTERVIEW_UPDATED",
-                        interviewId: interviewId ?? null,
-                      }).catch((e) => console.error("Error sending reschedule system message:", e));
-
-                      await createNotification({
-                        event_type: "interview_rescheduled",
-                        recipient_user_id: candidateUserId,
-                        entity_type: "vs_interview",
-                        entity_id: interviewId,
-                        category: "INTERVIEW",
-                        title: "Interview Rescheduled",
-                        message: `Your interview with ${companyName} has been rescheduled to ${formatInterviewDateTime(ivData.scheduled_at)}.`,
-                        action_url: "/vos-sync/freelancer/applications",
-                      }).catch((e) => console.error("Error sending reschedule notification:", e));
-                    }
-                  }
-                }
-              }
-            }
-          }
-        } catch (rescheduleErr) {
-          console.error("Error during reschedule notification pipeline:", rescheduleErr);
-        }
-      }
-
       return NextResponse.json({ success: true });
     }
 
     if (type === "EVALUATION") {
-      const feedbackText = String(payload?.feedback ?? payload?.evaluation_notes ?? "").trim();
+      const interviewApplicationId = targetId;
+      const feedbackText = String(payload?.feedback ?? "").trim();
+      const attendanceStatus = payload?.attendance_status || "ATTENDED";
       const decision = payload?.decision; // "HIRED", "REJECTED", "NO_ACTION"
 
-      const res = await fetch(`${DIRECTUS_BASE}/items/vs_interview/${interviewId}`, {
-        method: "PATCH",
-        headers: getHeaders(),
-        body: JSON.stringify({
-          feedback: feedbackText,
-          interview_status: "COMPLETED",
-          updated_by_user_id: userId,
-          updated_at: nowPH,
-        }),
-      });
+      // 1. Update vs_interview_application junction row
+      const patchJunctionRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview_application/${interviewApplicationId}`,
+        {
+          method: "PATCH",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            attendance_status: attendanceStatus,
+            feedback: feedbackText,
+            candidate_notes: payload?.candidate_notes || undefined,
+          }),
+        }
+      );
 
-      if (!res.ok) {
-        const text = await res.text();
+      if (!patchJunctionRes.ok) {
+        const text = await patchJunctionRes.text();
         console.error("Directus patch evaluation error:", text);
         return NextResponse.json(
-          { error: "Failed to save evaluation." },
-          { status: res.status }
+          { error: "Failed to save candidate evaluation." },
+          { status: patchJunctionRes.status }
         );
       }
 
-      // Fetch the interview to get application_id
-      const ivRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=application_id`,
+      // 2. Fetch junction row to get application_id and interview_id
+      const fetchJunctionRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview_application/${interviewApplicationId}?fields=application_id,interview_id`,
         { headers: getHeaders(), cache: "no-store" }
       );
 
-      if (ivRes.ok) {
-        const ivData = (await ivRes.json()).data;
-        if (ivData?.application_id) {
-          const targetStatus = decision === "HIRED" ? "HIRED" : decision === "REJECTED" ? "REJECTED" : "INTERVIEW_COMPLETED";
+      if (fetchJunctionRes.ok) {
+        const jaData = (await fetchJunctionRes.json()).data;
+        if (jaData?.application_id) {
+          const targetStatus =
+            decision === "HIRED"
+              ? "HIRED"
+              : decision === "REJECTED"
+              ? "REJECTED"
+              : "INTERVIEW_COMPLETED";
+
           await fetch(
-            `${DIRECTUS_BASE}/items/vs_job_application/${ivData.application_id}?fields=application_id,application_status,client_notes`,
+            `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,application_status,client_notes`,
             {
               method: "PATCH",
               headers: getHeaders(),
@@ -261,10 +222,36 @@ export async function PATCH(
             }
           );
 
-          // Dispatch hiring / rejection email to candidate
+          // Check if all candidates for the interview have been evaluated, update vs_interview status to COMPLETED
+          if (jaData.interview_id) {
+            const allCandidatesRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_interview_application?filter[interview_id][_eq]=${jaData.interview_id}&fields=attendance_status`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
+
+            if (allCandidatesRes.ok) {
+              const allCandidates = (await allCandidatesRes.json()).data ?? [];
+              const allEvaluated = allCandidates.every(
+                (c: { attendance_status: string }) => c.attendance_status !== "PENDING"
+              );
+              if (allEvaluated) {
+                await fetch(`${DIRECTUS_BASE}/items/vs_interview/${jaData.interview_id}`, {
+                  method: "PATCH",
+                  headers: getHeaders(),
+                  body: JSON.stringify({
+                    interview_status: "COMPLETED",
+                    updated_by_user_id: userId,
+                    updated_at: nowPH,
+                  }),
+                });
+              }
+            }
+          }
+
+          // Dispatch email notification to candidate if decision is HIRED / REJECTED
           try {
             const appFetch = await fetch(
-              `${DIRECTUS_BASE}/items/vs_job_application/${ivData.application_id}?fields=user_id,job_id`,
+              `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=user_id,job_id`,
               { headers: getHeaders(), cache: "no-store" }
             );
             if (appFetch.ok) {
@@ -301,7 +288,11 @@ export async function PATCH(
                     }
 
                     const candidateName = `${candidate.user_fname} ${candidate.user_lname}`.trim();
-                    const statusEmailEnabled = await isEmailEnabledForUser(applicationObj.user_id, "APPLICATION_STATUS_UPDATED");
+                    const statusEmailEnabled = await isEmailEnabledForUser(
+                      applicationObj.user_id,
+                      "APPLICATION_STATUS_UPDATED"
+                    );
+
                     if (statusEmailEnabled) {
                       if (decision === "HIRED") {
                         await sendHiringEmail(candidate.user_email, {

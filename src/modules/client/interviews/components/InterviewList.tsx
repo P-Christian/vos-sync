@@ -6,6 +6,7 @@ import React from "react";
 import { Interview } from "../types";
 import InterviewStatusBadge from "./InterviewStatusBadge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
   Clock,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   XCircle,
   CheckCircle2,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -76,6 +78,13 @@ export default function InterviewList({
   return (
     <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
       {interviews.map((item) => {
+        const applications = item.applications ?? [];
+        const mainApp = applications[0];
+        const applicantName = mainApp?.applicant_name || "Candidate";
+        const jobTitle = mainApp?.job_title || "Unknown Position";
+        const applicantAvatar = mainApp?.applicant_avatar;
+        const appCount = applications.length;
+
         const formattedDate = item.scheduled_at
           ? new Date(item.scheduled_at).toLocaleDateString("en-PH", {
               month: "short",
@@ -98,18 +107,24 @@ export default function InterviewList({
           >
             {/* Candidate & Schedule info */}
             <div className="flex items-start gap-4 min-w-0">
-              <CandidateAvatar name={item.applicant_name} avatar={item.applicant_avatar} />
+              <CandidateAvatar name={applicantName} avatar={applicantAvatar} />
 
               <div className="space-y-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                    {item.applicant_name}
+                    {applicantName}
                   </h4>
+                  {appCount > 1 && (
+                    <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                      <Users className="h-3 w-3" />
+                      +{appCount - 1} Batch Candidate{appCount - 1 !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
                   <InterviewStatusBadge status={item.interview_status} />
                 </div>
 
                 <p className="text-xs text-zinc-500 truncate">
-                  Role: <span className="font-medium text-zinc-700 dark:text-zinc-300">{item.job_title}</span>
+                  Role: <span className="font-medium text-zinc-700 dark:text-zinc-300">{jobTitle}</span>
                 </p>
 
                 <div className="flex items-center gap-4 text-xs text-zinc-500 pt-1 flex-wrap">
@@ -139,7 +154,7 @@ export default function InterviewList({
                 variant="outline"
                 size="sm"
                 onClick={() => onViewDetails(item)}
-                className="h-8 text-xs rounded-lg gap-1.5"
+                className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
               >
                 <Eye className="h-3.5 w-3.5 text-zinc-500" />
                 View & Q&A
@@ -153,7 +168,7 @@ export default function InterviewList({
                     variant="outline"
                     size="sm"
                     onClick={() => onReschedule(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5"
+                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
                   >
                     <RefreshCw className="h-3.5 w-3.5 text-amber-500" />
                     Reschedule
@@ -162,7 +177,7 @@ export default function InterviewList({
                   <Button
                     size="sm"
                     onClick={() => onOpenEvaluation(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0"
+                    className="h-8 text-xs rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-semibold"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     Record Feedback
@@ -172,7 +187,7 @@ export default function InterviewList({
                     variant="outline"
                     size="sm"
                     onClick={() => onOpenCancelModal(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    className="h-8 text-xs rounded-lg gap-1.5 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold"
                   >
                     <XCircle className="h-3.5 w-3.5 text-rose-500" />
                     Cancel
@@ -183,10 +198,10 @@ export default function InterviewList({
                   variant="outline"
                   size="sm"
                   onClick={() => onOpenEvaluation(item)}
-                  className="h-8 text-xs rounded-lg gap-1.5 text-emerald-600 border-emerald-200 dark:border-emerald-900/50"
+                  className="h-8 text-xs rounded-lg gap-1.5 text-emerald-600 border-emerald-200 dark:border-emerald-900/50 font-semibold"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {item.feedback ? "View Feedback" : "Add Feedback"}
+                  View Feedback
                 </Button>
               ) : null}
             </div>

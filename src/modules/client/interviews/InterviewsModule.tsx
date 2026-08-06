@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useInterviews } from "./hooks/useInterviews";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import InterviewList from "./components/InterviewList";
-import InterviewForm from "./components/InterviewForm";
+import InterviewForm, { JobOption, ApplicantOption } from "./components/InterviewForm";
 import InterviewDetailsModal from "./components/InterviewDetailsModal";
 import InterviewEvaluationModal from "./components/InterviewEvaluationModal";
 import CancelInterviewModal from "./components/CancelInterviewModal";
@@ -45,6 +45,19 @@ export default function InterviewsModule() {
   } = useInterviews();
 
   const { subscribe } = useRealtime();
+
+  const [availableJobs, setAvailableJobs] = useState<JobOption[]>([]);
+  const [availableApplicants, setAvailableApplicants] = useState<ApplicantOption[]>([]);
+
+  useEffect(() => {
+    fetch("/api/client/applicants", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.jobs) setAvailableJobs(json.jobs);
+        if (json.applicants) setAvailableApplicants(json.applicants);
+      })
+      .catch((e) => console.error("Error fetching available jobs/applicants:", e));
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribe("vs_interview_schedule", ({ data }) => {
@@ -121,9 +134,13 @@ export default function InterviewsModule() {
       }
     }
 
+    const appIds = interview.applications
+      ? interview.applications.map((a) => a.application_id)
+      : [];
+
     setFormData({
       interview_id: String(interview.interview_id),
-      application_id: String(interview.application_id),
+      application_ids: appIds,
       scheduled_at: localDatetime,
       duration_minutes: interview.duration_minutes ?? 60,
       timezone: interview.timezone || "Asia/Manila",
@@ -131,21 +148,20 @@ export default function InterviewsModule() {
       meeting_link: interview.meeting_link || "",
       meeting_location: interview.meeting_location || "",
       interview_notes: interview.interview_notes || "",
-      candidate_notes: interview.candidate_notes || "",
     });
     setFormErrors({});
     setIsRescheduling(true);
     setScheduleDialogOpen(true);
   };
 
-  const handleFieldChange = (field: keyof InterviewFormData, value: string | number) => {
+  const handleFieldChange = (field: keyof InterviewFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveInterview = async () => {
     const errors: Partial<Record<keyof InterviewFormData, string>> = {};
-    if (!isRescheduling && !formData.application_id)
-      errors.application_id = "Application ID is required.";
+    if (!isRescheduling && (!formData.application_ids || formData.application_ids.length === 0))
+      errors.application_ids = "Please select at least one candidate application attendee.";
     if (!formData.scheduled_at) errors.scheduled_at = "Scheduled Date & Time is required.";
     if (!formData.interview_format) errors.interview_format = "Interview format is required.";
 
@@ -210,9 +226,9 @@ export default function InterviewsModule() {
               <CalendarDays className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Interview & Screening Workspace</h1>
+              <h1 className="text-xl font-bold tracking-tight">Interview & Batch Screening Workspace</h1>
               <p className="text-sm text-zinc-300 mt-1">
-                Schedule candidate interviews, review screening answers, and record evaluations.
+                Schedule candidate batch interviews, review screening answers, and record individual candidate evaluations.
               </p>
             </div>
           </div>
@@ -311,6 +327,9 @@ export default function InterviewsModule() {
               onChange={handleFieldChange}
               errors={formErrors}
               disableApplicationId={isRescheduling}
+              existingInterviews={interviews}
+              availableJobs={availableJobs}
+              availableApplicants={availableApplicants}
             />
 
             <DialogFooter className="mt-4">

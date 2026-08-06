@@ -86,9 +86,9 @@ export default function CancelInterviewModal({
           <DialogDescription className="text-xs text-zinc-500 pt-1">
             You are about to cancel the interview for{" "}
             <span className="font-semibold text-zinc-800 dark:text-zinc-200">
-              {interview.applicant_name}
+              {interview.applications?.[0]?.applicant_name || "Candidate"}
             </span>{" "}
-            ({interview.job_title}).
+            ({interview.applications?.[0]?.job_title || "Position"}).
           </DialogDescription>
         </DialogHeader>
 
