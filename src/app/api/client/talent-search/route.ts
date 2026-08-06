@@ -2,6 +2,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import {
+  runMatchingEngine,
+  normalizeRawCandidate,
+  MatchMode,
+  MatchContext,
+  cleanText,
+  analyzeQuery,
+  retrieveCandidatePool,
+} from "@/modules/matching-engine";
+import { expandQueryWithGemini, shouldExpandWithGemini } from "@/lib/gemini/queryUnderstanding";
+import { rerankCandidatesWithGemini } from "@/lib/gemini/aiReranker";
+import { generateBatchExplanations } from "@/lib/gemini/matchExplainer";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,109 +45,13 @@ function getUserIdFromToken(token: string): number | null {
   }
 }
 
-const ROLE_MAP: Record<string, string[]> = {
-  marketing: [
-    "social media",
-    "social media strategist",
-    "social media creator",
-    "social media manager",
-    "social media specialist",
-    "content creator",
-    "content strategist",
-    "digital marketer",
-    "copywriter",
-    "seo specialist",
-    "growth marketer",
-  ],
-  frontend: [
-    "frontend",
-    "react",
-    "vue",
-    "angular",
-    "ui engineer",
-    "web developer",
-    "front-end",
-    "front end",
-    "javascript",
-    "next.js",
-    "nextjs",
-    "typescript",
-  ],
-  backend: [
-    "backend",
-    "software engineer",
-    "api developer",
-    "python",
-    "java",
-    "node",
-    "nodejs",
-    "golang",
-    "php",
-    "back-end",
-    "back end",
-    "c#",
-    ".net",
-    "spring",
-  ],
-  fullstack: [
-    "full stack",
-    "fullstack",
-    "software engineer",
-    "web developer",
-    "developer",
-  ],
-  mobile: [
-    "mobile",
-    "ios",
-    "android",
-    "react native",
-    "flutter",
-    "swift",
-    "kotlin",
-  ],
-  devops: [
-    "devops",
-    "cloud",
-    "site reliability",
-    "sre",
-    "infrastructure",
-    "sysadmin",
-    "aws",
-    "azure",
-    "kubernetes",
-  ],
-  data: [
-    "data engineer",
-    "data scientist",
-    "data analyst",
-    "machine learning",
-    "ai engineer",
-    "sql",
-  ],
-  qa: [
-    "qa",
-    "quality assurance",
-    "software tester",
-    "test engineer",
-    "automation engineer",
-  ],
-  design: [
-    "ui designer",
-    "ux designer",
-    "product designer",
-    "ui/ux",
-    "web designer",
-  ],
-};
+// ── DB-Backed Taxonomy Types ──────────────────────────────────────────────────
 
-function getNormalizedCategory(title: string): string | null {
-  const lower = title.toLowerCase();
-  for (const [cat, keywords] of Object.entries(ROLE_MAP)) {
-    if (keywords.some((kw) => lower.includes(kw))) {
-      return cat;
-    }
-  }
-  return null;
+export interface RoleSkillMappingRow {
+  role_id: { role_id: number };
+  skill_id: { id: number; skill_name: string };
+  importance_weight: number;
+  is_required: number;
 }
 
 export interface RoleTaxonomyAliasRow {
@@ -156,6 +73,7 @@ export interface RoleTaxonomyAliasRow {
 export interface ResolvedTaxonomyContext {
   keyword: string;
   resolved_role: string | null;
+  resolved_role_id: number | null;
   category_code: string | null;
   category_name: string | null;
   matched_alias: string | null;
@@ -167,11 +85,13 @@ function resolveRoleTaxonomy(
   keyword: string,
   dbAliases: RoleTaxonomyAliasRow[]
 ): ResolvedTaxonomyContext {
-  const normalizedQuery = keyword.trim().toLowerCase();
-  if (!normalizedQuery) {
+  const original = (keyword || "").trim();
+  const cleanedKey = cleanText(original);
+  if (!cleanedKey) {
     return {
       keyword: "",
       resolved_role: null,
+      resolved_role_id: null,
       category_code: null,
       category_name: null,
       matched_alias: null,
@@ -180,55 +100,66 @@ function resolveRoleTaxonomy(
     };
   }
 
-  // 1. Direct normalized alias match in DB
-  const exactAlias = dbAliases.find((a) => a.normalized_alias === normalizedQuery);
-  const matched =
+  // 1. Exact normalized alias match (using cleanText to strip hyphens, underscores, dots, etc.)
+  const exactAlias = dbAliases.find((a) => cleanText(a.normalized_alias) === cleanedKey);
+  // 2. Partial containment match — also compare space-stripped versions (e.g. "webdeveloper" vs "web developer")
+  const cleanedKeyNoSpaces = cleanedKey.replace(/\s+/g, "");
+  const partialAlias =
     exactAlias ??
-    dbAliases.find(
-      (a) =>
-        normalizedQuery.includes(a.normalized_alias) ||
-        a.normalized_alias.includes(normalizedQuery)
-    );
+    dbAliases.find((a) => {
+      const norm = cleanText(a.normalized_alias);
+      const normNoSpaces = norm.replace(/\s+/g, "");
+      return (
+        norm &&
+        (cleanedKey.includes(norm) ||
+          norm.includes(cleanedKey) ||
+          cleanedKeyNoSpaces === normNoSpaces ||
+          cleanedKeyNoSpaces.includes(normNoSpaces) ||
+          normNoSpaces.includes(cleanedKeyNoSpaces))
+      );
+    });
 
-  if (matched && matched.role_id) {
+  if (partialAlias && partialAlias.role_id) {
+    const matched = partialAlias;
     const roleName = matched.role_id.role_name;
+    const roleId = matched.role_id.role_id;
     const catCode = matched.role_id.category_id?.category_code ?? null;
     const catName = matched.role_id.category_id?.category_name ?? null;
 
-    // Expand all aliases in the same role or category
+    // Expand all aliases in the same role OR same category for broader matching
     const expanded = dbAliases
       .filter(
         (a) =>
-          a.role_id?.role_id === matched.role_id.role_id ||
+          a.role_id?.role_id === roleId ||
           (catCode && a.role_id?.category_id?.category_code === catCode)
       )
-      .map((a) => a.normalized_alias);
+      .map((a) => cleanText(a.normalized_alias));
 
     return {
       keyword,
       resolved_role: roleName,
+      resolved_role_id: roleId,
       category_code: catCode,
       category_name: catName,
       matched_alias: matched.alias_name,
       match_weight: Number(matched.match_weight ?? 1.0),
-      expanded_aliases: Array.from(new Set([normalizedQuery, ...expanded])),
+      expanded_aliases: Array.from(new Set([cleanedKey, ...expanded])).filter(Boolean),
     };
   }
 
-  // Fallback to internal dictionary
-  const catCode = getNormalizedCategory(normalizedQuery);
-  const categoryKeywords = catCode ? (ROLE_MAP[catCode] ?? []) : [];
-
+  // No DB match — no category inflation, just use the raw keyword
   return {
     keyword,
-    resolved_role: catCode ? `${catCode.toUpperCase()} Specialist` : null,
-    category_code: catCode,
-    category_name: catCode ? `${catCode.toUpperCase()} Professional` : null,
+    resolved_role: null,
+    resolved_role_id: null,
+    category_code: null,
+    category_name: null,
     matched_alias: keyword,
     match_weight: 1.0,
-    expanded_aliases: Array.from(new Set([normalizedQuery, ...categoryKeywords])),
+    expanded_aliases: [cleanedKey],
   };
 }
+
 
 interface WorkRow {
   company_name: string;
@@ -258,7 +189,8 @@ function calcRelevantExperience(
   const ignoredRoles: string[] = [];
 
   const targetLower = targetRoleOrKeyword.toLowerCase();
-  const targetCategory = taxonomyContext?.category_code ?? getNormalizedCategory(targetLower);
+  // Use DB-resolved category only — no hardcoded fallback
+  const targetCategory = taxonomyContext?.category_code ?? null;
   const lowerTargetSkills = targetSkills.map((s) => s.toLowerCase());
   const expandedAliases = taxonomyContext?.expanded_aliases.map((a) => a.toLowerCase()) ?? [];
 
@@ -271,29 +203,33 @@ function calcRelevantExperience(
 
     const titleLower = (exp.job_title || "").toLowerCase();
     const descLower = (exp.job_description || "").toLowerCase();
-    const workCategory = getNormalizedCategory(titleLower);
 
-    // Relevance check 1: Target category matches work category
-    const isCategoryMatch =
-      targetCategory &&
-      workCategory &&
-      (targetCategory === workCategory || targetCategory === "fullstack" || workCategory === "fullstack");
-
-    // Relevance check 2: Title matches taxonomy expanded aliases or target keyword
+    // Relevance check 1: DB expanded alias match on title/description
+    //   (covers category-level matching since aliases span all roles in a category)
     const isAliasMatch = expandedAliases.some(
-      (alias) => titleLower.includes(alias) || descLower.includes(alias)
+      (alias) => alias.length > 2 && (titleLower.includes(alias) || descLower.includes(alias))
     );
+
+    // Relevance check 2: Direct keyword match on title/description
     const isKeywordMatch = Boolean(
       targetLower && (titleLower.includes(targetLower) || descLower.includes(targetLower))
     );
 
-    // Relevance check 3: Title or Job Description contains any of the target skills
+    // Relevance check 3: Target category match via expanded aliases on work title
+    //   fullstack overlaps with both frontend and backend
+    const isCategoryMatch =
+      targetCategory &&
+      expandedAliases.some((alias) => titleLower.includes(alias)) &&
+      (targetCategory === "fullstack" ||
+        expandedAliases.some((a) => titleLower.includes(a)));
+
+    // Relevance check 4: Title or description mentions any of the target skills
     const isSkillMatch = lowerTargetSkills.some((s) => titleLower.includes(s) || descLower.includes(s));
 
     if (
-      isCategoryMatch ||
       isAliasMatch ||
       isKeywordMatch ||
+      isCategoryMatch ||
       isSkillMatch ||
       (!targetRoleOrKeyword && targetSkills.length === 0)
     ) {
@@ -446,12 +382,15 @@ export interface MatchBreakdown {
   portfolio: number;
 }
 
+export type ScoringMode = "job_match" | "skill_match" | "role_similarity" | "filters_only" | "browse";
+
 interface CompatibilityScoreResult {
   overallScore: number;
   breakdown: MatchBreakdown;
 }
 
 function computeCompatibilityScore(params: {
+  scoringMode: ScoringMode;
   skillsRequested: string[];
   candidateSkills: string[];
   workRows: WorkRow[];
@@ -463,11 +402,13 @@ function computeCompatibilityScore(params: {
   requiredLocation: string;
   candidateLocation: string;
   availability: string;
+  headline?: string | null;
   profileSummary?: string;
   workMediaCount?: number;
   taxonomyContext?: ResolvedTaxonomyContext;
 }): CompatibilityScoreResult {
   const {
+    scoringMode,
     skillsRequested,
     candidateSkills,
     workRows,
@@ -479,10 +420,117 @@ function computeCompatibilityScore(params: {
     requiredLocation,
     candidateLocation,
     availability,
+    headline,
     profileSummary,
     workMediaCount = 0,
     taxonomyContext,
   } = params;
+
+  const expRes = calcRelevantExperience(workRows, targetRoleOrKeyword, skillsRequested, taxonomyContext);
+
+  // ── MODE 3: ROLE SIMILARITY MODE (Keyword Search without explicit skills / job_id) ──
+  if (scoringMode === "role_similarity") {
+    const aliasWeightModifier = taxonomyContext?.match_weight ?? 1.0;
+    const targetLower = targetRoleOrKeyword.toLowerCase();
+    const expandedAliases = taxonomyContext?.expanded_aliases.map((a) => a.toLowerCase()) ?? [targetLower];
+
+    // 1. Role Similarity (50 Points Max)
+    let roleMatchScore = 15; // default base match
+
+    // Check candidate headline and all past/current work titles
+    const candidateTitles = [
+      headline || "",
+      ...workRows.map((w) => w.job_title || ""),
+    ].filter(Boolean).map((t) => t.toLowerCase());
+
+    const hasExactKeywordInTitle = candidateTitles.some(
+      (t) => t.includes(targetLower) || targetLower.includes(t)
+    );
+
+    const hasAliasMatchInTitle = candidateTitles.some((t) =>
+      expandedAliases.some((alias) => alias.length > 2 && (t.includes(alias) || alias.includes(t)))
+    );
+
+    if (hasExactKeywordInTitle) {
+      roleMatchScore = Math.round(50 * aliasWeightModifier);
+    } else if (hasAliasMatchInTitle) {
+      roleMatchScore = Math.round(45 * aliasWeightModifier);
+    } else {
+      // Check summary / text match
+      const summaryLower = (profileSummary || "").toLowerCase();
+      const hasWordMatch = expandedAliases.some((alias) => summaryLower.includes(alias));
+      if (hasWordMatch) {
+        roleMatchScore = 30;
+      } else {
+        roleMatchScore = 20;
+      }
+    }
+
+    // 2. Relevant Experience Match (25 Points Max)
+    let expScore = 10;
+    if (expRes.relevantYears >= 5) {
+      expScore = 25;
+    } else if (expRes.relevantYears >= 3) {
+      expScore = 20;
+    } else if (expRes.relevantYears >= 1) {
+      expScore = 15;
+    } else if (expRes.relevantYears > 0) {
+      expScore = 10;
+    } else {
+      expScore = 5;
+    }
+
+    // 3. Inferred Skills Bonus (15 Points Max - NO penalty for unrequested skills)
+    let skillsScore = 5;
+    if (skillsRequested.length > 0) {
+      const lowerCandidateSkills = candidateSkills.map((s) => s.toLowerCase());
+      const matchedCount = skillsRequested.filter((s) => lowerCandidateSkills.includes(s.toLowerCase())).length;
+      if (matchedCount >= 3) {
+        skillsScore = 15;
+      } else if (matchedCount >= 1) {
+        skillsScore = 12;
+      } else if (candidateSkills.length > 0) {
+        skillsScore = 8;
+      }
+    } else if (candidateSkills.length > 0) {
+      skillsScore = 10;
+    }
+
+    // 4. Education & Certs (10 Points Max: 5 Edu + 5 Certs)
+    const eduRaw = calcRelevantEducation(eduRows, skillsRequested, targetRoleOrKeyword);
+    const eduScore = Math.round((eduRaw / 10) * 5); // scale to 5 max
+
+    const certsRaw = calcRelevantCertifications(certRows, skillsRequested);
+    const certsScore = Math.round((certsRaw / 10) * 5); // scale to 5 max
+
+    const availScore = calcAvailabilityScore(availability);
+    const locationScore = (!requiredLocation || requiredLocation.toLowerCase() === "remote" || candidateLocation.toLowerCase().includes(requiredLocation.toLowerCase())) ? 5 : 2;
+    const portfolioScore = calcPortfolioScore(socialLinks, profileSummary, workMediaCount);
+
+    const total = Math.min(100, roleMatchScore + expScore + skillsScore + eduScore + certsScore);
+
+    return {
+      overallScore: total,
+      breakdown: {
+        overallScore: total,
+        skills: skillsScore,
+        experience: {
+          score: expScore,
+          relevantYears: expRes.relevantYears,
+          totalYears: expRes.totalYears,
+          matchedRoles: expRes.matchedRoles,
+          ignoredRoles: expRes.ignoredRoles,
+        },
+        education: eduScore,
+        certifications: certsScore,
+        availability: availScore,
+        location: locationScore,
+        portfolio: portfolioScore,
+      },
+    };
+  }
+
+  // ── MODES 1 & 2: JOB MATCHING / SKILL FILTER MATCHING MODE (Detailed Requirements) ──
 
   // 1. Skills Match (45%)
   let skillsScore = 0;
@@ -495,7 +543,6 @@ function computeCompatibilityScore(params: {
   }
 
   // 2. Relevant Experience Match (20%)
-  const expRes = calcRelevantExperience(workRows, targetRoleOrKeyword, skillsRequested, taxonomyContext);
   let expScore = 0;
   if (requiredExperienceYears > 0) {
     const ratio = Math.min(expRes.relevantYears / requiredExperienceYears, 1.2);
@@ -564,6 +611,7 @@ function computeCompatibilityScore(params: {
   };
 }
 
+
 export async function GET(req: NextRequest) {
   try {
     const token =
@@ -620,9 +668,15 @@ export async function GET(req: NextRequest) {
       `fields=alias_id,alias_name,normalized_alias,match_weight,role_id.role_id,role_id.role_name,role_id.category_id.category_id,role_id.category_id.category_code,role_id.category_id.category_name` +
       `&limit=-1`;
 
-    const [profilesRes, aliasesRes] = await Promise.all([
+    const roleSkillsUrl =
+      `${DIRECTUS_BASE}/items/vs_role_skill_mapping?` +
+      `fields=role_id.role_id,skill_id.id,skill_id.skill_name,importance_weight,is_required` +
+      `&limit=-1`;
+
+    const [profilesRes, aliasesRes, roleSkillsRes] = await Promise.all([
       fetch(profilesUrl, { headers: getHeaders(), cache: "no-store" }),
       fetch(aliasesUrl, { headers: getHeaders(), cache: "no-store" }).catch(() => null),
+      fetch(roleSkillsUrl, { headers: getHeaders(), cache: "no-store" }).catch(() => null),
     ]);
 
     if (!profilesRes.ok) {
@@ -640,8 +694,80 @@ export async function GET(req: NextRequest) {
     const dbAliases: RoleTaxonomyAliasRow[] =
       aliasesRes && aliasesRes.ok ? (await aliasesRes.json()).data ?? [] : [];
 
-    // Resolve Role Taxonomy for current keyword
-    const taxonomyContext = resolveRoleTaxonomy(keyword, dbAliases);
+    const dbRoleSkills: RoleSkillMappingRow[] =
+      roleSkillsRes && roleSkillsRes.ok ? (await roleSkillsRes.json()).data ?? [] : [];
+
+    // ────────────────────────────────────────────
+    // Gemini Layer A: Query Understanding (runs BEFORE taxonomy + retrieval)
+    // Converts natural language to canonical role keyword for matching
+    // e.g. "I need someone who builds websites with React" → "React Developer"
+    // ────────────────────────────────────────────
+    let geminiQueryIntent = null;
+    let matchKeyword = keyword; // effective keyword used for matching (may be Gemini-resolved)
+
+    if (keyword && shouldExpandWithGemini(keyword)) {
+      console.log(`[talent-search] 🤖 Gemini Layer A: expanding query "${keyword}"`);
+      geminiQueryIntent = await expandQueryWithGemini(keyword).catch(() => null);
+
+      if (geminiQueryIntent) {
+        console.log(`[talent-search] 🤖 Gemini Layer A result:`, JSON.stringify(geminiQueryIntent));
+      } else {
+        console.log(`[talent-search] ⚠️  Gemini Layer A: failed or no API key — using raw keyword`);
+      }
+
+      // Use Gemini resolved role as effective search keyword when confidence is high enough
+      if (
+        geminiQueryIntent &&
+        geminiQueryIntent.resolved_role &&
+        (geminiQueryIntent.confidence === "HIGH" || geminiQueryIntent.confidence === "MEDIUM")
+      ) {
+        matchKeyword = geminiQueryIntent.resolved_role;
+        console.log(`[talent-search] 🤖 Gemini Layer A: matchKeyword resolved → "${matchKeyword}"`);
+      } else {
+        console.log(`[talent-search] ℹ️  Gemini Layer A: keeping original keyword → "${matchKeyword}"`);
+      }
+    } else {
+      console.log(`[talent-search] ℹ️  Gemini Layer A: skipped (query too short) — keyword="${keyword}"`);
+    }
+
+    // Resolve Role Taxonomy using the effective match keyword (Gemini-resolved or original)
+    const taxonomyContext = resolveRoleTaxonomy(matchKeyword, dbAliases);
+    console.log(`[talent-search] 📚 Taxonomy resolved:`, JSON.stringify({
+      matchKeyword,
+      resolved_role: taxonomyContext.resolved_role,
+      resolved_role_id: taxonomyContext.resolved_role_id,
+      category_code: taxonomyContext.category_code,
+      aliases_count: taxonomyContext.expanded_aliases.length,
+    }));
+
+    // Build role → skill name list map from DB
+    const roleSkillsMap = new Map<number, string[]>();
+    for (const row of dbRoleSkills) {
+      const roleId = row.role_id?.role_id;
+      const skillName = row.skill_id?.skill_name;
+      if (!roleId || !skillName) continue;
+      if (!roleSkillsMap.has(roleId)) roleSkillsMap.set(roleId, []);
+      roleSkillsMap.get(roleId)!.push(skillName);
+    }
+
+    // Auto-expand requestedSkills with DB role skills when user specified no explicit skills
+    // and the keyword resolved to a known DB role
+    let effectiveRequestedSkills = requestedSkills;
+    if (requestedSkills.length === 0 && taxonomyContext.resolved_role_id !== null) {
+      const roleId = taxonomyContext.resolved_role_id;
+      const roleSkills = roleSkillsMap.get(roleId) ?? [];
+      if (roleSkills.length > 0) {
+        effectiveRequestedSkills = roleSkills;
+      }
+    }
+
+    // Merge Gemini inferred skills if query understanding enriched the query
+    if (geminiQueryIntent && geminiQueryIntent.inferred_skills.length > 0 && requestedSkills.length === 0) {
+      effectiveRequestedSkills = Array.from(
+        new Set([...effectiveRequestedSkills, ...geminiQueryIntent.inferred_skills])
+      );
+    }
+    console.log(`[talent-search] 🎯 Effective skills for scoring (${effectiveRequestedSkills.length}):`, effectiveRequestedSkills.slice(0, 10));
 
     if (profiles.length === 0) {
       return NextResponse.json({
@@ -832,10 +958,34 @@ export async function GET(req: NextRequest) {
         jobIdForMatch ||
         location ||
         experienceLevel ||
-        schoolId
+        schoolId ||
+        availability
     );
 
     const searchMode: "browse" | "search" = hasSearchCriteria ? "search" : "browse";
+
+    let activeEngineMode: MatchMode = MatchMode.BROWSE;
+    if (jobIdForMatch && keyword) {
+      activeEngineMode = MatchMode.HYBRID;
+    } else if (jobIdForMatch) {
+      activeEngineMode = MatchMode.JOB_MATCH;
+    } else if (requestedSkills.length > 0) {
+      activeEngineMode = MatchMode.SKILL_MATCH;
+    } else if (keyword) {
+      activeEngineMode = MatchMode.ROLE_SIMILARITY;
+    } else if (hasSearchCriteria) {
+      activeEngineMode = MatchMode.HYBRID;
+    }
+
+    const matchContext: MatchContext = {
+      mode: activeEngineMode,
+      keyword: matchKeyword, // Use Gemini-resolved role keyword for scoring
+      requestedSkills: jobIdForMatch ? jobSkills : effectiveRequestedSkills,
+      jobId: jobIdForMatch ? Number(jobIdForMatch) : undefined,
+      location,
+      requiredExperience: requiredExpYears,
+      taxonomyContext,
+    };
 
     interface TalentResult {
       user_id: number;
@@ -867,58 +1017,92 @@ export async function GET(req: NextRequest) {
       availability_status: string;
       is_saved: boolean;
       match_score: number | null;
-      match_breakdown: MatchBreakdown | null;
+      ranking_score: number | null;
+      match_result: any | null;
+      match_breakdown: any | null;
+      ai_explanation: string | null;
     }
 
-    const allTalents: TalentResult[] = profiles
-      .map((profile) => {
-        const user = usersMap.get(profile.user_id);
-        if (!user) return null;
+    // Layer 1: High-Recall Candidate Retrieval Filter (Jaro-Winkler, Levenshtein, Token Overlap, Taxonomy Expansion)
+    const normalizedProfilesMap = new Map();
+    const normalizedProfilesList = [];
 
-        const skills = skillsMap.get(profile.user_id) ?? [];
-        const work = workMap.get(profile.user_id) ?? [];
-        const edu = eduMap.get(profile.user_id) ?? [];
-        const certs = certsMap.get(profile.user_id) ?? [];
-        const social = socialMap.get(profile.user_id) ?? [];
+    for (const profile of profiles) {
+      const user = usersMap.get(profile.user_id);
+      if (!user) continue;
 
-        const location = [user.user_city, user.user_province].filter(Boolean).join(", ");
-        const currentRole = work.find((w) => w.is_current_role);
-        const availabilityStatus = currentRole ? "EMPLOYED" : "AVAILABLE";
+      const skills = skillsMap.get(profile.user_id) ?? [];
+      const work = workMap.get(profile.user_id) ?? [];
+      const edu = eduMap.get(profile.user_id) ?? [];
+      const certs = certsMap.get(profile.user_id) ?? [];
+      const social = socialMap.get(profile.user_id) ?? [];
+      const location = [user.user_city, user.user_province].filter(Boolean).join(", ");
 
-        const targetSkills = jobIdForMatch ? jobSkills : requestedSkills;
-        const targetRole = jobData?.job_title ?? keyword ?? "";
+      const normalized = normalizeRawCandidate({
+        user_id: profile.user_id,
+        name: `${user.user_fname} ${user.user_lname}`.trim(),
+        email: user.user_email,
+        headline: profile.profile_headline,
+        summary: profile.professional_summary,
+        location,
+        skills,
+        work_experience: work,
+        education: edu.map((e) => ({
+          school_name: e.school_id?.school_name,
+          course_name: e.school_course_id?.course_name,
+          start_date: e.start_date,
+          end_date: e.end_date,
+        })),
+        certifications: certs,
+        social_links: social,
+      });
 
-        // Compute Candidate Compatibility Score & Breakdown with Taxonomy Context
-        const compat = computeCompatibilityScore({
-          skillsRequested: targetSkills,
-          candidateSkills: skills,
-          workRows: work,
-          eduRows: edu,
-          certRows: certs,
-          socialLinks: social,
-          requiredExperienceYears: requiredExpYears,
-          targetRoleOrKeyword: targetRole,
-          requiredLocation: jobData?.job_location ?? location,
-          candidateLocation: location,
-          availability: availabilityStatus,
-          profileSummary: profile.professional_summary,
-          workMediaCount: 0,
-          taxonomyContext,
-        });
+      normalizedProfilesMap.set(profile.user_id, { profile, user, skills, work, edu, certs, social, normalized });
+      normalizedProfilesList.push(normalized);
+    }
+
+    const analyzedQuery = analyzeQuery(matchKeyword);
+    console.log(`[talent-search] 🔍 Layer 1: scanning ${normalizedProfilesList.length} total profiles...`);
+    const retrievedPool = retrieveCandidatePool(normalizedProfilesList, analyzedQuery, taxonomyContext, 15);
+    console.log(`[talent-search] ✅ Layer 1 pool: ${retrievedPool.length} candidates passed retrieval threshold`);
+
+    // Layer 2: Run Matching Engine & Final Scoring on Retrieved Candidate Pool
+    const allTalents: TalentResult[] = (retrievedPool
+      .map(({ candidate }) => {
+        const item = normalizedProfilesMap.get(candidate.id);
+        if (!item) return null;
+
+        const { profile, user, skills, work, edu, certs, social, normalized } = item;
+
+        // Run VOS Sync Matching Engine Pipeline
+        const engineResult = runMatchingEngine(normalized, matchContext);
+
+        // Find relevant exp years from experience evaluator trace/evidence
+        const expEvidence = engineResult.evidence.find((e) => e.type === "EXPERIENCE");
+        const relYearsMatch = expEvidence?.value.match(/([\d\.]+)\s*yrs/);
+        const relYears = relYearsMatch ? Number(relYearsMatch[1]) : 0;
+
+        // Match score percentage & badges are shown ONLY when matching against a specific Job Posting (jobIdForMatch)
+        const showMatchScore = Boolean(jobIdForMatch);
 
         return {
           user_id: profile.user_id,
           profile_id: profile.profile_id,
-          name: `${user.user_fname} ${user.user_lname}`.trim(),
-          email: user.user_email,
+          name: normalized.name,
+          email: normalized.email,
           profile_image_url: user.profile_image_url ?? null,
-          headline: profile.profile_headline ?? currentRole?.job_title ?? null,
-          summary: profile.professional_summary ?? null,
-          location,
-          skills,
-          experience_years: compat.breakdown.experience.totalYears,
-          relevant_experience_years: compat.breakdown.experience.relevantYears,
-          work_experience: work.slice(0, 3).map((w) => ({
+          headline: normalized.headline,
+          summary: normalized.summary,
+          location: normalized.location,
+          skills: normalized.skills,
+          experience_years: work.reduce((acc: number, w: any) => {
+            if (!w.start_date) return acc;
+            const s = new Date(w.start_date);
+            const e = w.is_current_role ? new Date() : w.end_date ? new Date(w.end_date) : new Date();
+            return acc + Math.max(0, (e.getFullYear() - s.getFullYear()));
+          }, 0),
+          relevant_experience_years: relYears,
+          work_experience: work.slice(0, 3).map((w: any) => ({
             company_name: w.company_name,
             job_title: w.job_title,
             start_date: w.start_date ?? null,
@@ -926,57 +1110,45 @@ export async function GET(req: NextRequest) {
             is_current_role: w.is_current_role ?? false,
             employment_type: w.employment_type ?? null,
           })),
-          education: edu.slice(0, 2).map((e) => ({
+          education: edu.slice(0, 2).map((e: any) => ({
             school_name: e.school_id?.school_name ?? null,
             school_id: e.school_id?.school_id ?? null,
             course_name: e.school_course_id?.course_name ?? null,
             start_date: e.start_date ?? null,
             end_date: e.end_date ?? null,
           })),
-          availability_status: availabilityStatus,
+          availability_status: normalized.availability,
           is_saved: savedUserIds.has(profile.user_id),
-          match_score: searchMode === "search" ? compat.overallScore : null,
-          match_breakdown: searchMode === "search" ? compat.breakdown : null,
-        } satisfies TalentResult;
+          match_score: showMatchScore ? engineResult.compatibility.score : null,
+          ranking_score: searchMode === "search" ? engineResult.ranking.score : null,
+          match_result: showMatchScore ? engineResult : null,
+          match_breakdown: showMatchScore ? {
+            mode: engineResult.mode,
+            overallScore: engineResult.compatibility.score,
+            rankingScore: engineResult.ranking.score,
+            confidence: engineResult.confidence,
+            sections: engineResult.compatibility.sections,
+            explanation: engineResult.explanation,
+            evidence: engineResult.evidence,
+          } : null,
+          ai_explanation: null as string | null,
+        };
       })
-      .filter((t): t is TalentResult => t !== null);
+      .filter((t): t is TalentResult => t !== null)) as TalentResult[];
+
+    console.log(`[talent-search] ✅ Layer 2 scored: ${allTalents.length} candidates after engine scoring`);
 
     // ────────────────────────────────────────────
-    // 5. Post-fetch tokenized + taxonomy filtering & sorting
+    // 5. Explicit sidebar filters (skills, location, experience, availability, school)
+    // NOTE: Keyword-based post-filtering is intentionally removed.
+    //       Layer 1 (retrieval) and Layer 2 (scoring) already determine relevance.
+    //       A second keyword gate here would reject valid candidates whose title/summary
+    //       differs from the query but whose skills and experience are highly relevant.
     // ────────────────────────────────────────────
     let filtered = allTalents;
+    console.log(`[talent-search] ✅ Layer 2 candidates entering ranking: ${filtered.length}`);
 
-    if (keyword) {
-      const queryTokens = keyword.toLowerCase().split(/\s+/).filter(Boolean);
-      const expandedAliases = taxonomyContext.expanded_aliases.map((a) => a.toLowerCase());
-
-      filtered = filtered.filter((t) => {
-        const haystack = [
-          t.name,
-          t.headline,
-          t.summary,
-          ...t.skills,
-          ...t.work_experience.map((w) => `${w.job_title} ${w.company_name}`),
-          ...t.education.map((e) => `${e.school_name} ${e.course_name}`),
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        // 1. Direct contiguous match
-        if (haystack.includes(keyword.toLowerCase())) return true;
-
-        // 2. Tokenized match (all search words present in profile)
-        const allTokensMatch = queryTokens.every((token) => haystack.includes(token));
-        if (allTokensMatch) return true;
-
-        // 3. Taxonomy expanded alias match (e.g. "social media creator" matches "social media strategist")
-        const aliasMatch = expandedAliases.some((alias) => alias.length > 3 && haystack.includes(alias));
-        if (aliasMatch) return true;
-
-        return false;
-      });
-    }
-
+    // Filter by user-specified skills only (not expanded DB role skills — those are for scoring only)
     if (requestedSkills.length > 0 && !jobIdForMatch) {
       filtered = filtered.filter((t) => {
         const lowerSkills = t.skills.map((s: string) => s.toLowerCase());
@@ -1009,7 +1181,7 @@ export async function GET(req: NextRequest) {
 
     // Sort mode logic
     if (searchMode === "search") {
-      filtered.sort((a, b) => (b.match_score ?? 0) - (a.match_score ?? 0));
+      filtered.sort((a, b) => (b.ranking_score ?? b.match_score ?? 0) - (a.ranking_score ?? a.match_score ?? 0));
     } else {
       // Browse mode sorting: profile completeness + experience + profile_id desc
       filtered.sort((a, b) => {
@@ -1020,15 +1192,64 @@ export async function GET(req: NextRequest) {
     }
 
     const total = filtered.length;
+
+    // ────────────────────────────────────────────
+    // 6. Gemini Layer B: AI Reranking (job match mode only, top 50)
+    // ────────────────────────────────────────────
+    let aiReranked = false;
+    if (jobIdForMatch && keyword && filtered.length > 1) {
+      console.log(`[talent-search] 🤖 Gemini Layer B: reranking top ${Math.min(filtered.length, 50)} candidates for job ${jobIdForMatch}...`);
+      const rerankInput = filtered.slice(0, 50).map((t) => ({
+        id: t.user_id,
+        title: t.headline,
+        skills: t.skills,
+        summary: t.summary,
+      }));
+      const { ranked_ids, used_ai } = await rerankCandidatesWithGemini(keyword, rerankInput);
+      if (used_ai && ranked_ids.length > 0) {
+        aiReranked = true;
+        const rankMap = new Map(ranked_ids.map((id, idx) => [id, idx]));
+        const top50Reranked = filtered
+          .slice(0, 50)
+          .sort((a, b) => (rankMap.get(a.user_id) ?? 99) - (rankMap.get(b.user_id) ?? 99));
+        filtered = [...top50Reranked, ...filtered.slice(50)];
+        console.log(`[talent-search] 🤖 Gemini Layer B: ✅ reranked ${ranked_ids.length} candidates`);
+      } else {
+        console.log(`[talent-search] ⚠️  Gemini Layer B: rerank failed or skipped — keeping Layer 2 order`);
+      }
+    }
+
     const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+    // ────────────────────────────────────────────
+    // 7. Gemini Layer C: Match Explanations (top 10 on page, job match mode only)
+    // ────────────────────────────────────────────
+    let finalTalents = paginated;
+    if (jobIdForMatch && keyword && paginated.length > 0) {
+      console.log(`[talent-search] 🤖 Gemini Layer C: generating explanations for top ${Math.min(paginated.length, 10)} candidates...`);
+      const explainTop = paginated.slice(0, 10).map((t) => ({
+        id: t.user_id,
+        name: t.name,
+        title: t.headline,
+        skills: t.skills,
+        summary: t.summary,
+        experience_years: t.experience_years,
+      }));
+      const explanations = await generateBatchExplanations(keyword, explainTop);
+      finalTalents = paginated.map((t) => ({
+        ...t,
+        ai_explanation: explanations.get(t.user_id) ?? null,
+      }));
+    }
 
     return NextResponse.json({
       search_mode: searchMode,
       search_context: searchMode === "search" ? taxonomyContext : null,
-      talents: paginated,
+      talents: finalTalents,
       total,
       page,
       limit,
+      ai_reranked: aiReranked,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Internal server error";

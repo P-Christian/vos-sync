@@ -2,7 +2,18 @@
 import { InvitationTemplateData } from "../types";
 
 export function invitationTemplate(data: InvitationTemplateData) {
-  const { candidateName, companyName, jobTitle, message, actionUrl } = data;
+  const {
+    candidateName,
+    companyName,
+    jobTitle,
+    jobDescription,
+    jobLocation,
+    workArrangement,
+    jobType,
+    salaryRange,
+    message,
+    actionUrl,
+  } = data;
 
   const targetUrl =
     actionUrl ||
@@ -27,7 +38,22 @@ export function invitationTemplate(data: InvitationTemplateData) {
           Great news! <strong>${companyName}</strong> has reviewed your profile on <strong>VOS Sync</strong> and extended a direct job opportunity invitation to you.
         </p>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0;">
+        <!-- Message Box (No 'Message from Company' header) -->
+        ${
+          message
+            ? `
+        <div style="background-color: #f8fafc; border-left: 4px solid #14a800; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <p style="font-size: 13px; color: #334155; margin: 0; white-space: pre-line;">${message}</p>
+        </div>
+        `
+            : ""
+        }
+
+        <!-- Job Overview Section -->
+        <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 24px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+          <h3 style="font-size: 14px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">
+            📋 Job Overview
+          </h3>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">🏢 Company:</td>
@@ -43,19 +69,55 @@ export function invitationTemplate(data: InvitationTemplateData) {
             `
                 : ""
             }
+            ${
+              jobLocation || workArrangement
+                ? `
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-weight: 600;">📍 Location:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">
+                ${jobLocation || ""}${jobLocation && workArrangement ? ` (${workArrangement})` : workArrangement || ""}
+              </td>
+            </tr>
+            `
+                : ""
+            }
+            ${
+              jobType
+                ? `
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-weight: 600;">⏰ Employment Type:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${jobType.replace("_", " ")}</td>
+            </tr>
+            `
+                : ""
+            }
+            ${
+              salaryRange
+                ? `
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-weight: 600;">💰 Compensation:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${salaryRange}</td>
+            </tr>
+            `
+                : ""
+            }
           </table>
-        </div>
 
-        ${
-          message
-            ? `
-        <div style="background-color: #f1f5f9; border-left: 4px solid #14a800; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
-          <p style="font-size: 12px; font-weight: 700; color: #475569; margin: 0 0 6px 0; text-transform: uppercase;">Message from ${companyName}:</p>
-          <p style="font-size: 13px; color: #334155; margin: 0; white-space: pre-line;">${message}</p>
+          ${
+            jobDescription
+              ? `
+          <div style="margin-top: 16px; border-top: 1px dashed #e2e8f0; padding-top: 14px;">
+            <h4 style="font-size: 12px; font-weight: 700; color: #64748b; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">
+              Job Description:
+            </h4>
+            <div style="font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-line; background-color: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #f1f5f9;">
+              ${jobDescription}
+            </div>
+          </div>
+          `
+              : ""
+          }
         </div>
-        `
-            : ""
-        }
 
         <div style="text-align: center; margin: 24px 0 28px 0;">
           <a href="${targetUrl}" target="_blank" style="display: inline-block; background-color: #14a800; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">

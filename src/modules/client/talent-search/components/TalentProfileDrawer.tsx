@@ -27,6 +27,7 @@ interface TalentProfileDrawerProps {
   profile: TalentProfile | null;
   matchScore?: number | null;
   matchBreakdown?: MatchBreakdown | null;
+  aiExplanation?: string | null;
   loading: boolean;
   error: string;
   onClose: () => void;
@@ -40,6 +41,7 @@ export default function TalentProfileDrawer({
   profile,
   matchScore,
   matchBreakdown,
+  aiExplanation,
   loading,
   error,
   onClose,
@@ -57,7 +59,7 @@ export default function TalentProfileDrawer({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-xl p-0 flex flex-col h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800"
+        className="w-full sm:max-w-2xl lg:max-w-[760px] p-0 flex flex-col h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800"
       >
         {/* Loading */}
         {loading && (
@@ -145,6 +147,14 @@ export default function TalentProfileDrawer({
               </SheetHeader>
             </div>
 
+            {/* Gemini AI Match Explanation */}
+            {aiExplanation && (
+              <div className="mx-6 mt-3 mb-1 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex gap-2.5 items-start">
+                <span className="text-base shrink-0 mt-0.5">✦</span>
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">{aiExplanation}</p>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex items-center gap-3 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
               <Button
@@ -204,60 +214,94 @@ export default function TalentProfileDrawer({
                   {matchBreakdown && (
                     <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
-                          Candidate Compatibility Breakdown
-                        </h4>
-                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
-                          {matchBreakdown.overallScore}%
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
+                            Compatibility Analysis
+                          </h4>
+                          {matchBreakdown.confidence && (
+                            <span
+                              className={cn(
+                                "text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                matchBreakdown.confidence.level === "HIGH"
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300"
+                                  : matchBreakdown.confidence.level === "MEDIUM"
+                                  ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300"
+                                  : "bg-zinc-100 text-zinc-600 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-400"
+                              )}
+                            >
+                              {matchBreakdown.confidence.level} Confidence
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                          {matchBreakdown.overallScore}% Match
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                          <span className="text-zinc-400 block text-[11px]">Skills (45%)</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.skills} / 45 pts</span>
-                        </div>
+                      {/* Explanation Summary Banner */}
+                      {matchBreakdown.explanation?.summary && (
+                        <p className="text-xs font-medium text-indigo-900/80 dark:text-indigo-200/80 bg-white/60 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/40">
+                          {matchBreakdown.explanation.summary}
+                        </p>
+                      )}
 
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                          <span className="text-zinc-400 block text-[11px]">Relevant Exp (20%)</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                            {matchBreakdown.experience.score} / 20 pts
-                            <span className="text-[10px] text-indigo-600 dark:text-indigo-400 block font-medium">
-                              ({matchBreakdown.experience.relevantYears} yrs relevant)
-                            </span>
+                      {/* Dynamic Data-Driven Breakdown Sections */}
+                      {matchBreakdown.sections && matchBreakdown.sections.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                          {matchBreakdown.sections.map((sec, idx) => (
+                            <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                              <span className="text-zinc-400 block text-[11px] font-medium">{sec.label}</span>
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                                {sec.score} / {sec.max} pts
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        /* Fallback legacy section rendering if sections not present */
+                        <div className="grid grid-cols-2 gap-2.5 text-xs">
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <span className="text-zinc-400 block text-[11px]">Skills</span>
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.skills ?? 0} pts</span>
+                          </div>
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <span className="text-zinc-400 block text-[11px]">Experience</span>
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.experience?.score ?? 0} pts</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Structured Evidence Chips */}
+                      {matchBreakdown.evidence && matchBreakdown.evidence.length > 0 && (
+                        <div className="pt-2.5 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5">
+                          <span className="text-indigo-900 dark:text-indigo-200 font-bold block text-[11px] uppercase tracking-wider">
+                            ✓ Verified Match Signals:
                           </span>
-                        </div>
-
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                          <span className="text-zinc-400 block text-[11px]">Education (10%)</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.education} / 10 pts</span>
-                        </div>
-
-                        <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                          <span className="text-zinc-400 block text-[11px]">Certifications (10%)</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.certifications} / 10 pts</span>
-                        </div>
-                      </div>
-
-                      {/* Matched vs Ignored roles breakdown */}
-                      {(matchBreakdown.experience.matchedRoles.length > 0 || matchBreakdown.experience.ignoredRoles.length > 0) && (
-                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5">
-                          {matchBreakdown.experience.matchedRoles.length > 0 && (
-                            <div className="flex items-start gap-1.5">
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">✓ Relevant Roles:</span>
-                              <span className="text-zinc-700 dark:text-zinc-300 font-medium">
-                                {matchBreakdown.experience.matchedRoles.join(", ")}
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {matchBreakdown.evidence.map((ev, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs"
+                              >
+                                <span className="text-emerald-500 font-bold">✓</span>
+                                {ev.label}: <span className="font-normal text-zinc-600 dark:text-zinc-400">{ev.value}</span>
                               </span>
-                            </div>
-                          )}
-                          {matchBreakdown.experience.ignoredRoles.length > 0 && (
-                            <div className="flex items-start gap-1.5">
-                              <span className="text-zinc-400 font-medium shrink-0">✕ Unrelated Roles:</span>
-                              <span className="text-zinc-500 dark:text-zinc-400 line-through">
-                                {matchBreakdown.experience.ignoredRoles.join(", ")}
-                              </span>
-                            </div>
-                          )}
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Key Strengths */}
+                      {matchBreakdown.explanation?.strengths && matchBreakdown.explanation.strengths.length > 0 && (
+                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-[11px] uppercase tracking-wider">
+                            Highlights:
+                          </span>
+                          <ul className="space-y-1 list-disc list-inside text-zinc-700 dark:text-zinc-300">
+                            {matchBreakdown.explanation.strengths.map((str, idx) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
                         </div>
                       )}
                     </div>

@@ -25,21 +25,42 @@ export interface TalentEducation {
   end_date: string | null;
 }
 
+import {
+  MatchMode,
+  MatchConfidenceLevel,
+  BreakdownSection,
+  MatchExplanation,
+  EvidenceItem,
+  MatchResult,
+} from "@/modules/matching-engine";
+
+export type { MatchMode, MatchConfidenceLevel, BreakdownSection, MatchExplanation, EvidenceItem, MatchResult };
+
 export interface MatchBreakdown {
+  mode: MatchMode;
   overallScore: number;
-  skills: number;
-  experience: {
+  rankingScore?: number;
+  confidence?: {
+    score: number;
+    level: MatchConfidenceLevel;
+  };
+  sections: BreakdownSection[];
+  explanation: MatchExplanation;
+  evidence: EvidenceItem[];
+  // Legacy support fields for backwards compatibility
+  skills?: number;
+  experience?: {
     score: number;
     relevantYears: number;
     totalYears: number;
     matchedRoles: string[];
     ignoredRoles: string[];
   };
-  education: number;
-  certifications: number;
-  availability: number;
-  location: number;
-  portfolio: number;
+  education?: number;
+  certifications?: number;
+  availability?: number;
+  location?: number;
+  portfolio?: number;
 }
 
 /** Lightweight talent card (search results) */
@@ -60,8 +81,12 @@ export interface TalentCard {
   availability_status: AvailabilityStatus;
   is_saved: boolean;
   match_score: number | null;
+  ranking_score?: number | null;
+  match_result?: MatchResult | null;
   match_breakdown?: MatchBreakdown | null;
+  ai_explanation?: string | null;
 }
+
 
 export interface TalentSearchResponse {
   search_mode?: "browse" | "search";
@@ -69,6 +94,7 @@ export interface TalentSearchResponse {
   total: number;
   page: number;
   limit: number;
+  ai_reranked?: boolean;
 }
 
 /** Full talent profile (drawer / detail view) */

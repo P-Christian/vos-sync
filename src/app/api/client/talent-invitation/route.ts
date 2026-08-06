@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         cache: "no-store",
       }),
       job_id
-        ? fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${job_id}?fields=job_title`, {
+        ? fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${job_id}?fields=job_title,job_description,job_location,work_arrangement,job_type,salary_min,salary_max,currency`, {
             headers: getHeaders(),
             cache: "no-store",
           })
@@ -120,6 +120,25 @@ export async function POST(req: NextRequest) {
 
     const companyName = company?.company_name || "a company on VOS-Sync";
     const jobTitle = job?.job_title || null;
+    const jobDescription = job?.job_description || null;
+    const jobLocation = job?.job_location || null;
+    const workArrangement = job?.work_arrangement || null;
+    const jobType = job?.job_type || null;
+
+    let salaryRange: string | null = null;
+    if (job?.salary_min || job?.salary_max) {
+      const curr = job.currency || "PHP";
+      const minStr = job.salary_min ? Number(job.salary_min).toLocaleString() : null;
+      const maxStr = job.salary_max ? Number(job.salary_max).toLocaleString() : null;
+      if (minStr && maxStr) {
+        salaryRange = `${curr} ${minStr} - ${maxStr}`;
+      } else if (minStr) {
+        salaryRange = `${curr} ${minStr}+`;
+      } else if (maxStr) {
+        salaryRange = `Up to ${curr} ${maxStr}`;
+      }
+    }
+
     const candidateUserId = Number(talent_user_id);
 
     // 3. Dispatch In-App Message (if user preference allows)
@@ -142,6 +161,11 @@ export async function POST(req: NextRequest) {
         candidateName,
         companyName,
         jobTitle,
+        jobDescription,
+        jobLocation,
+        workArrangement,
+        jobType,
+        salaryRange,
         message: message.trim(),
       }).catch((e) =>
         console.error("Failed to send notification email:", e)

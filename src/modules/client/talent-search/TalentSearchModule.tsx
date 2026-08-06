@@ -454,6 +454,7 @@ export default function TalentSearchModule() {
           profile={drawerProfile}
           matchScore={activeCard?.match_score}
           matchBreakdown={activeCard?.match_breakdown}
+          aiExplanation={activeCard?.ai_explanation ?? null}
           loading={drawerLoading}
           error={drawerError}
           onClose={() => {
