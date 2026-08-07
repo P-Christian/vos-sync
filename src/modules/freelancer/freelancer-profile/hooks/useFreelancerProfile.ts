@@ -8,6 +8,7 @@ export function useFreelancerProfile() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isAutofilling, setIsAutofilling] = useState(false);
 
     // Single item drafts
     const [pendingPersonalInfo, setPendingPersonalInfoState] = useState<Partial<FreelancerProfile> | null>(null);
@@ -216,5 +217,7 @@ export function useFreelancerProfile() {
         hasPendingChanges,
         saveAllChanges,
         isSaving,
+        isAutofilling,
+        setIsAutofilling,
     };
 }

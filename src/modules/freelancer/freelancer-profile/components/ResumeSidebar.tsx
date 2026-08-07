@@ -6,13 +6,36 @@ import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvi
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VisibilityModal } from "./VisibilityModal";
-import { uploadResumeAction, setPrimaryResumeAction, deleteResumeAction } from "../services/resumes/resumes.actions";
+import { UploadOptionsModal } from "./UploadOptionsModal";
+import { AutofillConfirmModal } from "./AutofillConfirmModal";
+import { DeleteResumeModal } from "./DeleteResumeModal";
+import { uploadResumeAction, setPrimaryResumeAction, deleteResumeAction, uploadAndAutofillResumeAction } from "../services/resumes/resumes.actions";
 import { toast } from "sonner";
 import { VsJobSeekerResume } from "../types/freelancer-profile.types";
 
 export function ResumeSidebar() {
-    const { data, pendingVisibility, refresh } = useFreelancerProfileContext();
+    const { 
+        data, 
+        pendingVisibility, 
+        refresh, 
+        isAutofilling, 
+        setIsAutofilling,
+        setProfessionalSummaryDraft,
+        setWorkExperienceDraft,
+        setEducationDraft,
+        setSkillsDraft
+    } = useFreelancerProfileContext();
     const [isVisibilityModalOpen, setIsVisibilityModalOpen] = useState(false);
+    
+    // Modal states
+    const [isUploadOptionsOpen, setIsUploadOptionsOpen] = useState(false);
+    const [isAutofillConfirmOpen, setIsAutofillConfirmOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    
+    // Data states
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [resumeToDelete, setResumeToDelete] = useState<{ id: number, name: string } | null>(null);
+    
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +53,7 @@ export function ResumeSidebar() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -40,25 +63,99 @@ export function ResumeSidebar() {
             return;
         }
 
+        setSelectedFile(file);
+        setIsUploadOptionsOpen(true);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+
+    const processUpload = async (file: File, isAutofill: boolean) => {
         setIsUploading(true);
+        if (isAutofill) setIsAutofilling(true);
+        
         try {
             const formData = new FormData();
             formData.append("file", file);
             formData.append("folder", "c380f14b-75d1-4b61-b2b4-9a6e596f3162");
             
-            const res = await uploadResumeAction(data.user_id, formData, file.name);
+            let res: any;
+            if (isAutofill) {
+                const currentProfileJson = JSON.stringify(data);
+                res = await uploadAndAutofillResumeAction(data.user_id, formData, file.name, currentProfileJson);
+            } else {
+                res = await uploadResumeAction(data.user_id, formData, file.name);
+            }
+            
             if (res.success) {
-                toast.success("Resume uploaded successfully!");
+                if (isAutofill && res.parsedData) {
+                    const parsed = res.parsedData;
+                    
+                    if (parsed.professional_summary) {
+                        setProfessionalSummaryDraft(parsed.professional_summary);
+                    }
+                    if (parsed.work_experience && parsed.work_experience.length > 0) {
+                        const newWorkExp = parsed.work_experience.map((we: any, i: number) => ({
+                            id: -(Date.now() + i), // Negative ID for draft
+                            user_id: data.user_id,
+                            job_title: we.job_title,
+                            company_name: we.company_name,
+                            start_date: we.start_date,
+                            end_date: we.end_date,
+                            job_description: we.description,
+                            is_current_role: !we.end_date
+                        }));
+                        setWorkExperienceDraft(newWorkExp);
+                    }
+                    if (parsed.education && parsed.education.length > 0) {
+                        const newEdu = parsed.education.map((ed: any, i: number) => ({
+                            id: -(Date.now() + i),
+                            user_id: data.user_id,
+                            school_name_raw: ed.school_name,
+                            course_name_raw: ed.course_name,
+                            start_date: ed.start_date,
+                            end_date: ed.end_date,
+                            education_status: 'Unverified'
+                        }));
+                        setEducationDraft(newEdu);
+                    }
+                    if (parsed.skills && parsed.skills.length > 0) {
+                        const newSkills = parsed.skills.map((s: string, i: number) => ({
+                            user_id: data.user_id,
+                            skill_id: -(Date.now() + i),
+                            skill: { id: -(Date.now() + i), skill_name: s }
+                        }));
+                        setSkillsDraft(newSkills);
+                    }
+                    
+                    toast.success("Resume uploaded and profile autofilled! Please review and save your changes.");
+                } else {
+                    toast.success("Resume uploaded successfully!");
+                }
                 refresh();
             } else {
-                toast.error(res.error || "Failed to upload resume");
+                toast.error(res.error || "Failed to process resume");
             }
         } catch {
             toast.error("An unexpected error occurred");
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (isAutofill) setIsAutofilling(false);
+            setSelectedFile(null);
         }
+    };
+
+    const handleUploadOnly = () => {
+        setIsUploadOptionsOpen(false);
+        if (selectedFile) processUpload(selectedFile, false);
+    };
+
+    const handleUploadAndAutofill = () => {
+        setIsUploadOptionsOpen(false);
+        setIsAutofillConfirmOpen(true);
+    };
+
+    const handleConfirmAutofill = () => {
+        setIsAutofillConfirmOpen(false);
+        if (selectedFile) processUpload(selectedFile, true);
     };
 
     const handleMakePrimary = async (resumeId: number) => {
@@ -75,11 +172,17 @@ export function ResumeSidebar() {
         }
     };
 
-    const handleDelete = async (resumeId: number) => {
-        if (!confirm("Are you sure you want to delete this resume?")) return;
+    const promptDelete = (id: number, name: string) => {
+        setResumeToDelete({ id, name });
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!resumeToDelete) return;
         
+        setIsDeleteModalOpen(false);
         try {
-            const res = await deleteResumeAction(resumeId);
+            const res = await deleteResumeAction(resumeToDelete.id);
             if (res.success) {
                 toast.success("Resume deleted");
                 refresh();
@@ -88,6 +191,8 @@ export function ResumeSidebar() {
             }
         } catch {
             toast.error("An unexpected error occurred");
+        } finally {
+            setResumeToDelete(null);
         }
     };
 
@@ -114,14 +219,14 @@ export function ResumeSidebar() {
                 <Button 
                     className="w-full sm:w-auto font-medium" 
                     onClick={handleUploadClick}
-                    disabled={isUploading}
+                    disabled={isUploading || isAutofilling}
                 >
-                    {isUploading ? (
+                    {isUploading || isAutofilling ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
                         <PlusIcon className="mr-2 h-4 w-4" />
                     )}
-                    {isUploading ? "Uploading..." : "Upload New File"}
+                    {isUploading || isAutofilling ? "Processing..." : "Upload New File"}
                 </Button>
             </div>
 
@@ -134,7 +239,7 @@ export function ResumeSidebar() {
                 {primaryResume ? (
                     <ResumeItem 
                         resume={primaryResume} 
-                        onDelete={() => handleDelete(primaryResume.id)}
+                        onDelete={() => promptDelete(primaryResume.id, primaryResume.file_name || "Document")}
                         isPrimary={true}
                     />
                 ) : (
@@ -153,7 +258,7 @@ export function ResumeSidebar() {
                             <ResumeItem 
                                 key={resume.id}
                                 resume={resume} 
-                                onDelete={() => handleDelete(resume.id)}
+                                onDelete={() => promptDelete(resume.id, resume.file_name || "Document")}
                                 onMakePrimary={() => handleMakePrimary(resume.id)}
                                 isPrimary={false}
                             />
@@ -183,6 +288,27 @@ export function ResumeSidebar() {
             <VisibilityModal 
                 isOpen={isVisibilityModalOpen}
                 onClose={() => setIsVisibilityModalOpen(false)}
+            />
+
+            <UploadOptionsModal 
+                isOpen={isUploadOptionsOpen} 
+                onClose={() => { setIsUploadOptionsOpen(false); setSelectedFile(null); }}
+                onUploadOnly={handleUploadOnly}
+                onUploadAndAutofill={handleUploadAndAutofill}
+            />
+
+            <AutofillConfirmModal 
+                isOpen={isAutofillConfirmOpen}
+                onClose={() => { setIsAutofillConfirmOpen(false); setSelectedFile(null); }}
+                onConfirm={handleConfirmAutofill}
+                fileName={selectedFile?.name || "Document"}
+            />
+
+            <DeleteResumeModal 
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                fileName={resumeToDelete?.name || "Document"}
             />
         </div>
     );
