@@ -114,7 +114,7 @@ export function AIJobRecommendations() {
                                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal">{job.job_type.replace("_", " ")}</Badge>
                                         {(job.salary_min || job.salary_max) && (
                                             <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-normal border-green-200 bg-green-50 text-green-700 dark:bg-green-950/30 dark:border-green-900 dark:text-green-400">
-                                                PHP {job.salary_min?.toLocaleString()} {job.salary_max ? `- ${job.salary_max?.toLocaleString()}` : '+'}
+                                                PHP {job.salary_min ? Number(job.salary_min).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''} {job.salary_max ? `- ${Number(job.salary_max).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '+'}
                                             </Badge>
                                         )}
                                     </div>

@@ -10,6 +10,7 @@ import { UploadOptionsModal } from "./UploadOptionsModal";
 import { AutofillConfirmModal } from "./AutofillConfirmModal";
 import { DeleteResumeModal } from "./DeleteResumeModal";
 import { uploadResumeAction, setPrimaryResumeAction, deleteResumeAction, uploadAndAutofillResumeAction } from "../services/resumes/resumes.actions";
+import { resolveSkillsAction } from "../services/freelancer-profile.actions";
 import { toast } from "sonner";
 import { VsJobSeekerResume } from "../types/freelancer-profile.types";
 
@@ -93,43 +94,64 @@ export function ResumeSidebar() {
                         setProfessionalSummaryDraft(parsed.professional_summary);
                     }
                     if (parsed.work_experience && parsed.work_experience.length > 0) {
-                        const newWorkExp = parsed.work_experience.map((we: { job_title: string; company_name: string; start_date: string; end_date: string | null; description: string }, i: number) => ({
-                            id: -(Date.now() + i), // Negative ID for draft
-                            user_id: data.user_id,
-                            job_title: we.job_title,
-                            company_name: we.company_name,
-                            start_date: we.start_date,
-                            end_date: we.end_date,
-                            job_description: we.description,
-                            is_current_role: !we.end_date,
-                            location: null,
-                            location_type: null,
-                            employment_type: null,
-                            discovery_source: null
-                        }));
+                        const newWorkExp = parsed.work_experience.map((we: { job_title: string; company_name: string; start_date: string; end_date: string | null; description: string }, i: number) => {
+                            const existingMatch = data.work_experience?.find(
+                                (exp) => exp.company_name.trim().toLowerCase() === we.company_name.trim().toLowerCase() && 
+                                         exp.job_title.trim().toLowerCase() === we.job_title.trim().toLowerCase()
+                            );
+                            
+                            return {
+                                id: existingMatch ? existingMatch.id : -(Date.now() + i),
+                                user_id: data.user_id,
+                                job_title: we.job_title,
+                                company_name: we.company_name,
+                                start_date: we.start_date,
+                                end_date: we.end_date,
+                                job_description: we.description,
+                                is_current_role: !we.end_date,
+                                location: existingMatch?.location || null,
+                                location_type: existingMatch?.location_type || null,
+                                employment_type: existingMatch?.employment_type || null,
+                                discovery_source: existingMatch?.discovery_source || null
+                            };
+                        });
                         setWorkExperienceDraft(newWorkExp);
                     }
                     if (parsed.education && parsed.education.length > 0) {
-                        const newEdu = parsed.education.map((ed: { school_name: string; course_name: string; start_date: string; end_date: string | null }, i: number) => ({
-                            id: -(Date.now() + i),
-                            user_id: data.user_id,
-                            school_name_raw: ed.school_name,
-                            course_name_raw: ed.course_name,
-                            start_date: ed.start_date,
-                            end_date: ed.end_date,
-                            education_status: 'Unverified' as const,
-                            school_id: null,
-                            school_course_id: null
-                        }));
+                        const newEdu = parsed.education.map((ed: { school_name: string; course_name: string; start_date: string; end_date: string | null }, i: number) => {
+                            const existingMatch = data.education?.find(
+                                (exp) => (exp.school_name_raw?.trim().toLowerCase() === ed.school_name.trim().toLowerCase() || exp.school_name?.trim().toLowerCase() === ed.school_name.trim().toLowerCase())
+                            );
+                            
+                            return {
+                                id: existingMatch ? (existingMatch.id || -(Date.now() + i)) : -(Date.now() + i),
+                                user_id: data.user_id,
+                                school_name_raw: ed.school_name,
+                                course_name_raw: ed.course_name,
+                                start_date: ed.start_date,
+                                end_date: ed.end_date,
+                                education_status: existingMatch?.education_status || 'Unverified' as const,
+                                school_id: existingMatch?.school_id || null,
+                                school_course_id: existingMatch?.school_course_id || null
+                            };
+                        });
                         setEducationDraft(newEdu);
                     }
                     if (parsed.skills && parsed.skills.length > 0) {
-                        const newSkills = parsed.skills.map((s: string, i: number) => ({
-                            user_id: data.user_id,
-                            skill_id: -(Date.now() + i),
-                            skill: { id: -(Date.now() + i), skill_name: s }
-                        }));
-                        setSkillsDraft(newSkills);
+                        const resolvedSkills = await resolveSkillsAction(parsed.skills);
+                        const newSkills = resolvedSkills.map((rs: any) => {
+                            // Deduplicate existing skills
+                            const existing = data.skills?.find(s => s.skill?.id === rs.id || s.skill_id === rs.id);
+                            if (existing) return null;
+
+                            return {
+                                user_id: data.user_id,
+                                skill_id: rs.id,
+                                skill: { id: rs.id, skill_name: rs.skill_name }
+                            };
+                        }).filter(Boolean);
+                        
+                        setSkillsDraft(newSkills as any[]);
                     }
                     
                     toast.success("Resume uploaded and profile autofilled! Please review and save your changes.");

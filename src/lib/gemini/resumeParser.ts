@@ -122,3 +122,19 @@ Return ONLY the final merged data as a JSON object matching this structure (no m
         return parsedData; // Fallback
     }
 }
+
+export async function generateProfessionalSummaryWithGemini(profileJson: string): Promise<string | null> {
+    const prompt = `You are an expert career coach and resume writer. Based on the following user profile data (which may include skills, work experience, education, and job preferences), write a compelling, concise 2 to 3 sentence professional summary that highlights their top skills, experience, and what makes them unique as a professional.
+    
+    User Profile Data:
+    ${profileJson}
+    
+    Return ONLY the professional summary text. Do not include quotes, markdown, or any introductory text.`;
+
+    const raw = await callGeminiSafe(prompt);
+    if (!raw) {
+        return null;
+    }
+    
+    return raw.trim();
+}
