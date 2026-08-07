@@ -77,7 +77,7 @@ export function ResumeSidebar() {
             formData.append("file", file);
             formData.append("folder", "c380f14b-75d1-4b61-b2b4-9a6e596f3162");
             
-            let res: any;
+            let res: { success: boolean; parsedData?: import("@/lib/gemini/resumeParser").ParsedResumeData; error?: string; record?: unknown } | undefined;
             if (isAutofill) {
                 const currentProfileJson = JSON.stringify(data);
                 res = await uploadAndAutofillResumeAction(data.user_id, formData, file.name, currentProfileJson);
@@ -93,7 +93,7 @@ export function ResumeSidebar() {
                         setProfessionalSummaryDraft(parsed.professional_summary);
                     }
                     if (parsed.work_experience && parsed.work_experience.length > 0) {
-                        const newWorkExp = parsed.work_experience.map((we: any, i: number) => ({
+                        const newWorkExp = parsed.work_experience.map((we: { job_title: string; company_name: string; start_date: string; end_date: string | null; description: string }, i: number) => ({
                             id: -(Date.now() + i), // Negative ID for draft
                             user_id: data.user_id,
                             job_title: we.job_title,
@@ -101,19 +101,25 @@ export function ResumeSidebar() {
                             start_date: we.start_date,
                             end_date: we.end_date,
                             job_description: we.description,
-                            is_current_role: !we.end_date
+                            is_current_role: !we.end_date,
+                            location: null,
+                            location_type: null,
+                            employment_type: null,
+                            discovery_source: null
                         }));
                         setWorkExperienceDraft(newWorkExp);
                     }
                     if (parsed.education && parsed.education.length > 0) {
-                        const newEdu = parsed.education.map((ed: any, i: number) => ({
+                        const newEdu = parsed.education.map((ed: { school_name: string; course_name: string; start_date: string; end_date: string | null }, i: number) => ({
                             id: -(Date.now() + i),
                             user_id: data.user_id,
                             school_name_raw: ed.school_name,
                             course_name_raw: ed.course_name,
                             start_date: ed.start_date,
                             end_date: ed.end_date,
-                            education_status: 'Unverified'
+                            education_status: 'Unverified' as const,
+                            school_id: null,
+                            school_course_id: null
                         }));
                         setEducationDraft(newEdu);
                     }

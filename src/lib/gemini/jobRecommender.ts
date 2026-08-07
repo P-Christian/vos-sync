@@ -92,7 +92,7 @@ ${JSON.stringify(jobs, null, 2)}
         if (!Array.isArray(recommendations)) {
             return [];
         }
-    } catch (parseErr) {
+    } catch {
         console.error("[gemini] ❌ Failed to parse AI job recommendations:", raw);
         return [];
     }
@@ -100,7 +100,7 @@ ${JSON.stringify(jobs, null, 2)}
     // Merge original job details back into recommendations for the frontend
     const detailedRecommendations = recommendations
         .filter(rec => typeof rec.job_id === 'number' && typeof rec.reasoning === 'string')
-        .map(rec => {
+        .map((rec): JobRecommendation | null => {
             const fullJob = jobs.find(j => j.job_id === rec.job_id);
             if (!fullJob) return null;
             

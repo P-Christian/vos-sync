@@ -37,7 +37,7 @@ export function AutofillConfirmModal({ isOpen, onClose, onConfirm, fileName }: A
                                 We will extract your <strong>Professional Summary, Work Experience, Education, and Skills</strong> and add them to your profile.
                             </p>
                             <p>
-                                Don't worry—our AI acts as an intelligent merger. Existing data won't be duplicated.
+                                Don&apos;t worry—our AI acts as an intelligent merger. Existing data won&apos;t be duplicated.
                             </p>
                         </div>
                     </div>

@@ -60,7 +60,7 @@ If any field is missing from the resume, omit it or set it to null/empty. Ensure
 
     try {
         return JSON.parse(jsonString) as ParsedResumeData;
-    } catch (e) {
+    } catch {
         console.error("[gemini] ❌ Failed to parse Gemini output as JSON:", jsonString);
         throw new Error("Gemini returned invalid JSON.");
     }
@@ -117,7 +117,7 @@ Return ONLY the final merged data as a JSON object matching this structure (no m
 
     try {
         return JSON.parse(jsonString) as ParsedResumeData;
-    } catch (e) {
+    } catch {
         console.error("[gemini] ❌ Failed to parse Gemini merge output as JSON:", jsonString);
         return parsedData; // Fallback
     }
