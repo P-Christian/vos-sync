@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { FreelancerProfile, VsUserSocialLink } from "../types/freelancer-profile.types";
 import { Plus, X } from "lucide-react";
+import { fetchProvinces, fetchCities, fetchBarangays, PsgcItem } from "@/lib/psgc";
 
 interface PersonalInfoModalProps {
     isOpen: boolean;
@@ -18,6 +19,14 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
     // Initial state setup based on pending draft or live data
     const [formData, setFormData] = useState<Partial<FreelancerProfile>>({});
     const [socialLinks, setSocialLinks] = useState<VsUserSocialLink[]>([]);
+
+    // PSGC State
+    const [provinces, setProvinces] = useState<PsgcItem[]>([]);
+    const [cities, setCities] = useState<PsgcItem[]>([]);
+    const [barangays, setBarangays] = useState<PsgcItem[]>([]);
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState("");
+    const [selectedCityCode, setSelectedCityCode] = useState("");
+    const [locationError, setLocationError] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen && data) {
@@ -52,6 +61,96 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
         }
     }, [isOpen, data, pendingPersonalInfo, pendingSocialLinks]);
 
+    // Load Provinces on mount
+    useEffect(() => {
+        if (!isOpen) return;
+        let isMounted = true;
+        async function loadProvinces() {
+            try {
+                const data = await fetchProvinces();
+                if (!isMounted) return;
+                setProvinces(data);
+                setLocationError(null);
+                
+                // Restore province code if we have a saved name
+                // We actually want to check the `formData.user_province` because it is set when the modal opens
+            } catch (err) {
+                if (isMounted) setLocationError("Failed to load provinces from PSGC. Please try again later.");
+                console.error("Failed to load provinces", err);
+            }
+        }
+        loadProvinces();
+        return () => { isMounted = false; };
+    }, [isOpen, pendingPersonalInfo]);
+
+    // Sync province code with formData
+    useEffect(() => {
+        if (provinces.length > 0 && formData.user_province) {
+            const matched = provinces.find(p => p.name === formData.user_province);
+            if (matched && matched.code !== selectedProvinceCode) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setSelectedProvinceCode(matched.code);
+            }
+        }
+    }, [provinces, formData.user_province, selectedProvinceCode]);
+
+    // Load Cities when selectedProvinceCode changes
+    useEffect(() => {
+        if (!selectedProvinceCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setCities([]);
+            return;
+        }
+        let isMounted = true;
+        async function loadCities() {
+            try {
+                const data = await fetchCities(selectedProvinceCode);
+                if (!isMounted) return;
+                setCities(data);
+                setLocationError(null);
+            } catch (err) {
+                if (isMounted) setLocationError("Failed to load cities from PSGC.");
+                console.error("Failed to load cities", err);
+            }
+        }
+        loadCities();
+        return () => { isMounted = false; };
+    }, [selectedProvinceCode]);
+
+    // Sync city code with formData
+    useEffect(() => {
+        if (cities.length > 0 && formData.user_city) {
+            const matched = cities.find(c => c.name === formData.user_city);
+            if (matched && matched.code !== selectedCityCode) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setSelectedCityCode(matched.code);
+            }
+        }
+    }, [cities, formData.user_city, selectedCityCode]);
+
+    // Load Barangays when selectedCityCode changes
+    useEffect(() => {
+        if (!selectedCityCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setBarangays([]);
+            return;
+        }
+        let isMounted = true;
+        async function loadBarangays() {
+            try {
+                const data = await fetchBarangays(selectedCityCode);
+                if (!isMounted) return;
+                setBarangays(data);
+                setLocationError(null);
+            } catch (err) {
+                if (isMounted) setLocationError("Failed to load barangays from PSGC.");
+                console.error("Failed to load barangays", err);
+            }
+        }
+        loadBarangays();
+        return () => { isMounted = false; };
+    }, [selectedCityCode]);
+
     if (!isOpen || !data) return null;
 
     const handleApply = () => {
@@ -63,6 +162,39 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        const selected = provinces.find(p => p.code === code);
+        setSelectedProvinceCode(code);
+        setSelectedCityCode("");
+        setBarangays([]);
+        setFormData(prev => ({
+            ...prev,
+            user_province: selected ? selected.name : "",
+            user_city: "",
+            user_brgy: ""
+        }));
+    };
+
+    const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const code = e.target.value;
+        const selected = cities.find(c => c.code === code);
+        setSelectedCityCode(code);
+        setFormData(prev => ({
+            ...prev,
+            user_city: selected ? selected.name : "",
+            user_brgy: ""
+        }));
+    };
+
+    const handleBarangayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const name = e.target.value;
+        setFormData(prev => ({
+            ...prev,
+            user_brgy: name
+        }));
     };
 
     return (
@@ -240,36 +372,55 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                     {/* Address Section */}
                     <div>
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Address</h3>
+                        {locationError && (
+                            <div className="mb-4 p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                                {locationError}
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Province</label>
-                                <input
-                                    type="text"
+                                <select
                                     name="user_province"
-                                    value={formData.user_province || ""}
-                                    onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                />
+                                    value={selectedProvinceCode || ""}
+                                    onChange={handleProvinceChange}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                    <option value="">Select Province</option>
+                                    {provinces.map(p => (
+                                        <option key={p.code} value={p.code}>{p.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">City/Municipality</label>
-                                <input
-                                    type="text"
+                                <select
                                     name="user_city"
-                                    value={formData.user_city || ""}
-                                    onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                />
+                                    value={selectedCityCode || ""}
+                                    onChange={handleCityChange}
+                                    disabled={!selectedProvinceCode || cities.length === 0}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                                >
+                                    <option value="">Select City/Municipality</option>
+                                    {cities.map(c => (
+                                        <option key={c.code} value={c.code}>{c.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Barangay</label>
-                                <input
-                                    type="text"
+                                <select
                                     name="user_brgy"
                                     value={formData.user_brgy || ""}
-                                    onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                />
+                                    onChange={handleBarangayChange}
+                                    disabled={!selectedCityCode || barangays.length === 0}
+                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                                >
+                                    <option value="">Select Barangay</option>
+                                    {barangays.map(b => (
+                                        <option key={b.code} value={b.name}>{b.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>

@@ -7,6 +7,7 @@ import { Pencil } from "lucide-react";
 import { VsWorkExperience, VsMasterSkill } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 
 function formatDisplayDate(dateStr: string) {
@@ -49,6 +50,7 @@ interface WorkExperienceItemProps {
 
 export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceItemProps, 'userId'> & { userId?: number }) {
     const [isEditing, setIsEditing] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     
     // Form state
     const [companyName, setCompanyName] = useState(experience.company_name);
@@ -110,11 +112,14 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
         setIsEditing(false);
     };
 
-    const handleDelete = () => {
-        if (!confirm("Are you sure you want to delete this work experience?")) return;
-        
+    const confirmDelete = () => {
         const updatedList = experienceList.filter(e => e.id !== experience.id);
         setWorkExperienceDraft(updatedList);
+        setShowDeleteModal(false);
+    };
+
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
     };
 
     const handleCancel = () => {
@@ -275,7 +280,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                         </div>
 
                         <div className="flex justify-end gap-2 p-6 border-t shrink-0">
-                            <Button variant="destructive" onClick={handleDelete} className="mr-auto">
+                            <Button variant="destructive" onClick={handleDeleteClick} className="mr-auto">
                                 Delete
                             </Button>
                             <Button variant="outline" onClick={handleCancel}>
@@ -352,6 +357,26 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                     )}
                 </div>
             </div>
+            
+            <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Work Experience</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this work experience? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={confirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

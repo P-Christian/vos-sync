@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import { Award, Plus, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CertificationsModal } from "./CertificationsModal";
 import { VsCertification } from "../types/freelancer-profile.types";
 
 export function CertificationsCard() {
-    const { data: profile, pendingCertifications } = useFreelancerProfileContext();
+    const { data: profile, pendingCertifications, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [certificationToEdit, setCertificationToEdit] = useState<VsCertification | null>(null);
 
@@ -45,6 +46,7 @@ export function CertificationsCard() {
                             setCertificationToEdit(null);
                             setIsModalOpen(true);
                         }}
+                        disabled={isAutofilling}
                     >
                         <Plus className="h-5 w-5" />
                     </Button>
@@ -52,7 +54,18 @@ export function CertificationsCard() {
             </div>
 
             <div className="space-y-4">
-                {certificationsList.map((cert) => (
+                {isAutofilling ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                            <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                            <div className="space-y-2 flex-1">
+                                <Skeleton className="h-5 w-[40%]" />
+                                <Skeleton className="h-4 w-[30%]" />
+                                <Skeleton className="h-3 w-[20%]" />
+                            </div>
+                        </div>
+                    ))
+                ) : certificationsList.map((cert) => (
                     <div key={cert.id} className="flex gap-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
                             <Award className="h-5 w-5 text-primary" />
