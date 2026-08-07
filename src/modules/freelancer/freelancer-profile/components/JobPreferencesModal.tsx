@@ -7,6 +7,7 @@ import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvi
 import { VsJobPreferences } from "../types/freelancer-profile.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { fetchProvinces, fetchCities, PsgcItem } from "@/lib/psgc";
 
 interface JobPreferencesModalProps {
     isOpen: boolean;
@@ -20,6 +21,12 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
     
     const [preferences, setPreferences] = useState<Partial<VsJobPreferences>>({});
 
+    const [provinces, setProvinces] = useState<PsgcItem[]>([]);
+    const [cities, setCities] = useState<PsgcItem[]>([]);
+    const [selectedProvinceCode, setSelectedProvinceCode] = useState("");
+    const [selectedCityCode, setSelectedCityCode] = useState("");
+    const [locationError, setLocationError] = useState<string | null>(null);
+
     useEffect(() => {
         if (isOpen) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -27,15 +34,103 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
         }
     }, [isOpen, pendingJobPreferences, initialPreferences]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        let isMounted = true;
+        async function loadProvinces() {
+            try {
+                const data = await fetchProvinces();
+                if (!isMounted) return;
+                setProvinces(data);
+                setLocationError(null);
+            } catch (err) {
+                if (isMounted) setLocationError("Failed to load provinces from PSGC.");
+            }
+        }
+        loadProvinces();
+        return () => { isMounted = false; };
+    }, [isOpen]);
+
+    // Re-hydrate selected codes when modal opens or provinces load
+    useEffect(() => {
+        if (provinces.length > 0 && preferences.preferred_location) {
+            const parts = preferences.preferred_location.split(",").map(s => s.trim());
+            const provStr = parts.length > 1 ? parts[1] : parts[0];
+            const matchedProv = provinces.find(p => p.name === provStr);
+            if (matchedProv && matchedProv.code !== selectedProvinceCode) {
+                setSelectedProvinceCode(matchedProv.code);
+            }
+        }
+    }, [provinces, preferences.preferred_location]);
+
+    useEffect(() => {
+        if (!selectedProvinceCode) {
+            setCities([]);
+            return;
+        }
+        let isMounted = true;
+        async function loadCities() {
+            try {
+                const data = await fetchCities(selectedProvinceCode);
+                if (!isMounted) return;
+                setCities(data);
+                setLocationError(null);
+            } catch (err) {
+                if (isMounted) setLocationError("Failed to load cities from PSGC.");
+            }
+        }
+        loadCities();
+        return () => { isMounted = false; };
+    }, [selectedProvinceCode]);
+
+    useEffect(() => {
+        if (cities.length > 0 && preferences.preferred_location) {
+            const parts = preferences.preferred_location.split(",").map(s => s.trim());
+            const cityStr = parts.length > 1 ? parts[0] : "";
+            if (cityStr) {
+                const matchedCity = cities.find(c => c.name === cityStr);
+                if (matchedCity && matchedCity.code !== selectedCityCode) {
+                    setSelectedCityCode(matchedCity.code);
+                }
+            }
+        }
+    }, [cities, preferences.preferred_location]);
+
     if (!isOpen) return null;
 
     const handleSave = () => {
-        setJobPreferencesDraft(preferences);
+        setJobPreferencesDraft({
+            ...preferences,
+            updated_at: new Date().toISOString()
+        });
         onClose();
     };
 
     const handleChange = (field: keyof VsJobPreferences, value: string | number | null | undefined) => {
         setPreferences(prev => ({ ...prev, [field]: value }));
+    };
+
+    const handleProvinceChange = (code: string) => {
+        const selected = provinces.find(p => p.code === code);
+        setSelectedProvinceCode(code);
+        setSelectedCityCode("");
+        if (selected) {
+            handleChange("preferred_location", selected.name);
+        } else {
+            handleChange("preferred_location", "");
+        }
+    };
+
+    const handleCityChange = (code: string) => {
+        const selectedCity = cities.find(c => c.code === code);
+        const selectedProv = provinces.find(p => p.code === selectedProvinceCode);
+        setSelectedCityCode(code);
+        
+        if (selectedCity && selectedProv) {
+            handleChange("preferred_location", `${selectedCity.name}, ${selectedProv.name}`);
+        } else if (selectedProv) {
+            handleChange("preferred_location", selectedProv.name);
+        }
     };
 
     return (
@@ -86,13 +181,43 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                             </Select>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-4">
                             <label className="text-sm font-medium">Preferred Location</label>
-                            <Input 
-                                value={preferences.preferred_location || ""} 
-                                onChange={(e) => handleChange("preferred_location", e.target.value)}
-                                placeholder="e.g. Metro Manila, Cebu, etc."
-                            />
+                            {locationError && (
+                                <div className="p-2 bg-destructive/10 text-destructive rounded-md text-xs">
+                                    {locationError}
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-2">
+                                <Select 
+                                    value={selectedProvinceCode} 
+                                    onValueChange={handleProvinceChange}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Province" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {provinces.map(p => (
+                                            <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                
+                                <Select 
+                                    value={selectedCityCode} 
+                                    onValueChange={handleCityChange}
+                                    disabled={!selectedProvinceCode || cities.length === 0}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select City/Municipality" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cities.map(c => (
+                                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         <div className="space-y-2">

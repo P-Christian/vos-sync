@@ -139,7 +139,7 @@ export function ResumeSidebar() {
                     }
                     if (parsed.skills && parsed.skills.length > 0) {
                         const resolvedSkills = await resolveSkillsAction(parsed.skills);
-                        const newSkills = resolvedSkills.map((rs: any) => {
+                        const newSkills = resolvedSkills.map((rs: { id: number; skill_name: string }) => {
                             // Deduplicate existing skills
                             const existing = data.skills?.find(s => s.skill?.id === rs.id || s.skill_id === rs.id);
                             if (existing) return null;
@@ -151,7 +151,7 @@ export function ResumeSidebar() {
                             };
                         }).filter(Boolean);
                         
-                        setSkillsDraft(newSkills as any[]);
+                        setSkillsDraft(newSkills as import("../types/freelancer-profile.types").VsUserSkillMap[]);
                     }
                     
                     toast.success("Resume uploaded and profile autofilled! Please review and save your changes.");

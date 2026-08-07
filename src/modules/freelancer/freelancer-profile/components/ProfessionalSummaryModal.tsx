@@ -46,7 +46,7 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary }: Pr
             } else {
                 toast.error(res.error || "Failed to generate summary");
             }
-        } catch (error) {
+        } catch {
             toast.error("An unexpected error occurred");
         } finally {
             setIsGenerating(false);

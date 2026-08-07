@@ -10,6 +10,7 @@ import { VsEducation } from "../types/freelancer-profile.types";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { CreateCourseRequestModal } from "@/modules/vos-admin/request-management/components/CreateCourseRequestModal";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface EducationModalProps {
     isOpen: boolean;
@@ -33,6 +34,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const [rawSchoolName, setRawSchoolName] = useState("");
     const [rawCourseName, setRawCourseName] = useState("");
     const [showCourseRequest, setShowCourseRequest] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
     const liveEducation = data?.education || [];
@@ -132,6 +134,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             school_course_id: (!isUnverifiedSchool && courseId) ? parseInt(courseId, 10) : null,
             start_date: startDate || null,
             end_date: endDate || null,
+            updated_at: new Date().toISOString(),
             school_name: isUnverifiedSchool ? rawSchoolName.trim() : schools.find(s => String(s.school_id) === schoolId)?.school_name,
             course_name: isUnverifiedSchool ? rawCourseName.trim() : courses.find(c => String(c.school_course_id) === courseId)?.course_name,
         };
@@ -155,13 +158,17 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         onClose();
     };
 
-    const handleDelete = () => {
+    const confirmDelete = () => {
         if (!educationToEdit) return;
-        if (!confirm("Are you sure you want to delete this education record?")) return;
         
         const updatedList = educationList.filter(e => e.id !== educationToEdit.id);
         setEducationDraft(updatedList);
+        setShowDeleteModal(false);
         onClose();
+    };
+
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
     };
 
 
@@ -271,7 +278,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
 
                     <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
                         {educationToEdit && (
-                            <Button variant="destructive" onClick={handleDelete} className="mr-auto">Delete</Button>
+                            <Button variant="destructive" onClick={handleDeleteClick} className="mr-auto">Delete</Button>
                         )}
                         <Button variant="outline" onClick={onClose}>Cancel</Button>
                         <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90">
@@ -281,6 +288,25 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                 </DialogContent>
             </Dialog>
 
+            <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Education</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this education record? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={confirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             {schoolId && (
                 <CreateCourseRequestModal 
