@@ -17,8 +17,8 @@ export function useStandardRoles(categoryId?: number) {
     try {
       const data = await fetchStandardRoles(catId ?? categoryId);
       setRoles(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load standard roles.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to load standard roles.");
     } finally {
       setLoading(false);
     }
@@ -29,8 +29,8 @@ export function useStandardRoles(categoryId?: number) {
       const created = await createStandardRole(payload);
       setRoles((prev) => [...prev, created]);
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to add standard role.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to add standard role.");
       return false;
     }
   }, []);
@@ -40,8 +40,8 @@ export function useStandardRoles(categoryId?: number) {
       const updated = await updateStandardRole(payload);
       setRoles((prev) => prev.map((r) => (r.role_id === updated.role_id ? { ...r, ...updated } : r)));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update standard role.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to update standard role.");
       return false;
     }
   }, []);
@@ -51,15 +51,29 @@ export function useStandardRoles(categoryId?: number) {
       await deleteStandardRole(roleId);
       setRoles((prev) => prev.filter((r) => r.role_id !== roleId));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to delete standard role.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to delete standard role.");
       return false;
     }
   }, []);
 
   useEffect(() => {
-    loadRoles();
-  }, [loadRoles]);
+    let isMounted = true;
+    async function init() {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await fetchStandardRoles(categoryId);
+        if (isMounted) setRoles(data);
+      } catch (err: unknown) {
+        if (isMounted) setError((err as Error).message || "Failed to load standard roles.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => { isMounted = false; };
+  }, [categoryId]);
 
   return { roles, loading, error, loadRoles, addRole, editRole, removeRole };
 }

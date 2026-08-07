@@ -19,7 +19,7 @@ export function retrieveCandidatePool(
   taxonomyContext?: ResolvedTaxonomyContext | null,
   minRetrievalThreshold: number = 20
 ): CandidateRetrievalResult[] {
-  const { cleanedQuery, rawQuery } = analyzedQuery;
+  const { cleanedQuery } = analyzedQuery;
 
   // If no query string, retrieve all candidates (Browse mode)
   if (!cleanedQuery) {

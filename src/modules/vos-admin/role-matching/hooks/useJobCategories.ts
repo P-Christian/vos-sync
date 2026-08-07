@@ -17,8 +17,8 @@ export function useJobCategories() {
     try {
       const data = await fetchJobCategories();
       setCategories(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load job categories.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to load job categories.");
     } finally {
       setLoading(false);
     }
@@ -29,8 +29,8 @@ export function useJobCategories() {
       const created = await createJobCategory(payload);
       setCategories((prev) => [...prev, created]);
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to add category.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to add category.");
       return false;
     }
   }, []);
@@ -40,8 +40,8 @@ export function useJobCategories() {
       const updated = await updateJobCategory(payload);
       setCategories((prev) => prev.map((c) => (c.category_id === updated.category_id ? { ...c, ...updated } : c)));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update category.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to update category.");
       return false;
     }
   }, []);
@@ -51,15 +51,29 @@ export function useJobCategories() {
       await deleteJobCategory(id);
       setCategories((prev) => prev.filter((c) => c.category_id !== id));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to delete category.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to delete category.");
       return false;
     }
   }, []);
 
   useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+    let isMounted = true;
+    async function init() {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await fetchJobCategories();
+        if (isMounted) setCategories(data);
+      } catch (err: unknown) {
+        if (isMounted) setError((err as Error).message || "Failed to load job categories.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => { isMounted = false; };
+  }, []);
 
   return { categories, loading, error, loadCategories, addCategory, editCategory, removeCategory };
 }

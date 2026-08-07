@@ -30,11 +30,11 @@ export async function GET(req: NextRequest) {
 
     const rawAliases = aliasJson.data ?? [];
     const rolesList = rolesJson.data ?? [];
-    const rolesMap = new Map(rolesList.map((r: any) => [Number(r.role_id), r.role_name]));
+    const rolesMap = new Map(rolesList.map((r: { role_id: number; role_name: string }) => [Number(r.role_id), r.role_name]));
 
-    const formatted = rawAliases.map((a: any) => {
-      const rId = typeof a.role_id === "object" ? a.role_id?.role_id : Number(a.role_id);
-      const rName = typeof a.role_id === "object" ? a.role_id?.role_name : rolesMap.get(rId);
+    const formatted = rawAliases.map((a: { alias_id: number; role_id: unknown; alias_name: string; normalized_alias?: string; match_weight?: number; is_primary?: boolean }) => {
+      const rId = typeof a.role_id === "object" && a.role_id !== null ? (a.role_id as { role_id: number }).role_id : Number(a.role_id);
+      const rName = typeof a.role_id === "object" && a.role_id !== null ? (a.role_id as { role_name: string }).role_name : rolesMap.get(rId);
 
       return {
         alias_id: a.alias_id,
@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ keywords: formatted });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -64,8 +64,8 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to create search keyword.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -83,8 +83,8 @@ export async function PATCH(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to update search keyword.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -100,7 +100,7 @@ export async function DELETE(req: NextRequest) {
     });
     if (!res.ok) throw new Error("Failed to delete search keyword.");
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }

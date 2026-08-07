@@ -1,7 +1,7 @@
 // src/modules/client/applicants/components/BestMatchesTab.tsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import { JobPosting } from "../../jobs/types";
 import { Applicant } from "../types";
@@ -12,13 +12,12 @@ import {
   setBestMatchCache,
   CandidateMatch,
 } from "../hooks/useBestMatchCache";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   CalendarPlus,
   Eye,
-  TrendingUp,
   MapPin,
   Briefcase,
   ChevronRight,
@@ -52,16 +51,27 @@ export default function BestMatchesTab({
   // Map of applicant ID to deterministic MatchResult for detailed breakdown
   const ruleMatchesMap = useRef<Map<number, MatchResult>>(new Map());
 
+  const selectedMatch = candidateMatches[selectedResultIndex] || candidateMatches[0];
+  const selectedApplicant = useMemo(() => {
+    if (!selectedMatch) return undefined;
+    return applicants.find((a) => a.application_id === selectedMatch.applicationId);
+  }, [applicants, selectedMatch]);
+
+  const selectedRuleMatch = useMemo(() => {
+    if (!selectedApplicant || !job) return null;
+    return calculateMatch(job, selectedApplicant);
+  }, [selectedApplicant, job]);
+
   useEffect(() => {
     if (loading || !job || applicants.length === 0) {
-      setCandidateMatches([]);
+      queueMicrotask(() => setCandidateMatches([]));
       return;
     }
 
     // 1. Check Session Storage Cache
     const cached = getBestMatchCache(job.job_id, applicants.length, job.updated_at);
     if (cached && cached.candidates.length > 0) {
-      setCandidateMatches(cached.candidates);
+      queueMicrotask(() => setCandidateMatches(cached.candidates));
 
       // Populate rule matches map locally for breakdown details
       const map = new Map<number, MatchResult>();
@@ -69,7 +79,7 @@ export default function BestMatchesTab({
         map.set(applicant.application_id, calculateMatch(job, applicant));
       }
       ruleMatchesMap.current = map;
-      setProcessing(false);
+      queueMicrotask(() => setProcessing(false));
       return;
     }
 
@@ -152,14 +162,7 @@ export default function BestMatchesTab({
     );
   }
 
-  // Selected candidate's match results
-  const selectedMatch = candidateMatches[selectedResultIndex] || candidateMatches[0];
-  const selectedApplicant = applicants.find(
-    (a) => a.application_id === selectedMatch.applicationId
-  );
-  const selectedRuleMatch = selectedApplicant
-    ? ruleMatchesMap.current.get(selectedApplicant.application_id) || calculateMatch(job, selectedApplicant)
-    : null;
+
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return "text-indigo-600 dark:text-indigo-400";

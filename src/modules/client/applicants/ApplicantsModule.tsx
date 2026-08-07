@@ -41,7 +41,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   useEffect(() => {
     if (tabParam === "best-matches") {
-      setShowBestMatches(true);
+      queueMicrotask(() => setShowBestMatches(true));
     }
   }, [tabParam]);
 
@@ -170,7 +170,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     setInterviewDialogOpen(true);
   };
 
-  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: any) => {
+  const handleInterviewFieldChange = (field: keyof InterviewFormData, value: unknown) => {
     setInterviewFormData((prev) => ({ ...prev, [field]: value }));
   };
 

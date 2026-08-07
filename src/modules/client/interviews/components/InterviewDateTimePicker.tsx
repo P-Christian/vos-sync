@@ -3,7 +3,7 @@
 // src/modules/client/interviews/components/InterviewDateTimePicker.tsx
 
 import React, { useState, useMemo } from "react";
-import { Interview, INTERVIEW_FORMAT_LABELS } from "../types";
+import { Interview } from "../types";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -134,7 +134,8 @@ function formatTimeRange(dateStr: string, durationMinutes: number = 60): string 
 export default function InterviewDateTimePicker({
   value,
   onChange,
-  durationMinutes = 60,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  durationMinutes: _durationMinutes = 60,
   scheduledDatesSet = new Set(),
   existingInterviews = [],
   getSlotStatus,

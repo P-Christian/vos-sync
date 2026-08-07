@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { FolderTree, Briefcase, Search, Sparkles, Play, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ export function RoleMatchingDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const m = await fetchDashboardMetrics();
@@ -31,11 +31,13 @@ export function RoleMatchingDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    queueMicrotask(() => {
+      loadData();
+    });
+  }, [loadData]);
 
   return (
     <div className="p-6 space-y-8 max-w-7xl mx-auto">

@@ -2,7 +2,7 @@
 
 // src/modules/client/interviews/components/InterviewEvaluationModal.tsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Interview, EvaluationFormData, AttendanceStatus } from "../types";
 import {
   Dialog,
@@ -39,20 +39,23 @@ export default function InterviewEvaluationModal({
   onClose,
   onSubmitEvaluation,
 }: InterviewEvaluationModalProps) {
-  const applications = interview?.applications ?? [];
+  const applications = useMemo(() => interview?.applications ?? [], [interview?.applications]);
   const [selectedAppId, setSelectedAppId] = useState<number>(0);
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus>("ATTENDED");
   const [feedbackText, setFeedbackText] = useState<string>("");
   const [decision, setDecision] = useState<"HIRED" | "REJECTED" | "NO_ACTION">("NO_ACTION");
 
   useEffect(() => {
+    if (!open) return;
     if (applications.length > 0) {
       const first = applications[0];
-      setSelectedAppId(first.interview_application_id);
-      setAttendanceStatus(first.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
-      setFeedbackText(first.feedback || "");
+      queueMicrotask(() => {
+        setSelectedAppId(first.interview_application_id);
+        setAttendanceStatus(first.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
+        setFeedbackText(first.feedback || "");
+      });
     }
-  }, [interview, applications]);
+  }, [open, interview?.interview_id, applications]);
 
   const activeApp = applications.find((a) => a.interview_application_id === selectedAppId) || applications[0];
   const isCompleted = activeApp && activeApp.attendance_status !== "PENDING";

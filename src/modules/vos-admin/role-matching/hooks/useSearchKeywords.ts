@@ -17,8 +17,8 @@ export function useSearchKeywords(roleId?: number) {
     try {
       const data = await fetchSearchKeywords(rId ?? roleId);
       setKeywords(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load search keywords.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to load search keywords.");
     } finally {
       setLoading(false);
     }
@@ -29,8 +29,8 @@ export function useSearchKeywords(roleId?: number) {
       const created = await createSearchKeyword(payload);
       setKeywords((prev) => [...prev, created]);
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to add search keyword.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to add search keyword.");
       return false;
     }
   }, []);
@@ -40,8 +40,8 @@ export function useSearchKeywords(roleId?: number) {
       const updated = await updateSearchKeyword(payload);
       setKeywords((prev) => prev.map((k) => (k.alias_id === updated.alias_id ? { ...k, ...updated } : k)));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update search keyword.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to update search keyword.");
       return false;
     }
   }, []);
@@ -51,15 +51,29 @@ export function useSearchKeywords(roleId?: number) {
       await deleteSearchKeyword(aliasId);
       setKeywords((prev) => prev.filter((k) => k.alias_id !== aliasId));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to delete search keyword.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to delete search keyword.");
       return false;
     }
   }, []);
 
   useEffect(() => {
-    loadKeywords();
-  }, [loadKeywords]);
+    let isMounted = true;
+    async function init() {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await fetchSearchKeywords(roleId);
+        if (isMounted) setKeywords(data);
+      } catch (err: unknown) {
+        if (isMounted) setError((err as Error).message || "Failed to load search keywords.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => { isMounted = false; };
+  }, [roleId]);
 
   return { keywords, loading, error, loadKeywords, addKeyword, editKeyword, removeKeyword };
 }

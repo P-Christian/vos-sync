@@ -18,8 +18,8 @@ export function useMatchTester() {
     try {
       const res = await runMatchSimulation(keyword, candidateId);
       setResult(res);
-    } catch (err: any) {
-      setError(err.message || "Simulation test failed.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Simulation test failed.");
     } finally {
       setLoading(false);
     }

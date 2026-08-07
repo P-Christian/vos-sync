@@ -30,13 +30,13 @@ export async function GET(req: NextRequest) {
 
     const rawRoles = rolesJson.data ?? [];
     const catList = catJson.data ?? [];
-    const catMap = new Map(catList.map((c: any) => [Number(c.category_id), c.category_name]));
-    const catCodeMap = new Map(catList.map((c: any) => [Number(c.category_id), c.category_code]));
+    const catMap = new Map(catList.map((c: { category_id: number; category_name: string }) => [Number(c.category_id), c.category_name]));
+    const catCodeMap = new Map(catList.map((c: { category_id: number; category_code: string }) => [Number(c.category_id), c.category_code]));
 
-    const formatted = rawRoles.map((r: any) => {
-      const cId = typeof r.category_id === "object" ? r.category_id?.category_id : Number(r.category_id);
-      const cName = typeof r.category_id === "object" ? r.category_id?.category_name : catMap.get(cId);
-      const cCode = typeof r.category_id === "object" ? r.category_id?.category_code : catCodeMap.get(cId);
+    const formatted = rawRoles.map((r: { role_id: number; role_name: string; category_id: unknown; experience_level?: string; is_active?: boolean }) => {
+      const cId = typeof r.category_id === "object" && r.category_id !== null ? (r.category_id as { category_id: number }).category_id : Number(r.category_id);
+      const cName = typeof r.category_id === "object" && r.category_id !== null ? (r.category_id as { category_name: string }).category_name : catMap.get(cId);
+      const cCode = typeof r.category_id === "object" && r.category_id !== null ? (r.category_id as { category_code: string }).category_code : catCodeMap.get(cId);
 
       return {
         role_id: r.role_id,
@@ -50,8 +50,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ roles: formatted });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to create standard role.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -85,8 +85,8 @@ export async function PATCH(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to update standard role.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -102,7 +102,7 @@ export async function DELETE(req: NextRequest) {
     });
     if (!res.ok) throw new Error("Failed to delete standard role.");
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }

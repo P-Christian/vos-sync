@@ -11,7 +11,8 @@ export interface ScoringOutput {
 
 export function calculateNormalizedScore(
   evaluatorResults: EvaluatorResult[],
-  context: MatchContext
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: MatchContext
 ): ScoringOutput {
   let weightedSum = 0;
   let totalWeights = 0;

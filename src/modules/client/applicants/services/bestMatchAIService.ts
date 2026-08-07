@@ -73,7 +73,7 @@ Provide JSON response ONLY (no markdown fences, no extra text):
   }
 ]`;
 
-  let aiResponsesMap = new Map<number, { explanation: string; strengths: string[]; weaknesses: string[] }>();
+  const aiResponsesMap = new Map<number, { explanation: string; strengths: string[]; weaknesses: string[] }>();
 
   try {
     const res = await fetch("/api/client/applicants/best-match", {

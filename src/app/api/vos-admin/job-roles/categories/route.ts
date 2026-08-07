@@ -23,8 +23,8 @@ export async function GET() {
     if (!res.ok) throw new Error("Failed to fetch job categories.");
     const json = await res.json();
     return NextResponse.json({ categories: json.data ?? [] });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to create job category.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -58,8 +58,8 @@ export async function PATCH(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to update job category.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -75,7 +75,7 @@ export async function DELETE(req: NextRequest) {
     });
     if (!res.ok) throw new Error("Failed to delete job category.");
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }

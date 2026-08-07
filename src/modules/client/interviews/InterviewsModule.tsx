@@ -154,7 +154,7 @@ export default function InterviewsModule() {
     setScheduleDialogOpen(true);
   };
 
-  const handleFieldChange = (field: keyof InterviewFormData, value: any) => {
+  const handleFieldChange = (field: keyof InterviewFormData, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

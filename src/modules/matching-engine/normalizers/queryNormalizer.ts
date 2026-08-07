@@ -1,8 +1,7 @@
 // src/modules/matching-engine/normalizers/queryNormalizer.ts
 
 import { MatchMode, ResolvedTaxonomyContext } from "../types/matchTypes";
-import { cleanText, splitTokens } from "./textNormalizer";
-import { extractStemmedTokens, computeJaccardSimilarity } from "./tokenExtractor";
+import { cleanText } from "./textNormalizer";
 import { analyzeQuery } from "../retrieval/queryAnalyzer";
 import { resolveTaxonomyFromDB, DBTaxonomyData } from "../retrieval/taxonomyResolver";
 
@@ -31,7 +30,7 @@ export function cleanQueryString(query: string | null | undefined): string {
 export function normalizeSearchQuery(
   rawQuery: string,
   existingTaxonomyContext?: ResolvedTaxonomyContext | null,
-  dbData: DBTaxonomyData | any[] = {}
+  dbData: DBTaxonomyData | Array<Record<string, unknown>> = {}
 ): NormalizedQueryResult {
   const analyzed = analyzeQuery(rawQuery);
 

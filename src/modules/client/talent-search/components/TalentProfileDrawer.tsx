@@ -58,8 +58,10 @@ export default function TalentProfileDrawer({
 
   useEffect(() => {
     if (!open || !profile || !searchKeyword) {
-      setLazyExplanation(null);
-      setFetchingExplanation(false);
+      queueMicrotask(() => {
+        setLazyExplanation(null);
+        setFetchingExplanation(false);
+      });
       return;
     }
 
@@ -67,22 +69,26 @@ export default function TalentProfileDrawer({
     //    cache it so reopening this drawer costs nothing.
     if (aiExplanation) {
       setCachedExplanation(searchKeyword, profile.user_id, aiExplanation);
-      setLazyExplanation(null);
-      setFetchingExplanation(false);
+      queueMicrotask(() => {
+        setLazyExplanation(null);
+        setFetchingExplanation(false);
+      });
       return;
     }
 
     // 2. Check sessionStorage before making any network call.
     const cached = getCachedExplanation(searchKeyword, profile.user_id);
     if (cached) {
-      setLazyExplanation(cached);
-      setFetchingExplanation(false);
+      queueMicrotask(() => {
+        setLazyExplanation(cached);
+        setFetchingExplanation(false);
+      });
       return;
     }
 
     // 3. Cache miss — fetch lazily from the explain endpoint.
     let isMounted = true;
-    setFetchingExplanation(true);
+    queueMicrotask(() => setFetchingExplanation(true));
 
     fetch("/api/client/talent-search/explain", {
       method: "POST",

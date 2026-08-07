@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       evidence: engineResult.evidence.map((e) => ({ label: e.label, value: e.value })),
       trace: engineResult.trace,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Simulation error." }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Simulation error." }, { status: 500 });
   }
 }

@@ -13,7 +13,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -33,8 +32,6 @@ import {
   CalendarDays,
   AlertTriangle,
   Clock,
-  Lock,
-  CheckCircle,
   User,
   Briefcase,
   Video,
@@ -60,7 +57,7 @@ export interface ApplicantOption {
 
 interface InterviewFormProps {
   data: InterviewFormData;
-  onChange: (field: keyof InterviewFormData, value: any) => void;
+  onChange: (field: keyof InterviewFormData, value: unknown) => void;
   errors?: Partial<Record<keyof InterviewFormData, string>>;
   disableApplicationId?: boolean;
   existingInterviews?: Interview[];
@@ -115,7 +112,7 @@ export default function InterviewForm({
     if (data.application_ids && data.application_ids.length > 0 && availableApplicants.length > 0) {
       const match = availableApplicants.find((a) => a.application_id === data.application_ids[0]);
       if (match && match.job_id) {
-        setSelectedJobId(String(match.job_id));
+        queueMicrotask(() => setSelectedJobId(String(match.job_id)));
       }
     }
   }, [data.application_ids, availableApplicants]);

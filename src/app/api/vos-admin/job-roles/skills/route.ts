@@ -47,8 +47,8 @@ export async function GET(req: NextRequest) {
     const rolesList = rolesJson.data ?? [];
     const masterList = masterJson.data ?? [];
 
-    const rolesMap = new Map(rolesList.map((r: any) => [Number(r.role_id), r.role_name]));
-    const skillsMap = new Map(masterList.map((s: any) => [Number(s.id), s.skill_name]));
+    const rolesMap = new Map(rolesList.map((r: { role_id: number; role_name: string }) => [Number(r.role_id), r.role_name]));
+    const skillsMap = new Map(masterList.map((s: { id: number; skill_name: string }) => [Number(s.id), s.skill_name]));
 
     // If DB has no mappings yet and no role filter was requested, auto-seed standard defaults
     if (rawMappings.length === 0 && !roleId) {
@@ -76,11 +76,11 @@ export async function GET(req: NextRequest) {
       if (refetch.ok) rawMappings = (await refetch.json()).data ?? [];
     }
 
-    const formatted = rawMappings.map((m: any) => {
-      const rId = typeof m.role_id === "object" ? m.role_id?.role_id : Number(m.role_id);
-      const sId = typeof m.skill_id === "object" ? m.skill_id?.id : Number(m.skill_id);
-      const rName = typeof m.role_id === "object" ? m.role_id?.role_name : rolesMap.get(rId);
-      const sName = typeof m.skill_id === "object" ? m.skill_id?.skill_name : skillsMap.get(sId);
+    const formatted = rawMappings.map((m: { id: number; role_id: unknown; skill_id: unknown; importance_weight?: number; is_required?: boolean }) => {
+      const rId = typeof m.role_id === "object" && m.role_id !== null ? (m.role_id as { role_id: number }).role_id : Number(m.role_id);
+      const sId = typeof m.skill_id === "object" && m.skill_id !== null ? (m.skill_id as { id: number }).id : Number(m.skill_id);
+      const rName = typeof m.role_id === "object" && m.role_id !== null ? (m.role_id as { role_name: string }).role_name : rolesMap.get(rId);
+      const sName = typeof m.skill_id === "object" && m.skill_id !== null ? (m.skill_id as { skill_name: string }).skill_name : skillsMap.get(sId);
 
       return {
         id: m.id,
@@ -94,8 +94,8 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ skills: formatted });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to create role skill mapping.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -130,8 +130,8 @@ export async function PATCH(req: NextRequest) {
     if (!res.ok) throw new Error("Failed to update role skill mapping.");
     const json = await res.json();
     return NextResponse.json(json.data);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
 
@@ -147,7 +147,7 @@ export async function DELETE(req: NextRequest) {
     });
     if (!res.ok) throw new Error("Failed to delete role skill mapping.");
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }

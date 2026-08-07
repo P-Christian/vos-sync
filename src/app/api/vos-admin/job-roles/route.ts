@@ -1,6 +1,6 @@
 // src/app/api/vos-admin/job-roles/route.ts
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +40,7 @@ export async function GET() {
       totalRoleSkills,
       lastUpdated: new Date().toISOString(),
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to fetch dashboard metrics." }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message || "Failed to fetch dashboard metrics." }, { status: 500 });
   }
 }

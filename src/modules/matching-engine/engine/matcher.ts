@@ -20,7 +20,7 @@ import { collectEvidence } from "../explanation/evidenceBuilder";
 
 export function runMatchingEngine(profile: NormalizedProfile, context: MatchContext): MatchResult {
   // Preprocessing: Query Understanding & Normalization Layer
-  let enrichedContext = { ...context };
+  const enrichedContext = { ...context };
 
   if (context.keyword) {
     const normalizedQuery = normalizeSearchQuery(context.keyword, context.taxonomyContext);

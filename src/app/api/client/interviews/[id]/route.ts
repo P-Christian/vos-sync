@@ -1,8 +1,6 @@
 // src/app/api/client/interviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { sendHiringEmail, sendRejectionEmail, sendInterviewRescheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
-import { createSystemMessage } from "@/lib/messaging/system-message";
-import { createNotification } from "@/lib/notifications";
+import { sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";

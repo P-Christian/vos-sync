@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, ChevronRight, FolderTree, Briefcase, Tag, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderTree, Briefcase, Loader2 } from "lucide-react";
 import { useJobCategories } from "../hooks/useJobCategories";
 import { useStandardRoles } from "../hooks/useStandardRoles";
 

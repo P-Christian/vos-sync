@@ -22,8 +22,8 @@ export function useRoleSkills(roleId?: number) {
       ]);
       setRoleSkills(skillsData);
       setMasterSkills(mastersData);
-    } catch (err: any) {
-      setError(err.message || "Failed to load role skills.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to load role skills.");
     } finally {
       setLoading(false);
     }
@@ -34,8 +34,8 @@ export function useRoleSkills(roleId?: number) {
       const created = await createRoleSkill(payload);
       setRoleSkills((prev) => [...prev, created]);
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to add role skill.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to add role skill.");
       return false;
     }
   }, []);
@@ -45,8 +45,8 @@ export function useRoleSkills(roleId?: number) {
       const updated = await updateRoleSkill(payload);
       setRoleSkills((prev) => prev.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to update role skill.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to update role skill.");
       return false;
     }
   }, []);
@@ -56,15 +56,35 @@ export function useRoleSkills(roleId?: number) {
       await deleteRoleSkill(id);
       setRoleSkills((prev) => prev.filter((s) => s.id !== id));
       return true;
-    } catch (err: any) {
-      setError(err.message || "Failed to delete role skill.");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to delete role skill.");
       return false;
     }
   }, []);
 
   useEffect(() => {
-    loadSkills();
-  }, [loadSkills]);
+    let isMounted = true;
+    async function init() {
+      setLoading(true);
+      setError("");
+      try {
+        const [skillsData, mastersData] = await Promise.all([
+          fetchRoleSkills(roleId),
+          fetchMasterSkills().catch(() => []),
+        ]);
+        if (isMounted) {
+          setRoleSkills(skillsData);
+          setMasterSkills(mastersData);
+        }
+      } catch (err: unknown) {
+        if (isMounted) setError((err as Error).message || "Failed to load role skills.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => { isMounted = false; };
+  }, [roleId]);
 
   return { roleSkills, masterSkills, loading, error, loadSkills, addRoleSkill, editRoleSkill, removeRoleSkill };
 }
