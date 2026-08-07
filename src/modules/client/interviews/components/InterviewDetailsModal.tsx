@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import InterviewStatusBadge from "./InterviewStatusBadge";
 import ScreeningAnswersView from "./ScreeningAnswersView";
-import { Calendar, Clock, Video, MapPin, Globe, MessageSquare, User, CheckCircle2, XCircle } from "lucide-react";
+import { Calendar, Clock, Video, MapPin, Globe, MessageSquare, User, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import Image from "next/image";
 
 interface InterviewDetailsModalProps {
@@ -22,6 +22,8 @@ interface InterviewDetailsModalProps {
   open: boolean;
   onClose: () => void;
   onOpenEvaluation?: (interview: Interview) => void;
+  onReschedule?: (interview: Interview) => void;
+  onOpenCancelModal?: (interview: Interview) => void;
 }
 
 function CandidateAvatar({ name, avatar }: { name?: string; avatar?: string | null }) {
@@ -52,6 +54,8 @@ export default function InterviewDetailsModal({
   open,
   onClose,
   onOpenEvaluation,
+  onReschedule,
+  onOpenCancelModal,
 }: InterviewDetailsModalProps) {
   if (!interview) return null;
 
@@ -237,22 +241,61 @@ export default function InterviewDetailsModal({
           )}
         </div>
 
-        <div className="flex justify-between items-center pt-3 border-t border-zinc-100 dark:border-zinc-800">
-          {onOpenEvaluation && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                onClose();
-                onOpenEvaluation(interview);
-              }}
-              className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
-            >
-              <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
-              Record Feedback
-            </Button>
-          )}
-          <Button variant="default" size="sm" onClick={onClose} className="h-8 text-xs rounded-lg ml-auto font-semibold">
+        <div className="flex flex-wrap justify-between items-center gap-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2 flex-wrap">
+            {onOpenEvaluation && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onClose();
+                  onOpenEvaluation(interview);
+                }}
+                className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
+                {interview.interview_status === "COMPLETED" ? "View Feedback" : "Record Feedback"}
+              </Button>
+            )}
+
+            {(interview.interview_status === "SCHEDULED" ||
+              interview.interview_status === "CONFIRMED" ||
+              interview.interview_status === "RESCHEDULED") && (
+              <>
+                {onReschedule && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      onReschedule(interview);
+                    }}
+                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 text-amber-500" />
+                    Reschedule
+                  </Button>
+                )}
+
+                {onOpenCancelModal && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      onClose();
+                      onOpenCancelModal(interview);
+                    }}
+                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                    Cancel Interview
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+
+          <Button variant="default" size="sm" onClick={onClose} className="h-8 text-xs rounded-lg font-semibold px-4 bg-indigo-600 hover:bg-indigo-700">
             Close
           </Button>
         </div>

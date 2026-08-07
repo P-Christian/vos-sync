@@ -208,8 +208,8 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           }
         `}</style>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-40 w-40 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950 via-zinc-900 to-indigo-950 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+          <div className="absolute -right-10 -top-10 h-40 w-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
             <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
               <Users className="h-7 w-7" />
@@ -223,7 +223,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           </div>
 
           {/* Action Toolbar & Job Selector */}
-          <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-end gap-3 relative z-10 w-full sm:w-auto">
             {/* Best Match AI Action Button */}
             {selectedJob && (
               <Button
@@ -247,7 +247,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             )}
 
             {/* Job Selector Dropdown */}
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-auto sm:min-w-[220px]">
               <Select value={jobIdParam || "ALL"} onValueChange={handleJobChange}>
                 <SelectTrigger className="h-10 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
                   <SelectValue placeholder="Filter by Job Posting" />
