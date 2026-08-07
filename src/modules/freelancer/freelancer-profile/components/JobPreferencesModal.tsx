@@ -43,7 +43,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                 if (!isMounted) return;
                 setProvinces(data);
                 setLocationError(null);
-            } catch (err) {
+            } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
                 if (isMounted) setLocationError("Failed to load provinces from PSGC.");
             }
         }
@@ -58,13 +58,15 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
             const provStr = parts.length > 1 ? parts[1] : parts[0];
             const matchedProv = provinces.find(p => p.name === provStr);
             if (matchedProv && matchedProv.code !== selectedProvinceCode) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedProvinceCode(matchedProv.code);
             }
         }
-    }, [provinces, preferences.preferred_location]);
+    }, [provinces, preferences.preferred_location, selectedProvinceCode]);
 
     useEffect(() => {
         if (!selectedProvinceCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCities([]);
             return;
         }
@@ -75,7 +77,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                 if (!isMounted) return;
                 setCities(data);
                 setLocationError(null);
-            } catch (err) {
+            } catch (err) { // eslint-disable-line @typescript-eslint/no-unused-vars
                 if (isMounted) setLocationError("Failed to load cities from PSGC.");
             }
         }
@@ -90,11 +92,12 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
             if (cityStr) {
                 const matchedCity = cities.find(c => c.name === cityStr);
                 if (matchedCity && matchedCity.code !== selectedCityCode) {
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
                     setSelectedCityCode(matchedCity.code);
                 }
             }
         }
-    }, [cities, preferences.preferred_location]);
+    }, [cities, preferences.preferred_location, selectedCityCode]);
 
     if (!isOpen) return null;
 

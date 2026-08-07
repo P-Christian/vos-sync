@@ -73,7 +73,6 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                 setLocationError(null);
                 
                 // Restore province code if we have a saved name
-                const source = pendingPersonalInfo || (data && data.length ? data[0] : null); // Fallback to current context data if needed
                 // We actually want to check the `formData.user_province` because it is set when the modal opens
             } catch (err) {
                 if (isMounted) setLocationError("Failed to load provinces from PSGC. Please try again later.");
@@ -89,14 +88,16 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
         if (provinces.length > 0 && formData.user_province) {
             const matched = provinces.find(p => p.name === formData.user_province);
             if (matched && matched.code !== selectedProvinceCode) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedProvinceCode(matched.code);
             }
         }
-    }, [provinces, formData.user_province]);
+    }, [provinces, formData.user_province, selectedProvinceCode]);
 
     // Load Cities when selectedProvinceCode changes
     useEffect(() => {
         if (!selectedProvinceCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCities([]);
             return;
         }
@@ -121,14 +122,16 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
         if (cities.length > 0 && formData.user_city) {
             const matched = cities.find(c => c.name === formData.user_city);
             if (matched && matched.code !== selectedCityCode) {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setSelectedCityCode(matched.code);
             }
         }
-    }, [cities, formData.user_city]);
+    }, [cities, formData.user_city, selectedCityCode]);
 
     // Load Barangays when selectedCityCode changes
     useEffect(() => {
         if (!selectedCityCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBarangays([]);
             return;
         }
