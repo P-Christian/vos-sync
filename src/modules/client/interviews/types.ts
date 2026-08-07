@@ -10,16 +10,37 @@ export type InterviewStatus =
 
 export type InterviewFormat = "ONLINE" | "ONSITE" | "PHONE";
 
+export type AttendanceStatus = "PENDING" | "ATTENDED" | "NO_SHOW";
+
 export interface ScreeningAnswer {
   question_id?: number;
   question_text: string;
   answer_text: string;
 }
 
+export interface InterviewApplication {
+  interview_application_id: number;
+  interview_id: number;
+  application_id: number;
+  attendance_status: AttendanceStatus;
+  candidate_notes?: string | null;
+  feedback?: string | null;
+  created_at?: string;
+
+  // Joined applicant / job info
+  applicant_name?: string;
+  applicant_email?: string;
+  applicant_phone?: string | null;
+  applicant_avatar?: string | null;
+  job_id?: number;
+  job_title?: string;
+  application_status?: string;
+  screening_answers?: ScreeningAnswer[] | null;
+}
+
 export interface Interview {
   interview_id: number;
   company_id: number;
-  application_id: number;
   interviewer_user_id: number;
   scheduled_at: string;
   duration_minutes?: number;
@@ -28,28 +49,19 @@ export interface Interview {
   meeting_link?: string | null;
   meeting_location?: string | null;
   interview_notes?: string | null;
-  candidate_notes?: string | null;
-  feedback?: string | null;
   interview_status: InterviewStatus;
   cancel_reason?: string | null;
   created_by_user_id?: number;
   updated_by_user_id?: number | null;
-
-  // Joined applicant / job fields
-  applicant_name?: string;
-  applicant_email?: string;
-  applicant_phone?: string | null;
-  applicant_avatar?: string | null;
-  job_title?: string;
-  job_id?: number;
-  application_status?: string;
-  screening_answers?: ScreeningAnswer[] | null;
   created_at?: string;
+
+  // Joined array of candidate applications
+  applications?: InterviewApplication[];
 }
 
 export interface InterviewFormData {
   interview_id?: string;
-  application_id: string;
+  application_ids: number[];
   scheduled_at: string; // "YYYY-MM-DDTHH:mm" format for datetime-local
   duration_minutes: number;
   timezone: string;
@@ -57,11 +69,11 @@ export interface InterviewFormData {
   meeting_link: string;
   meeting_location: string;
   interview_notes: string;
-  candidate_notes: string;
 }
 
 export interface EvaluationFormData {
-  interview_id: number;
+  interview_application_id: number;
+  attendance_status: AttendanceStatus;
   feedback: string;
   decision?: "HIRED" | "REJECTED" | "NO_ACTION";
 }
@@ -72,6 +84,12 @@ export const INTERVIEW_STATUS_LABELS: Record<InterviewStatus, string> = {
   CANCELLED: "Cancelled",
   RESCHEDULED: "Rescheduled",
   COMPLETED: "Completed",
+  NO_SHOW: "No Show",
+};
+
+export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
+  PENDING: "Pending",
+  ATTENDED: "Attended",
   NO_SHOW: "No Show",
 };
 

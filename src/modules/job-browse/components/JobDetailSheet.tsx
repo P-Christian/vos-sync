@@ -157,6 +157,9 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
 
   const alreadyApplied = appliedJobIds.includes(job.job_id);
   const isBookmarked = bookmarkedJobIds.includes(job.job_id);
+  const companyUrl = job.company_code
+    ? `/companies/${job.company_code}`
+    : `/companies?search=${encodeURIComponent(job.company_name ?? "")}`;
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -181,19 +184,39 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
         <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
           <div className="flex justify-between items-start gap-4">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 -mt-12 relative z-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-md font-bold text-foreground shrink-0 overflow-hidden shadow-xs">
+              <a
+                href={companyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-16 h-16 -mt-12 relative z-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-md font-bold text-foreground shrink-0 overflow-hidden shadow-xs hover:opacity-90 transition-opacity"
+                title={`View ${job.company_name ?? "Company"} details`}
+              >
                 {job.company_logo ? (
                   <img src={getImageUrl(job.company_logo)} alt={job.company_name ?? ""} className="w-full h-full object-cover" />
                 ) : (
                   getInitials(job.company_name)
                 )}
-              </div>
+              </a>
               <div className="flex-1 min-w-0">
                 <SheetTitle className="text-base font-bold text-foreground leading-tight">
                   {job.job_title}
                 </SheetTitle>
-                <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                  {job.company_name ?? "Unknown Company"}
+                <SheetDescription className="text-sm text-muted-foreground mt-0.5" asChild>
+                  <div>
+                    {job.company_name ? (
+                      <a
+                        href={companyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary hover:underline transition-colors font-medium"
+                        title={`View ${job.company_name} details`}
+                      >
+                        {job.company_name}
+                      </a>
+                    ) : (
+                      "Unknown Company"
+                    )}
+                  </div>
                 </SheetDescription>
               </div>
             </div>

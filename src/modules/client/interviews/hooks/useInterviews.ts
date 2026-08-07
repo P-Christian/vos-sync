@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 
 export const EMPTY_FORM: InterviewFormData = {
-  application_id: "",
+  application_ids: [],
   scheduled_at: "",
   duration_minutes: 60,
   timezone: "Asia/Manila",
@@ -27,7 +27,6 @@ export const EMPTY_FORM: InterviewFormData = {
   meeting_link: "",
   meeting_location: "",
   interview_notes: "",
-  candidate_notes: "",
 };
 
 export function useInterviews() {
@@ -121,42 +120,29 @@ export function useInterviews() {
     []
   );
 
-  const saveEvaluation = useCallback(async (payload: EvaluationFormData) => {
-    setSaving(true);
-    setError("");
-    setSuccessMessage("");
-    try {
-      await submitInterviewEvaluation(payload);
-      setInterviews((prev) =>
-        prev.map((item) =>
-          item.interview_id === payload.interview_id
-            ? {
-                ...item,
-                feedback: payload.feedback,
-                interview_status: "COMPLETED",
-                application_status:
-                  payload.decision === "HIRED"
-                    ? "HIRED"
-                    : payload.decision === "REJECTED"
-                    ? "REJECTED"
-                    : item.application_status,
-              }
-            : item
-        )
-      );
-      const msg = "Evaluation recorded successfully.";
-      setSuccessMessage(msg);
-      toast.success(msg);
-      return true;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save evaluation.";
-      setError(msg);
-      toast.error(msg);
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  }, []);
+  const saveEvaluation = useCallback(
+    async (payload: EvaluationFormData) => {
+      setSaving(true);
+      setError("");
+      setSuccessMessage("");
+      try {
+        await submitInterviewEvaluation(payload);
+        const msg = "Evaluation recorded successfully.";
+        setSuccessMessage(msg);
+        toast.success(msg);
+        await loadInterviews();
+        return true;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to save evaluation.";
+        setError(msg);
+        toast.error(msg);
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [loadInterviews]
+  );
 
   const filteredInterviews = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -166,10 +152,14 @@ export function useInterviews() {
       if (!matchesStatus) return false;
       if (!query) return true;
 
-      return (
-        item.applicant_name?.toLowerCase().includes(query) ||
-        item.job_title?.toLowerCase().includes(query) ||
-        item.meeting_location?.toLowerCase().includes(query)
+      const hasApplicantMatch = item.applications?.some(
+        (app) =>
+          app.applicant_name?.toLowerCase().includes(query) ||
+          app.job_title?.toLowerCase().includes(query)
+      );
+
+      return Boolean(
+        hasApplicantMatch || item.meeting_location?.toLowerCase().includes(query)
       );
     });
   }, [interviews, filterStatus, search]);

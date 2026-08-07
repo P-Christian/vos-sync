@@ -167,24 +167,14 @@ export default function JobCard({
 
               {/* Primary ATS actions */}
               <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}&tab=applicants`}>
+                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}`}>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 px-3 text-xs gap-1.5 rounded-lg border-zinc-200 hover:border-indigo-500 hover:text-indigo-600 dark:border-zinc-800 dark:hover:border-indigo-400 transition-all duration-200 font-semibold"
+                    className="h-8 px-3 text-xs gap-1.5 rounded-lg border-zinc-200 hover:border-emerald-500 hover:text-[#14a800] dark:border-zinc-800 dark:hover:border-emerald-500 transition-all duration-200 font-semibold"
                   >
                     <Users className="h-3.5 w-3.5" />
                     View Applicants
-                  </Button>
-                </Link>
-
-                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}&tab=best-matches`}>
-                  <Button
-                    size="sm"
-                    className="h-8 px-3 text-xs gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold shadow-sm border-0 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                   
-                    Best Matches
                   </Button>
                 </Link>
               </div>

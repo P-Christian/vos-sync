@@ -127,6 +127,9 @@ export default function JobDetailPage({ jobId }: Props) {
 
   const { bookmarkedJobIds, toggleBookmark, fetchBookmarks } = useFreelancerBookmarks();
   const isBookmarked = bookmarkedJobIds.includes(jobId);
+  const companyUrl = job?.company_code
+    ? `/companies/${job.company_code}`
+    : `/companies?search=${encodeURIComponent(job?.company_name ?? "")}`;
 
   useEffect(() => {
     fetchBookmarks();
@@ -222,13 +225,19 @@ export default function JobDetailPage({ jobId }: Props) {
               <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800" />
             )}
             {/* Overlapping Company Logo */}
-            <div className="absolute -bottom-6 left-8 w-20 h-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-lg font-bold text-foreground overflow-hidden shadow-md z-20">
+            <a
+              href={companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute -bottom-6 left-8 w-20 h-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-lg font-bold text-foreground overflow-hidden shadow-md z-20 hover:opacity-90 transition-opacity"
+              title={`View ${job.company_name ?? "Company"} details`}
+            >
               {job.company_logo ? (
                 <img src={getImageUrl(job.company_logo)} alt={job.company_name ?? ""} className="w-full h-full object-cover" />
               ) : (
                 getInitials(job.company_name)
               )}
-            </div>
+            </a>
           </div>
 
           <div className="px-6 sm:px-8 space-y-5">
@@ -238,7 +247,20 @@ export default function JobDetailPage({ jobId }: Props) {
                 {job.job_title}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {job.company_name} &bull; Posted {job.created_at ? new Date(job.created_at).toLocaleDateString() : ""}
+                {job.company_name ? (
+                  <a
+                    href={companyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-primary hover:underline font-semibold transition-colors"
+                    title={`View ${job.company_name} details`}
+                  >
+                    {job.company_name}
+                  </a>
+                ) : (
+                  "Unknown Company"
+                )}{" "}
+                &bull; Posted {job.created_at ? new Date(job.created_at).toLocaleDateString() : ""}
               </p>
             </div>
 

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { Bookmark, MapPin, Loader2, AlertCircle, Trash2, Eye, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SavedTalent } from "../types";
-import { getInitials } from "../utils/talentUtils";
+import { getInitials, getImageUrl } from "../utils/talentUtils";
 import { cn } from "@/lib/utils";
 
 interface SavedTalentPanelProps {
@@ -73,31 +73,33 @@ export default function SavedTalentPanel({
 
       {!loading && saved.length > 0 && (
         <div className="grid grid-cols-1 gap-3">
-          {saved.map((s) => (
-            <div
-              key={s.id}
-              className={cn(
-                "flex items-start gap-3 p-4 rounded-xl border",
-                "border-zinc-200 dark:border-zinc-800",
-                "bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm",
-                "hover:shadow-sm hover:border-indigo-200 dark:hover:border-indigo-800 transition-all"
-              )}
-            >
-              {/* Avatar */}
-              {s.profile_image_url ? (
-                <Image
-                  src={s.profile_image_url}
-                  alt={s.name}
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
-                  unoptimized
-                />
-              ) : (
-                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {getInitials(s.name)}
-                </div>
-              )}
+          {saved.map((s) => {
+            const avatarSrc = getImageUrl(s.profile_image_url);
+            return (
+              <div
+                key={s.id}
+                className={cn(
+                  "flex items-start gap-3 p-4 rounded-xl border",
+                  "border-zinc-200 dark:border-zinc-800",
+                  "bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm",
+                  "hover:shadow-sm hover:border-indigo-200 dark:hover:border-indigo-800 transition-all"
+                )}
+              >
+                {/* Avatar */}
+                {avatarSrc ? (
+                  <Image
+                    src={avatarSrc}
+                    alt={s.name}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 rounded-xl object-cover border border-zinc-200 dark:border-zinc-700 shrink-0"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                    {getInitials(s.name)}
+                  </div>
+                )}
 
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm text-zinc-900 dark:text-white truncate">{s.name}</p>
@@ -162,7 +164,8 @@ export default function SavedTalentPanel({
                 </Button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

@@ -61,7 +61,7 @@ export async function DELETE(
 
     // Find the saved record
     const findRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_saved_talent?filter[company_id][_eq]=${companyId}&filter[talent_user_id][_eq]=${talentUserId}&fields=id&limit=1`,
+      `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&filter[applicant_user_id][_eq]=${talentUserId}&fields=saved_applicant_id&limit=1`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -76,7 +76,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Saved talent record not found." }, { status: 404 });
     }
 
-    const deleteRes = await fetch(`${DIRECTUS_BASE}/items/vs_saved_talent/${record.id}`, {
+    const deleteRes = await fetch(`${DIRECTUS_BASE}/items/vs_saved_applicant/${record.saved_applicant_id}`, {
       method: "DELETE",
       headers: getHeaders(),
     });
