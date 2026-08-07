@@ -16,7 +16,6 @@
     "@fortawesome/free-solid-svg-icons": "^7.3.0",
     "@fortawesome/react-fontawesome": "^3.4.0",
     "@hookform/resolvers": "5.7.1",
-     
     "@tanstack/react-table": "^8.21.3",
     "ajv": "^8.20.0",
     "axios": "^1.19.0",
@@ -27,6 +26,7 @@
     "date-fns": "^4.1.0",
     "docx-preview": "^0.4.0",
     "embla-carousel-react": "^8.6.0",
+    "emnapi": "^1.11.3",
     "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "jose": "^5.10.0",
