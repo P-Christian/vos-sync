@@ -32,6 +32,11 @@ function getUserIdFromToken(token: string): number | null {
   }
 }
 
+import { createSystemMessage } from "@/lib/messaging/system-message";
+import { sendInvitationEmail } from "@/lib/mail/services/job-mail";
+import { isEmailEnabledForUser } from "@/lib/mail/preference-check";
+import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
+
 // POST — send a talent invitation
 export async function POST(req: NextRequest) {
   try {
@@ -67,16 +72,20 @@ export async function POST(req: NextRequest) {
     // Add UTC+8 for PH timezone
     const nowUTC8 = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace("Z", "");
 
-    const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_talent_invitation`, {
+    // 1. Create invitation record
+    const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_applicant_invitation`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
         company_id: companyId,
-        talent_user_id: Number(talent_user_id),
+        applicant_user_id: Number(talent_user_id),
         job_id: job_id ? Number(job_id) : null,
+        subject: body.subject || null,
         message: message.trim(),
         status: "PENDING",
+        created_by: userId,
         created_at: nowUTC8,
+        updated_at: nowUTC8,
       }),
     });
 
@@ -86,6 +95,83 @@ export async function POST(req: NextRequest) {
     }
 
     const created = (await createRes.json()).data;
+
+    // 2. Fetch candidate & job details to send email and in-app message
+    const [candRes, compRes, jobRes] = await Promise.all([
+      fetch(`${DIRECTUS_BASE}/items/vs_user/${talent_user_id}?fields=user_email,user_fname,user_lname`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      }),
+      fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=company_name`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      }),
+      job_id
+        ? fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${job_id}?fields=job_title,job_description,job_location,work_arrangement,job_type,salary_min,salary_max,currency`, {
+            headers: getHeaders(),
+            cache: "no-store",
+          })
+        : Promise.resolve(null),
+    ]);
+
+    const candidate = candRes.ok ? (await candRes.json()).data : null;
+    const company = compRes.ok ? (await compRes.json()).data : null;
+    const job = jobRes && jobRes.ok ? (await jobRes.json()).data : null;
+
+    const companyName = company?.company_name || "a company on VOS-Sync";
+    const jobTitle = job?.job_title || null;
+    const jobDescription = job?.job_description || null;
+    const jobLocation = job?.job_location || null;
+    const workArrangement = job?.work_arrangement || null;
+    const jobType = job?.job_type || null;
+
+    let salaryRange: string | null = null;
+    if (job?.salary_min || job?.salary_max) {
+      const curr = job.currency || "PHP";
+      const minStr = job.salary_min ? Number(job.salary_min).toLocaleString() : null;
+      const maxStr = job.salary_max ? Number(job.salary_max).toLocaleString() : null;
+      if (minStr && maxStr) {
+        salaryRange = `${curr} ${minStr} - ${maxStr}`;
+      } else if (minStr) {
+        salaryRange = `${curr} ${minStr}+`;
+      } else if (maxStr) {
+        salaryRange = `Up to ${curr} ${maxStr}`;
+      }
+    }
+
+    const candidateUserId = Number(talent_user_id);
+
+    // 3. Dispatch In-App Message (if user preference allows)
+    const canSendInApp = await isInAppEnabledForUser(candidateUserId, "INVITATION_RECEIVED");
+    if (canSendInApp) {
+      await createSystemMessage({
+        clientId: companyId,
+        freelancerId: candidateUserId,
+        jobId: job_id ? Number(job_id) : null,
+        text: message.trim(),
+        senderId: userId,
+      }).catch((e) => console.error("Failed to create in-app message:", e));
+    }
+
+    // 4. Dispatch Email Notification (if user preference allows)
+    const canSendEmail = await isEmailEnabledForUser(candidateUserId, "INVITATION_RECEIVED");
+    if (candidate?.user_email && canSendEmail) {
+      const candidateName = [candidate.user_fname, candidate.user_lname].filter(Boolean).join(" ");
+      await sendInvitationEmail(candidate.user_email, {
+        candidateName,
+        companyName,
+        jobTitle,
+        jobDescription,
+        jobLocation,
+        workArrangement,
+        jobType,
+        salaryRange,
+        message: message.trim(),
+      }).catch((e) =>
+        console.error("Failed to send notification email:", e)
+      );
+    }
+
     return NextResponse.json({ success: true, invitation: created }, { status: 201 });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Internal server error";
@@ -112,7 +198,7 @@ export async function GET(req: NextRequest) {
     }
 
     const invRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_talent_invitation?filter[company_id][_eq]=${companyId}&fields=id,talent_user_id,job_id,message,status,created_at&sort[]=-created_at&limit=200`,
+      `${DIRECTUS_BASE}/items/vs_applicant_invitation?filter[company_id][_eq]=${companyId}&fields=invitation_id,applicant_user_id,job_id,subject,message,status,created_at&sort[]=-created_at&limit=200`,
       { headers: getHeaders(), cache: "no-store" }
     );
 

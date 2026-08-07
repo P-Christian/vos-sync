@@ -2,7 +2,7 @@
 
 // src/modules/client/talent-search/components/TalentProfileDrawer.tsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Sheet,
@@ -19,13 +19,17 @@ import {
   Send, BookmarkPlus, BookmarkCheck, Loader2, AlertCircle,   Download, ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TalentProfile } from "../types";
-import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon } from "../utils/talentUtils";
+import { TalentProfile, MatchBreakdown } from "../types";
+import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon, getImageUrl } from "../utils/talentUtils";
+import { getCachedExplanation, setCachedExplanation } from "@/lib/gemini/useExplanationCache";
 
 interface TalentProfileDrawerProps {
   open: boolean;
   profile: TalentProfile | null;
-  matchScore?: number;
+  matchScore?: number | null;
+  matchBreakdown?: MatchBreakdown | null;
+  aiExplanation?: string | null;
+  searchKeyword?: string;
   loading: boolean;
   error: string;
   onClose: () => void;
@@ -38,6 +42,9 @@ export default function TalentProfileDrawer({
   open,
   profile,
   matchScore,
+  matchBreakdown,
+  aiExplanation,
+  searchKeyword,
   loading,
   error,
   onClose,
@@ -46,15 +53,85 @@ export default function TalentProfileDrawer({
   saving,
 }: TalentProfileDrawerProps) {
   const [tab, setTab] = useState("overview");
+  const [lazyExplanation, setLazyExplanation] = useState<string | null>(null);
+  const [fetchingExplanation, setFetchingExplanation] = useState(false);
+
+  useEffect(() => {
+    if (!open || !profile || !searchKeyword) {
+      queueMicrotask(() => {
+        setLazyExplanation(null);
+        setFetchingExplanation(false);
+      });
+      return;
+    }
+
+    // 1. Eager explanation already provided by the search result batch —
+    //    cache it so reopening this drawer costs nothing.
+    if (aiExplanation) {
+      setCachedExplanation(searchKeyword, profile.user_id, aiExplanation);
+      queueMicrotask(() => {
+        setLazyExplanation(null);
+        setFetchingExplanation(false);
+      });
+      return;
+    }
+
+    // 2. Check sessionStorage before making any network call.
+    const cached = getCachedExplanation(searchKeyword, profile.user_id);
+    if (cached) {
+      queueMicrotask(() => {
+        setLazyExplanation(cached);
+        setFetchingExplanation(false);
+      });
+      return;
+    }
+
+    // 3. Cache miss — fetch lazily from the explain endpoint.
+    let isMounted = true;
+    queueMicrotask(() => setFetchingExplanation(true));
+
+    fetch("/api/client/talent-search/explain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        keyword: searchKeyword,
+        candidate: {
+          name: profile.name,
+          title: profile.headline ?? null,
+          skills: profile.skills ?? [],
+          summary: profile.summary ?? null,
+          experience_years: profile.experience_years ?? 0,
+        },
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.explanation) {
+          setCachedExplanation(searchKeyword, profile.user_id, data.explanation);
+          setLazyExplanation(data.explanation);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setFetchingExplanation(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, profile, aiExplanation, searchKeyword]);
+
+  const activeExplanation = aiExplanation || lazyExplanation;
 
   const initials = profile ? getInitials(profile.name) : "";
   const scoreClass = matchScore !== undefined ? matchScoreColor(matchScore) : "";
+  const avatarSrc = profile ? getImageUrl(profile.profile_image_url) : "";
 
   return (
-    <Sheet open={open} onOpenChange={onClose}>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-xl p-0 flex flex-col overflow-hidden"
+        className="w-full sm:max-w-2xl lg:max-w-[760px] p-0 flex flex-col h-full bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800"
       >
         {/* Loading */}
         {loading && (
@@ -81,9 +158,9 @@ export default function TalentProfileDrawer({
               <SheetHeader className="relative z-10">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  {profile.profile_image_url ? (
+                  {avatarSrc ? (
                     <Image
-                      src={profile.profile_image_url}
+                      src={avatarSrc}
                       alt={profile.name}
                       width={64}
                       height={64}
@@ -114,10 +191,9 @@ export default function TalentProfileDrawer({
 
                 {/* Stats row */}
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
-                  {matchScore !== undefined && (
+                  {matchScore !== null && matchScore !== undefined && (
                     <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1", scoreClass)}>
-                
-                      {matchScore}% Match
+                      {matchScore}% Compatibility
                     </span>
                   )}
                   {profile.experience_years > 0 && (
@@ -143,8 +219,22 @@ export default function TalentProfileDrawer({
               </SheetHeader>
             </div>
 
-            {/* Action buttons */}
-            <div className="flex gap-2 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-900">
+            {/* Gemini AI Match Explanation */}
+            {activeExplanation && (
+              <div className="mx-6 mt-3 mb-1 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex gap-2.5 items-start">
+                <span className="text-base shrink-0 mt-0.5">✦</span>
+                <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">{activeExplanation}</p>
+              </div>
+            )}
+            {fetchingExplanation && !activeExplanation && (
+              <div className="mx-6 mt-3 mb-1 px-4 py-2.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/40 flex gap-2 items-center text-xs text-indigo-500">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500 shrink-0" />
+                <span>Generating AI match insight…</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
               <Button
                 id={`drawer-save-${profile.user_id}`}
                 variant="outline"
@@ -188,6 +278,113 @@ export default function TalentProfileDrawer({
               <div className="flex-1 overflow-y-auto px-6 pb-8">
                 {/* ── OVERVIEW ── */}
                 <TabsContent value="overview" className="mt-4 space-y-5">
+                  {/* Browse Mode Helper Banner */}
+                  {!matchBreakdown && (
+                    <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-0.5">
+                        Compatibility Score
+                      </span>
+                      Search for a role, select required skills, or choose a job posting to evaluate candidate match.
+                    </div>
+                  )}
+
+                  {/* Match Breakdown Card */}
+                  {matchBreakdown && (
+                    <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
+                            Compatibility Analysis
+                          </h4>
+                          {matchBreakdown.confidence && (
+                            <span
+                              className={cn(
+                                "text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                matchBreakdown.confidence.level === "HIGH"
+                                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300"
+                                  : matchBreakdown.confidence.level === "MEDIUM"
+                                  ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300"
+                                  : "bg-zinc-100 text-zinc-600 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-400"
+                              )}
+                            >
+                              {matchBreakdown.confidence.level} Confidence
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                          {matchBreakdown.overallScore}% Match
+                        </span>
+                      </div>
+
+                      {/* Explanation Summary Banner */}
+                      {matchBreakdown.explanation?.summary && (
+                        <p className="text-xs font-medium text-indigo-900/80 dark:text-indigo-200/80 bg-white/60 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/40">
+                          {matchBreakdown.explanation.summary}
+                        </p>
+                      )}
+
+                      {/* Dynamic Data-Driven Breakdown Sections */}
+                      {matchBreakdown.sections && matchBreakdown.sections.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                          {matchBreakdown.sections.map((sec, idx) => (
+                            <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                              <span className="text-zinc-400 block text-[11px] font-medium">{sec.label}</span>
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                                {sec.score} / {sec.max} pts
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        /* Fallback legacy section rendering if sections not present */
+                        <div className="grid grid-cols-2 gap-2.5 text-xs">
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <span className="text-zinc-400 block text-[11px]">Skills</span>
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.skills ?? 0} pts</span>
+                          </div>
+                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                            <span className="text-zinc-400 block text-[11px]">Experience</span>
+                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.experience?.score ?? 0} pts</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Structured Evidence Chips */}
+                      {matchBreakdown.evidence && matchBreakdown.evidence.length > 0 && (
+                        <div className="pt-2.5 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5">
+                          <span className="text-indigo-900 dark:text-indigo-200 font-bold block text-[11px] uppercase tracking-wider">
+                            ✓ Verified Match Signals:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            {matchBreakdown.evidence.map((ev, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs"
+                              >
+                                <span className="text-emerald-500 font-bold">✓</span>
+                                {ev.label}: <span className="font-normal text-zinc-600 dark:text-zinc-400">{ev.value}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Key Strengths */}
+                      {matchBreakdown.explanation?.strengths && matchBreakdown.explanation.strengths.length > 0 && (
+                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1">
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-[11px] uppercase tracking-wider">
+                            Highlights:
+                          </span>
+                          <ul className="space-y-1 list-disc list-inside text-zinc-700 dark:text-zinc-300">
+                            {matchBreakdown.explanation.strengths.map((str, idx) => (
+                              <li key={idx}>{str}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Summary */}
                   {profile.summary && (
                     <div>

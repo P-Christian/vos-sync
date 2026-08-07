@@ -65,6 +65,9 @@ function getImageUrl(value: string | null | undefined): string {
 
 export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmark }: Props) {
   const ArrangeIcon = arrangementIcon[job.work_arrangement] ?? Briefcase;
+  const companyUrl = job.company_code
+    ? `/companies/${job.company_code}`
+    : `/companies?search=${encodeURIComponent(job.company_name ?? "")}`;
 
   return (
     <div
@@ -77,22 +80,40 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
       {/* Header */}
       <div className="flex items-start gap-3">
         {/* Company Avatar */}
-        <div className="w-11 h-11 rounded-xl border bg-muted flex items-center justify-center text-sm font-bold text-foreground shrink-0 overflow-hidden">
+        <a
+          href={companyUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="w-11 h-11 rounded-xl border bg-muted flex items-center justify-center text-sm font-bold text-foreground shrink-0 overflow-hidden hover:opacity-85 transition-opacity"
+          title={`View ${job.company_name ?? "Company"} details`}
+        >
           {job.company_logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={getImageUrl(job.company_logo)} alt={job.company_name ?? ""} className="w-full h-full object-cover" />
           ) : (
             getInitials(job.company_name)
           )}
-        </div>
+        </a>
 
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
             {job.job_title}
           </h3>
-          <p className="text-xs text-muted-foreground truncate mt-0.5">
-            {job.company_name ?? "—"}
-          </p>
+          {job.company_name ? (
+            <a
+              href={companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-muted-foreground hover:text-primary hover:underline transition-colors truncate mt-0.5 inline-block max-w-full"
+              title={`View ${job.company_name} details`}
+            >
+              {job.company_name}
+            </a>
+          ) : (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">—</p>
+          )}
         </div>
 
         {timeAgo(job.created_at) && (

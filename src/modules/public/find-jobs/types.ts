@@ -3,6 +3,7 @@
 export interface PublicJobPosting {
   job_id: number;
   company_id: number;
+  company_code?: string | null;
   company_name: string;
   company_logo_url?: string | null;
   company_location?: string;

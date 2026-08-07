@@ -116,7 +116,7 @@ export async function GET(
         // Is saved?
         companyId
           ? fetch(
-              `${DIRECTUS_BASE}/items/vs_saved_talent?filter[company_id][_eq]=${companyId}&filter[talent_user_id][_eq]=${talentUserId}&fields=id,notes&limit=1`,
+              `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&filter[applicant_user_id][_eq]=${talentUserId}&fields=saved_applicant_id,notes&limit=1`,
               { headers: getHeaders(), cache: "no-store" }
             )
           : Promise.resolve(null),

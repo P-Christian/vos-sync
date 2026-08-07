@@ -1,6 +1,16 @@
 // src/modules/client/talent-search/utils/talentUtils.ts
 
 /**
+ * Resolves full Directus asset URL for image values
+ */
+export function getImageUrl(value: string | null | undefined): string {
+  if (!value) return "";
+  if (value.startsWith("http://") || value.startsWith("https://")) return value;
+  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+  const cleanPath = value.replace(/^\//, "");
+  return `${baseUrl}/assets/${cleanPath}`;
+}
+/**
  * Format experience duration
  */
 export function formatExperienceYears(years: number): string {
@@ -48,7 +58,8 @@ export function getInitials(name: string): string {
 /**
  * Match score badge color class
  */
-export function matchScoreColor(score: number): string {
+export function matchScoreColor(score: number | null | undefined): string {
+  if (score === null || score === undefined) return "";
   if (score >= 85) return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30";
   if (score >= 70) return "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30";
   if (score >= 50) return "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
