@@ -89,7 +89,7 @@ export function formatPhoneNumber(val: string): string {
   const digits = val.replace(/\D/g, '');
   if (!digits) return '';
 
-  const is434 = digits.startsWith('0') || digits.length > 10;
+  const is434 = digits.startsWith('0');
   const maxDigits = is434 ? 11 : 10;
   const sliced = digits.slice(0, maxDigits);
 
@@ -2192,8 +2192,15 @@ function SignupPageContent() {
     if (!schoolFormData.contact.trim()) {
       e.contact = 'Contact number is required';
     } else {
+      const cleanDigits = schoolFormData.contact.replace(/\D/g, '');
       const full = `${schoolSelectedCountry.dialCode} ${schoolFormData.contact.trim()}`;
-      if (!schoolSelectedCountry.regex.test(full) && !schoolSelectedCountry.regex.test(schoolFormData.contact.trim())) {
+      const fullClean = `${schoolSelectedCountry.dialCode} ${cleanDigits}`;
+      if (
+        !schoolSelectedCountry.regex.test(full) &&
+        !schoolSelectedCountry.regex.test(schoolFormData.contact.trim()) &&
+        !schoolSelectedCountry.regex.test(fullClean) &&
+        !schoolSelectedCountry.regex.test(cleanDigits)
+      ) {
         e.contact = `Invalid format for ${schoolSelectedCountry.name}.`;
       }
     }
