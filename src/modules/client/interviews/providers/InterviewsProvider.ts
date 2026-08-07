@@ -45,7 +45,7 @@ export async function updateInterviewDetails(
 export async function submitInterviewEvaluation(
   payload: EvaluationFormData
 ): Promise<void> {
-  const res = await fetch(`${BASE}/${payload.interview_id}`, {
+  const res = await fetch(`${BASE}/${payload.interview_application_id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type: "EVALUATION", payload }),

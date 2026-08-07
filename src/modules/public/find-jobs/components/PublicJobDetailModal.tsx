@@ -38,6 +38,9 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
   const targetPath = `/vos-sync/freelancer/jobs${openJobQuery}`;
   const loginHref = `/login?next=${encodeURIComponent(targetPath)}`;
   const signupHref = `/signup?next=${encodeURIComponent(targetPath)}`;
+  const companyUrl = job.company_code
+    ? `/companies/${job.company_code}`
+    : `/companies?search=${encodeURIComponent(job.company_name ?? "")}`;
 
   const formatSalary = (min?: number | null, max?: number | null, curr?: string) => {
     if (!min && !max) return "Competitive Salary";
@@ -55,7 +58,13 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
         <DialogHeader className="p-6 border-b bg-muted/20 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl border bg-background overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
+              <a
+                href={companyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="h-14 w-14 rounded-2xl border bg-background overflow-hidden flex items-center justify-center shrink-0 shadow-xs hover:opacity-90 transition-opacity"
+                title={`View ${job.company_name} details`}
+              >
                 {job.company_logo_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -66,10 +75,18 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
                 ) : (
                   <Building2 className="h-7 w-7 text-muted-foreground" />
                 )}
-              </div>
+              </a>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-xs text-muted-foreground">{job.company_name}</span>
+                  <a
+                    href={companyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-xs text-muted-foreground hover:text-primary hover:underline transition-colors"
+                    title={`View ${job.company_name} details`}
+                  >
+                    {job.company_name}
+                  </a>
                   {job.company_verification_status === "VERIFIED" && (
                     <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] gap-1">
                       <ShieldCheck className="h-3 w-3" /> Verified Employer

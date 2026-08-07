@@ -8,6 +8,7 @@ import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvi
 import { VsMasterSkill, VsWorkExperience } from "../types/freelancer-profile.types";
 import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface WorkExperienceModalProps {
     isOpen: boolean;
@@ -30,6 +31,7 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
     const [mediaUrls, setMediaUrls] = useState<string[]>([]);
     
     const [error, setError] = useState<string | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const { data, pendingWorkExperience, setWorkExperienceDraft } = useFreelancerProfileContext();
 
     const liveExperience = data?.work_experience || [];
@@ -113,16 +115,21 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
         onClose();
     };
 
-    const handleDelete = () => {
+    const confirmDelete = () => {
         if (!experienceToEdit) return;
-        if (!confirm("Are you sure you want to delete this experience record?")) return;
         
         const updatedList = experienceList.filter(e => e.id !== experienceToEdit.id);
         setWorkExperienceDraft(updatedList);
+        setShowDeleteModal(false);
         onClose();
     };
 
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
     return (
+        <>
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
@@ -270,7 +277,7 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
                     {experienceToEdit && (
                         <Button 
                             variant="destructive" 
-                            onClick={handleDelete} 
+                            onClick={handleDeleteClick} 
                             className="mr-auto"
                         >
                             Delete
@@ -288,5 +295,25 @@ export function WorkExperienceModal({ isOpen, onClose, userId, experienceToEdit 
                 </div>
             </DialogContent>
         </Dialog>
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Work Experience</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to delete this experience record? This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={confirmDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }

@@ -12,35 +12,36 @@ import {
 
 const FREELANCER_NOTIFICATION_CATEGORIES_BY_GROUP: NotificationCategoryGroup[] = [
   {
-    title: "Job Applications",
-    description: "Notifications regarding your submitted job applications and status changes.",
+    title: "Job Applications & Opportunities",
+    description: "Notifications regarding job applications, status updates, and invitations.",
     categories: [
-      { category: "APPLICATION_STATUS_UPDATED", label: "Job application status changes", defaultEmail: true, defaultInApp: true },
+      { category: "INVITATION_RECEIVED", label: "Received invitation from company", defaultEmail: true, defaultInApp: true },
+      { category: "APPLICATION_STATUS_UPDATED", label: "Application status updated", defaultEmail: true, defaultInApp: true },
     ],
   },
   {
     title: "Interviews",
-    description: "Notifications for scheduled, rescheduled, and cancelled interviews.",
+    description: "Notifications for scheduling and managing candidate interviews.",
     categories: [
-      { category: "INTERVIEW_SCHEDULED", label: "New interview scheduled", defaultEmail: true, defaultInApp: true },
+      { category: "INTERVIEW_SCHEDULED", label: "Interview scheduled", defaultEmail: true, defaultInApp: true },
       { category: "INTERVIEW_RESCHEDULED", label: "Interview rescheduled", defaultEmail: true, defaultInApp: true },
       { category: "INTERVIEW_CANCELLED", label: "Interview cancelled", defaultEmail: true, defaultInApp: true },
     ],
   },
   {
     title: "Messages",
-    description: "Notifications for communication with clients and employers.",
+    description: "Notifications for applicant communications and chat messages.",
     categories: [
       { category: "MESSAGE_RECEIVED", label: "New message received", defaultEmail: true, defaultInApp: true },
-      { category: "UNREAD_MESSAGE_REMINDER", label: "Unread message reminders", defaultEmail: true, defaultInApp: true },
+      { category: "UNREAD_MESSAGE_REMINDER", label: "Unread message reminder", defaultEmail: true, defaultInApp: true },
     ],
   },
   {
     title: "Marketing & Updates",
     description: "Product feature announcements and promotional emails.",
     categories: [
-      { category: "PRODUCT_UPDATES", label: "Product updates & announcements", defaultEmail: false, defaultInApp: true },
-      { category: "MARKETING_UPDATES", label: "Promotional and marketing emails", defaultEmail: false, defaultInApp: false },
+      { category: "PRODUCT_UPDATES", label: "Product announcements & feature releases", defaultEmail: false, defaultInApp: true },
+      { category: "MARKETING_UPDATES", label: "Promotional emails", defaultEmail: false, defaultInApp: false },
     ],
   },
 ];

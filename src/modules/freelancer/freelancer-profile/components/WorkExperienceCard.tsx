@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import { Briefcase, Plus } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { WorkExperienceModal } from "./WorkExperienceModal";
 import { WorkExperienceItem } from "./WorkExperienceItem";
 
 export function WorkExperienceCard() {
-    const { data: profile, pendingWorkExperience } = useFreelancerProfileContext();
+    const { data: profile, pendingWorkExperience, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     if (!profile) return null;
@@ -47,13 +48,28 @@ export function WorkExperienceCard() {
                         size="icon" 
                         className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                         onClick={() => setIsModalOpen(true)}
+                        disabled={isAutofilling}
                     >
                         <Plus className="h-5 w-5" />
                     </Button>
                 </div>
             </div>
 
-            {sortedExperience.length === 0 ? (
+            {isAutofilling ? (
+                <div className="space-y-6">
+                    {Array.from({ length: 2 }).map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                            <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                            <div className="space-y-2 flex-1">
+                                <Skeleton className="h-5 w-[40%]" />
+                                <Skeleton className="h-4 w-[30%]" />
+                                <Skeleton className="h-4 w-[20%]" />
+                                <Skeleton className="h-16 w-full mt-2" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : sortedExperience.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">No work experience added yet.</p>
             ) : (
                 <div className="space-y-6">

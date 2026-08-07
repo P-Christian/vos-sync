@@ -117,3 +117,33 @@ export async function deleteResumeRecord(id: number, apiUrl: string, token: stri
         throw new Error(`Failed to delete resume record: HTTP ${res.status}`);
     }
 }
+
+export async function getResumeRecordById(id: number, apiUrl: string, token: string) {
+    const url = `${apiUrl}/items/vs_job_seeker_resumes/${id}`;
+    const res = await fetch(url, {
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+    
+    if (!res.ok) {
+        return null;
+    }
+    
+    const json = await res.json();
+    return json.data;
+}
+
+export async function deleteFileFromDirectus(fileId: string, apiUrl: string, token: string) {
+    const url = `${apiUrl}/files/${fileId}`;
+    const res = await fetch(url, {
+        method: "DELETE",
+        headers: {
+            "Authorization": `Bearer ${token}`
+        }
+    });
+    
+    if (!res.ok) {
+        throw new Error(`Failed to delete Directus file: HTTP ${res.status}`);
+    }
+}

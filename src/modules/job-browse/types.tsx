@@ -19,6 +19,7 @@ export interface ScreeningAnswerPayload {
 export interface PublicJobPosting {
   job_id: number;
   company_id: number;
+  company_code?: string | null;
   company_name?: string | null;
   company_logo?: string | null;
   company_cover?: string | null;

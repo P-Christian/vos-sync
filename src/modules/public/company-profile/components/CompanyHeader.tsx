@@ -2,9 +2,16 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { Globe, MapPin, Share2, CheckCircle2, Check } from "lucide-react";
+import { Globe, MapPin, Share2, CheckCircle2, Check, Maximize2 } from "lucide-react";
 import { PublicCompanyProfile } from "../types";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 interface HeaderProps {
@@ -36,6 +43,12 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
   } = company;
 
   const [copied, setCopied] = useState(false);
+  const [previewImage, setPreviewImage] = useState<{
+    src: string;
+    title: string;
+    type: "cover" | "logo";
+  } | null>(null);
+
   const verified = verification_status === "VERIFIED";
 
   const handleShare = () => {
@@ -49,18 +62,36 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
   return (
     <div className="w-full bg-card border-b border-border font-sans">
       {/* Cover Image Banner */}
-      <div className="relative h-48 md:h-72 w-full bg-gradient-to-r from-zinc-200 via-zinc-100 to-zinc-200 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 overflow-hidden">
+      <div
+        className={`relative h-48 md:h-72 w-full bg-muted overflow-hidden ${company_cover ? "cursor-pointer group" : ""
+          }`}
+        onClick={() =>
+          company_cover &&
+          setPreviewImage({
+            src: company_cover,
+            title: `${company_name} Cover Photo`,
+            type: "cover",
+          })
+        }
+      >
         {company_cover ? (
-          <Image
-            src={company_cover}
-            alt={`${company_name} cover`}
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
+          <>
+            <Image
+              src={company_cover}
+              alt={`${company_name} cover`}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+              priority
+              unoptimized
+            />
+            <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors duration-300 flex items-center justify-center">
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-background/80 text-foreground text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-xs border border-border shadow-md">
+                <Maximize2 className="w-3.5 h-3.5" /> Click to view cover photo
+              </span>
+            </div>
+          </>
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100/50 via-background to-background dark:from-zinc-900/30" />
+          <div className="absolute inset-0 bg-muted/50" />
         )}
       </div>
 
@@ -70,19 +101,37 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
           {/* Logo overlay & details */}
           <div className="flex flex-col md:flex-row items-start md:items-end gap-5">
             {/* Logo box */}
-            <div className="w-24 h-24 md:w-36 md:h-36 rounded-3xl bg-card border-4 border-card shadow-lg flex items-center justify-center text-4xl font-bold overflow-hidden shrink-0">
+            <div
+              className={`w-24 h-24 md:w-36 md:h-36 rounded-3xl bg-card border-4 border-card shadow-lg flex items-center justify-center text-4xl font-bold overflow-hidden shrink-0 relative ${company_logo ? "cursor-pointer group" : ""
+                }`}
+              onClick={() =>
+                company_logo &&
+                setPreviewImage({
+                  src: company_logo,
+                  title: `${company_name} Logo`,
+                  type: "logo",
+                })
+              }
+            >
               {company_logo ? (
-                <Image
-                  src={company_logo}
-                  alt={company_name}
-                  width={144}
-                  height={144}
-                  className="object-cover w-full h-full"
-                  priority
-                  unoptimized
-                />
+                <>
+                  <Image
+                    src={company_logo}
+                    alt={company_name}
+                    width={144}
+                    height={144}
+                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    priority
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors duration-300 flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-background/80 text-foreground p-2 rounded-full backdrop-blur-xs border border-border shadow-md">
+                      <Maximize2 className="w-4 h-4" />
+                    </span>
+                  </div>
+                </>
               ) : (
-                <span className="text-zinc-600 dark:text-zinc-300">
+                <span className="text-muted-foreground">
                   {getInitials(company_name)}
                 </span>
               )}
@@ -96,25 +145,25 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
                 </h1>
                 {verified && (
                   <span title="Verified Employer">
-                    <CheckCircle2
-                      className="w-5 h-5 text-blue-500 fill-blue-50 dark:fill-blue-950/40 shrink-0"
-                    />
+                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                   </span>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm md:text-base text-muted-foreground font-medium">
-                <span>{industry_name || "General Business"}</span>
-                <span>•</span>
-                <span>{company_size_name || "Unknown Size"}</span>
+              <div className="flex flex-col gap-y-1 text-sm md:text-base text-muted-foreground font-medium">
+                {/* Row 1: Industry and Size */}
+                <div className="flex flex-wrap items-center gap-x-3">
+                  <span>{industry_name || "General Business"}</span>
+                  <span>•</span>
+                  <span>{company_size_name || "Unknown Size"}</span>
+                </div>
+
+                {/* Row 2: Address */}
                 {company_address && (
-                  <>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                      {company_address.split(",")[0]}
-                    </span>
-                  </>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                    {company_address.split(",")[0]}
+                  </span>
                 )}
               </div>
             </div>
@@ -129,7 +178,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
               onClick={handleShare}
               className="rounded-xl flex items-center gap-2 font-semibold cursor-pointer shrink-0"
             >
-              {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
               {copied ? "Copied" : "Share"}
             </Button>
 
@@ -170,6 +219,43 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
           </div>
         </div>
       </div>
+
+
+      {/* Full View Lightbox Modal */}
+      <Dialog open={!!previewImage} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent
+          className={`p-4 sm:p-6 bg-background border-border shadow-2xl transition-all duration-200 w-full ${previewImage?.type === "cover"
+              ? "max-w-[95vw] sm:max-w-5xl"
+              : "max-w-md sm:max-w-lg"
+            }`}
+        >
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
+              {previewImage?.title}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Full size view of {previewImage?.title}
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewImage && (
+            <div className="relative flex items-center justify-center rounded-xl overflow-hidden bg-muted/40 border border-border/50">
+              <Image
+                src={previewImage.src}
+                alt={previewImage.title}
+                width={0}
+                height={0}
+                sizes="100vw"
+                className="w-full h-auto max-h-[70vh] object-contain"
+                unoptimized
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
+
+

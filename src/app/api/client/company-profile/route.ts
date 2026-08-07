@@ -138,14 +138,14 @@ export async function GET(req: NextRequest) {
     }
 
     const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id,company_user_role,is_primary_contact&limit=1`;
-    console.log("[DEBUG] Fetching linkUrl:", linkUrl);
-    console.log("[DEBUG] Headers being sent:", getHeaders());
+    // console.log("[DEBUG] Fetching linkUrl:", linkUrl);
+    // console.log("[DEBUG] Headers being sent:", getHeaders());
     const linkRes = await fetch(linkUrl, { headers: getHeaders(), cache: "no-store" });
 
-    console.log("[DEBUG] linkRes.status:", linkRes.status);
+    // console.log("[DEBUG] linkRes.status:", linkRes.status);
     if (!linkRes.ok) {
       const errorText = await linkRes.text();
-      console.error("[DEBUG] linkRes error body:", errorText);
+      // console.error("[DEBUG] linkRes error body:", errorText);
       return NextResponse.json(
         { error: `Failed to resolve company association: ${errorText}` },
         { status: linkRes.status }
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
     }
 
     const linkJson = await linkRes.json();
-    console.log("[DEBUG] linkJson:", JSON.stringify(linkJson));
+    // console.log("[DEBUG] linkJson:", JSON.stringify(linkJson));
     const links = linkJson.data;
 
     if (!Array.isArray(links) || links.length === 0) {
@@ -167,7 +167,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch vs_company record
     const companyUrl = `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=*`;
-    console.log("[DEBUG] Fetching companyUrl:", companyUrl);
+    // console.log("[DEBUG] Fetching companyUrl:", companyUrl);
     const companyRes = await fetch(companyUrl, {
       headers: getHeaders(),
       cache: "no-store",
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
     console.log("[DEBUG] companyRes.status:", companyRes.status);
     if (!companyRes.ok) {
       const errorText = await companyRes.text();
-      console.error("[DEBUG] companyRes error body:", errorText);
+      // console.error("[DEBUG] companyRes error body:", errorText);
       return NextResponse.json(
         { error: `Failed to fetch company profile: ${errorText}` },
         { status: companyRes.status }
@@ -184,7 +184,7 @@ export async function GET(req: NextRequest) {
     }
 
     const companyJson = await companyRes.json();
-    console.log("[DEBUG] companyJson:", JSON.stringify(companyJson));
+    // console.log("[DEBUG] companyJson:", JSON.stringify(companyJson));
 
     const companyData = companyJson.data ?? null;
     const computedPercent = companyData ? calculateCompletionPercent(companyData) : 0;

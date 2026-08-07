@@ -21,6 +21,7 @@ export default function TalentSearchBar({
   keyword,
   jobIdForMatch,
   onKeywordChange,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onJobIdChange,
   onSearch,
   onReset,
@@ -31,7 +32,7 @@ export default function TalentSearchBar({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 !mb-0">
       {/* Primary search */}
       <div className="relative flex-1 flex gap-2">
         <div className="relative flex-1">
@@ -81,7 +82,7 @@ export default function TalentSearchBar({
       </div>
 
       {/* AI Match by Job ID */}
-      <div className="flex items-center gap-2">
+      {/* <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-xs">
         
           <Input
@@ -96,7 +97,7 @@ export default function TalentSearchBar({
         <span className="text-xs text-zinc-400">
           Provide a Job ID to score candidates against your job requirements
         </span>
-      </div>
+      </div> */}
     </div>
   );
 }

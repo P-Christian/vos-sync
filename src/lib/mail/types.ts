@@ -69,3 +69,17 @@ export interface RejectionTemplateData {
   jobTitle: string;
   notes?: string | null;
 }
+
+export interface InvitationTemplateData {
+  candidateName: string;
+  companyName: string;
+  jobTitle?: string | null;
+  jobDescription?: string | null;
+  jobLocation?: string | null;
+  workArrangement?: string | null;
+  jobType?: string | null;
+  salaryRange?: string | null;
+  message: string;
+  actionUrl?: string;
+}
+

@@ -99,6 +99,7 @@ async function getJobScreeningQuestions(
 }
 
 interface CompanyEnriched {
+  code: string | null;
   name: string;
   logo: string | null;
   cover: string | null;
@@ -119,7 +120,7 @@ async function getCompanyNames(companyIds: number[]): Promise<Record<number, Com
   if (companyIds.length === 0) return result;
 
   const companyFields = [
-    "company_id", "company_name", "company_logo", "company_cover",
+    "company_id", "company_code", "company_name", "company_logo", "company_cover",
     "company_email", "company_contact", "company_address", "company_city", "company_province",
     "company_facebook", "company_linkedin", "company_instagram", "company_x", "company_youtube"
   ].join(",");
@@ -133,6 +134,7 @@ async function getCompanyNames(companyIds: number[]): Promise<Record<number, Com
     const json = await res.json();
     const companies: {
       company_id: number;
+      company_code?: string | null;
       company_name: string;
       company_logo?: string | null;
       company_cover?: string | null;
@@ -149,6 +151,7 @@ async function getCompanyNames(companyIds: number[]): Promise<Record<number, Com
     }[] = json.data ?? [];
     companies.forEach((c) => {
       result[c.company_id] = {
+        code: c.company_code ?? null,
         name: c.company_name,
         logo: c.company_logo ?? null,
         cover: c.company_cover ?? null,
@@ -225,6 +228,7 @@ export async function GET(req: NextRequest) {
       const jobId = j.job_id as number;
       const companyId = j.company_id as number;
       const company = companiesMap[companyId] ?? {
+        code: null,
         name: null,
         logo: null,
         cover: null,
@@ -241,6 +245,7 @@ export async function GET(req: NextRequest) {
       };
       return {
         ...j,
+        company_code: company.code,
         company_name: company.name,
         company_logo: company.logo,
         company_cover: company.cover,

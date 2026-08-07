@@ -2,8 +2,8 @@
 
 // src/modules/client/talent-search/components/InviteDialog.tsx
 
-import { useState } from "react";
-import { Send, Briefcase, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Send, Briefcase, AlertCircle, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,9 +12,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+
+interface JobOption {
+  job_id: number;
+  job_title: string;
+  status?: string;
+}
 
 interface InviteDialogProps {
   open: boolean;
@@ -37,11 +43,46 @@ export default function InviteDialog({
   error,
 }: InviteDialogProps) {
   const [message, setMessage] = useState(() => DEFAULT_MESSAGE(talentName));
-  const [jobId, setJobId] = useState("");
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const [jobs, setJobs] = useState<JobOption[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    async function fetchCompanyJobs() {
+      setMessage(DEFAULT_MESSAGE(talentName));
+      setLoadingJobs(true);
+      try {
+        const res = await fetch("/api/client/jobs");
+        if (res.ok) {
+          const json = await res.json();
+          const list: JobOption[] = json.jobs ?? [];
+          // Filter active jobs
+          setJobs(list.filter((j) => !j.status || j.status === "ACTIVE"));
+        }
+      } catch {
+        // Fallback silently
+      } finally {
+        setLoadingJobs(false);
+      }
+    }
+
+    fetchCompanyJobs();
+  }, [open, talentName]);
 
   const handleSend = async () => {
-    await onSend(message, jobId ? Number(jobId) : undefined);
+    const jobIdNum = selectedJobId && selectedJobId !== "none" ? Number(selectedJobId) : undefined;
+    await onSend(message, jobIdNum);
   };
+
+  const selectOptions = [
+    { value: "none", label: "General Interest (No Specific Job)" },
+    ...jobs.map((j) => ({
+      value: String(j.job_id),
+      label: `${j.job_title} (#${j.job_id})`,
+    })),
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -61,21 +102,28 @@ export default function InviteDialog({
         )}
 
         <div className="space-y-4">
-          {/* Optional job ID */}
+          {/* Searchable job select */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
               <Briefcase className="h-3.5 w-3.5" />
-              Link to Job Posting (optional)
+              Link to Company Job Posting (optional)
             </Label>
-            <Input
-              id="invite-job-id"
-              placeholder="Job ID (e.g. 12)"
-              value={jobId}
-              onChange={(e) => setJobId(e.target.value)}
-              className="h-9 text-sm rounded-lg"
-            />
+            {loadingJobs ? (
+              <div className="flex items-center gap-2 text-xs text-zinc-400 h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading company jobs…
+              </div>
+            ) : (
+              <SearchableSelect
+                options={selectOptions}
+                value={selectedJobId || "none"}
+                onValueChange={(val) => setSelectedJobId(val)}
+                placeholder="Search and select a job..."
+                className="h-9 text-xs rounded-lg border-zinc-200 dark:border-zinc-800"
+              />
+            )}
             <p className="text-xs text-zinc-400">
-              Leave blank to send a general interest invitation
+              Select an open position or choose general interest invitation
             </p>
           </div>
 

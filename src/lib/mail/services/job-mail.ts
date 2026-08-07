@@ -143,6 +143,9 @@ export async function sendHiringEmail(to: string, data: HiringTemplateData) {
   });
 }
 
+import { invitationTemplate } from "../templates/invitation";
+import { InvitationTemplateData } from "../types";
+
 export async function sendRejectionEmail(to: string, data: RejectionTemplateData) {
   const template = rejectionTemplate(data);
   return sendMail({
@@ -151,3 +154,13 @@ export async function sendRejectionEmail(to: string, data: RejectionTemplateData
     html: template.html,
   });
 }
+
+export async function sendInvitationEmail(to: string, data: InvitationTemplateData) {
+  const template = invitationTemplate(data);
+  return sendMail({
+    to,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+

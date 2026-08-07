@@ -23,6 +23,7 @@ import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/se
 import { NotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
 import { UserSearchBar } from "@/modules/shared/search/components/UserSearchBar";
 import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
+import { FreelancerDashboard } from "@/modules/freelancer/freelancer-dashboard/components/FreelancerDashboard";
 
 function checkIsNewUser(dateStr?: string | null): boolean {
     if (!dateStr) return true;
@@ -105,18 +106,12 @@ export default async function FreelancerDashboardPage() {
             </header>
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8">
-                <div className="max-w-4xl mx-auto mt-8">
+                <div className="w-full mt-8">
                     <h1 className="text-3xl font-bold text-foreground">Welcome back, {profile?.user_fname || 'Guest'}</h1>
                     <p className="text-muted-foreground mt-2">Here is a summary of your activity on Vos Sync.</p>
                     
-                    <div className="mt-8 p-12 border-2 border-dashed rounded-xl text-center flex flex-col items-center justify-center space-y-4">
-                        <div className="h-16 w-16 bg-muted/50 rounded-full flex items-center justify-center">
-                            <span className="text-2xl font-bold text-muted-foreground">📈</span>
-                        </div>
-                        <h2 className="text-xl font-semibold text-foreground">Dashboard Coming Soon</h2>
-                        <p className="text-muted-foreground max-w-md mx-auto">
-                            We are preparing your personalized workspace. Soon you will be able to see your applications, matches, and stats here.
-                        </p>
+                    <div className="mt-8">
+                        <FreelancerDashboard />
                     </div>
                 </div>
             </main>
