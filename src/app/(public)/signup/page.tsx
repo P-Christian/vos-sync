@@ -349,12 +349,14 @@ function SignupPageContent() {
     companyCountryCode: 'PH', companyCountryName: 'Philippines',
     companyProvinceCode: '', companyProvince: '',
     companyCityCode: '', companyCity: '',
-    companyBarangay: '', companyStreet: '', landline: '', tin: '',
+    companyBarangayCode: '', companyBarangay: '', companyStreet: '', landline: '', tin: '',
   });
   const [provinces, setProvinces] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
+  const [barangays, setBarangays] = useState<LocationOption[]>([]);
   const [loadingProvinces, setLoadingProvinces] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingBarangays, setLoadingBarangays] = useState(false);
 
   // ── Client Step 4: Compliance ─────────────────────────────────────────────
   const [termsAgreed, setTermsAgreed] = useState(false);
@@ -476,8 +478,9 @@ function SignupPageContent() {
   const fetchCities = useCallback(async (provinceCode: string) => {
     setLoadingCities(true);
     setCities([]);
+    setBarangays([]);
     if (step === 'client') {
-      setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '' }));
+      setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '', companyBarangayCode: '', companyBarangay: '' }));
     }
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`, { cache: 'force-cache' });
@@ -488,6 +491,24 @@ function SignupPageContent() {
       toast.error('Could not load city list. Please try again.');
     } finally {
       setLoadingCities(false);
+    }
+  }, [step]);
+
+  const fetchBarangays = useCallback(async (cityCode: string) => {
+    setLoadingBarangays(true);
+    setBarangays([]);
+    if (step === 'client') {
+      setCompany(prev => ({ ...prev, companyBarangayCode: '', companyBarangay: '' }));
+    }
+    try {
+      const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityCode}/barangays/`, { cache: 'force-cache' });
+      if (!res.ok) throw new Error('Failed to load barangays');
+      const data = await res.json() as Array<{ code: string; name: string }>;
+      setBarangays(data.sort((a, b) => a.name.localeCompare(b.name)).map(b => ({ code: b.code, name: b.name })));
+    } catch {
+      toast.error('Could not load barangay list. Please try again.');
+    } finally {
+      setLoadingBarangays(false);
     }
   }, [step]);
 
@@ -508,6 +529,13 @@ function SignupPageContent() {
       fetchCities(provinceCode);
     }
   }, [company.companyProvinceCode, schoolFormData.provinceCode, formData.provinceCode, company.companyCountryCode, freelancerSelectedCountry.code, step, fetchCities]);
+
+  useEffect(() => {
+    if (company.companyCityCode && company.companyCountryCode === 'PH' && step === 'client') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBarangays(company.companyCityCode);
+    }
+  }, [company.companyCityCode, company.companyCountryCode, step, fetchBarangays]);
 
 
   // ── Selection Handlers ────────────────────────────────────────────────────
@@ -542,8 +570,9 @@ function SignupPageContent() {
       companyName: '', industry: '', websiteUrl: '', companySize: '',
       companyCountryCode: 'PH', companyCountryName: 'Philippines',
       companyProvinceCode: '', companyProvince: '', companyCityCode: '', companyCity: '',
-      companyBarangay: '', companyStreet: '', landline: '', tin: ''
+      companyBarangayCode: '', companyBarangay: '', companyStreet: '', landline: '', tin: ''
     });
+    setBarangays([]);
     setGovIdType('');
     setGovIdFrontFile(null);
     setGovIdFrontFileId(null);
@@ -1541,8 +1570,9 @@ function SignupPageContent() {
                       companyCountryName: found.name,
                       companyProvinceCode: '', companyProvince: '',
                       companyCityCode: '', companyCity: '',
+                      companyBarangayCode: '', companyBarangay: '',
                     }));
-                    setProvinces([]); setCities([]);
+                    setProvinces([]); setCities([]); setBarangays([]);
                     if (found.code === 'PH') fetchProvinces();
                     if (errors.companyCountry) setErrors(prev => ({ ...prev, companyCountry: '' }));
                   }}
@@ -1559,7 +1589,7 @@ function SignupPageContent() {
                 </label>
                 {isPhilippines ? (
                   <SearchableLocationSelect options={provinces} value={company.companyProvinceCode}
-                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyProvinceCode: code, companyProvince: name, companyCityCode: '', companyCity: '' })); if (errors.companyProvince) setErrors(prev => ({ ...prev, companyProvince: '' })); }}
+                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyProvinceCode: code, companyProvince: name, companyCityCode: '', companyCity: '', companyBarangayCode: '', companyBarangay: '' })); setBarangays([]); if (errors.companyProvince) setErrors(prev => ({ ...prev, companyProvince: '' })); }}
                     placeholder="Select province..." loading={loadingProvinces} error={errors.companyProvince} />
                 ) : (
                   <Input value={company.companyProvince} onChange={e => cSet('companyProvince', e.target.value)}
@@ -1576,7 +1606,7 @@ function SignupPageContent() {
                 </label>
                 {isPhilippines ? (
                   <SearchableLocationSelect options={cities} value={company.companyCityCode}
-                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyCityCode: code, companyCity: name })); if (errors.companyCity) setErrors(prev => ({ ...prev, companyCity: '' })); }}
+                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyCityCode: code, companyCity: name, companyBarangayCode: '', companyBarangay: '' })); if (errors.companyCity) setErrors(prev => ({ ...prev, companyCity: '' })); }}
                     placeholder={company.companyProvinceCode ? 'Select city...' : 'Select province first...'}
                     loading={loadingCities} disabled={!company.companyProvinceCode} error={errors.companyCity} />
                 ) : (
@@ -1592,9 +1622,14 @@ function SignupPageContent() {
                 {isPhilippines && (
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-foreground">Barangay</label>
-                    <Input value={company.companyBarangay} onChange={e => setCompany(prev => ({ ...prev, companyBarangay: e.target.value }))}
-                      disabled={loading} placeholder="e.g. Brgy. Longos"
-                      className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+                    <SearchableLocationSelect
+                      options={barangays}
+                      value={company.companyBarangayCode}
+                      onChange={(code, name) => setCompany(prev => ({ ...prev, companyBarangayCode: code, companyBarangay: name }))}
+                      placeholder={company.companyCityCode ? 'Select barangay...' : 'Select city first...'}
+                      loading={loadingBarangays}
+                      disabled={!company.companyCityCode || loadingBarangays}
+                    />
                   </div>
                 )}
                 <div className="space-y-1">
