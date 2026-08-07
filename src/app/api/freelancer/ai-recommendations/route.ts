@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { generateJobRecommendations } from "@/lib/gemini/jobRecommender";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
 function getHeaders(): Record<string, string> {
     const h: Record<string, string> = {
@@ -38,10 +37,6 @@ export async function GET(req: NextRequest) {
 
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        if (!GEMINI_API_KEY) {
-            return NextResponse.json({ error: "AI Service not configured" }, { status: 500 });
         }
 
         // 1. Fetch User Profile Data
@@ -127,85 +122,10 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ recommendations: [] });
         }
 
-        // 3. Construct Prompt for Gemini
-        const prompt = `
-You are an expert AI recruiter matching freelancers with job postings.
-I will provide you with a Freelancer Profile JSON and an array of Available Jobs JSON.
+        // Generate AI Recommendations using the unified gemini service
+        const recommendations = await generateJobRecommendations(normalizedUserProfile, normalizedJobs);
 
-Your task:
-1. Evaluate the overlap between the freelancer's skills/preferences and each job's requirements.
-2. Consider skills match, work setup match (e.g. remote), and salary alignment.
-3. Select up to 3 jobs that are the best fit for the user based on the available data.
-4. Output ONLY a valid JSON array of objects. Do not wrap it in markdown code blocks like \`\`\`json. Just output the raw JSON array.
-
-Return format exactly like this:
-[
-  {
-    "job_id": 123,
-    "reasoning": "A concise 1-2 sentence explanation of why this job is a great fit based on their specific skills and preferences."
-  }
-]
-
----
-Freelancer Profile:
-${JSON.stringify(normalizedUserProfile, null, 2)}
-
----
-Available Jobs:
-${JSON.stringify(normalizedJobs, null, 2)}
-`;
-
-        // 4. Call Gemini API
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
-        const aiRes = await fetch(geminiUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.2,
-                    responseMimeType: "application/json"
-                }
-            })
-        });
-
-        if (!aiRes.ok) {
-            const err = await aiRes.text();
-            console.error("Gemini API Error:", err);
-            throw new Error("Failed to get response from Gemini");
-        }
-
-        const aiData = await aiRes.json();
-        const textResponse = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        
-        let recommendations = [];
-        try {
-            // Clean markdown if Gemini still added it despite instructions and responseMimeType
-            const cleanText = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-            recommendations = JSON.parse(cleanText);
-        } catch {
-            console.error("Failed to parse AI response:", textResponse);
-            throw new Error("Invalid response format from AI");
-        }
-
-        // Merge original job details back into recommendations for the frontend
-        const detailedRecommendations = recommendations.map((rec: { job_id: number; reasoning: string; job_title?: string }) => {
-            const fullJob = normalizedJobs.find((j: { job_id: number; job_title: string; company_name: string; job_type: string; work_arrangement: string; job_location: string; salary_min?: number; salary_max?: number }) => j.job_id === rec.job_id);
-            return {
-                ...rec,
-                job_title: fullJob?.job_title,
-                company_name: fullJob?.company_name,
-                job_type: fullJob?.job_type,
-                work_arrangement: fullJob?.work_arrangement,
-                salary_min: fullJob?.salary_min,
-                salary_max: fullJob?.salary_max,
-                job_location: fullJob?.job_location
-            };
-        }).filter((rec: { job_title?: string }) => rec.job_title); // Ensure valid match
-
-        return NextResponse.json({ recommendations: detailedRecommendations });
+        return NextResponse.json({ recommendations });
 
     } catch (err: unknown) {
         console.error("GET /api/freelancer/ai-recommendations error:", err);
