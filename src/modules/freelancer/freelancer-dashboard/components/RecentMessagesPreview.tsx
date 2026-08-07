@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useConversations } from "@/modules/freelancer/freelancer-messaging/hooks/useConversations";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare, Clock } from "lucide-react";
+import { ArrowRight, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
 

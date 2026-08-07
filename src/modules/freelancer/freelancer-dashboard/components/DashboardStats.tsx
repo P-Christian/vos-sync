@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useFreelancerProfileContext } from "@/modules/freelancer/freelancer-profile/providers/FreelancerProfileProvider";
 import { useFreelancerApplications } from "@/modules/freelancer/freelancer-applications/hooks/useFreelancerApplications";
 import { useConversations } from "@/modules/freelancer/freelancer-messaging/hooks/useConversations";
@@ -12,30 +12,27 @@ export function DashboardStats() {
     const { summary, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
     const { conversations, loading: isMessagesLoading, loadConversations } = useConversations();
 
-    const [profileCompleteness, setProfileCompleteness] = useState<number | null>(null);
+    let profileCompleteness: number | null = null;
 
     useEffect(() => {
         fetchApplications();
         loadConversations();
     }, [fetchApplications, loadConversations]);
 
-    useEffect(() => {
-        if (profile) {
-            // Basic estimation of profile completeness on client
-            let completed = 0;
-            const total = 6;
-            
-            if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) completed++;
-            if (profile.resumes && profile.resumes.length > 0) completed++;
-            if (profile.job_seeker_profile?.[0]?.professional_summary) completed++;
-            if (profile.skills && profile.skills.length > 0) completed++;
-            if (profile.work_experience && profile.work_experience.length > 0) completed++;
-            if (profile.education && profile.education.length > 0) completed++;
+    if (profile) {
+        // Basic estimation of profile completeness on client
+        let completed = 0;
+        const total = 6;
+        
+        if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) completed++;
+        if (profile.resumes && profile.resumes.length > 0) completed++;
+        if (profile.job_seeker_profile?.[0]?.professional_summary) completed++;
+        if (profile.skills && profile.skills.length > 0) completed++;
+        if (profile.work_experience && profile.work_experience.length > 0) completed++;
+        if (profile.education && profile.education.length > 0) completed++;
 
-            const percentage = Math.round((completed / total) * 100);
-            setProfileCompleteness(percentage);
-        }
-    }, [profile]);
+        profileCompleteness = Math.round((completed / total) * 100);
+    }
 
     const isLoading = isProfileLoading || isAppsLoading || isMessagesLoading;
     const unreadMessagesCount = conversations.reduce((acc, curr) => acc + (curr.unread_count || 0), 0);
