@@ -1,6 +1,6 @@
 // src/lib/gemini/aiReranker.ts
 
-import { callGeminiSafe } from "./geminiClient";
+import { callGeminiMonitored } from "./geminiMonitoring";
 
 export interface RerankCandidate {
   id: number;
@@ -21,7 +21,8 @@ export interface RerankResult {
  */
 export async function rerankCandidatesWithGemini(
   query: string,
-  candidates: RerankCandidate[]
+  candidates: RerankCandidate[],
+  context?: { userId?: number; companyId?: number }
 ): Promise<RerankResult> {
   if (!query || candidates.length === 0) {
     return { ranked_ids: candidates.map((c) => c.id), used_ai: false };
@@ -49,7 +50,13 @@ ${candidateList}
 Return format example: [3, 7, 1, 5, 2, ...]
 Return ONLY the JSON array, nothing else.`;
 
-  const raw = await callGeminiSafe(prompt);
+  const raw = await callGeminiMonitored({
+    prompt,
+    feature: "AI_RERANKER",
+    endpoint: "lib/gemini/aiReranker",
+    userId: context?.userId,
+    companyId: context?.companyId,
+  });
   if (!raw) {
     return { ranked_ids: top.map((c) => c.id), used_ai: false };
   }

@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { useInterviews } from "./hooks/useInterviews";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import InterviewList from "./components/InterviewList";
+import InterviewBigCalendar from "./components/InterviewBigCalendar";
 import InterviewForm, { JobOption, ApplicantOption } from "./components/InterviewForm";
 import InterviewDetailsModal from "./components/InterviewDetailsModal";
 import InterviewEvaluationModal from "./components/InterviewEvaluationModal";
@@ -20,12 +21,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { CalendarDays, AlertCircle, Plus, Filter, Search } from "lucide-react";
+import { CalendarDays, AlertCircle, Plus, Filter, Search, Calendar, List } from "lucide-react";
 import { Interview, InterviewFormData, InterviewStatus } from "./types";
 import { Input } from "@/components/ui/input";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 
 export default function InterviewsModule() {
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const {
     interviews,
     loading,
@@ -205,6 +207,22 @@ export default function InterviewsModule() {
     return await updateStatus(interviewId, "CANCELLED", { cancel_reason: reason });
   };
 
+  const handleScheduleForDate = (dateStr: string) => {
+    setIsRescheduling(false);
+    setFormData({
+      application_ids: [],
+      scheduled_at: `${dateStr}T09:00`,
+      duration_minutes: 60,
+      timezone: "Asia/Manila",
+      interview_format: "ONLINE",
+      meeting_link: "",
+      meeting_location: "",
+      interview_notes: "",
+    });
+    setFormErrors({});
+    setScheduleDialogOpen(true);
+  };
+
   return (
     <CompanyVerificationGuard moduleName="Interviews Workspace">
       <div className="space-y-6 client-page-transition">
@@ -256,12 +274,42 @@ export default function InterviewsModule() {
           </div>
         )}
 
-        {/* Filter & List Card */}
+        {/* Filter & View Switcher Card */}
         <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
           <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 p-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-              Interviews List
-            </CardTitle>
+            <div className="flex items-center gap-3 flex-wrap">
+              <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                Schedule & Interviews
+              </CardTitle>
+
+              {/* View Switcher Toggle Buttons */}
+              <div className="flex items-center p-0.5 bg-zinc-200/60 dark:bg-zinc-800/80 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("calendar")}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    viewMode === "calendar"
+                      ? "bg-white dark:bg-zinc-950 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  Big Calendar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    viewMode === "list"
+                      ? "bg-white dark:bg-zinc-950 text-indigo-600 dark:text-indigo-400 shadow-2xs"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                  }`}
+                >
+                  <List className="h-3.5 w-3.5" />
+                  List View
+                </button>
+              </div>
+            </div>
 
             <div className="flex items-center gap-3 flex-wrap">
               {/* Search */}
@@ -295,12 +343,28 @@ export default function InterviewsModule() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-0">
+          <CardContent className="p-4 sm:p-6">
             {loading ? (
               <div className="flex items-center justify-center py-16 gap-3">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
                 <span className="text-sm text-zinc-400">Loading interviews...</span>
               </div>
+            ) : viewMode === "calendar" ? (
+              <InterviewBigCalendar
+                interviews={interviews}
+                onViewDetails={handleViewDetails}
+                onOpenEvaluation={handleOpenEvaluation}
+                onReschedule={handleOpenReschedule}
+                onOpenCancelModal={handleOpenCancelModal}
+                onScheduleDate={handleScheduleForDate}
+                availableJobs={availableJobs}
+                availableApplicants={availableApplicants}
+                saving={saving}
+                onCreateInterview={createInterview}
+                onUpdateStatus={updateStatus}
+                onSaveEvaluation={saveEvaluation}
+                onConfirmCancel={handleConfirmCancel}
+              />
             ) : (
               <InterviewList
                 interviews={interviews}
@@ -315,7 +379,7 @@ export default function InterviewsModule() {
 
         {/* Schedule / Reschedule Dialog */}
         <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-          <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold">
                 {isRescheduling ? "Reschedule Candidate Interview" : "Schedule New Candidate Interview"}
@@ -357,6 +421,8 @@ export default function InterviewsModule() {
           open={detailsOpen}
           onClose={() => setDetailsOpen(false)}
           onOpenEvaluation={handleOpenEvaluation}
+          onReschedule={handleOpenReschedule}
+          onOpenCancelModal={handleOpenCancelModal}
         />
 
         {/* Evaluation & Rating Modal */}

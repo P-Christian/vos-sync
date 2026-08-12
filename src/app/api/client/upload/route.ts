@@ -124,9 +124,39 @@ export async function POST(req: NextRequest) {
       }
       const now = new Date().toISOString().slice(0, 19).replace("T", " ");
 
+      // Transactional Replacement: If an existing document of the same document_type exists for this company, remove old DB record and file asset
+      try {
+        const findExistingUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&filter[document_type][_eq]=${encodeURIComponent(String(documentType))}&fields=company_document_id,directus_file_id`;
+        const findExistingRes = await fetch(findExistingUrl, {
+          headers: getHeaders(),
+          cache: "no-store",
+        });
+
+        if (findExistingRes.ok) {
+          const findExistingJson = await findExistingRes.json();
+          const oldRecords: Array<{ company_document_id: number | string; directus_file_id: string }> = findExistingJson.data || [];
+          for (const oldRec of oldRecords) {
+            if (oldRec.company_document_id) {
+              await fetch(`${DIRECTUS_BASE}/items/vs_company_document/${oldRec.company_document_id}`, {
+                method: "DELETE",
+                headers: getHeaders(),
+              });
+            }
+            if (oldRec.directus_file_id && oldRec.directus_file_id !== uploadedFile.id) {
+              await fetch(`${DIRECTUS_BASE}/files/${oldRec.directus_file_id}`, {
+                method: "DELETE",
+                headers: getHeaders(),
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error during old document replacement cleanup:", err);
+      }
+
       const docPayload = {
         company_id: Number(companyId),
-        document_type: documentType,
+        document_type: String(documentType),
         document_name: documentName,
         directus_file_id: uploadedFile.id,
         uploaded_by_user_id: userId,

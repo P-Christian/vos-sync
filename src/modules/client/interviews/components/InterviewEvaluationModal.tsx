@@ -58,7 +58,11 @@ export default function InterviewEvaluationModal({
   }, [open, interview?.interview_id, applications]);
 
   const activeApp = applications.find((a) => a.interview_application_id === selectedAppId) || applications[0];
-  const isCompleted = activeApp && activeApp.attendance_status !== "PENDING";
+  const isCompleted = Boolean(
+    interview?.interview_status === "COMPLETED" ||
+      interview?.interview_status === "CANCELLED" ||
+      (activeApp && activeApp.attendance_status !== "PENDING")
+  );
 
   const handleCandidateChange = (valStr: string) => {
     const targetId = Number(valStr);

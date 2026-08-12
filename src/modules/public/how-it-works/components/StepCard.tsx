@@ -1,12 +1,13 @@
 // src/modules/public/how-it-works/components/StepCard.tsx
 "use client";
 
-import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { StepItem, RoleKey } from "../types";
 import { StepIllustration } from "./StepIllustration";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useSmartRoleNavigation, TargetedRole } from "../hooks/useSmartRoleNavigation";
+import { RoleMismatchModal } from "./RoleMismatchModal";
 
 interface Props {
   step: StepItem;
@@ -16,6 +17,15 @@ interface Props {
 
 export function StepCard({ step, roleKey, isEven }: Props) {
   const isIllustrationLeft = !isEven; // Odd steps: illustration left, even steps: content left
+  const { navigateSmart, loading, mismatchState, closeModal, confirmSignOut } = useSmartRoleNavigation();
+
+  const handleActionClick = () => {
+    if (step.actionRoute) {
+      const targetRole: TargetedRole =
+        roleKey === "employer" ? "employer" : roleKey === "school" ? "school" : "employee";
+      navigateSmart(step.actionRoute, targetRole);
+    }
+  };
 
   return (
     <div id={`step${step.stepNumber}`} className="py-12 border-b last:border-b-0 scroll-mt-28">
@@ -87,16 +97,25 @@ export function StepCard({ step, roleKey, isEven }: Props) {
           {/* Action Button */}
           {step.actionLabel && step.actionRoute && (
             <div className="pt-2">
-              <Button asChild size="sm" className="font-bold text-xs gap-2 shadow-sm">
-                <Link href={step.actionRoute}>
-                  {step.actionLabel}
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
+              <Button
+                size="sm"
+                onClick={handleActionClick}
+                disabled={loading}
+                className="font-bold text-xs gap-2 shadow-sm cursor-pointer"
+              >
+                {step.actionLabel}
+                <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           )}
         </div>
       </div>
+      <RoleMismatchModal
+        state={mismatchState}
+        onClose={closeModal}
+        onConfirmSignOut={confirmSignOut}
+        loading={loading}
+      />
     </div>
   );
 }

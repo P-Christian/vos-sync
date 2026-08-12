@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Briefcase, User, Eye, EyeOff, Check, ArrowLeft, ChevronDown, Search,
   Upload, X, FileText, Shield, Building2, GraduationCap
@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { validatePasswordStrict } from '@/lib/password-validation';
 import PasswordRequirementsChecklist from '@/components/auth/PasswordRequirementsChecklist';
 import TurnstileWidget from '@/components/auth/TurnstileWidget';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 // ─── Types & Country Data ─────────────────────────────────────────────────────
 
@@ -57,9 +58,16 @@ export const COUNTRIES: CountryData[] = [
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GOV_ID_TYPES = [
-  'PhilSys National ID', 'Philippine Passport', "Driver's License (LTO)",
-  'SSS ID', 'GSIS ID', 'PRC ID', "Voter's ID (COMELEC)", 'TIN ID (BIR)',
-  'Postal ID', 'PhilHealth ID',
+  'PhilSys National ID',
+  'Philippine Passport',
+  "Driver's License (LTO)",
+  'SSS ID', 'GSIS ID',
+  'PRC ID',
+  "Voter's ID (COMELEC)",
+  'TIN ID (BIR)',
+  'Postal ID',
+  'PhilHealth ID',
+  'Others',
 ];
 
 const CLIENT_STEPS = [
@@ -305,8 +313,10 @@ function SearchableLocationSelect({
 type MainStep = 'selection' | 'client' | 'client-otp' | 'freelancer' | 'freelancer-otp' | 'school' | 'school-otp';
 
 function SignupPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const queryType = searchParams.get('type');
+  const queryRole = searchParams.get('role');
   const inviteToken = searchParams.get('token');
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -349,12 +359,14 @@ function SignupPageContent() {
     companyCountryCode: 'PH', companyCountryName: 'Philippines',
     companyProvinceCode: '', companyProvince: '',
     companyCityCode: '', companyCity: '',
-    companyBarangay: '', companyStreet: '', landline: '', tin: '',
+    companyBarangayCode: '', companyBarangay: '', companyStreet: '', landline: '', tin: '',
   });
   const [provinces, setProvinces] = useState<LocationOption[]>([]);
   const [cities, setCities] = useState<LocationOption[]>([]);
+  const [barangays, setBarangays] = useState<LocationOption[]>([]);
   const [loadingProvinces, setLoadingProvinces] = useState(false);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingBarangays, setLoadingBarangays] = useState(false);
 
   // ── Client Step 4: Compliance ─────────────────────────────────────────────
   const [termsAgreed, setTermsAgreed] = useState(false);
@@ -476,8 +488,9 @@ function SignupPageContent() {
   const fetchCities = useCallback(async (provinceCode: string) => {
     setLoadingCities(true);
     setCities([]);
+    setBarangays([]);
     if (step === 'client') {
-      setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '' }));
+      setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '', companyBarangayCode: '', companyBarangay: '' }));
     }
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`, { cache: 'force-cache' });
@@ -488,6 +501,24 @@ function SignupPageContent() {
       toast.error('Could not load city list. Please try again.');
     } finally {
       setLoadingCities(false);
+    }
+  }, [step]);
+
+  const fetchBarangays = useCallback(async (cityCode: string) => {
+    setLoadingBarangays(true);
+    setBarangays([]);
+    if (step === 'client') {
+      setCompany(prev => ({ ...prev, companyBarangayCode: '', companyBarangay: '' }));
+    }
+    try {
+      const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityCode}/barangays/`, { cache: 'force-cache' });
+      if (!res.ok) throw new Error('Failed to load barangays');
+      const data = await res.json() as Array<{ code: string; name: string }>;
+      setBarangays(data.sort((a, b) => a.name.localeCompare(b.name)).map(b => ({ code: b.code, name: b.name })));
+    } catch {
+      toast.error('Could not load barangay list. Please try again.');
+    } finally {
+      setLoadingBarangays(false);
     }
   }, [step]);
 
@@ -509,6 +540,13 @@ function SignupPageContent() {
     }
   }, [company.companyProvinceCode, schoolFormData.provinceCode, formData.provinceCode, company.companyCountryCode, freelancerSelectedCountry.code, step, fetchCities]);
 
+  useEffect(() => {
+    if (company.companyCityCode && company.companyCountryCode === 'PH' && step === 'client') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchBarangays(company.companyCityCode);
+    }
+  }, [company.companyCityCode, company.companyCountryCode, step, fetchBarangays]);
+
 
   // ── Selection Handlers ────────────────────────────────────────────────────
 
@@ -519,10 +557,13 @@ function SignupPageContent() {
     if (userType === 'client') {
       setStep('client');
       setClientStep(1);
+      router.replace('/signup?role=employer', { scroll: false });
     } else if (userType === 'school') {
       setStep('school');
+      router.replace('/signup?role=school', { scroll: false });
     } else {
       setStep('freelancer');
+      router.replace('/signup?role=employee', { scroll: false });
     }
     window.scrollTo(0, 0);
   };
@@ -530,20 +571,22 @@ function SignupPageContent() {
   const handleBackToSelection = () => {
     setStep('selection');
     setUserType(null);
+    router.replace('/signup', { scroll: false });
     setClientStep(1);
     setFreelancerStep(1);
     setErrors({});
     setFreelancerErrors({});
     setSchoolErrors({});
-    
+
     // Reset Client Form
     setStep1({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '', jobTitle: '', contact: '' });
     setCompany({
       companyName: '', industry: '', websiteUrl: '', companySize: '',
       companyCountryCode: 'PH', companyCountryName: 'Philippines',
       companyProvinceCode: '', companyProvince: '', companyCityCode: '', companyCity: '',
-      companyBarangay: '', companyStreet: '', landline: '', tin: ''
+      companyBarangayCode: '', companyBarangay: '', companyStreet: '', landline: '', tin: ''
     });
+    setBarangays([]);
     setGovIdType('');
     setGovIdFrontFile(null);
     setGovIdFrontFileId(null);
@@ -583,32 +626,43 @@ function SignupPageContent() {
     setSchoolTermsAgreed(false);
   };
 
-  // Auto-detect invite type=school or token in URL params
+  // Auto-detect role/type or token in URL params
   useEffect(() => {
-    if (queryType === 'school' || inviteToken) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setUserType('school');
-      setStep('school');
-      if (inviteToken) {
-        setLoading(true);
-        fetch(`/api/auth/school-register?token=${inviteToken}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.valid) {
-              setSchoolFormData(prev => ({
-                ...prev,
-                schoolName: data.school_name || '',
-                email: data.invited_email || '',
-              }));
-            } else {
-              toast.error('Invitation link is invalid or expired.');
-            }
-          })
-          .catch(() => toast.error('Error validating invitation link.'))
-          .finally(() => setLoading(false));
+    const roleParam = (queryRole || queryType)?.toLowerCase();
+    queueMicrotask(() => {
+      if (roleParam === 'employee' || roleParam === 'freelancer' || roleParam === 'jobseeker') {
+        setUserType('freelancer');
+        setStep('freelancer');
+      } else if (roleParam === 'employer' || roleParam === 'client' || roleParam === 'company') {
+        setUserType('client');
+        setStep('client');
+      } else if (roleParam === 'school' || inviteToken) {
+        setUserType('school');
+        setStep('school');
       }
-    }
-  }, [queryType, inviteToken]);
+
+      if (roleParam === 'school' || inviteToken) {
+        if (inviteToken) {
+          setLoading(true);
+          fetch(`/api/auth/school-register?token=${inviteToken}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.valid) {
+                setSchoolFormData(prev => ({
+                  ...prev,
+                  schoolName: data.school_name || '',
+                  email: data.invited_email || '',
+                }));
+              } else {
+                toast.error('Invitation link is invalid or expired.');
+              }
+            })
+            .catch(() => toast.error('Error validating invitation link.'))
+            .finally(() => setLoading(false));
+        }
+      }
+    });
+  }, [queryType, queryRole, inviteToken]);
 
 
   // ── Client Step 1 ─────────────────────────────────────────────────────────
@@ -691,9 +745,8 @@ function SignupPageContent() {
     const e: Record<string, string> = {};
     if (!govIdType) e.govIdType = 'Please select a government ID type.';
     if (!govIdFrontFile) e.govIdFrontFile = 'Please upload the front side of your ID.';
-    if (!govIdBackFile) e.govIdBackFile = 'Please upload the back side of your ID.';
     setErrors(e);
-    if (Object.keys(e).length > 0) { toast.error('Please upload both front and back of your ID.'); return; }
+    if (Object.keys(e).length > 0) { toast.error('Please select an ID type and upload the front side of your ID.'); return; }
 
     setLoading(true);
     try {
@@ -994,7 +1047,6 @@ function SignupPageContent() {
     if (freelancerGovIdType || freelancerGovIdFrontFile || freelancerGovIdBackFile) {
       if (!freelancerGovIdType) e.govIdType = 'Please select a government ID type';
       if (!freelancerGovIdFrontFile) e.govIdFront = 'Please upload the front side of your ID';
-      if (!freelancerGovIdBackFile) e.govIdBack = 'Please upload the back side of your ID';
     }
     setFreelancerErrors(e);
     return e;
@@ -1316,14 +1368,14 @@ function SignupPageContent() {
           <label className="block text-sm font-medium text-foreground">
             ID Type <span className="text-destructive">*</span>
           </label>
-          <Select value={govIdType} onValueChange={val => { setGovIdType(val); if (errors.govIdType) setErrors(prev => ({ ...prev, govIdType: '' })); }} disabled={loading}>
-            <SelectTrigger className={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.govIdType && 'border-destructive')}>
-              <SelectValue placeholder="Select ID type..." />
-            </SelectTrigger>
-            <SelectContent>
-              {GOV_ID_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={GOV_ID_TYPES.map(t => ({ value: t, label: t }))}
+            value={govIdType}
+            onValueChange={val => { setGovIdType(val); if (errors.govIdType) setErrors(prev => ({ ...prev, govIdType: '' })); }}
+            placeholder="Select ID type..."
+            disabled={loading}
+            className={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.govIdType && 'border-destructive')}
+          />
           {errors.govIdType && <p className="text-xs text-destructive mt-1 font-medium">{errors.govIdType}</p>}
         </div>
 
@@ -1381,7 +1433,7 @@ function SignupPageContent() {
         {/* Back ID Dropzone */}
         <div className="space-y-1">
           <label className="block text-sm font-medium text-foreground">
-            Back Side of ID <span className="text-destructive">*</span>
+            Back Side of ID <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
           </label>
 
           {!govIdBackFile ? (
@@ -1432,13 +1484,13 @@ function SignupPageContent() {
         {/* Info Box */}
         <div className="rounded-xl bg-muted/30 border border-border p-4 text-xs text-muted-foreground space-y-1">
           <p className="font-semibold text-foreground text-sm mb-2">📋 Upload Requirements</p>
-          <p>• Both <strong>Front and Back</strong> of the ID are required</p>
+          <p>• <strong>Front side</strong> of the ID is required </p>
           <p>• Accepted formats: <strong>.jpg, .png, .pdf</strong></p>
           <p>• Maximum file size: <strong>5 MB per file</strong></p>
           <p>• Ensure the ID is <strong>clear, unobstructed, and not expired</strong></p>
         </div>
 
-        <Button type="button" onClick={handleStep2Next} disabled={loading || !govIdFrontFile || !govIdBackFile}
+        <Button type="button" onClick={handleStep2Next} disabled={loading || !govIdFrontFile || !govIdType}
           className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-base disabled:opacity-50">
           {loading ? 'Uploading...' : 'Continue to Company Info →'}
         </Button>
@@ -1541,8 +1593,9 @@ function SignupPageContent() {
                       companyCountryName: found.name,
                       companyProvinceCode: '', companyProvince: '',
                       companyCityCode: '', companyCity: '',
+                      companyBarangayCode: '', companyBarangay: '',
                     }));
-                    setProvinces([]); setCities([]);
+                    setProvinces([]); setCities([]); setBarangays([]);
                     if (found.code === 'PH') fetchProvinces();
                     if (errors.companyCountry) setErrors(prev => ({ ...prev, companyCountry: '' }));
                   }}
@@ -1559,7 +1612,7 @@ function SignupPageContent() {
                 </label>
                 {isPhilippines ? (
                   <SearchableLocationSelect options={provinces} value={company.companyProvinceCode}
-                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyProvinceCode: code, companyProvince: name, companyCityCode: '', companyCity: '' })); if (errors.companyProvince) setErrors(prev => ({ ...prev, companyProvince: '' })); }}
+                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyProvinceCode: code, companyProvince: name, companyCityCode: '', companyCity: '', companyBarangayCode: '', companyBarangay: '' })); setBarangays([]); if (errors.companyProvince) setErrors(prev => ({ ...prev, companyProvince: '' })); }}
                     placeholder="Select province..." loading={loadingProvinces} error={errors.companyProvince} />
                 ) : (
                   <Input value={company.companyProvince} onChange={e => cSet('companyProvince', e.target.value)}
@@ -1576,7 +1629,7 @@ function SignupPageContent() {
                 </label>
                 {isPhilippines ? (
                   <SearchableLocationSelect options={cities} value={company.companyCityCode}
-                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyCityCode: code, companyCity: name })); if (errors.companyCity) setErrors(prev => ({ ...prev, companyCity: '' })); }}
+                    onChange={(code, name) => { setCompany(prev => ({ ...prev, companyCityCode: code, companyCity: name, companyBarangayCode: '', companyBarangay: '' })); if (errors.companyCity) setErrors(prev => ({ ...prev, companyCity: '' })); }}
                     placeholder={company.companyProvinceCode ? 'Select city...' : 'Select province first...'}
                     loading={loadingCities} disabled={!company.companyProvinceCode} error={errors.companyCity} />
                 ) : (
@@ -1592,9 +1645,14 @@ function SignupPageContent() {
                 {isPhilippines && (
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-foreground">Barangay</label>
-                    <Input value={company.companyBarangay} onChange={e => setCompany(prev => ({ ...prev, companyBarangay: e.target.value }))}
-                      disabled={loading} placeholder="e.g. Brgy. Longos"
-                      className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+                    <SearchableLocationSelect
+                      options={barangays}
+                      value={company.companyBarangayCode}
+                      onChange={(code, name) => setCompany(prev => ({ ...prev, companyBarangayCode: code, companyBarangay: name }))}
+                      placeholder={company.companyCityCode ? 'Select barangay...' : 'Select city first...'}
+                      loading={loadingBarangays}
+                      disabled={!company.companyCityCode || loadingBarangays}
+                    />
                   </div>
                 )}
                 <div className="space-y-1">
@@ -1685,7 +1743,7 @@ function SignupPageContent() {
           <Checkbox id="marketing-consent" checked={marketingConsent} onCheckedChange={val => setMarketingConsent(Boolean(val))}
             className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
           <span className="text-sm text-muted-foreground leading-snug select-none">
-            Send me emails with tips on how to find talent that fits my needs. <span className="text-muted-foreground/60">(Optional)</span>
+            Send me emails with tips on how to find talent that fits my needs.
           </span>
         </label>
 
@@ -1707,12 +1765,12 @@ function SignupPageContent() {
         </div>
 
         {/* CAPTCHA / Bot Protection */}
-        
-          <TurnstileWidget
-            onVerify={(token) => setTurnstileToken(token)}
-            onExpire={() => setTurnstileToken('')}
-          />
-   
+
+        <TurnstileWidget
+          onVerify={(token) => setTurnstileToken(token)}
+          onExpire={() => setTurnstileToken('')}
+        />
+
 
         {/* Submit */}
         <Button type="button" onClick={handleStep4Submit} disabled={loading || !termsAgreed}
@@ -1995,19 +2053,19 @@ function SignupPageContent() {
       {/* Gov ID Card Upload (Optional during sign-up) */}
       <div className="space-y-4 border-b border-border/60 pb-6">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Government Valid ID (Optional)</p>
-        
+
         <div className="space-y-1">
           <label htmlFor="flGovIdType" className="block text-sm font-medium text-foreground">
             Government ID Type
           </label>
-          <Select value={freelancerGovIdType} onValueChange={setFreelancerGovIdType} disabled={loading}>
-            <SelectTrigger id="flGovIdType" className="h-12 border-2 border-border focus:ring-0 focus:border-primary text-base">
-              <SelectValue placeholder="Select ID Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {GOV_ID_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            options={GOV_ID_TYPES.map(type => ({ value: type, label: type }))}
+            value={freelancerGovIdType}
+            onValueChange={setFreelancerGovIdType}
+            placeholder="Select ID Type"
+            disabled={loading}
+            className="h-12 border-2 border-border focus:ring-0 focus:border-primary text-base"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2188,7 +2246,7 @@ function SignupPageContent() {
     if (!schoolFormData.lastName.trim()) e.lastName = 'Last name is required';
     if (!schoolFormData.email.trim()) e.email = 'Email address is required';
     else if (!/\S+@\S+\.\S+/.test(schoolFormData.email)) e.email = 'Please enter a valid email';
-    
+
     if (!schoolFormData.contact.trim()) {
       e.contact = 'Contact number is required';
     } else {
@@ -2340,7 +2398,7 @@ function SignupPageContent() {
         {/* Institution Details */}
         <div className="space-y-4 pt-4 border-t border-border/60">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">School Details</p>
-          
+
           <div className="space-y-1">
             <label className="block text-sm font-medium">School / University Name <span className="text-destructive">*</span></label>
             <Input id="s-name" value={schoolFormData.schoolName}
@@ -2352,7 +2410,7 @@ function SignupPageContent() {
 
           <div className="space-y-1">
             <label className="block text-sm font-medium">School Type <span className="text-destructive">*</span></label>
-            <Select value={schoolFormData.schoolType} 
+            <Select value={schoolFormData.schoolType}
               onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as 'University' | 'College' | 'Technical/Vocational' | 'Other' }))} disabled={loading}>
               <SelectTrigger className="h-12 border-2 text-base">
                 <SelectValue placeholder="Select School Type" />

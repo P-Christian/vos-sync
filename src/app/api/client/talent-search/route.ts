@@ -298,7 +298,7 @@ export async function GET(req: NextRequest) {
 
     if (keyword && shouldExpandWithGemini(keyword)) {
       console.log(`[talent-search] 🤖 Gemini Layer A: expanding query "${keyword}"`);
-      geminiQueryIntent = await expandQueryWithGemini(keyword).catch(() => null);
+      geminiQueryIntent = await expandQueryWithGemini(keyword, { userId: userId ?? undefined, companyId: companyId ?? undefined }).catch(() => null);
 
       if (geminiQueryIntent) {
         console.log(`[talent-search] 🤖 Gemini Layer A result:`, JSON.stringify(geminiQueryIntent));
@@ -763,7 +763,7 @@ export async function GET(req: NextRequest) {
         skills: t.skills,
         summary: t.summary,
       }));
-      const { ranked_ids, used_ai } = await rerankCandidatesWithGemini(keyword, rerankInput);
+      const { ranked_ids, used_ai } = await rerankCandidatesWithGemini(keyword, rerankInput, { userId: userId ?? undefined, companyId: companyId ?? undefined });
       if (used_ai && ranked_ids.length > 0) {
         aiReranked = true;
         const rankMap = new Map(ranked_ids.map((id, idx) => [id, idx]));

@@ -1,6 +1,6 @@
 // src/lib/gemini/queryUnderstanding.ts
 
-import { callGeminiSafe } from "./geminiClient";
+import { callGeminiMonitored } from "./geminiMonitoring";
 
 export interface GeminiQueryIntent {
   resolved_role: string | null;
@@ -23,7 +23,8 @@ const FALLBACK: GeminiQueryIntent = {
  * keyword searches like "web developer".
  */
 export async function expandQueryWithGemini(
-  rawQuery: string
+  rawQuery: string,
+  context?: { userId?: number; companyId?: number }
 ): Promise<GeminiQueryIntent> {
   if (!rawQuery || rawQuery.trim().length === 0) return FALLBACK;
 
@@ -49,7 +50,13 @@ Response: {"resolved_role":"Backend Engineer","inferred_skills":["Node.js","REST
 
 Now process: "${rawQuery.trim()}"`;
 
-  const raw = await callGeminiSafe(prompt);
+  const raw = await callGeminiMonitored({
+    prompt,
+    feature: "QUERY_UNDERSTANDING",
+    endpoint: "lib/gemini/queryUnderstanding",
+    userId: context?.userId,
+    companyId: context?.companyId,
+  });
   if (!raw) return FALLBACK;
 
   try {

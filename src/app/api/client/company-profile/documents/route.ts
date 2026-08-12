@@ -51,8 +51,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Missing companyId parameter." }, { status: 400 });
     }
 
+    const documentType = searchParams.get("documentType");
+
     // 1. Fetch records from vs_company_document
-    const docsUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&filter[document_type][_eq]=VERIFICATION DOCUMENTS&fields=*`;
+    let docsUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&fields=*`;
+    if (documentType) {
+      docsUrl += `&filter[document_type][_eq]=${encodeURIComponent(documentType)}`;
+    }
     const docsRes = await fetch(docsUrl, {
       headers: getHeaders(),
       cache: "no-store",
@@ -95,8 +100,10 @@ export async function GET(req: NextRequest) {
     // 3. Format response
     const result = docs.map((d) => ({
       id: d.directus_file_id,
+      document_type: d.document_type,
       name: d.document_name,
       size: fileSizes[d.directus_file_id] || 0,
+      uploaded_at: d.uploaded_at || null,
     }));
 
     return NextResponse.json(result);
