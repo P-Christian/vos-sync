@@ -59,21 +59,12 @@ export function useSearchKeywords(roleId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await fetchSearchKeywords(roleId);
-        if (isMounted) setKeywords(data);
-      } catch (err: unknown) {
-        if (isMounted) setError((err as Error).message || "Failed to load search keywords.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    init();
+    void (async () => {
+      await loadKeywords(roleId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
-  }, [roleId]);
+  }, [loadKeywords, roleId]);
 
   return { keywords, loading, error, loadKeywords, addKeyword, editKeyword, removeKeyword };
 }

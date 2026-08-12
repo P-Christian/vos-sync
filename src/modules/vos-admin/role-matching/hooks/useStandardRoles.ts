@@ -59,21 +59,12 @@ export function useStandardRoles(categoryId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await fetchStandardRoles(categoryId);
-        if (isMounted) setRoles(data);
-      } catch (err: unknown) {
-        if (isMounted) setError((err as Error).message || "Failed to load standard roles.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    init();
+    void (async () => {
+      await loadRoles(categoryId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
-  }, [categoryId]);
+  }, [loadRoles, categoryId]);
 
   return { roles, loading, error, loadRoles, addRole, editRole, removeRole };
 }

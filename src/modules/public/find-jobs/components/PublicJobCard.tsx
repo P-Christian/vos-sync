@@ -2,10 +2,11 @@
 "use client";
 
 import React from "react";
-import { Building2, MapPin, Briefcase,  Clock, ShieldCheck, ArrowRight } from "lucide-react";
+import { Building2, MapPin, Briefcase, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PublicJobPosting } from "../types";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 interface Props {
   job: PublicJobPosting;
@@ -25,6 +26,8 @@ function getTimeAgo(dateStr: string): string {
 }
 
 export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
+  const session = useAuthSession();
+
   const formatSalary = (min?: number | null, max?: number | null, curr?: string) => {
     if (!min && !max) return "Competitive Salary";
     const currency = curr || "PHP";
@@ -118,7 +121,6 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
       <div className="pt-3 border-t flex items-center justify-between gap-2 text-xs">
         <div className="space-y-0.5">
           <span className="font-bold text-foreground text-sm flex items-center gap-1">
-        
             {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
           </span>
           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -128,17 +130,44 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onApplyClick(job);
-            }}
-            className="h-8 text-xs font-semibold gap-1"
-          >
-            Sign In to Apply
-            <ArrowRight className="h-3 w-3" />
-          </Button>
+          {session.isJobSeeker ? (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onApplyClick(job);
+              }}
+              className="h-8 text-xs font-semibold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Apply Now
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          ) : session.isEmployer ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectJob(job);
+              }}
+              className="h-8 text-xs font-semibold gap-1"
+            >
+              View Details
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onApplyClick(job);
+              }}
+              className="h-8 text-xs font-semibold gap-1"
+            >
+              Sign In to Apply
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </div>
     </div>

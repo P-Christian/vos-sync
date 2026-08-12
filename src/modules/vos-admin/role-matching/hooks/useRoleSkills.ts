@@ -64,27 +64,12 @@ export function useRoleSkills(roleId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      setLoading(true);
-      setError("");
-      try {
-        const [skillsData, mastersData] = await Promise.all([
-          fetchRoleSkills(roleId),
-          fetchMasterSkills().catch(() => []),
-        ]);
-        if (isMounted) {
-          setRoleSkills(skillsData);
-          setMasterSkills(mastersData);
-        }
-      } catch (err: unknown) {
-        if (isMounted) setError((err as Error).message || "Failed to load role skills.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    init();
+    void (async () => {
+      await loadSkills(roleId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
-  }, [roleId]);
+  }, [loadSkills, roleId]);
 
   return { roleSkills, masterSkills, loading, error, loadSkills, addRoleSkill, editRoleSkill, removeRoleSkill };
 }

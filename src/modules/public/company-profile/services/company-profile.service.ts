@@ -242,6 +242,12 @@ export async function getPublicCompanyJobs(
         salary: salaryText,
         posted: postedText,
         tags: (skillsMap[j.job_id] || []).slice(0, 3),
+        description: j.job_description || "",
+        salary_min: j.salary_min ? Number(j.salary_min) : null,
+        salary_max: j.salary_max ? Number(j.salary_max) : null,
+        salary_currency: j.currency || "PHP",
+        experience_level: j.experience_level || "Any Experience",
+        created_at: j.created_at || new Date().toISOString(),
       };
     });
 

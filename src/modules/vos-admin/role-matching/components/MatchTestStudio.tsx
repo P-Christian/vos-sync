@@ -3,7 +3,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Play, Sparkles, Loader2, CheckCircle2, ShieldCheck, FileText, Check } from "lucide-react";
+import { Play, Loader2, CheckCircle2, ShieldCheck, FileText, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMatchTester } from "../hooks/useMatchTester";
@@ -22,10 +22,7 @@ export function MatchTestStudio() {
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-indigo-950 via-zinc-900 to-violet-950 text-white border border-white/10 shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 backdrop-blur border border-white/20 text-indigo-200">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            Interactive Search &amp; Match Test Sandbox
-          </div>
+
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Match Test Studio</h1>
           <p className="text-xs sm:text-sm text-indigo-200/80 max-w-2xl">
             Test search terms and title synonyms in real-time against the VOS Sync Matching Engine Platform before publishing rule updates.

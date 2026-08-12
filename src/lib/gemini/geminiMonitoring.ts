@@ -120,8 +120,8 @@ export async function callGeminiMonitored(params: MonitoringParams): Promise<str
     console.warn(`[gemini-monitoring] ⚠️ ${feature} — ${responseStatus}: ${result.errorMessage}`);
   }
 
-  // Standard UTC ISO timestamp for Directus datetime compatibility
-  const createdAt = new Date().toISOString();
+  // PH local time (UTC+8) — consistent with project DB convention
+  const createdAt = new Date(Date.now() + 8 * 3600 * 1000).toISOString().replace("Z", "+08:00");
 
   // Build telemetry record — raw facts only, no derived cost/billing fields
   const record: Record<string, unknown> = {

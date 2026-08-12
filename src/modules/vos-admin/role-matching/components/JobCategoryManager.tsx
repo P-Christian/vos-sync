@@ -21,6 +21,7 @@ export function JobCategoryManager() {
   const [descInput, setDescInput] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   const openCreateModal = () => {
     setEditingCategory(null);
@@ -75,9 +76,8 @@ export function JobCategoryManager() {
   };
 
   const handleDelete = async (catId: number) => {
-    if (confirm("Are you sure you want to delete this job category?")) {
-      await removeCategory(catId);
-    }
+    await removeCategory(catId);
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -148,14 +148,34 @@ export function JobCategoryManager() {
                     </span>
                   </td>
                   <td className="p-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEditModal(cat)} className="h-7 w-7 p-0 text-zinc-500 hover:text-indigo-600">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(cat.category_id)} className="h-7 w-7 p-0 text-zinc-500 hover:text-rose-600">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    {confirmDeleteId === cat.category_id ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-[11px] text-rose-600 font-semibold mr-1">Delete?</span>
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => handleDelete(cat.category_id)}
+                          className="h-7 px-2 text-[11px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg"
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          variant="ghost" size="sm"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="h-7 px-2 text-[11px] text-zinc-500 hover:text-zinc-900"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => openEditModal(cat)} className="h-7 w-7 p-0 text-zinc-500 hover:text-indigo-600">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteId(cat.category_id)} className="h-7 w-7 p-0 text-zinc-500 hover:text-rose-600">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))

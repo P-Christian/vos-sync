@@ -50,6 +50,12 @@ export interface CompanyJob {
   salary: string;
   posted: string;
   tags: string[];
+  description?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  salary_currency?: string;
+  experience_level?: string;
+  created_at?: string;
 }
 
 export interface CompanyJobFilters {

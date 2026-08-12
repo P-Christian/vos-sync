@@ -3,9 +3,9 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, X, CheckCircle2, Eye, RefreshCw, Lock } from "lucide-react";
+import { Upload, Loader2, X, CheckCircle2, Eye, RefreshCw, Lock, Trash2, FileText, Plus } from "lucide-react";
 
-type DocumentTypeKey = "DTI_SEC_REGISTRATION" | "BUSINESS_PERMIT" | "TIN_DOCUMENT";
+type DocumentTypeKey = "DTI_SEC_REGISTRATION" | "BUSINESS_PERMIT" | "TIN_DOCUMENT" | "OTHER_DOCUMENT";
 
 interface DocSlotConfig {
   type: DocumentTypeKey;
@@ -71,9 +71,13 @@ function formatFileSize(bytes: number): string {
 
 export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDocumentsProps) {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const otherFileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [isUploadingOther, setIsUploadingOther] = useState(false);
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
   const [docs, setDocs] = useState<UploadedDoc[]>([]);
   const [slotError, setSlotError] = useState<Record<string, string>>({});
+  const [otherError, setOtherError] = useState<string | null>(null);
 
   const ALLOWED_TYPES = [
     "application/pdf",
@@ -162,6 +166,79 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
     }
   };
 
+  // Handler for multiple Other Supporting Documents upload
+  const handleOtherFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files ?? []);
+    if (selectedFiles.length === 0) return;
+
+    setOtherError(null);
+
+    // Validate all files
+    for (const file of selectedFiles) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setOtherError(`Invalid file format in "${file.name}". Only PDF, JPG, PNG, or WEBP files are allowed.`);
+        e.target.value = "";
+        return;
+      }
+      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+        setOtherError(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB size limit.`);
+        e.target.value = "";
+        return;
+      }
+    }
+
+    setIsUploadingOther(true);
+    try {
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (companyId) formData.append("companyId", String(companyId));
+        formData.append("documentType", "OTHER_DOCUMENT");
+
+        const res = await fetch("/api/client/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `Upload failed for ${file.name}`);
+        }
+      }
+
+      await fetchDocs();
+    } catch (err: unknown) {
+      setOtherError(err instanceof Error ? err.message : "Upload failed for one or more files. Please try again.");
+    } finally {
+      setIsUploadingOther(false);
+      e.target.value = "";
+    }
+  };
+
+  // Handler for deleting an individual document
+  const handleDeleteDoc = async (fileId: string) => {
+    setDeletingDocId(fileId);
+    setOtherError(null);
+    try {
+      const res = await fetch(`/api/client/company-profile/documents?id=${fileId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Failed to delete document.");
+      }
+      await fetchDocs();
+    } catch (err: unknown) {
+      setOtherError(err instanceof Error ? err.message : "Failed to delete document.");
+    } finally {
+      setDeletingDocId(null);
+    }
+  };
+
+  const otherDocs = docs.filter(
+    (d) => d.document_type === "OTHER_DOCUMENT" || d.document_type === "OTHER"
+  );
+
   return (
     <div className="space-y-6">
       {/* Header Info Banner */}
@@ -173,7 +250,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         </p>
       </div>
 
-      {/* Document Slots */}
+      {/* Primary Verification Document Slots */}
       <div className="space-y-3">
         {DOCUMENT_SLOTS.map((slot) => {
           const existingDoc = docs.find((d) => d.document_type === slot.type);
@@ -196,7 +273,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                 </div>
 
                 {existingDoc ? (
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 justify-end">
                     <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 px-3 py-1.5 rounded-md border border-emerald-200/80 dark:border-emerald-900/50">
                       <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                       <a
@@ -293,6 +370,138 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
             </div>
           );
         })}
+      </div>
+
+      {/* Other Supporting Documents (Multi-Upload Section) */}
+      <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 sm:p-5 bg-card space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              Other Supporting Documents
+              {/* {otherDocs.length > 0 && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40">
+                  {otherDocs.length} file{otherDocs.length !== 1 ? "s" : ""}
+                </span>
+              )} */}
+            </h4>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Upload optional supplementary files such as BIR 2303, General Information Sheet (GIS), Secretary&apos;s Certificate, or Special Permits.
+            </p>
+          </div>
+
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isUploadingOther}
+              onClick={() => otherFileInputRef.current?.click()}
+              className="h-9 text-xs gap-1.5 font-medium border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+            >
+              {isUploadingOther ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  Add Documents
+                </>
+              )}
+            </Button>
+
+            {/* Hidden multi-file input for Other Documents */}
+            <input
+              ref={otherFileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              onChange={handleOtherFilesChange}
+              disabled={isUploadingOther}
+            />
+          </div>
+        </div>
+
+        {/* Error banner for Other Documents */}
+        {otherError && (
+          <p className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/40">
+            <X className="h-3.5 w-3.5 shrink-0" />
+            {otherError}
+          </p>
+        )}
+
+        {/* List of uploaded other documents */}
+        {otherDocs.length > 0 ? (
+          <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+            {otherDocs.map((doc) => {
+              const isDeleting = deletingDocId === doc.id;
+
+              return (
+                <div
+                  key={doc.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <div className="min-w-0">
+                      <a
+                        href={`/api/client/assets/${doc.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-zinc-800 dark:text-zinc-200 hover:underline truncate block max-w-xs sm:max-w-md"
+                        title={doc.name}
+                      >
+                        {doc.name}
+                      </a>
+                      <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                        {formatFileSize(doc.size)}
+                        {doc.uploaded_at ? ` · Uploaded ${formatDate(doc.uploaded_at)}` : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="h-7 px-2 text-xs gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    >
+                      <a href={`/api/client/assets/${doc.id}`} target="_blank" rel="noopener noreferrer">
+                        <Eye className="h-3.5 w-3.5" />
+                        View
+                      </a>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={isDeleting}
+                      onClick={() => handleDeleteDoc(doc.id)}
+                      className="h-7 px-2 text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-5 border border-dashed rounded-lg border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs">
+            No other supporting documents uploaded yet.
+          </div>
+        )}
       </div>
     </div>
   );
