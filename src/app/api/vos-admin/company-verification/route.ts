@@ -625,13 +625,29 @@ export async function POST(req: NextRequest) {
 
     // 2. Log verification entry into vs_company_verifications
     try {
+      // Resolve the company's original submitter (created_by_user_id on vs_company)
+      let submittedByUserId: number | null = null;
+      try {
+        const compInfoRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=created_by_user_id`,
+          { headers: getDirectusHeaders(), cache: "no-store" }
+        );
+        if (compInfoRes.ok) {
+          const compInfoJson = await compInfoRes.json();
+          const creatorId = Number(compInfoJson.data?.created_by_user_id);
+          if (creatorId) submittedByUserId = creatorId;
+        }
+      } catch {
+        // non-fatal — submittedByUserId stays null
+      }
+
       const verifLogUrl = `${DIRECTUS_BASE}/items/vs_company_verifications`;
       await fetch(verifLogUrl, {
         method: "POST",
         headers: getDirectusHeaders(),
         body: JSON.stringify({
           company_id: companyId,
-          submitted_by_user_id: null,
+          submitted_by_user_id: submittedByUserId,
           verification_type: "INITIAL_REGISTRATION",
           status: verifStatus,
           submitted_at: new Date().toISOString(),

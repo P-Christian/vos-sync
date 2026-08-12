@@ -539,7 +539,17 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                         <div>
                           <div className="font-bold text-foreground text-sm">{doc.document_name}</div>
                           <div className="text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <Badge variant="outline" className="text-[10px]">{doc.document_type}</Badge>
+                            <Badge variant="outline" className="text-[10px]">
+                              {doc.document_type === "DTI_SEC_REGISTRATION"
+                                ? "DTI / SEC Registration"
+                                : doc.document_type === "BUSINESS_PERMIT"
+                                ? "Business Permit"
+                                : doc.document_type === "TIN_DOCUMENT"
+                                ? "TIN Document"
+                                : doc.document_type === "OTHER_DOCUMENT" || doc.document_type === "OTHER"
+                                ? "Other Document"
+                                : doc.document_type.replace(/_/g, " ")}
+                            </Badge>
                             <span>•</span>
                             <span>Uploaded: {formatDate(doc.uploaded_at)}</span>
                           </div>
@@ -821,15 +831,17 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                     <div key={v.id} className="border rounded-xl p-4 bg-card space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
+                            {v.verification_type.replace(/_/g, " ")}
+                          </span>
                           <VerificationStatusBadge status={v.status} />
-                          <span className="text-muted-foreground text-[11px]">Type: {v.verification_type}</span>
                         </div>
                         <span className="text-muted-foreground text-[11px]">{formatDate(v.created_at)}</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-[11px] text-muted-foreground pt-1 border-t">
-                        <div>Reviewer: <strong className="text-foreground">{v.reviewer_name || `Admin #${v.reviewed_by}`}</strong></div>
-                        <div>Submitted By: <strong className="text-foreground">{v.submitter_name || `User #${v.submitted_by_user_id}`}</strong></div>
+                        <div>Reviewer: <strong className="text-foreground">{v.reviewer_name || (v.reviewed_by ? `Admin #${v.reviewed_by}` : "—")}</strong></div>
+                        <div>Submitted By: <strong className="text-foreground">{v.submitter_name || (v.submitted_by_user_id ? `User #${v.submitted_by_user_id}` : "—")}</strong></div>
                       </div>
 
                       {v.public_rejection_reason && (
@@ -851,9 +863,9 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
 
           {/* Footer Actions */}
           <DialogFooter className="p-4 border-t bg-muted/20 flex flex-row items-center justify-between gap-3 shrink-0">
-            <div className="text-xs text-muted-foreground">
+            {/* <div className="text-xs text-muted-foreground">
               Target Company ID: <strong className="font-mono">{company.company_id}</strong>
-            </div>
+            </div> */}
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
