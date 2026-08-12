@@ -1,11 +1,16 @@
+"use client";
+
+import React from "react";
 import {
   BookOpen, PenLine, DollarSign, Search,
-  Clock, ChevronRight, ArrowRight, TrendingUp
+  Clock, ChevronRight, ArrowRight, TrendingUp,
+  UserCheck, Building2, LayoutDashboard, Briefcase
 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 // ==========================================
 // MOCK DATA
@@ -130,6 +135,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 // ==========================================
 
 export default function CareerAdvice() {
+  const session = useAuthSession();
+
   return (
     <div className="bg-background text-foreground font-sans pt-16">
       {/* HERO */}
@@ -292,26 +299,93 @@ export default function CareerAdvice() {
         </div>
       </section>
 
-      {/* NEWSLETTER CTA */}
+      {/* DYNAMIC CTA STRIP */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Get career tips in your inbox</h2>
-              <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
-                Weekly advice from industry experts — no spam, no filler. Just insights that move your career forward.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
-                  <Link href="/signup">Subscribe Free</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
-                  <Link href="/">Browse Jobs <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                </Button>
+
+            {session.isJobSeeker ? (
+              /* Logged in Job Seeker View */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Accelerate your career journey</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Apply expert insights directly to your active job applications and land interviews faster.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Go to Job Seeker Portal
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/find-jobs" className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      Find Jobs
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : session.isEmployer ? (
+              /* Logged in Employer View */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Build a high-performing team</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Learn how industry-leading companies source, interview, and retain world-class talent.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Go to Client Portal
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/vos-sync/client/talent-search" className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Find Talent
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : session.isAdmin || session.isSchool ? (
+              /* Logged in Admin / School View */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Empower students and candidates</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Access your dashboard tools to guide candidate career readiness and manage verification.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      Go to Dashboard
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/find-jobs">Browse Jobs</Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* Guest / Unauthenticated View */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Get career tips in your inbox</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Weekly advice from industry experts — no spam, no filler. Just insights that move your career forward.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/signup">Create Free Account</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/find-jobs">Browse Jobs <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

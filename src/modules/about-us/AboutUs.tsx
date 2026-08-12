@@ -1,13 +1,17 @@
+"use client";
+
+import React from "react";
 import {
   Briefcase, Globe, Users, TrendingUp,
   HeartHandshake, Shield, Zap, Star,
-  ArrowRight, CheckCircle2
+  ArrowRight, CheckCircle2, UserCheck, Building2, LayoutDashboard
 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 // ==========================================
 // MOCK DATA
@@ -66,6 +70,8 @@ const TEAM_HIGHLIGHTS = [
 // ==========================================
 
 export default function AboutUs() {
+  const session = useAuthSession();
+
   return (
     <div className="bg-background text-foreground font-sans pt-16">
       {/* HERO */}
@@ -99,16 +105,14 @@ export default function AboutUs() {
         </div>
       </section>
 
-      {/* STATS BAR */}
-      <section className="border-y border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/60 dark:bg-zinc-900/20 py-12">
+      {/* STATS */}
+      <section className="border-y border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/20 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {STATS.map((stat) => (
               <StaggerChild key={stat.label}>
-                <div className="text-center">
-                  <p className="text-4xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">{stat.value}</p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 font-medium">{stat.label}</p>
-                </div>
+                <p className="text-4xl md:text-5xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight mb-1">{stat.value}</p>
+                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{stat.label}</p>
               </StaggerChild>
             ))}
           </StaggerContainer>
@@ -118,63 +122,54 @@ export default function AboutUs() {
       {/* MISSION & VISION */}
       <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
-            <SlideUp className="lg:w-1/2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <SlideUp>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Mission</p>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6">
-                To make job searching{" "}
-                <span className="text-zinc-500 dark:text-zinc-400">faster, fairer, and more human.</span>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
+                Connecting talent with opportunity at the speed of ambition.
               </h2>
               <p className="text-zinc-500 dark:text-zinc-400 text-lg leading-relaxed mb-6">
-                Traditional job platforms are broken — riddled with ghost listings, impossible ATS systems, and one-size-fits-all applications. We built VosSync to fix that.
+                Traditional hiring is broken — slow processes, opaque requirements, and endless black holes. We built VosSync to make hiring transparent, fast, and human again.
               </p>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[
-                  "Real-time job listings verified by our team",
-                  "Smart matching powered by skills, not just keywords",
-                  "One-click applications that respect your time",
-                ].map((item, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="mt-1 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-full">
-                      <CheckCircle2 className="w-4 h-4 text-zinc-900 dark:text-zinc-100" />
-                    </div>
-                    <p className="text-zinc-600 dark:text-zinc-300">{item}</p>
+                  "Verified employers and authentic job listings",
+                  "AI-assisted talent matching tailored to your skills",
+                  "Transparent salary ranges on every listing",
+                  "Direct communication with hiring managers",
+                ].map((point) => (
+                  <div key={point} className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{point}</span>
                   </div>
                 ))}
               </div>
             </SlideUp>
 
-            <StaggerContainer className="lg:w-1/2 grid grid-cols-2 gap-4">
-              {TEAM_HIGHLIGHTS.map((item) => (
-                <StaggerChild key={item.title}>
-                  <HoverScale className="h-full">
-                    <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md transition-all duration-200 hover:border-zinc-300 dark:hover:border-zinc-700 h-full">
-                      <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-                        <item.icon className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
-                      </div>
-                      <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">{item.title}</h3>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{item.desc}</p>
-                    </div>
-                  </HoverScale>
-                </StaggerChild>
-              ))}
-            </StaggerContainer>
+            <SlideUp delay={0.2}>
+              <div className="grid grid-cols-2 gap-4">
+                {TEAM_HIGHLIGHTS.map((th) => (
+                  <div key={th.title} className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 shadow-sm">
+                    <th.icon className="w-6 h-6 text-zinc-700 dark:text-zinc-300 mb-3" />
+                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">{th.title}</h3>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{th.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </SlideUp>
           </div>
         </div>
       </section>
 
-      {/* VALUES */}
+      {/* CORE VALUES */}
       <section className="py-24 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Values</p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">What we stand for</h2>
-            <p className="text-zinc-500 dark:text-zinc-400">
-              These aren&apos;t just words on a wall. They&apos;re the principles that guide every feature we build.
-            </p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">What guides our work</h2>
           </div>
 
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {VALUES.map((val) => (
               <StaggerChild key={val.title}>
                 <HoverScale className="h-full">
@@ -230,26 +225,87 @@ export default function AboutUs() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* DYNAMIC CTA STRIP */}
       <section className="py-20">
         <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
-              <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
-                Whether you&apos;re hiring or being hired — VosSync is built for you.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
-                  <Link href="/signup">Get Started Free</Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
-                  <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
-                </Button>
+            
+            {session.isJobSeeker ? (
+              /* Logged in Job Seeker */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Browse verified opportunities and connect directly with top companies.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4" />
+                      Go to Job Seeker Portal
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/contact-us">Contact Support <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : session.isEmployer ? (
+              /* Logged in Employer */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Scale your team with verified professionals and seamless hiring workflows.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Go to Client Portal
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  </Button>
+                </div>
+              </div>
+            ) : session.isAdmin || session.isSchool ? (
+              /* Logged in School / Admin */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Access your management tools, student records, and platform controls.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
+                      <LayoutDashboard className="h-4 w-4" />
+                      Go to Dashboard
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* Guest / Unauthenticated */
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Join us in building the future of work</h2>
+                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                  Whether you&apos;re hiring or being hired — VosSync is built for you.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                    <Link href="/signup">Get Started Free</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                    <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </SlideUp>
       </section>
