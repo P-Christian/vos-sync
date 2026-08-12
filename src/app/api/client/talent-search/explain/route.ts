@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token." }, { status: 401 });
     }
 
-    const { isVerified, verification_status } = await checkCompanyVerificationStatus(userId);
+    const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json(
         { error: `Restricted: Company status is ${verification_status}.` },
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ explanation: null });
     }
 
-    const explanation = await generateMatchExplanation(keyword, candidate);
+    const explanation = await generateMatchExplanation(keyword, candidate, { userId: userId ?? undefined, companyId: companyId ?? undefined });
     return NextResponse.json({ explanation });
   } catch (err: unknown) {
     console.error("[talent-search/explain POST] Error:", err);

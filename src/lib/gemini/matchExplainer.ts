@@ -1,6 +1,6 @@
 // src/lib/gemini/matchExplainer.ts
 
-import { callGeminiSafe } from "./geminiClient";
+import { callGeminiMonitored } from "./geminiMonitoring";
 
 export interface ExplainCandidate {
   name: string;
@@ -16,7 +16,8 @@ export interface ExplainCandidate {
  */
 export async function generateBatchExplanations(
   query: string,
-  candidates: (ExplainCandidate & { id: number })[]
+  candidates: (ExplainCandidate & { id: number })[],
+  context?: { userId?: number; companyId?: number }
 ): Promise<Map<number, string>> {
   const results = new Map<number, string>();
   if (!query || candidates.length === 0) return results;
@@ -42,7 +43,13 @@ ${candidateBlock}
 Respond with ONLY a JSON array. No markdown, no explanation, no extra text:
 [{"id": <number>, "explanation": "<1-2 sentences>"}]`;
 
-  const raw = await callGeminiSafe(prompt);
+  const raw = await callGeminiMonitored({
+    prompt,
+    feature: "MATCH_EXPLAINER",
+    endpoint: "lib/gemini/matchExplainer",
+    userId: context?.userId,
+    companyId: context?.companyId,
+  });
   if (!raw) return results;
 
   // Strip markdown fences if Gemini wraps the response anyway
@@ -85,9 +92,10 @@ Respond with ONLY a JSON array. No markdown, no explanation, no extra text:
  */
 export async function generateMatchExplanation(
   query: string,
-  candidate: ExplainCandidate
+  candidate: ExplainCandidate,
+  context?: { userId?: number; companyId?: number }
 ): Promise<string | null> {
   if (!query || !candidate) return null;
-  const resMap = await generateBatchExplanations(query, [{ ...candidate, id: 1 }]);
+  const resMap = await generateBatchExplanations(query, [{ ...candidate, id: 1 }], context);
   return resMap.get(1) ?? null;
 }

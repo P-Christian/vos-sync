@@ -65,7 +65,7 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target } from "lucide-react";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
@@ -178,6 +178,8 @@ export function AppSidebar({
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
                 { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
+                { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target },
+                { label: "Gemini Monitoring", href: "/vos-sync/vos-admin/gemini-monitoring", icon: Cpu },
                 { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
                 { label: "Settings", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
             ],
