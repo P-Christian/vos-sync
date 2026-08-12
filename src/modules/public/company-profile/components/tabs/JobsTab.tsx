@@ -6,7 +6,8 @@ import { CompanyJob, PublicCompanyProfile } from "../../types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { PublicJobDetailModal } from "@/modules/public/find-jobs/components/PublicJobDetailModal";
+import { PublicJobPosting } from "@/modules/public/find-jobs/types";
 
 interface JobsTabProps {
   company: PublicCompanyProfile;
@@ -17,6 +18,9 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
   const [jobs, setJobs] = useState<CompanyJob[]>([]);
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [selectedJob, setSelectedJob] = useState<PublicJobPosting | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -59,8 +63,9 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadJobs();
+    queueMicrotask(() => {
+      loadJobs();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobType, arrangement, experience, page]);
 
@@ -80,6 +85,30 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
 
   const formatJobType = (type: string) => {
     return type.replace("_", " ");
+  };
+
+  const handleOpenJobDetail = (job: CompanyJob) => {
+    const posting: PublicJobPosting = {
+      job_id: job.id,
+      company_id: company.company_id,
+      company_code: company.company_code,
+      company_name: company.company_name,
+      company_logo_url: company.company_logo,
+      company_verification_status: company.verification_status,
+      job_title: job.title,
+      job_description: job.description || "No full description provided.",
+      job_type: formatJobType(job.type),
+      work_setup: job.work_arrangement,
+      location: job.location,
+      salary_min: job.salary_min,
+      salary_max: job.salary_max,
+      salary_currency: job.salary_currency,
+      experience_level: job.experience_level,
+      status: "ACTIVE",
+      created_at: job.created_at || new Date().toISOString(),
+    };
+    setSelectedJob(posting);
+    setIsDetailOpen(true);
   };
 
   return (
@@ -173,11 +202,12 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
               {jobs.map((job) => (
                 <div
                   key={job.id}
-                  className="bg-card border border-border p-6 rounded-2xl hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between"
+                  onClick={() => handleOpenJobDetail(job)}
+                  className="group bg-card border border-border p-6 rounded-2xl hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col justify-between cursor-pointer"
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
                     <div>
-                      <h3 className="text-xl font-bold text-foreground hover:text-primary transition-colors cursor-pointer">
+                      <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer">
                         {job.title}
                       </h3>
                       {job.department && (
@@ -226,8 +256,16 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                         <Clock className="w-3.5 h-3.5" />
                         {job.posted}
                       </span>
-                      <Button size="sm" variant="outline" className="rounded-xl font-semibold cursor-pointer shadow-sm" asChild>
-                        <Link href="/find-jobs">View Details</Link>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl font-semibold cursor-pointer shadow-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenJobDetail(job);
+                        }}
+                      >
+                        View Details
                       </Button>
                     </div>
                   </div>
@@ -264,6 +302,16 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
           </>
         )}
       </div>
+
+      {/* In-Place Public Job Detail Modal */}
+      <PublicJobDetailModal
+        job={selectedJob}
+        isOpen={isDetailOpen}
+        onClose={() => {
+          setIsDetailOpen(false);
+          setSelectedJob(null);
+        }}
+      />
     </div>
   );
 }

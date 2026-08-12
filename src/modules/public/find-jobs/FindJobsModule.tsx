@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   JobHeroBanner,
   JobFilterSidebar,
@@ -10,11 +11,15 @@ import {
   GuestAuthModal,
 } from "./components";
 import { PublicJobPosting } from "./types";
-import { Briefcase, AlertCircle, ArrowLeft, ArrowRight, } from "lucide-react";
+import { Briefcase, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 export default function FindJobsModule() {
+  const router = useRouter();
+  const session = useAuthSession();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedJobType, setSelectedJobType] = useState("All");
@@ -106,6 +111,15 @@ export default function FindJobsModule() {
     (locationQuery.trim() ? 1 : 0);
 
   const handleApplyClick = (job: PublicJobPosting) => {
+    if (session.isJobSeeker) {
+      router.push(`/vos-sync/freelancer/jobs?open_job=${job.job_id}`);
+      return;
+    }
+    if (session.isEmployer) {
+      setSelectedJob(job);
+      setIsDetailOpen(true);
+      return;
+    }
     setAuthModalJob(job);
     setIsAuthModalOpen(true);
   };

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
+import { LandingCTA } from "@/components/public/LandingCTA";
 
 // ==========================================
 // MOCK DATA
@@ -427,30 +428,8 @@ export default async function Page() {
         </div>
       </section>
 
-      {/* CTA SECTION */}
-      <section className="py-24">
-        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 dark:bg-zinc-950 rounded-3xl p-8 md:p-16 text-center text-white relative overflow-hidden border dark:border-zinc-800">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20"></div>
-
-            <div className="relative z-10">
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-zinc-50">Ready to accelerate your career?</h2>
-              <p className="text-zinc-400 text-lg max-w-2xl mx-auto mb-10">
-                Join thousands of professionals who have found their dream jobs through our platform. Create your free account today.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
-                  Get Started for Free
-                </Button>
-                <Button size="lg" variant="outline" className="border-zinc-700 text-white bg-transparent hover:bg-zinc-800 hover:text-white rounded-full px-8 cursor-pointer">
-                  Post a Job
-                </Button>
-              </div>
-            </div>
-          </div>
-        </SlideUp>
-      </section>
+      {/* DYNAMIC CTA SECTION */}
+      <LandingCTA />
     </div>
   );
 }
