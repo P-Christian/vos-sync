@@ -629,34 +629,39 @@ function SignupPageContent() {
   // Auto-detect role/type or token in URL params
   useEffect(() => {
     const roleParam = (queryRole || queryType)?.toLowerCase();
-    if (roleParam === 'employee' || roleParam === 'freelancer' || roleParam === 'jobseeker') {
-      setUserType('freelancer');
-      setStep('freelancer');
-    } else if (roleParam === 'employer' || roleParam === 'client' || roleParam === 'company') {
-      setUserType('client');
-      setStep('client');
-    } else if (roleParam === 'school' || inviteToken) {
-      setUserType('school');
-      setStep('school');
-      if (inviteToken) {
-        setLoading(true);
-        fetch(`/api/auth/school-register?token=${inviteToken}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.valid) {
-              setSchoolFormData(prev => ({
-                ...prev,
-                schoolName: data.school_name || '',
-                email: data.invited_email || '',
-              }));
-            } else {
-              toast.error('Invitation link is invalid or expired.');
-            }
-          })
-          .catch(() => toast.error('Error validating invitation link.'))
-          .finally(() => setLoading(false));
+    queueMicrotask(() => {
+      if (roleParam === 'employee' || roleParam === 'freelancer' || roleParam === 'jobseeker') {
+        setUserType('freelancer');
+        setStep('freelancer');
+      } else if (roleParam === 'employer' || roleParam === 'client' || roleParam === 'company') {
+        setUserType('client');
+        setStep('client');
+      } else if (roleParam === 'school' || inviteToken) {
+        setUserType('school');
+        setStep('school');
       }
-    }
+
+      if (roleParam === 'school' || inviteToken) {
+        if (inviteToken) {
+          setLoading(true);
+          fetch(`/api/auth/school-register?token=${inviteToken}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.valid) {
+                setSchoolFormData(prev => ({
+                  ...prev,
+                  schoolName: data.school_name || '',
+                  email: data.invited_email || '',
+                }));
+              } else {
+                toast.error('Invitation link is invalid or expired.');
+              }
+            })
+            .catch(() => toast.error('Error validating invitation link.'))
+            .finally(() => setLoading(false));
+        }
+      }
+    });
   }, [queryType, queryRole, inviteToken]);
 
 

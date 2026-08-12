@@ -153,8 +153,10 @@ export default function InterviewDateTimePicker({
   // Update view when value changes externally
   useEffect(() => {
     if (parsed.valid) {
-      setCurrentYear(parsed.year);
-      setCurrentMonth(parsed.month);
+      queueMicrotask(() => {
+        setCurrentYear((prev) => (prev !== parsed.year ? parsed.year : prev));
+        setCurrentMonth((prev) => (prev !== parsed.month ? parsed.month : prev));
+      });
     }
   }, [parsed.year, parsed.month, parsed.valid]);
 

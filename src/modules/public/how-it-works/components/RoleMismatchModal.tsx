@@ -41,7 +41,7 @@ export function RoleMismatchModal({
             <AlertTriangle className="h-6 w-6" />
           </div>
           <DialogTitle className="text-xl font-extrabold text-foreground">
-            You're currently signed in as {state.currentRole}
+            You&apos;re currently signed in as {state.currentRole}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground leading-relaxed pt-1">
             <strong className="text-foreground">{state.targetRoleLabel}</strong> accounts use a separate registration role and cannot be created under your active account. Please sign out before registering a {state.targetRoleLabel} account.

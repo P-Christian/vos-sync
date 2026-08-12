@@ -33,11 +33,8 @@ import {
   Maximize2,
   Minimize2,
   X,
-  Award,
   AlertCircle,
-  Loader2,
   CheckCircle,
-  Calendar,
   Lock,
 } from "lucide-react";
 import {

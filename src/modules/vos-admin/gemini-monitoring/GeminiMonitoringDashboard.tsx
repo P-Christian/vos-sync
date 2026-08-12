@@ -2,7 +2,7 @@
 
 // src/modules/vos-admin/gemini-monitoring/GeminiMonitoringDashboard.tsx
 
-import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,6 @@ import {
   Radio,
   Sparkles,
   Layers,
-  ShieldCheck,
   TrendingDown,
 } from "lucide-react";
 
@@ -223,7 +222,9 @@ export default function GeminiMonitoringDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchTelemetry();
+    queueMicrotask(() => {
+      fetchTelemetry();
+    });
     const interval = setInterval(() => fetchTelemetry(true), 30000);
     return () => clearInterval(interval);
   }, [fetchTelemetry]);
