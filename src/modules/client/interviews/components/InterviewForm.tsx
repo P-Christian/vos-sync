@@ -15,18 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import InterviewDateTimePicker, { getInterviewDisplayLabel } from "./InterviewDateTimePicker";
 import {
   CalendarDays,
@@ -330,52 +318,36 @@ export default function InterviewForm({
         )}
       </div>
 
-      {/* Scheduled At Datetime Picker & Duration */}
+      {/* Scheduled At Datetime Picker (Full Width Row) */}
       <div className="space-y-2">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                Scheduled Date & Time <span className="text-rose-500">*</span>
-              </Label>
-              {scheduledDatesSet.size > 0 && (
-                <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
-                  {scheduledDatesSet.size} date{scheduledDatesSet.size !== 1 ? "s" : ""} booked
-                </span>
-              )}
-            </div>
-
-            {/* Custom InterviewDateTimePicker Component */}
-            <InterviewDateTimePicker
-              value={data.scheduled_at}
-              onChange={(val) => onChange("scheduled_at", val)}
-              durationMinutes={data.duration_minutes}
-              scheduledDatesSet={scheduledDatesSet}
-              existingInterviews={existingInterviews}
-              dateInterviews={dateInterviews}
-              getSlotStatus={getSlotStatus}
-              hasConflict={Boolean(conflict)}
-            />
-
-            {errors.scheduled_at && (
-              <p className="text-[11px] text-rose-500">{errors.scheduled_at}</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+              Scheduled Date & Time <span className="text-rose-500">*</span>
+            </Label>
+            {scheduledDatesSet.size > 0 && (
+              <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
+                {scheduledDatesSet.size} date{scheduledDatesSet.size !== 1 ? "s" : ""} booked
+              </span>
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="duration" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              Duration (Mins)
-            </Label>
-            <Input
-              id="duration"
-              type="number"
-              value={data.duration_minutes}
-              onChange={(e) => onChange("duration_minutes", parseInt(e.target.value, 10) || 60)}
-              placeholder="60"
-              className="h-9 text-sm rounded-lg"
-            />
-          </div>
+          {/* Custom InterviewDateTimePicker Component (Expands inline) */}
+          <InterviewDateTimePicker
+            value={data.scheduled_at}
+            onChange={(val) => onChange("scheduled_at", val)}
+            durationMinutes={data.duration_minutes}
+            scheduledDatesSet={scheduledDatesSet}
+            existingInterviews={existingInterviews}
+            dateInterviews={dateInterviews}
+            getSlotStatus={getSlotStatus}
+            hasConflict={Boolean(conflict)}
+          />
+
+          {errors.scheduled_at && (
+            <p className="text-[11px] text-rose-500">{errors.scheduled_at}</p>
+          )}
         </div>
 
         {/* Schedule Conflict Warning */}
@@ -390,7 +362,7 @@ export default function InterviewForm({
           </div>
         )}
 
-        {/* Existing Scheduled Interview List with Context Popover */}
+        {/* Existing Scheduled Interview List with Context Hover Card */}
         {selectedDateStr && dateInterviews.length > 0 && (
           <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
@@ -404,26 +376,24 @@ export default function InterviewForm({
               {dateInterviews.map((iv) => {
                 const label = getInterviewDisplayLabel(iv);
                 return (
-                  <Popover key={iv.interview_id}>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 transition-colors"
-                      >
-                        <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
-                        <Clock className="h-3 w-3 text-zinc-400 shrink-0" />
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                          {formatTimeRange(iv.scheduled_at, iv.duration_minutes)}
-                        </span>
-                        <span className="text-zinc-500 font-medium">({label})</span>
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent side="top" className="w-72 p-3 text-xs space-y-2 shadow-xl">
-                      <div className="font-bold text-zinc-900 dark:text-zinc-50 flex items-center gap-1.5 border-b pb-1.5">
-                        <User className="h-4 w-4 text-indigo-500" />
+                  <div key={iv.interview_id} className="relative group">
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 transition-colors"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                      <Clock className="h-3 w-3 text-zinc-400 shrink-0" />
+                      <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                        {formatTimeRange(iv.scheduled_at, iv.duration_minutes)}
+                      </span>
+                      <span className="text-zinc-500 font-medium">({label})</span>
+                    </button>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 text-xs space-y-2 bg-zinc-950 text-white rounded-xl shadow-2xl z-50 pointer-events-none border border-zinc-800 animate-in fade-in zoom-in-95 duration-150">
+                      <div className="font-bold text-white flex items-center gap-1.5 border-b border-zinc-800 pb-1.5">
+                        <User className="h-4 w-4 text-indigo-400" />
                         {label}
                       </div>
-                      <div className="space-y-1 text-zinc-600 dark:text-zinc-300">
+                      <div className="space-y-1 text-zinc-300">
                         {iv.applications?.[0]?.job_title && (
                           <div className="flex items-center gap-1.5">
                             <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
@@ -436,17 +406,17 @@ export default function InterviewForm({
                         </div>
                         <div className="flex items-center gap-1.5">
                           {iv.interview_format === "ONLINE" ? (
-                            <Video className="h-3.5 w-3.5 text-indigo-500" />
+                            <Video className="h-3.5 w-3.5 text-indigo-400" />
                           ) : iv.interview_format === "ONSITE" ? (
-                            <Building className="h-3.5 w-3.5 text-emerald-500" />
+                            <Building className="h-3.5 w-3.5 text-emerald-400" />
                           ) : (
-                            <Phone className="h-3.5 w-3.5 text-amber-500" />
+                            <Phone className="h-3.5 w-3.5 text-amber-400" />
                           )}
                           <span>Format: {INTERVIEW_FORMAT_LABELS[iv.interview_format] || iv.interview_format}</span>
                         </div>
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -454,27 +424,39 @@ export default function InterviewForm({
         )}
       </div>
 
-      {/* Format & Timezone */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Duration, Format & Timezone */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="duration" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            Duration (Mins)
+          </Label>
+          <Input
+            id="duration"
+            type="number"
+            value={data.duration_minutes}
+            onChange={(e) => onChange("duration_minutes", parseInt(e.target.value, 10) || 60)}
+            placeholder="60"
+            className="h-9 text-sm rounded-lg"
+          />
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="format" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Interview Format <span className="text-rose-500">*</span>
           </Label>
-          <Select
+          <select
+            id="format"
             value={data.interview_format}
-            onValueChange={(val) => onChange("interview_format", val as InterviewFormat)}
+            onChange={(e) => onChange("interview_format", e.target.value as InterviewFormat)}
+            className="w-full h-9 px-3 text-xs font-semibold rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
           >
-            <SelectTrigger id="format" className="w-full h-9 text-sm rounded-lg">
-              <SelectValue placeholder="-- Select Format --" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">-- Select Format --</option>
+            {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
           {errors.interview_format && (
             <p className="text-[11px] text-rose-500">{errors.interview_format}</p>
           )}
@@ -484,24 +466,21 @@ export default function InterviewForm({
           <Label htmlFor="timezone" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Timezone
           </Label>
-          <Select
+          <select
+            id="timezone"
             value={data.timezone || "Asia/Manila"}
-            onValueChange={(val) => onChange("timezone", val)}
+            onChange={(e) => onChange("timezone", e.target.value)}
+            className="w-full h-9 px-3 text-xs font-semibold rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 cursor-pointer"
           >
-            <SelectTrigger id="timezone" className="w-full h-9 text-sm rounded-lg">
-              <SelectValue placeholder="Select Timezone" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <SelectItem key={tz.value} value={tz.value}>
-                  {tz.label}
-                </SelectItem>
-              ))}
-              {data.timezone && !TIMEZONE_OPTIONS.some((tz) => tz.value === data.timezone) && (
-                <SelectItem value={data.timezone}>{data.timezone}</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
+            {data.timezone && !TIMEZONE_OPTIONS.some((tz) => tz.value === data.timezone) && (
+              <option value={data.timezone}>{data.timezone}</option>
+            )}
+          </select>
         </div>
       </div>
 

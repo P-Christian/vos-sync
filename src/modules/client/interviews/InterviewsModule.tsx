@@ -357,6 +357,13 @@ export default function InterviewsModule() {
                 onReschedule={handleOpenReschedule}
                 onOpenCancelModal={handleOpenCancelModal}
                 onScheduleDate={handleScheduleForDate}
+                availableJobs={availableJobs}
+                availableApplicants={availableApplicants}
+                saving={saving}
+                onCreateInterview={createInterview}
+                onUpdateStatus={updateStatus}
+                onSaveEvaluation={saveEvaluation}
+                onConfirmCancel={handleConfirmCancel}
               />
             ) : (
               <InterviewList
@@ -372,7 +379,7 @@ export default function InterviewsModule() {
 
         {/* Schedule / Reschedule Dialog */}
         <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-          <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold">
                 {isRescheduling ? "Reschedule Candidate Interview" : "Schedule New Candidate Interview"}
