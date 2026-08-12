@@ -335,7 +335,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
         {/* Schedule Interview Dialog */}
         <Dialog open={interviewDialogOpen} onOpenChange={setInterviewDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-4xl max-h-[92vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold">Schedule Interview for Candidate</DialogTitle>
             </DialogHeader>

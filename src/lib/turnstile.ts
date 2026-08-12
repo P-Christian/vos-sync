@@ -13,14 +13,9 @@ export async function verifyTurnstileToken(
   remoteIp?: string
 ): Promise<TurnstileVerificationResult> {
   const secretKey = process.env.TURNSTILE_SECRET || process.env.NEXT_PUBLIC_TURNSTILE_SECRET;
-  const isDevOrDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true" || process.env.NODE_ENV === "development";
 
   // If secret key is not configured in env
   if (!secretKey) {
-    if (isDevOrDisabled) {
-      console.warn("[TURNSTILE] TURNSTILE_SECRET is not configured in env. Bypassing Turnstile check for development.");
-      return { success: true };
-    }
     return {
       success: false,
       message: "CAPTCHA secret key is not configured on the server.",
@@ -28,10 +23,6 @@ export async function verifyTurnstileToken(
   }
 
   if (!token || typeof token !== "string" || !token.trim()) {
-    if (isDevOrDisabled) {
-      console.warn("[TURNSTILE] Token missing in development mode. Allowing dev bypass.");
-      return { success: true };
-    }
     return {
       success: false,
       message: "Security CAPTCHA verification is required.",

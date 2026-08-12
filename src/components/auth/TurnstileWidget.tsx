@@ -2,7 +2,6 @@
 
 import  { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TurnstileWidgetProps {
@@ -43,35 +42,32 @@ export function TurnstileWidget({
   const widgetIdRef = useRef<string | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
-  // Retrieve site key from client environment variables
-  const siteKey =
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KY ||
-    process.env.TURNSTILE_SITE_KY ||
-    process.env.TURNSTILE_SITE_KEY ||
-    "";
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
-    // If no site key in env, fallback gracefully in dev mode
-    if (!siteKey) {
-      if (process.env.NODE_ENV === "development") {
-        onVerify("dev-turnstile-bypass-token");
-      }
-      return;
-    }
+    onVerifyRef.current = onVerify;
+    onExpireRef.current = onExpire;
+    onErrorRef.current = onError;
+  }, [onVerify, onExpire, onError]);
 
-    if (window.turnstile && containerRef.current && !widgetIdRef.current) {
+  // Retrieve site key strictly from NEXT_PUBLIC_TURNSTILE_SITE_KEY environment variable
+  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+
+  useEffect(() => {
+    if (siteKey && window.turnstile && containerRef.current && !widgetIdRef.current) {
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           callback: (token: string) => {
-            onVerify(token);
+            onVerifyRef.current?.(token);
           },
           "expired-callback": () => {
-            onExpire?.();
+            onExpireRef.current?.();
           },
           "error-callback": (err?: unknown) => {
-            onError?.(err);
+            onErrorRef.current?.(err);
           },
           theme,
         });
@@ -79,23 +75,18 @@ export function TurnstileWidget({
         console.error("Turnstile render error:", e);
       }
     }
-  }, [scriptLoaded, siteKey, onVerify, onExpire, onError, theme]);
 
-  if (!siteKey) {
-    return (
-      <div className={cn("rounded-xl border border-border bg-muted/20 p-4 flex items-center gap-3 text-xs text-muted-foreground", className)}>
-        <Shield size={18} className="text-primary shrink-0" />
-        <div>
-          <p className="font-semibold text-foreground">Turnstile Bot Protection</p>
-          <p className="text-[11px] opacity-80">
-            {process.env.NODE_ENV === "development"
-              ? "Dev Mode: Automatically verified"
-              : "Site Key missing. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY in .env.local"}
-          </p>
-        </div>
-      </div>
-    );
-  }
+    return () => {
+      if (widgetIdRef.current && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // Silently ignore if widget was already removed
+        }
+        widgetIdRef.current = null;
+      }
+    };
+  }, [scriptLoaded, siteKey, theme]);
 
   return (
     <div className={cn("my-2 flex flex-col items-center justify-center min-h-[65px]", className)}>
@@ -105,7 +96,7 @@ export function TurnstileWidget({
         defer
         onLoad={() => setScriptLoaded(true)}
       />
-      <div ref={containerRef} id="turnstile-container" />
+      <div ref={containerRef} />
     </div>
   );
 }
