@@ -2,7 +2,7 @@
 
 // src/modules/vos-admin/gemini-monitoring/GeminiMonitoringDashboard.tsx
 
-import React, { useEffect, useState, useCallback, memo } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,10 +17,13 @@ import {
   RefreshCw,
   Clock,
   Radio,
-  Sparkles,
+
   Layers,
   TrendingDown,
+
+  Blocks,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -281,18 +284,16 @@ export default function GeminiMonitoringDashboard() {
           <span>{fetchError}</span>
         </div>
       )}
-
-      {/* ── Setup Notice (shown before Directus collection is created) ─────── */}
+      
+      {/* ── Setup Notice ─────── */}
       {data?.serviceHealth === "NO_DATA" && (
         <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900 rounded-xl text-blue-700 dark:text-blue-300 text-sm space-y-1">
           <div className="flex items-center gap-2 font-bold">
             <Cpu className="h-4 w-4 text-blue-500" />
-            Awaiting First Request
+            Waiting for Telemetry Data
           </div>
           <p className="text-xs text-blue-600 dark:text-blue-400">
-            The <code className="font-mono bg-blue-100 dark:bg-blue-900/60 px-1.5 py-0.5 rounded text-[10px]">vs_gemini_requests</code> Directus collection needs to be created,
-            or no Gemini calls have been made yet today. Once you create the collection and trigger a Talent Search,
-            live telemetry will appear here automatically.
+            Live telemetry will appear here automatically. Trigger a Talent Search to make your first Gemini request and populate this view.
           </p>
         </div>
       )}
@@ -322,7 +323,7 @@ export default function GeminiMonitoringDashboard() {
         {[
           { label: "Requests (Today)", value: data?.kpis.totalRequests ?? 0, icon: <Activity className="h-4 w-4 text-indigo-500" />, unit: "" },
           { label: "Input Tokens", value: formatTokens(data?.kpis.totalPromptTokens ?? 0), icon: <Zap className="h-4 w-4 text-amber-500" />, unit: "" },
-          { label: "Output Tokens", value: formatTokens(data?.kpis.totalCompletionTokens ?? 0), icon: <Sparkles className="h-4 w-4 text-violet-500" />, unit: "" },
+          { label: "Output Tokens", value: formatTokens(data?.kpis.totalCompletionTokens ?? 0), icon: <Blocks className="h-4 w-4 text-violet-500" />, unit: "" },
           { label: "Avg Latency", value: `${data?.kpis.avgLatencyMs ?? 0}`, icon: <Clock className="h-4 w-4 text-blue-500" />, unit: "ms" },
           { label: "Success Rate", value: `${data?.kpis.successRate ?? 100}`, icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />, unit: "%" },
           { label: "Failed", value: (data?.kpis.failedCount ?? 0) + (data?.kpis.timeoutCount ?? 0), icon: <TrendingDown className="h-4 w-4 text-rose-500" />, unit: "" },
@@ -436,7 +437,7 @@ export default function GeminiMonitoringDashboard() {
                   (data?.featureBreakdown ?? []).map((fb) => (
                     <tr key={fb.feature} className="hover:bg-muted/30 transition-colors">
                       <td className="p-3 pl-4 font-bold text-foreground flex items-center gap-2">
-                        <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+
                         {featureLabel(fb.feature)}
                       </td>
                       <td className="p-3 text-right font-semibold text-foreground">{fb.requests}</td>

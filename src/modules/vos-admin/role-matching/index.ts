@@ -1,5 +1,3 @@
-"use client";
-
 // src/modules/vos-admin/role-matching/index.ts
 
 export * from "./types";

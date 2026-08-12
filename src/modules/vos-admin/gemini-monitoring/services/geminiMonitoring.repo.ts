@@ -357,7 +357,7 @@ export async function resolveAttributionNames(
     promises.push(
       (async () => {
         try {
-          const compUrl = `${DIRECTUS_BASE}/items/vs_company_profile?filter[company_id][_in]=${validCompanyIds.join(",")}&fields=company_id,company_name&limit=-1`;
+          const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${validCompanyIds.join(",")}&fields=company_id,company_name&limit=-1`;
           const res = await fetch(compUrl, { headers: getHeaders(), cache: "no-store" });
           if (res.ok) {
             const json = await res.json();

@@ -59,21 +59,9 @@ export function useJobCategories() {
 
   useEffect(() => {
     let isMounted = true;
-    async function init() {
-      setLoading(true);
-      setError("");
-      try {
-        const data = await fetchJobCategories();
-        if (isMounted) setCategories(data);
-      } catch (err: unknown) {
-        if (isMounted) setError((err as Error).message || "Failed to load job categories.");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    init();
+    loadCategories().finally(() => { if (!isMounted) return; });
     return () => { isMounted = false; };
-  }, []);
+  }, [loadCategories]);
 
   return { categories, loading, error, loadCategories, addCategory, editCategory, removeCategory };
 }

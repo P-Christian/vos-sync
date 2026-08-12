@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { FolderTree, Briefcase, Search, Sparkles, Play, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
+import { FolderTree, Briefcase, Search, Play, ArrowRight, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardMetrics } from "../types";
@@ -14,20 +14,17 @@ import JobDirectoryTree from "./JobDirectoryTree";
 export function RoleMatchingDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const m = await fetchDashboardMetrics();
       setMetrics(m);
-    } catch {
-      setMetrics({
-        totalCategories: 9,
-        totalStandardRoles: 11,
-        totalSearchKeywords: 42,
-        totalRoleSkills: 28,
-        lastUpdated: new Date().toISOString(),
-      });
+    } catch (err: unknown) {
+      setLoadError((err as Error)?.message || "Failed to load metrics.");
+      setMetrics(null);
     } finally {
       setLoading(false);
     }
@@ -45,14 +42,15 @@ export function RoleMatchingDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-indigo-950 via-zinc-900 to-violet-950 text-white border border-white/10 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 h-48 w-48 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 backdrop-blur border border-white/20 text-indigo-200 mb-2">
-            <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            Matching Engine Intelligence Management
-          </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Role &amp; Skill Intelligence</h1>
           <p className="text-sm text-indigo-200/80 max-w-xl">
             Maintain official job roles, search keywords &amp; synonyms, core skill requirements, and test matching accuracy live.
           </p>
+          {metrics?.lastUpdated && (
+            <p className="text-[11px] text-indigo-300/60 font-mono">
+              Last updated: {new Date(metrics.lastUpdated).toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-3 relative z-10">
@@ -68,6 +66,12 @@ export function RoleMatchingDashboard() {
           </Link>
         </div>
       </div>
+
+      {loadError && (
+        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+          <span className="font-semibold">⚠ {loadError}</span>
+        </div>
+      )}
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
