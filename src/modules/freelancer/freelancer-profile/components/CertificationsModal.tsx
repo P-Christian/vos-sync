@@ -5,6 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { uploadMediaAction } from "../services/freelancer-profile.actions";
@@ -26,6 +27,8 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
     
     const [isUploading, setIsUploading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { data, pendingCertifications, setCertificationsDraft } = useFreelancerProfileContext();
@@ -125,18 +128,23 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
         onClose();
     };
 
-    const handleDelete = () => {
+    const confirmDelete = () => {
         if (!certificationToEdit) return;
-        if (!confirm("Are you sure you want to delete this certification?")) return;
         
         const updatedList = certificationsList.filter(c => c.id !== certificationToEdit.id);
         setCertificationsDraft(updatedList);
+        setShowDeleteModal(false);
         onClose();
+    };
+
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
     };
 
     const previewUrl = imageUuid ? (imageUuid.startsWith("http") ? imageUuid : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${imageUuid}`) : "";
 
     return (
+        <>
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
@@ -251,17 +259,15 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                 </div>
                 
                 <div className="p-6 border-t shrink-0 flex items-center justify-between bg-muted/30">
-                    {certificationToEdit ? (
+                    {certificationToEdit && (
                         <Button 
                             type="button" 
-                            variant="ghost" 
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={handleDelete}
+                            variant="destructive" 
+                            className="mr-auto"
+                            onClick={handleDeleteClick}
                         >
-                            Delete Certification
+                            Delete
                         </Button>
-                    ) : (
-                        <div></div>
                     )}
                     
                     <div className="flex gap-2">
@@ -284,5 +290,25 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                 </div>
             </DialogContent>
         </Dialog>
+        <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Certification</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to delete this certification? This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={confirmDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+        </>
     );
 }

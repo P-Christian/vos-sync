@@ -4,10 +4,11 @@ import React, { useState } from "react";
 import { FileText, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProfessionalSummaryModal } from "./ProfessionalSummaryModal";
 
 export function ProfessionalSummaryCard() {
-    const { data, pendingProfessionalSummary } = useFreelancerProfileContext();
+    const { data, pendingProfessionalSummary, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     if (!data) return null;
@@ -38,6 +39,7 @@ export function ProfessionalSummaryCard() {
                     size="icon" 
                     className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary relative"
                     onClick={() => setIsModalOpen(true)}
+                    disabled={isAutofilling}
                 >
                     <Pencil className="h-4 w-4" />
                     {pendingProfessionalSummary !== null && (
@@ -47,9 +49,17 @@ export function ProfessionalSummaryCard() {
             </div>
             
             <div className="p-6">
-                <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
-                    {summary || 'No professional summary provided.'}
-                </p>
+                {isAutofilling ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-[90%]" />
+                        <Skeleton className="h-4 w-[80%]" />
+                    </div>
+                ) : (
+                    <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                        {summary || 'No professional summary provided.'}
+                    </p>
+                )}
             </div>
 
             <ProfessionalSummaryModal

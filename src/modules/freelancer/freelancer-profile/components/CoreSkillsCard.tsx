@@ -5,10 +5,11 @@ import { Zap, Plus } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CoreSkillsModal } from "./CoreSkillsModal";
 
 export function CoreSkillsCard() {
-    const { data, pendingSkills } = useFreelancerProfileContext();
+    const { data, pendingSkills, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     if (!data) return null;
@@ -40,6 +41,7 @@ export function CoreSkillsCard() {
                         size="icon" 
                         className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                         onClick={() => setIsModalOpen(true)}
+                        disabled={isAutofilling}
                     >
                         <Plus className="h-5 w-5" />
                     </Button>
@@ -48,7 +50,14 @@ export function CoreSkillsCard() {
             
             <div className="p-6">
                 <div className="flex flex-wrap gap-2">
-                    {skillsList.length ? (
+                    {isAutofilling ? (
+                        <>
+                            <Skeleton className="h-7 w-20 rounded-full" />
+                            <Skeleton className="h-7 w-24 rounded-full" />
+                            <Skeleton className="h-7 w-16 rounded-full" />
+                            <Skeleton className="h-7 w-32 rounded-full" />
+                        </>
+                    ) : skillsList.length ? (
                         skillsList.map((s, index) => (
                             <Badge key={s.skill?.id || index} variant="outline" className="px-3 py-1.5 text-xs font-medium border-primary text-primary bg-primary/5">
                                 {s.skill?.skill_name || 'Unknown Skill'}

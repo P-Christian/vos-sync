@@ -41,3 +41,36 @@ export async function deleteResumeAction(resumeId: number) {
         return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
 }
+
+export async function uploadAndAutofillResumeAction(userId: number, formData: FormData, fileName: string | null, currentProfileJson: string) {
+    try {
+        const isRestricted = await checkRestriction(userId, "UPLOAD_PROFILE_FILES");
+        if (isRestricted) {
+            throw new Error("Your profile file upload privileges are temporarily suspended.");
+        }
+
+        // 1. Upload the resume first
+        await uploadResumeService(userId, formData, fileName);
+        revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
+
+        // 2. Extract the file buffer for Gemini
+        const file = formData.get("file") as File;
+        if (!file) {
+            throw new Error("No file found in formData");
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // 3. Import parser service and parse
+        const { parseResumeWithGemini, mergeProfileDataWithGemini } = await import("@/lib/gemini/resumeParser");
+        const parsedData = await parseResumeWithGemini(buffer, file.type || 'application/pdf');
+
+        // 4. Merge with existing profile data
+        const mergedData = await mergeProfileDataWithGemini(parsedData, currentProfileJson);
+
+        return { success: true, parsedData: mergedData };
+    } catch (err: unknown) {
+        console.error("uploadAndAutofillResumeAction Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}

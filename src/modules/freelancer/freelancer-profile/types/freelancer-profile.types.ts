@@ -94,6 +94,7 @@ export interface VsEducation {
     school_course_id: number | null;
     start_date?: string | null;
     end_date?: string | null;
+    updated_at?: string;
     
     // Virtual fields joined from DB for UI rendering
     school_name?: string;

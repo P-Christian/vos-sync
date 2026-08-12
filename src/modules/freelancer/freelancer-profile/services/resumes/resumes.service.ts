@@ -59,6 +59,22 @@ export async function deleteResumeService(resumeId: number) {
     }
 
     const validated = deleteResumeSchema.parse({ id: resumeId });
+    
+    // 1. Fetch record to get file_url
+    const record = await repo.getResumeRecordById(validated.id, NEXT_PUBLIC_API_BASE_URL, DIRECTUS_STATIC_TOKEN);
+    const fileUrl = record?.file_url;
+    
+    // 2. Delete the database record
     await repo.deleteResumeRecord(validated.id, NEXT_PUBLIC_API_BASE_URL, DIRECTUS_STATIC_TOKEN);
+    
+    // 3. Delete the file from Directus
+    if (fileUrl) {
+        try {
+            await repo.deleteFileFromDirectus(fileUrl, NEXT_PUBLIC_API_BASE_URL, DIRECTUS_STATIC_TOKEN);
+        } catch (err) {
+            console.warn(`[deleteResumeService] Failed to delete Directus file ${fileUrl}:`, err);
+        }
+    }
+    
     return true;
 }

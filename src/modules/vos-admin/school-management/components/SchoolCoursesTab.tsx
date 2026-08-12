@@ -5,7 +5,13 @@ import React, { useState } from "react";
 import { Plus, MoreHorizontal } from "lucide-react";
 import { SchoolStatusBadge } from "./SchoolStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VsSchoolCourse } from "../types/school.types";
+import { CourseFormBuilder } from "@/components/courses/CourseFormBuilder";
 
 interface Props {
   schoolId: number;
@@ -22,12 +29,13 @@ interface Props {
 }
 
 export function SchoolCoursesTab({ courses, onAddCourse, onToggleStatus }: Props) {
-  const [isAdding, setIsAdding] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [newCourseName, setNewCourseName] = useState("");
   const [newCourseCode, setNewCourseCode] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSaveNew = async () => {
+  const handleSaveNew = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newCourseName.trim()) return;
     setLoading(true);
     const success = await onAddCourse({
@@ -38,7 +46,7 @@ export function SchoolCoursesTab({ courses, onAddCourse, onToggleStatus }: Props
     if (success) {
       setNewCourseName("");
       setNewCourseCode("");
-      setIsAdding(false);
+      setIsOpen(false);
     }
   };
 
@@ -46,11 +54,35 @@ export function SchoolCoursesTab({ courses, onAddCourse, onToggleStatus }: Props
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Offered Courses</h3>
-        {!isAdding && (
-          <Button size="sm" onClick={() => setIsAdding(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add Course
-          </Button>
-        )}
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm">
+              <Plus className="mr-2 h-4 w-4" /> Add Course
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Course</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSaveNew} className="space-y-4 pt-2">
+              <CourseFormBuilder
+                courseName={newCourseName}
+                courseCode={newCourseCode}
+                onChangeName={setNewCourseName}
+                onChangeCode={setNewCourseCode}
+                disabled={loading}
+              />
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading || !newCourseName.trim()}>
+                  {loading ? "Saving..." : "Save Course"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="rounded-md border bg-card">
@@ -64,41 +96,7 @@ export function SchoolCoursesTab({ courses, onAddCourse, onToggleStatus }: Props
             </tr>
           </thead>
           <tbody>
-            {isAdding && (
-              <tr className="border-b bg-muted/20">
-                <td className="p-2">
-                  <Input 
-                    placeholder="e.g. Bachelor of Science in Information Technology" 
-                    value={newCourseName}
-                    onChange={e => setNewCourseName(e.target.value)}
-                    disabled={loading}
-                  />
-                </td>
-                <td className="p-2">
-                  <Input 
-                    placeholder="e.g. BSIT" 
-                    value={newCourseCode}
-                    onChange={e => setNewCourseCode(e.target.value)}
-                    disabled={loading}
-                  />
-                </td>
-                <td className="p-2">
-                  <span className="text-xs text-muted-foreground">Active (Default)</span>
-                </td>
-                <td className="p-2 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} disabled={loading}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSaveNew} disabled={loading || !newCourseName.trim()}>
-                      {loading ? "Saving..." : "Save"}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            )}
-            
-            {courses.length === 0 && !isAdding ? (
+            {courses.length === 0 ? (
               <tr>
                 <td colSpan={4} className="p-8 text-center text-muted-foreground">
                   No courses added yet.

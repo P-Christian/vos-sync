@@ -7,12 +7,13 @@ import { faGithub, faLinkedin, faXTwitter } from '@fortawesome/free-brands-svg-i
 import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { uploadProfileImageAction } from "../services/freelancer-profile.actions";
 import { PersonalInfoModal } from "./PersonalInfoModal";
 import { useEffect } from "react";
 
 export function PersonalInfoCard() {
-    const { data, pendingPersonalInfo, pendingSocialLinks, refresh } = useFreelancerProfileContext();
+    const { data, pendingPersonalInfo, pendingSocialLinks, refresh, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [idProofScore, setIdProofScore] = useState<number | null>(null);
@@ -98,7 +99,7 @@ export function PersonalInfoCard() {
                         </div>
                     )}
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium relative" onClick={() => setIsModalOpen(true)}>
+                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium relative" onClick={() => setIsModalOpen(true)} disabled={isAutofilling}>
                     Edit
                     {pendingPersonalInfo && (
                         <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background"></span>
@@ -106,60 +107,77 @@ export function PersonalInfoCard() {
                 </Button>
             </div>
 
-            <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
-                {/* Left Column: Profile Picture */}
-                <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
-                    <div className="relative w-48 h-48 rounded-full overflow-hidden border-2 border-border shadow-sm group">
-                        {displayData.profile_image_url ? (
-                            /* eslint-disable @next/next/no-img-element */
-                            <img
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${displayData.profile_image_url}`}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
-                                <User className="h-16 w-16" />
+            {isAutofilling ? (
+                <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
+                    <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
+                        <Skeleton className="w-48 h-48 rounded-full" />
+                        <Skeleton className="w-full h-8" />
+                        <Skeleton className="w-full h-8 mt-1" />
+                    </div>
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 w-full">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="space-y-2">
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-5 w-40" />
                             </div>
-                        )}
-                        {isUploading && (
-                            <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                                <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></span>
-                            </div>
-                        )}
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
+                    {/* Left Column: Profile Picture */}
+                    <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
+                        <div className="relative w-48 h-48 rounded-full overflow-hidden border-2 border-border shadow-sm group">
+                            {displayData.profile_image_url ? (
+                                /* eslint-disable @next/next/no-img-element */
+                                <img
+                                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${displayData.profile_image_url}`}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
+                                    <User className="h-16 w-16" />
+                                </div>
+                            )}
+                            {isUploading && (
+                                <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                                    <span className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></span>
+                                </div>
+                            )}
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 text-xs h-8"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                        >
+                            <Camera className="h-3.5 w-3.5" />
+                            Change Photo
+                        </Button>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
+                        
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="w-full gap-2 text-xs h-8 mt-1"
+                            onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
+                            Verify Identity
+                        </Button>
                     </div>
 
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 text-xs h-8"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                    >
-                        <Camera className="h-3.5 w-3.5" />
-                        Change Photo
-                    </Button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                    />
-                    
-                    <Button
-                        variant="default"
-                        size="sm"
-                        className="w-full gap-2 text-xs h-8 mt-1"
-                        onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
-                        Verify Identity
-                    </Button>
-                </div>
-
-                {/* Right Column: Personal Info & Social Links */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 w-full">
+                    {/* Right Column: Personal Info & Social Links */}
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 w-full">
                     <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
                         <div className="flex items-center gap-2">
@@ -232,6 +250,7 @@ export function PersonalInfoCard() {
                     </div>
                 </div>
             </div>
+            )}
 
             <PersonalInfoModal
                 isOpen={isModalOpen}

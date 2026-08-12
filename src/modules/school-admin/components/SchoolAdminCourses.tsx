@@ -3,10 +3,9 @@ import { VsSchoolCourse } from "../types/school-admin.types";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CourseFormBuilder } from "@/components/courses/CourseFormBuilder";
 
 export function SchoolAdminCourses({
   courses,
@@ -54,34 +53,24 @@ export function SchoolAdminCourses({
           <DialogTrigger asChild>
             <Button>Add Course</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add New Course</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="courseName">Course Name</Label>
-                <Input 
-                  id="courseName" 
-                  value={courseName} 
-                  onChange={e => setCourseName(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="courseCode">Course Code (Optional)</Label>
-                <Input 
-                  id="courseCode" 
-                  value={courseCode} 
-                  onChange={e => setCourseCode(e.target.value)} 
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-4">
+            <form onSubmit={handleAdd} className="space-y-4 pt-2">
+              <CourseFormBuilder
+                courseName={courseName}
+                courseCode={courseCode}
+                onChangeName={setCourseName}
+                onChangeCode={setCourseCode}
+                disabled={saving}
+              />
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
                 <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={saving}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={saving}>
-                  Save Course
+                <Button type="submit" disabled={saving || !courseName.trim()}>
+                  {saving ? "Saving..." : "Save Course"}
                 </Button>
               </div>
             </form>

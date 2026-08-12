@@ -4,11 +4,12 @@ import React, { useState } from "react";
 import { GraduationCap, Plus, Pencil } from "lucide-react";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EducationModal } from "./EducationModal";
 import { VsEducation } from "../types/freelancer-profile.types";
 
 export function EducationalBackgroundCard() {
-    const { data: profile, pendingEducation } = useFreelancerProfileContext();
+    const { data: profile, pendingEducation, isAutofilling } = useFreelancerProfileContext();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEducation, setEditingEducation] = useState<VsEducation | null>(null);
 
@@ -51,6 +52,7 @@ export function EducationalBackgroundCard() {
                         size="icon" 
                         className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
                         onClick={handleAddClick}
+                        disabled={isAutofilling}
                     >
                         <Plus className="h-5 w-5" />
                     </Button>
@@ -58,7 +60,18 @@ export function EducationalBackgroundCard() {
             </div>
 
             <div className="space-y-4">
-                {educationList.map((edu) => (
+                {isAutofilling ? (
+                    Array.from({ length: 2 }).map((_, i) => (
+                        <div key={i} className="flex gap-4">
+                            <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                            <div className="space-y-2 flex-1">
+                                <Skeleton className="h-5 w-[40%]" />
+                                <Skeleton className="h-4 w-[30%]" />
+                                <Skeleton className="h-3 w-[20%]" />
+                            </div>
+                        </div>
+                    ))
+                ) : educationList.map((edu) => (
                     <div key={edu.id} className="flex gap-4">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
                             <GraduationCap className="h-5 w-5 text-primary" />

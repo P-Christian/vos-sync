@@ -2,6 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { generateProfessionalSummaryWithGemini } from "@/lib/gemini/resumeParser";
 
 export async function updateProfessionalSummaryAction(summary: string, profileId?: number, userId?: number) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -62,6 +63,21 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
     return { success: true };
 }
 
+export async function generateProfessionalSummaryAction(profileJson: string) {
+    try {
+        const summary = await generateProfessionalSummaryWithGemini(profileJson);
+        
+        if (!summary) {
+            return { success: false, error: "Failed to generate professional summary" };
+        }
+        
+        return { success: true, summary };
+    } catch (err: unknown) {
+        console.error("generateProfessionalSummaryAction Error:", err);
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
 export async function searchMasterSkillsAction(query: string) {
     if (!query || query.length < 2) return [];
 
@@ -86,6 +102,33 @@ export async function searchMasterSkillsAction(query: string) {
 
     const data = await res.json();
     return data.data || [];
+}
+
+export async function resolveSkillsAction(skillNames: string[]) {
+    if (!skillNames || skillNames.length === 0) return [];
+    
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const namesParam = skillNames.map(n => encodeURIComponent(n)).join(',');
+    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills?filter[skill_name][_in]=${namesParam}`;
+    
+    const res = await fetch(url, {
+        headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+        cache: "no-store"
+    });
+
+    if (!res.ok) {
+        console.error("Failed to resolve skills", await res.text());
+        return [];
+    }
+
+    const json = await res.json();
+    return json.data || [];
 }
 
 export async function saveUserSkillsAction(userId: number, initialSkillIds: number[], newSkillIds: number[]) {
