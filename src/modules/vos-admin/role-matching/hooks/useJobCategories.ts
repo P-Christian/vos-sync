@@ -59,7 +59,10 @@ export function useJobCategories() {
 
   useEffect(() => {
     let isMounted = true;
-    loadCategories().finally(() => { if (!isMounted) return; });
+    void (async () => {
+      await loadCategories();
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
   }, [loadCategories]);
 

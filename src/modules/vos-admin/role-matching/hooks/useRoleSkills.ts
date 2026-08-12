@@ -64,7 +64,10 @@ export function useRoleSkills(roleId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    loadSkills(roleId).finally(() => { if (!isMounted) return; });
+    void (async () => {
+      await loadSkills(roleId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
   }, [loadSkills, roleId]);
 

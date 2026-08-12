@@ -59,7 +59,10 @@ export function useStandardRoles(categoryId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    loadRoles(categoryId).finally(() => { if (!isMounted) return; });
+    void (async () => {
+      await loadRoles(categoryId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
   }, [loadRoles, categoryId]);
 

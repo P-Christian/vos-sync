@@ -59,7 +59,10 @@ export function useSearchKeywords(roleId?: number) {
 
   useEffect(() => {
     let isMounted = true;
-    loadKeywords(roleId).finally(() => { if (!isMounted) return; });
+    void (async () => {
+      await loadKeywords(roleId);
+      if (!isMounted) return;
+    })();
     return () => { isMounted = false; };
   }, [loadKeywords, roleId]);
 
