@@ -87,8 +87,8 @@ export default function HowItWorksModule({
       {/* 4. Six-Step Interactive Roadmap (Role Specific) */}
       <RoadmapSection guide={currentGuide} />
 
-      {/* 5. Role-Specific Final CTA Banner */}
-      <FinalCTA guide={currentGuide} />
+      {/* 5. Role-Specific Final CTA Banner (Public only) */}
+      {!singleRoleMode && <FinalCTA guide={currentGuide} />}
 
       {/* 6. Frequently Asked Questions */}
       <FAQSection activeRole={activeRole} />

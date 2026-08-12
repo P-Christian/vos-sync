@@ -10,3 +10,4 @@ export * from "./FinalCTA";
 export * from "./FAQSection";
 export * from "./RoleSwitcherCards";
 export * from "./NeedHelpSection";
+export * from "./RoleMismatchModal";

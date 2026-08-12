@@ -2,18 +2,30 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { User, Building2, GraduationCap, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSmartRoleNavigation, TargetedRole } from "../hooks/useSmartRoleNavigation";
+import { RoleMismatchModal } from "./RoleMismatchModal";
 
 export function RoleSwitcherCards() {
-  const roles = [
+  const { navigateSmart, loading, mismatchState, closeModal, confirmSignOut } = useSmartRoleNavigation();
+
+  const roles: Array<{
+    title: string;
+    desc: string;
+    icon: React.ReactNode;
+    cta: string;
+    route: string;
+    targetRole: TargetedRole;
+    colorClass: string;
+  }> = [
     {
       title: "Employee / Job Seeker",
       desc: "Find verified job listings, build your profile, and apply with instant tracking.",
       icon: <User className="h-6 w-6 text-blue-600 dark:text-blue-400" />,
       cta: "Create Employee Account",
       route: "/signup?role=employee",
+      targetRole: "employee",
       colorClass: "border-blue-200 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900",
     },
     {
@@ -22,6 +34,7 @@ export function RoleSwitcherCards() {
       icon: <Building2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />,
       cta: "Register Your Company",
       route: "/signup?role=employer",
+      targetRole: "employer",
       colorClass: "border-emerald-200 bg-emerald-50/30 dark:bg-emerald-950/20 dark:border-emerald-900",
     },
     {
@@ -30,6 +43,7 @@ export function RoleSwitcherCards() {
       icon: <GraduationCap className="h-6 w-6 text-amber-600 dark:text-amber-400" />,
       cta: "Register Your School",
       route: "/school-register",
+      targetRole: "school",
       colorClass: "border-amber-200 bg-amber-50/30 dark:bg-amber-950/20 dark:border-amber-900",
     },
   ];
@@ -59,15 +73,25 @@ export function RoleSwitcherCards() {
               <p className="text-xs text-muted-foreground leading-relaxed">{r.desc}</p>
             </div>
 
-            <Button asChild size="sm" className="font-bold text-xs gap-1.5 w-full">
-              <Link href={r.route}>
-                {r.cta}
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
+            <Button
+              size="sm"
+              disabled={loading}
+              onClick={() => navigateSmart(r.route, r.targetRole)}
+              className="font-bold text-xs gap-1.5 w-full cursor-pointer"
+            >
+              {r.cta}
+              <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         ))}
       </div>
+
+      <RoleMismatchModal
+        state={mismatchState}
+        onClose={closeModal}
+        onConfirmSignOut={confirmSignOut}
+        loading={loading}
+      />
     </div>
   );
 }
