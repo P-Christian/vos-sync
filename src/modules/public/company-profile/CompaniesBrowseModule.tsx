@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, MapPin, SlidersHorizontal, Loader2, Check, Building2,  Briefcase, DollarSign, MessageSquare } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { Search, MapPin, SlidersHorizontal, Loader2, Check, Building2, Briefcase, DollarSign, MessageSquare } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PublicCompanyProfile, TrustedCompany } from "./types";
 import { TrustedEmployersMarquee } from "./components/TrustedEmployersMarquee";
 import { CompanyBrowseCard } from "./components/CompanyBrowseCard";
+import { CompanyBrowseSkeleton } from "./components/CompanyBrowseSkeleton";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -39,9 +42,31 @@ export default function CompaniesBrowseModule({
   const limit = 10;
   const totalPages = Math.ceil(total / limit);
 
-  // Trigger AJAX data fetching
+  // Industry & Size options formatted for SearchableSelect
+  const industryOptions = useMemo(() => {
+    return [
+      { value: "ALL", label: "All Industries" },
+      ...industries.map((ind) => ({
+        value: String(ind.industry_id),
+        label: ind.industry_name,
+      })),
+    ];
+  }, [industries]);
+
+  const sizeOptions = useMemo(() => {
+    return [
+      { value: "ALL", label: "All Sizes" },
+      ...sizes.map((s) => ({
+        value: String(s.company_size_id),
+        label: s.company_size_name,
+      })),
+    ];
+  }, [sizes]);
+
+  // Trigger AJAX data fetching with minimum 250ms threshold for smooth shimmer
   const fetchCompanies = async () => {
     setIsLoading(true);
+    const startTime = Date.now();
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append("search", search.trim());
@@ -55,6 +80,12 @@ export default function CompaniesBrowseModule({
       const res = await fetch(`/api/public/companies?${params.toString()}`);
       if (res.ok) {
         const json = await res.json();
+        
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 250) {
+          await new Promise((r) => setTimeout(r, 250 - elapsed));
+        }
+
         setCompanies(json.companies || []);
         setTotal(json.total || 0);
       }
@@ -65,23 +96,23 @@ export default function CompaniesBrowseModule({
     }
   };
 
-  // Run filters with delay or on trigger
-  useEffect(() => {
-    // Only skip fetching on first render if values are default
-    const isDefault =
-      search === "" &&
-      location === "" &&
-      industry === "ALL" &&
-      size === "ALL" &&
-      !activeJobsOnly &&
-      page === 1;
+  // Real-time debounced search & filter trigger
+  const isInitialMount = useRef(true);
 
-    if (!isDefault) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchCompanies();
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
+
+    const timer = setTimeout(() => {
+      fetchCompanies();
+    }, 300);
+
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [industry, size, activeJobsOnly, page]);
+  }, [search, location, industry, size, activeJobsOnly, page]);
+
 
   // Handle manual submit search triggers
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -97,9 +128,8 @@ export default function CompaniesBrowseModule({
     setSize("ALL");
     setActiveJobsOnly(false);
     setPage(1);
-    setCompanies(initialCompanies);
-    setTotal(initialTotal);
   };
+
 
   return (
     <div className="w-full pb-20 font-sans">
@@ -272,55 +302,45 @@ export default function CompaniesBrowseModule({
                 </div>
               </div>
 
-              {/* Industry Select */}
+              {/* Industry Searchable Dropdown */}
               <div>
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-2">
                   Industry
                 </label>
-                <select
+                <SearchableSelect
+                  options={industryOptions}
                   value={industry}
-                  onChange={(e) => {
-                    setIndustry(e.target.value);
+                  onValueChange={(val) => {
+                    setIndustry(val);
                     setPage(1);
                   }}
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                >
-                  <option value="ALL">All Industries</option>
-                  {industries.map((ind) => (
-                    <option key={ind.industry_id} value={ind.industry_id}>
-                      {ind.industry_name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Search industry..."
+                  className="h-10 rounded-xl text-xs font-medium"
+                />
               </div>
 
-              {/* Size Select */}
+              {/* Size Searchable Dropdown */}
               <div>
                 <label className="text-xs font-bold text-foreground uppercase tracking-wider block mb-2">
                   Company Size
                 </label>
-                <select
+                <SearchableSelect
+                  options={sizeOptions}
                   value={size}
-                  onChange={(e) => {
-                    setSize(e.target.value);
+                  onValueChange={(val) => {
+                    setSize(val);
                     setPage(1);
                   }}
-                  className="w-full h-10 rounded-xl border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                >
-                  <option value="ALL">All Sizes</option>
-                  {sizes.map((s) => (
-                    <option key={s.company_size_id} value={s.company_size_id}>
-                      {s.company_size_name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Search company size..."
+                  className="h-10 rounded-xl text-xs font-medium"
+                />
               </div>
 
               {/* Active Jobs Only checkbox */}
               <div className="pt-2 border-t border-border flex items-center justify-between">
                 <label
                   htmlFor="activeJobsFilter"
-                  className="text-xs font-bold text-foreground uppercase tracking-wider cursor-pointer"
+                  className="text-xs font-bold text-foreground uppercase tracking-wider cursor-pointer select-none"
                 >
                   Has Active Jobs Only
                 </label>
@@ -331,7 +351,7 @@ export default function CompaniesBrowseModule({
                     setActiveJobsOnly(!activeJobsOnly);
                     setPage(1);
                   }}
-                  className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                  className={`w-5 h-5 rounded border flex items-center justify-center transition-all cursor-pointer ${
                     activeJobsOnly
                       ? "bg-primary border-primary text-primary-foreground"
                       : "border-input hover:border-zinc-400 bg-background"
@@ -341,74 +361,98 @@ export default function CompaniesBrowseModule({
                 </button>
               </div>
 
-              <Button type="submit" className="w-full h-10 rounded-xl font-medium shadow-sm cursor-pointer">
-                Apply Search
+              <Button type="submit" disabled={isLoading} className="w-full h-10 rounded-xl font-medium shadow-sm cursor-pointer gap-2">
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                {isLoading ? "Searching..." : "Apply Search"}
               </Button>
             </form>
           </div>
 
           {/* Results List */}
           <div className="lg:col-span-3 flex flex-col gap-6">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-4">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                <span className="text-sm font-medium text-muted-foreground animate-pulse">
-                  Querying verified employers...
-                </span>
-              </div>
-            ) : companies.length === 0 ? (
-              <div className="flex flex-col items-center justify-center border border-dashed rounded-3xl py-20 px-4 bg-muted/10 text-center">
-                <SlidersHorizontal className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-                <h3 className="text-lg font-bold text-foreground mb-1">No employers found</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  We couldn&apos;t find any companies matching your filter criteria. Try adjusting your settings.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={handleResetFilters}
-                  className="mt-6 rounded-xl font-semibold cursor-pointer"
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key="loading-skeletons"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col gap-6"
                 >
-                  Reset all filters
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Company Browse Cards */}
-                <div className="flex flex-col gap-6">
-                  {companies.map((c) => (
-                    <CompanyBrowseCard key={c.company_id} company={c} />
+                  {[1, 2, 3, 4].map((i) => (
+                    <CompanyBrowseSkeleton key={i} />
                   ))}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between border-t border-border pt-6 mt-4">
-                    <Button
-                      variant="outline"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                      className="rounded-xl font-medium cursor-pointer"
-                    >
-                      Previous
-                    </Button>
-                    <span className="text-sm font-semibold text-muted-foreground">
-                      Page {page} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      disabled={page === totalPages}
-                      onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                      className="rounded-xl font-medium cursor-pointer"
-                    >
-                      Next
-                    </Button>
+                </motion.div>
+              ) : companies.length === 0 ? (
+                <motion.div
+                  key="empty-companies"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex flex-col items-center justify-center border border-dashed rounded-3xl py-20 px-4 bg-muted/10 text-center"
+                >
+                  <SlidersHorizontal className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
+                  <h3 className="text-lg font-bold text-foreground mb-1">No employers found</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    We couldn&apos;t find any companies matching your filter criteria. Try adjusting your settings.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={handleResetFilters}
+                    className="mt-6 rounded-xl font-semibold cursor-pointer"
+                  >
+                    Reset all filters
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={`companies-grid-${search}-${location}-${industry}-${size}-${page}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex flex-col gap-6"
+                >
+                  {/* Company Browse Cards */}
+                  <div className="flex flex-col gap-6">
+                    {companies.map((c, idx) => (
+                      <CompanyBrowseCard key={c.company_id} company={c} index={idx} />
+                    ))}
                   </div>
-                )}
-              </>
-            )}
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-border pt-6 mt-4">
+                      <Button
+                        variant="outline"
+                        disabled={page === 1 || isLoading}
+                        onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                        className="rounded-xl font-medium cursor-pointer"
+                      >
+                        Previous
+                      </Button>
+                      <span className="text-sm font-semibold text-muted-foreground">
+                        Page {page} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        disabled={page === totalPages || isLoading}
+                        onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                        className="rounded-xl font-medium cursor-pointer"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
     </div>
   );
 }
+

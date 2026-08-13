@@ -8,7 +8,7 @@ import { CompanyTabNav } from "./components/CompanyTabNav";
 import { AboutTab } from "./components/tabs/AboutTab";
 import { LifeAndCultureTab } from "./components/tabs/LifeAndCultureTab";
 import { JobsTab } from "./components/tabs/JobsTab";
-import { SalariesTab } from "./components/tabs/SalariesTab";
+// import { SalariesTab } from "./components/tabs/SalariesTab";
 import { ReviewsTab } from "./components/tabs/ReviewsTab";
 
 interface ProfileModuleProps {
@@ -25,7 +25,7 @@ export default function CompanyProfileModule({ company }: ProfileModuleProps) {
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam && ["about", "life", "jobs", "salaries", "reviews"].includes(tabParam)) {
+    if (tabParam && ["about", "life", "jobs",   "reviews"].includes(tabParam)) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab(tabParam);
     }
@@ -60,7 +60,7 @@ export default function CompanyProfileModule({ company }: ProfileModuleProps) {
         {activeTab === "jobs" && (
           <JobsTab company={company} onArrangementsChange={setWorkArrangements} />
         )}
-        {activeTab === "salaries" && <SalariesTab />}
+        {/* {activeTab === "salaries" && <SalariesTab />} */}
         {activeTab === "reviews" && <ReviewsTab company={company} />}
       </div>
     </div>
