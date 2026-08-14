@@ -1,5 +1,6 @@
+import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ShieldCheck } from "lucide-react";
 import { TrustedCompany } from "../types";
 
 interface MarqueeProps {
@@ -14,6 +15,37 @@ function getInitials(name: string): string {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function CompanyLogoWithFallback({
+  logoUrl,
+  companyName,
+}: {
+  logoUrl?: string | null;
+  companyName: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+
+  if (!logoUrl || imgError) {
+    return (
+      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-muted text-primary flex items-center justify-center font-bold text-sm border border-primary/20 shrink-0 select-none group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
+        {getInitials(companyName)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center overflow-hidden border border-border shrink-0 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={logoUrl}
+        alt={companyName}
+        onError={() => setImgError(true)}
+        className="object-cover w-full h-full"
+        loading="lazy"
+      />
+    </div>
+  );
 }
 
 export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
@@ -32,8 +64,8 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
   const row2 = [...repeatedCompanies].reverse();
 
   return (
-    <div className="w-full overflow-hidden py-10 bg-muted/10 border-y border-border">
-      <div className="max-w-7xl mx-auto px-4 text-center mb-8">
+    <div className="w-full overflow-hidden py-6 bg-muted/10 border-y border-border">
+      <div className="max-w-7xl mx-auto px-4 text-center mb-6">
         <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
           Companies Hiring Through VOS Sync
         </h2>
@@ -43,48 +75,29 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
       </div>
 
       {/* Marquee viewport container */}
-      <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex flex-col gap-6 overflow-hidden">
+      <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex flex-col gap-1 py-1 overflow-x-clip">
         {/* Left & Right gradient edge fades */}
-        <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-        <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 left-0 w-16 md:w-32 bg-gradient-to-r from-background to-transparent z-20 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-16 md:w-32 bg-gradient-to-l from-background to-transparent z-20 pointer-events-none" />
 
         {/* Row 1: Scrolling LTR */}
-        <div className="company-marquee-row flex w-max gap-6 overflow-hidden">
-          <div className="company-marquee-track flex gap-6 animate-marquee-ltr focus-within:[animation-play-state:paused] hover:[animation-play-state:paused]">
+        <div className="company-marquee-row flex w-max py-0.5 overflow-visible">
+          <div className="company-marquee-track flex gap-4 py-1 px-2 animate-marquee-ltr focus-within:[animation-play-state:paused] hover:[animation-play-state:paused]">
             {row1.map((company, index) => (
               <Link
                 key={`row1-${company.companyId}-${index}`}
                 href={`/companies/${company.companyCode}`}
-                className="company-marquee-item flex items-center gap-3.5 bg-card border border-border rounded-2xl py-3 px-5 shadow-sm hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-64 select-none shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary"
+                className="company-marquee-item relative z-0 hover:z-30 flex items-center gap-3.5 bg-card border border-border/80 rounded-2xl py-3 px-5 shadow-xs hover:shadow-xl hover:border-primary/50 hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 w-64 select-none shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center text-lg font-bold overflow-hidden border border-border shrink-0 transition-all duration-300">
-                  {company.companyLogo ? (
-                    <Image
-                      src={company.companyLogo}
-                      alt={company.companyName}
-                      width={48}
-                      height={48}
-                      className="object-cover w-full h-full"
-                      loading="lazy"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-zinc-500 dark:text-zinc-400 font-bold tracking-wider">
-                      {getInitials(company.companyName)}
-                    </span>
-                  )}
-                </div>
+                <CompanyLogoWithFallback logoUrl={company.companyLogo} companyName={company.companyName} />
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
                       {company.companyName}
                     </span>
                     {company.verified && (
-                      <span
-                        className="text-xs text-blue-500 font-bold flex items-center justify-center shrink-0 cursor-default"
-                        title="Verified Employer"
-                      >
-                        ✓
+                      <span title="Verified Employer" className="inline-flex shrink-0">
+                        <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
                       </span>
                     )}
                   </div>
@@ -101,42 +114,23 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
         </div>
 
         {/* Row 2: Scrolling RTL */}
-        <div className="company-marquee-row flex w-max gap-6 overflow-hidden">
-          <div className="company-marquee-track flex gap-6 animate-marquee-rtl focus-within:[animation-play-state:paused] hover:[animation-play-state:paused]">
+        <div className="company-marquee-row flex w-max py-0.5 overflow-visible">
+          <div className="company-marquee-track flex gap-4 py-1 px-2 animate-marquee-rtl focus-within:[animation-play-state:paused] hover:[animation-play-state:paused]">
             {row2.map((company, index) => (
               <Link
                 key={`row2-${company.companyId}-${index}`}
                 href={`/companies/${company.companyCode}`}
-                className="company-marquee-item flex items-center gap-3.5 bg-card border border-border rounded-2xl py-3 px-5 shadow-sm hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 w-64 select-none shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary"
+                className="company-marquee-item relative z-0 hover:z-30 flex items-center gap-3.5 bg-card border border-border/80 rounded-2xl py-3 px-5 shadow-xs hover:shadow-xl hover:border-primary/50 hover:scale-[1.03] active:scale-[0.98] transition-all duration-300 w-64 select-none shrink-0 group focus:outline-none focus:ring-2 focus:ring-primary/50"
               >
-                <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center text-lg font-bold overflow-hidden border border-border shrink-0 transition-all duration-300">
-                  {company.companyLogo ? (
-                    <Image
-                      src={company.companyLogo}
-                      alt={company.companyName}
-                      width={48}
-                      height={48}
-                      className="object-cover w-full h-full"
-                      loading="lazy"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="text-zinc-500 dark:text-zinc-400 font-bold tracking-wider">
-                      {getInitials(company.companyName)}
-                    </span>
-                  )}
-                </div>
+                <CompanyLogoWithFallback logoUrl={company.companyLogo} companyName={company.companyName} />
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
                       {company.companyName}
                     </span>
                     {company.verified && (
-                      <span
-                        className="text-xs text-blue-500 font-bold flex items-center justify-center shrink-0 cursor-default"
-                        title="Verified Employer"
-                      >
-                        ✓
+                      <span title="Verified Employer" className="inline-flex shrink-0">
+                        <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
                       </span>
                     )}
                   </div>
@@ -152,6 +146,9 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
           </div>
         </div>
       </div>
+
+
     </div>
   );
 }
+

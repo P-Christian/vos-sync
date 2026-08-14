@@ -5,8 +5,11 @@ import { PublicCompanyProfile } from "../types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { motion } from "framer-motion";
+
 interface BrowseCardProps {
   company: PublicCompanyProfile;
+  index?: number;
 }
 
 function getInitials(name: string): string {
@@ -19,7 +22,7 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-export function CompanyBrowseCard({ company }: BrowseCardProps) {
+export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
   const {
     company_name,
     company_code,
@@ -35,7 +38,15 @@ export function CompanyBrowseCard({ company }: BrowseCardProps) {
   const verified = verification_status === "VERIFIED";
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col md:flex-row gap-6 items-start">
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4), ease: [0.21, 0.45, 0.27, 0.9] }}
+      whileHover={{ y: -3, transition: { duration: 0.2 } }}
+      className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/40 transition-shadow duration-300 flex flex-col md:flex-row gap-6 items-start"
+    >
+
       {/* Brand logo container */}
       <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden relative">
         {company_logo ? (
@@ -121,6 +132,7 @@ export function CompanyBrowseCard({ company }: BrowseCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+

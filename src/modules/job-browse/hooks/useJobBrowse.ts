@@ -26,10 +26,17 @@ export function useJobBrowse() {
   const fetchJobs = useCallback(async () => {
     setLoading(true);
     setError("");
+    const startTime = Date.now();
     try {
       const res = await fetch("/api/freelancer/jobs");
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load jobs.");
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 250) {
+        await new Promise((r) => setTimeout(r, 250 - elapsed));
+      }
+
       setAllJobs(json.jobs ?? []);
 
       const appsRes = await fetch("/api/freelancer/applications");
@@ -47,6 +54,7 @@ export function useJobBrowse() {
       setLoading(false);
     }
   }, []);
+
 
   // Client-side filtered jobs
   const jobs = useMemo(() => {

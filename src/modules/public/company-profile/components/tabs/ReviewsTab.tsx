@@ -1,9 +1,8 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { MessageSquare, Star, Plus, CheckCircle, XCircle, X, Loader2, Flag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +18,11 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const limit = 5;
+
 
   // Form State
   const [overallRating, setOverallRating] = useState<number>(0);
@@ -335,12 +339,17 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
       {/* 2. Controls / Actions */}
       <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
         <div>
-          <h3 className="text-lg font-bold text-foreground">Employee Insight Reviews</h3>
-          <p className="text-xs text-muted-foreground">Showing verified employee submissions</p>
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-lg font-bold text-foreground">Employee Insight Reviews</h3>
+            <Badge variant="secondary" className="px-2.5 py-0.5 text-xs font-bold rounded-lg bg-primary/10 text-primary border border-primary/20">
+              {totalReviews} {totalReviews === 1 ? "Review" : "Reviews"}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">Showing verified employee submissions</p>
         </div>
         <Button
           onClick={() => setIsWriteModalOpen(true)}
-          className="rounded-xl font-bold text-sm bg-primary hover:bg-primary/95 text-primary-foreground flex items-center gap-2 cursor-pointer shadow-sm"
+          className="rounded-xl font-bold text-sm bg-primary hover:bg-primary/95 text-primary-foreground flex items-center gap-2 cursor-pointer shadow-xs"
         >
           <Plus className="w-4 h-4" />
           Write a Review
@@ -372,109 +381,141 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
             </Button>
           </div>
         ) : (
-          reviews.map((rev) => {
-            const reviewerRole = rev.is_anonymous ? "Anonymous Employee" : (rev.job_title || "Employee");
-            const statusLabel = rev.employment_status === "CURRENT_EMPLOYEE" ? "Current Employee" : "Former Employee";
-            return (
-              <div
-                key={rev.review_id}
-                className="bg-card border border-border rounded-3xl p-6 space-y-5 shadow-sm hover:border-border/80 transition-all"
-              >
-                {/* Header info */}
-                <div className="flex items-start justify-between gap-4 flex-wrap border-b border-border/40 pb-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-lg text-xs">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        {Number(rev.overall_rating || 0).toFixed(1)}
+          <>
+            <div className="space-y-6">
+              {reviews.slice((page - 1) * limit, page * limit).map((rev) => {
+                const reviewerRole = rev.is_anonymous ? "Anonymous Employee" : (rev.job_title || "Employee");
+                const statusLabel = rev.employment_status === "CURRENT_EMPLOYEE" ? "Current Employee" : "Former Employee";
+                return (
+                  <div
+                    key={rev.review_id}
+                    className="bg-card border border-border rounded-3xl p-6 space-y-5 shadow-xs hover:border-border/80 transition-all"
+                  >
+                    {/* Header info */}
+                    <div className="flex items-start justify-between gap-4 flex-wrap border-b border-border/40 pb-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-lg text-xs">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            {Number(rev.overall_rating || 0).toFixed(1)}
+                          </div>
+                          {rev.review_title && (
+                            <h4 className="font-bold text-foreground text-base">&ldquo;{rev.review_title}&rdquo;</h4>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground block">
+                          {reviewerRole} &bull; {statusLabel}
+                        </span>
                       </div>
-                      {rev.review_title && (
-                        <h4 className="font-bold text-foreground text-base">&ldquo;{rev.review_title}&rdquo;</h4>
-                      )}
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {new Date(rev.created_at).toLocaleDateString()}
+                        </span>
+                        <button
+                          onClick={() => handleFlagClick(rev.review_id)}
+                          className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10 cursor-pointer"
+                          title="Report Review"
+                        >
+                          <Flag className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground block">
-                      {reviewerRole} &bull; {statusLabel}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {new Date(rev.created_at).toLocaleDateString()}
-                    </span>
-                    <button
-                      onClick={() => handleFlagClick(rev.review_id)}
-                      className="text-muted-foreground hover:text-rose-500 transition-colors p-1.5 rounded-lg hover:bg-rose-500/10 cursor-pointer"
-                      title="Report Review"
-                    >
-                      <Flag className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                    {/* Sub-ratings details */}
+                    {(rev.work_life_balance_rating || rev.compensation_rating || rev.management_rating || rev.career_growth_rating) && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-2xl text-xs border border-border/40">
+                        {rev.work_life_balance_rating && (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Work-Life</span>
+                            {renderSubStars(rev.work_life_balance_rating)}
+                          </div>
+                        )}
+                        {rev.compensation_rating && (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Compensation</span>
+                            {renderSubStars(rev.compensation_rating)}
+                          </div>
+                        )}
+                        {rev.management_rating && (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Management</span>
+                            {renderSubStars(rev.management_rating)}
+                          </div>
+                        )}
+                        {rev.career_growth_rating && (
+                          <div className="space-y-1">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Growth</span>
+                            {renderSubStars(rev.career_growth_rating)}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                {/* Sub-ratings details */}
-                {(rev.work_life_balance_rating || rev.compensation_rating || rev.management_rating || rev.career_growth_rating) && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-muted/20 p-4 rounded-2xl text-xs border border-border/40">
-                    {rev.work_life_balance_rating && (
-                      <div className="space-y-1">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Work-Life</span>
-                        {renderSubStars(rev.work_life_balance_rating)}
-                      </div>
-                    )}
-                    {rev.compensation_rating && (
-                      <div className="space-y-1">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Compensation</span>
-                        {renderSubStars(rev.compensation_rating)}
-                      </div>
-                    )}
-                    {rev.management_rating && (
-                      <div className="space-y-1">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Management</span>
-                        {renderSubStars(rev.management_rating)}
-                      </div>
-                    )}
-                    {rev.career_growth_rating && (
-                      <div className="space-y-1">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Growth</span>
-                        {renderSubStars(rev.career_growth_rating)}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    {/* Review descriptions */}
+                    <div className="space-y-3.5">
+                      {rev.review_text && (
+                        <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
+                          {rev.review_text}
+                        </p>
+                      )}
 
-                {/* Review descriptions */}
-                <div className="space-y-3.5">
-                  {rev.review_text && (
-                    <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
-                      {rev.review_text}
-                    </p>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4 text-xs leading-relaxed">
-                    {rev.pros && (
-                      <div className="flex items-start gap-2 bg-emerald-50/20 dark:bg-emerald-950/10 p-3 rounded-xl border border-emerald-500/10">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-foreground">Pros:</span>{" "}
-                          <span className="text-muted-foreground block mt-0.5">{rev.pros}</span>
-                        </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-border/40 pt-4 text-xs leading-relaxed">
+                        {rev.pros && (
+                          <div className="flex items-start gap-2 bg-emerald-50/20 dark:bg-emerald-950/10 p-3 rounded-xl border border-emerald-500/10">
+                            <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold text-foreground">Pros:</span>{" "}
+                              <span className="text-muted-foreground block mt-0.5">{rev.pros}</span>
+                            </div>
+                          </div>
+                        )}
+                        {rev.cons && (
+                          <div className="flex items-start gap-2 bg-rose-50/20 dark:bg-rose-950/10 p-3 rounded-xl border border-rose-500/10">
+                            <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold text-foreground">Cons:</span>{" "}
+                              <span className="text-muted-foreground block mt-0.5">{rev.cons}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {rev.cons && (
-                      <div className="flex items-start gap-2 bg-rose-50/20 dark:bg-rose-950/10 p-3 rounded-xl border border-rose-500/10">
-                        <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-foreground">Cons:</span>{" "}
-                          <span className="text-muted-foreground block mt-0.5">{rev.cons}</span>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
+                );
+              })}
+            </div>
+
+            {/* Reviews Pagination Controls */}
+            {Math.ceil(reviews.length / limit) > 1 && (
+              <div className="flex items-center justify-between border-t border-border pt-6 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                  className="rounded-xl font-medium cursor-pointer"
+                >
+                  Previous
+                </Button>
+                <span className="text-sm font-semibold text-muted-foreground">
+                  Page {page} of {Math.ceil(reviews.length / limit)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === Math.ceil(reviews.length / limit)}
+                  onClick={() => setPage((p) => Math.min(p + 1, Math.ceil(reviews.length / limit)))}
+                  className="rounded-xl font-medium cursor-pointer"
+                >
+                  Next
+                </Button>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
+
 
       {/* 4. Write a Review Modal */}
       <Dialog open={isWriteModalOpen} onOpenChange={(open) => !open && setIsWriteModalOpen(false)}>

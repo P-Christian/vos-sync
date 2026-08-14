@@ -27,13 +27,20 @@ export function useSearchKeywords(roleId?: number) {
   const addKeyword = useCallback(async (payload: Partial<SearchKeyword>) => {
     try {
       const created = await createSearchKeyword(payload);
-      setKeywords((prev) => [...prev, created]);
+      setKeywords((prev) => {
+        const exists = prev.some((k) => k.alias_id === created.alias_id);
+        if (exists) {
+          return prev.map((k) => (k.alias_id === created.alias_id ? { ...k, ...created } : k));
+        }
+        return [...prev, created];
+      });
       return true;
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to add search keyword.");
       return false;
     }
   }, []);
+
 
   const editKeyword = useCallback(async (payload: Partial<SearchKeyword>) => {
     try {

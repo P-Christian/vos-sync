@@ -7,16 +7,20 @@ import {
   JobHeroBanner,
   JobFilterSidebar,
   PublicJobCard,
+  PublicJobSkeleton,
   PublicJobDetailModal,
   GuestAuthModal,
 } from "./components";
+
 import { PublicJobPosting } from "./types";
 import { Briefcase, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function FindJobsModule() {
+
   const router = useRouter();
   const session = useAuthSession();
 
@@ -44,6 +48,7 @@ export default function FindJobsModule() {
     const fetchJobs = async () => {
       setLoading(true);
       setError(null);
+      const startTime = Date.now();
       try {
         const params = new URLSearchParams();
         if (searchQuery.trim()) params.set("q", searchQuery.trim());
@@ -58,6 +63,13 @@ export default function FindJobsModule() {
           throw new Error("Failed to load public job postings.");
         }
         const data = await res.json();
+        
+        // Minimum 250ms delay for smooth skeleton shimmer transition
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 250) {
+          await new Promise((r) => setTimeout(r, 250 - elapsed));
+        }
+
         if (isMounted) {
           setJobs(data.data || []);
           setTotalJobs(data.meta?.total || 0);
@@ -79,6 +91,7 @@ export default function FindJobsModule() {
       isMounted = false;
     };
   }, [searchQuery, locationQuery, selectedJobType, selectedWorkSetup, page]);
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +153,9 @@ export default function FindJobsModule() {
         onSearchSubmit={handleSearchSubmit}
         totalJobs={totalJobs}
         onQuickCategoryClick={handleQuickCategoryClick}
+        isLoading={loading}
       />
+
 
       {/* 2. Main Content Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
@@ -199,55 +214,69 @@ export default function FindJobsModule() {
               </div>
             )}
 
-            {/* Loading Skeleton Grid */}
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div
-                    key={i}
-                    className="h-48 rounded-2xl border bg-muted/20 animate-pulse p-5 space-y-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-muted shrink-0" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-3 bg-muted rounded-md w-1/3" />
-                        <div className="h-4 bg-muted rounded-md w-2/3" />
-                      </div>
-                    </div>
-                    <div className="h-3 bg-muted rounded-md w-full" />
-                    <div className="h-3 bg-muted rounded-md w-4/5" />
+            {/* Smooth Animated Job Content Container */}
+
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div
+                  key="loading-skeleton"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <PublicJobSkeleton key={i} />
+                  ))}
+
+                </motion.div>
+              ) : jobs.length === 0 ? (
+                /* Empty State */
+                <motion.div
+                  key="empty-state"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="bg-card border rounded-2xl p-12 text-center space-y-4 shadow-2xs"
+                >
+                  <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/50 text-muted-foreground flex items-center justify-center">
+                    <Briefcase className="h-7 w-7" />
                   </div>
-                ))}
-              </div>
-            ) : jobs.length === 0 ? (
-              /* Empty State */
-              <div className="bg-card border rounded-2xl p-12 text-center space-y-4 shadow-2xs">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/50 text-muted-foreground flex items-center justify-center">
-                  <Briefcase className="h-7 w-7" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-foreground text-base">No Matching Jobs Found</h3>
-                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                    We couldn&apos;t find any positions matching your search filters. Try adjusting your search query or location.
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" onClick={handleResetFilters} className="text-xs font-semibold">
-                  Reset Search Filters
-                </Button>
-              </div>
-            ) : (
-              /* Job Grid */
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {jobs.map((job) => (
-                  <PublicJobCard
-                    key={job.job_id}
-                    job={job}
-                    onSelectJob={handleSelectJob}
-                    onApplyClick={handleApplyClick}
-                  />
-                ))}
-              </div>
-            )}
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-foreground text-base">No Matching Jobs Found</h3>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                      We couldn&apos;t find any positions matching your search filters. Try adjusting your search query or location.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={handleResetFilters} className="text-xs font-semibold">
+                    Reset Search Filters
+                  </Button>
+                </motion.div>
+              ) : (
+                /* Job Grid */
+                <motion.div
+                  key={`job-grid-${selectedJobType}-${selectedWorkSetup}-${page}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  {jobs.map((job, idx) => (
+                    <PublicJobCard
+                      key={job.job_id}
+                      job={job}
+                      index={idx}
+                      onSelectJob={handleSelectJob}
+                      onApplyClick={handleApplyClick}
+                    />
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
 
             {/* Pagination controls */}
             {totalPages > 1 && (

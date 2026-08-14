@@ -2,8 +2,8 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { FolderTree, Plus, Loader2, Check, ShieldAlert, Pencil, Trash2 } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { FolderTree, Plus, Loader2, Check, ShieldAlert, Pencil, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -22,6 +22,7 @@ export function JobCategoryManager() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [aiDescLoading, setAiDescLoading] = useState(false);
 
   const openCreateModal = () => {
     setEditingCategory(null);
@@ -79,6 +80,27 @@ export function JobCategoryManager() {
     await removeCategory(catId);
     setConfirmDeleteId(null);
   };
+
+  const handleAiGenerateDesc = useCallback(async () => {
+    const name = nameInput.trim() || codeInput.trim();
+    if (!name) return;
+    setAiDescLoading(true);
+    try {
+      const res = await fetch("/api/vos-admin/job-roles/ai-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role_name: name, category_name: name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.description) setDescInput(data.description);
+      }
+    } catch {
+      // silent — description generation is non-critical
+    } finally {
+      setAiDescLoading(false);
+    }
+  }, [nameInput, codeInput]);
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
@@ -212,7 +234,20 @@ export function JobCategoryManager() {
             </div>
             <div>
               <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">Description</label>
-              <Input placeholder="Brief description of this domain…" value={descInput} onChange={(e) => setDescInput(e.target.value)} className="h-9 text-xs" />
+              <div className="flex gap-2">
+                <Input placeholder="Brief description of this domain…" value={descInput} onChange={(e) => setDescInput(e.target.value)} className="h-9 text-xs flex-1" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAiGenerateDesc}
+                  disabled={aiDescLoading || !nameInput.trim()}
+                  title="Generate description with AI"
+                  className="h-9 px-3 rounded-xl border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 shrink-0"
+                >
+                  {aiDescLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-3">
               <Button variant="outline" size="sm" onClick={() => setOpenModal(false)} className="h-9 text-xs">

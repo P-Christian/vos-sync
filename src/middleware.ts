@@ -27,6 +27,9 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith("/favicon.ico") ||
         pathname.startsWith("/robots.txt") ||
         pathname.startsWith("/sitemap.xml") ||
+        pathname.startsWith("/server-down") ||
+        pathname.startsWith("/500") ||
+        pathname.startsWith("/api/health") ||
         PUBLIC_FILE.test(pathname)
     ) {
         return NextResponse.next();

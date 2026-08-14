@@ -4,6 +4,7 @@ import { JobPosting } from "../../jobs/types";
 import { Applicant } from "../types";
 import { calculateMatch, MatchResult } from "../utils/matchEngine";
 import { CandidateMatch } from "../hooks/useBestMatchCache";
+import { evaluateTaxonomyProposal } from "@/modules/vos-admin/role-matching/services/taxonomy/taxonomyGovernanceService";
 
 export interface BestMatchProcessResult {
   candidateMatches: CandidateMatch[];
@@ -54,7 +55,7 @@ export async function processBestMatchAI(
     missingSkills: match.missingSkills.slice(0, 4),
   }));
 
-  const prompt = `You are an expert recruitment AI assistant. Analyze the top candidates below for a job posting and provide concise recruiter evaluations.
+  const prompt = `You are an expert recruitment AI assistant. Analyze the top candidates for a job posting and provide recruiter evaluations AND taxonomy suggestions.
 
 Job Title: "${job.job_title}"
 Experience Level Required: "${job.experience_level || "ENTRY"}"
@@ -64,14 +65,25 @@ Candidates (Ranked by Rule Engine):
 ${JSON.stringify(candidatePayload, null, 2)}
 
 Provide JSON response ONLY (no markdown fences, no extra text):
-[
-  {
-    "applicationId": <number>,
-    "explanation": "<1-2 concise factual sentences on hiring suitability>",
-    "strengths": ["<key strength 1>", "<key strength 2>"],
-    "weaknesses": ["<key missing skill or gap if any>"]
-  }
-]`;
+{
+  "taxonomyProposal": {
+    "roleName": "${job.job_title}",
+    "keywords": [
+      { "name": "<synonym or alternate title>", "weight": 0.85, "type": "SYNONYM|ABBREVIATION|RELATED_ROLE" }
+    ],
+    "skills": [
+      { "name": "<skill name>", "weight": 0.90, "isRequired": true }
+    ]
+  },
+  "evaluations": [
+    {
+      "applicationId": <number>,
+      "explanation": "<1-2 concise factual sentences on hiring suitability>",
+      "strengths": ["<key strength 1>", "<key strength 2>"],
+      "weaknesses": ["<key missing skill or gap if any>"]
+    }
+  ]
+}`;
 
   const aiResponsesMap = new Map<number, { explanation: string; strengths: string[]; weaknesses: string[] }>();
 
@@ -93,16 +105,28 @@ Provide JSON response ONLY (no markdown fences, no extra text):
           .trim();
 
         const parsed = JSON.parse(cleaned);
-        if (Array.isArray(parsed)) {
-          for (const item of parsed) {
-            if (item && typeof item.applicationId === "number") {
-              aiResponsesMap.set(item.applicationId, {
-                explanation: item.explanation || "Strong match based on overall experience and skills.",
-                strengths: Array.isArray(item.strengths) ? item.strengths : [],
-                weaknesses: Array.isArray(item.weaknesses) ? item.weaknesses : [],
-              });
-            }
+        
+        // Extract candidate evaluations (supports both new object schema and legacy array schema)
+        const evalList = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.evaluations) ? parsed.evaluations : []);
+        for (const item of evalList) {
+          if (item && typeof item.applicationId === "number") {
+            aiResponsesMap.set(item.applicationId, {
+              explanation: item.explanation || "Strong match based on overall experience and skills.",
+              strengths: Array.isArray(item.strengths) ? item.strengths : [],
+              weaknesses: Array.isArray(item.weaknesses) ? item.weaknesses : [],
+            });
           }
+        }
+
+        // Non-blocking asynchronous taxonomy governance enrichment
+        if (parsed?.taxonomyProposal && typeof parsed.taxonomyProposal === "object") {
+          void evaluateTaxonomyProposal({
+            roleName: parsed.taxonomyProposal.roleName || job.job_title,
+            keywords: Array.isArray(parsed.taxonomyProposal.keywords) ? parsed.taxonomyProposal.keywords : [],
+            skills: Array.isArray(parsed.taxonomyProposal.skills) ? parsed.taxonomyProposal.skills : [],
+          })
+            .then((res) => console.info("[BEST_MATCH] ✅ Taxonomy Governance completed asynchronously:", res))
+            .catch((err) => console.error("[BEST_MATCH] ⚠️ Taxonomy Governance failed:", err?.message ?? err));
         }
       }
     }

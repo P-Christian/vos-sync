@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button";
 import { PublicJobPosting } from "../types";
 import { useAuthSession } from "@/hooks/useAuthSession";
 
+import { motion } from "framer-motion";
+
 interface Props {
   job: PublicJobPosting;
   onSelectJob: (job: PublicJobPosting) => void;
   onApplyClick: (job: PublicJobPosting) => void;
+  index?: number;
 }
 
 function getTimeAgo(dateStr: string): string {
@@ -25,7 +28,7 @@ function getTimeAgo(dateStr: string): string {
   return "Recently posted";
 }
 
-export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
+export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Props) {
   const session = useAuthSession();
 
   const formatSalary = (min?: number | null, max?: number | null, curr?: string) => {
@@ -42,10 +45,16 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
     : `/companies?search=${encodeURIComponent(job.company_name ?? "")}`;
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4), ease: [0.21, 0.45, 0.27, 0.9] }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       onClick={() => onSelectJob(job)}
-      className="group bg-card border rounded-2xl p-5 hover:border-primary/50 hover:shadow-lg transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
+      className="group bg-card border rounded-2xl p-5 hover:border-primary/50 hover:shadow-xl transition-shadow duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
     >
+
       <div className="space-y-3">
         {/* Top Header: Logo + Title + Verified Badge */}
         <div className="flex items-start justify-between gap-3">
@@ -170,6 +179,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+

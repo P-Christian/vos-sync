@@ -17,7 +17,7 @@ export function CompanyTabNav({ activeTab, onTabChange, activeJobsCount }: TabNa
       label: "Jobs",
       badge: activeJobsCount > 0 ? activeJobsCount : undefined,
     },
-    { id: "salaries", label: "Salaries" },
+    // { id: "salaries", label: "Salaries" },
     { id: "reviews", label: "Reviews" },
   ];
 

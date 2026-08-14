@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,7 @@ interface Props {
   onSearchSubmit: (e: React.FormEvent) => void;
   totalJobs: number;
   onQuickCategoryClick: (cat: string) => void;
+  isLoading?: boolean;
 }
 
 export function JobHeroBanner({
@@ -24,7 +25,9 @@ export function JobHeroBanner({
   onSearchSubmit,
   totalJobs,
   onQuickCategoryClick,
+  isLoading = false,
 }: Props) {
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/5 to-background border-b pt-22 pb-16 px-4  sm:px-6 lg:px-8">
       {/* Decorative background glows */}
@@ -77,18 +80,20 @@ export function JobHeroBanner({
             <Button
               type="submit"
               size="lg"
+              disabled={isLoading}
               className="w-full h-12 text-sm font-bold gap-2 shadow-md hover:shadow-lg transition-all"
             >
-              <Search className="h-4 w-4" />
-              Search Jobs
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {isLoading ? "Searching..." : "Search Jobs"}
             </Button>
+
           </div>
         </form>
 
         {/* Popular Quick Search Tags */}
         <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs text-muted-foreground">
           <span className="font-semibold">Popular:</span>
-          {["Remote", "Full Time", "Software Engineer", "Customer Service", "Virtual Assistant", "Graphic Designer"].map(
+          {["Software Engineer", "Customer Service", "Virtual Assistant", "Graphic Designer"].map(
             (tag) => (
               <button
                 key={tag}

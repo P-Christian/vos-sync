@@ -56,18 +56,50 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("[keywords route POST] Payload received:", body);
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_role_title_alias`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error("Failed to create search keyword.");
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error(`[keywords route POST] ❌ Directus error (HTTP ${res.status}):`, errText);
+
+      // Check if error is RECORD_NOT_UNIQUE
+      if (errText.includes("RECORD_NOT_UNIQUE") || errText.includes("has to be unique")) {
+        const norm = body.normalized_alias || (body.alias_name ? body.alias_name.trim().toLowerCase() : "");
+        if (norm) {
+          // Query Directus for the existing record
+          const existingRes = await fetch(`${DIRECTUS_BASE}/items/vs_role_title_alias?filter[normalized_alias][_eq]=${encodeURIComponent(norm)}`, {
+            headers: getHeaders(),
+            cache: "no-store",
+          });
+          if (existingRes.ok) {
+            const existingJson = await existingRes.json();
+            const existingItem = existingJson.data?.[0];
+            if (existingItem) {
+              console.log(`[keywords route POST] ↻ Found existing alias #${existingItem.alias_id} for "${norm}" — returning existing record`);
+              return NextResponse.json(existingItem);
+            }
+          }
+        }
+        return NextResponse.json({ error: `Keyword "${body.alias_name || 'entry'}" already exists in the database.` }, { status: 409 });
+      }
+
+      return NextResponse.json({ error: `Directus error (${res.status}): ${errText || res.statusText}` }, { status: res.status });
+    }
+
     const json = await res.json();
     return NextResponse.json(json.data);
   } catch (err: unknown) {
+    console.error("[keywords route POST] 💥 Internal error:", err);
     return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }
 }
+
+
 
 export async function PATCH(req: NextRequest) {
   try {
