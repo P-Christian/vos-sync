@@ -94,7 +94,10 @@ export async function createSearchKeyword(payload: Partial<SearchKeyword>): Prom
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to create search keyword.");
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(errJson.error || "Failed to create search keyword.");
+  }
   return res.json();
 }
 
@@ -104,9 +107,13 @@ export async function updateSearchKeyword(payload: Partial<SearchKeyword>): Prom
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to update search keyword.");
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(errJson.error || "Failed to update search keyword.");
+  }
   return res.json();
 }
+
 
 export async function deleteSearchKeyword(aliasId: number): Promise<boolean> {
   const res = await fetch(`${BASE_URL}/keywords?id=${aliasId}`, { method: "DELETE" });

@@ -2,13 +2,14 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { CheckCircle2, Plus, Loader2, ShieldAlert, Star, Pencil, Trash2 } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { CheckCircle2, Plus, Loader2, ShieldAlert, Star, Pencil, Trash2, Sparkles, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRoleSkills } from "../hooks/useRoleSkills";
 import { useStandardRoles } from "../hooks/useStandardRoles";
 import { RoleSkillMapping } from "../types";
+import type { AiSuggestResult, AiSuggestedSkill } from "@/app/api/vos-admin/job-roles/ai-suggest/route";
 
 export function RoleSkillManager() {
   const { roles } = useStandardRoles();
@@ -24,6 +25,16 @@ export function RoleSkillManager() {
   const [isRequired, setIsRequired] = useState(true);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // AI Suggest state
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTargetRoleId, setAiTargetRoleId] = useState<number>(1);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSkillSuggestions, setAiSkillSuggestions] = useState<AiSuggestedSkill[]>([]);
+  const [aiCached, setAiCached] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
+  const [bulkAdding, setBulkAdding] = useState(false);
 
   const openCreateModal = () => {
     setEditingSkill(null);
@@ -84,6 +95,100 @@ export function RoleSkillManager() {
     }
   };
 
+  const handleAiSuggest = useCallback(async (overrideRoleId?: number) => {
+    const roleIdToUse = overrideRoleId ?? aiTargetRoleId ?? selectedRoleId ?? roles[0]?.role_id;
+    const targetRoleObj = roles.find((r) => r.role_id === roleIdToUse);
+    if (!targetRoleObj) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiSkillSuggestions([]);
+    setSelectedSkills(new Set());
+    try {
+      const res = await fetch("/api/vos-admin/job-roles/ai-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role_name: targetRoleObj.role_name,
+          category_name: targetRoleObj.category_name ?? "",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || "AI suggestion failed.");
+      }
+      const data: AiSuggestResult = await res.json();
+      setAiSkillSuggestions(data.skills);
+      setAiCached(data.cached);
+      setSelectedSkills(new Set(data.skills.map((s) => s.skill_name)));
+    } catch (err: unknown) {
+      setAiError((err as Error).message || "AI skill suggestion failed.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiTargetRoleId, selectedRoleId, roles]);
+
+  const openAiModal = () => {
+    const defaultRole = selectedRoleId ?? roles[0]?.role_id ?? 1;
+    setAiTargetRoleId(defaultRole);
+    setAiSkillSuggestions([]);
+    setSelectedSkills(new Set());
+    setAiError("");
+    setAiModalOpen(true);
+  };
+
+  const toggleSkill = (skillName: string) => {
+    setSelectedSkills((prev) => {
+      const next = new Set(prev);
+      if (next.has(skillName)) next.delete(skillName);
+      else next.add(skillName);
+      return next;
+    });
+  };
+
+  const handleBulkAdd = async () => {
+    const targetId = aiTargetRoleId || selectedRoleId;
+    if (!targetId || selectedSkills.size === 0) return;
+    setBulkAdding(true);
+    const toAdd = aiSkillSuggestions.filter((s) => selectedSkills.has(s.skill_name));
+
+    // Filter out skills that ALREADY exist in DB mapping to prevent duplicate POST requests & 400 errors
+    const newOnly = toAdd.filter((s) => {
+      const norm = s.skill_name.trim().toLowerCase();
+      const exists = roleSkills.some(
+        (ex) => (ex.skill_name && ex.skill_name.trim().toLowerCase() === norm)
+      );
+      if (exists) {
+        console.log(`[RoleSkillManager] ⏭️ Skipping "${s.skill_name}" — already mapped in DB.`);
+      }
+      return !exists;
+    });
+
+    console.log(`[RoleSkillManager] 💾 Posting ${newOnly.length} new skill mappings to Database for role_id=${targetId}:`, newOnly);
+
+    for (const s of newOnly) {
+      // Find matching master skill ID if it exists, or fallback to first masterSkill
+      const matchedMaster = masterSkills.find(
+        (m) => m.skill_name.toLowerCase() === s.skill_name.toLowerCase()
+      );
+      const targetSkillId = matchedMaster ? matchedMaster.id : (masterSkills[0]?.id || 1);
+
+      const created = await addRoleSkill({
+        role_id: targetId,
+        skill_id: targetSkillId,
+        importance_weight: s.importance_weight,
+        is_required: s.is_required,
+      });
+      console.log(`[RoleSkillManager] ✅ DB Created role skill mapping "${s.skill_name}" (skill_id: ${targetSkillId}) → result:`, created);
+    }
+
+    setBulkAdding(false);
+    setAiSkillSuggestions([]);
+    setSelectedSkills(new Set());
+    setAiModalOpen(false);
+  };
+
+
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Top Banner */}
@@ -96,12 +201,19 @@ export function RoleSkillManager() {
           <p className="text-xs text-zinc-500 mt-1">Associate core skills to standard job roles with importance weights &amp; requirement types.</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            onClick={openAiModal}
+            className="h-9 px-4 rounded-xl text-xs font-bold gap-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white border-0 shadow-md transition-all"
+          >
+            <Sparkles className="h-4 w-4" />
+            ✨ AI Skill Generator
+          </Button>
           <select
             value={selectedRoleId ?? ""}
             onChange={(e) => setSelectedRoleId(e.target.value ? Number(e.target.value) : undefined)}
             className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 font-medium"
           >
-            <option value="">All Standard Roles</option>
+            <option value="">Filter by Standard Role...</option>
             {roles.map((r) => (
               <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
             ))}
@@ -148,8 +260,9 @@ export function RoleSkillManager() {
                 </td>
               </tr>
             ) : (
-              roleSkills.map((s) => (
-                <tr key={s.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+              roleSkills.map((s, index) => (
+                <tr key={`${s.id}-${index}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+
                   <td className="p-4 font-mono text-zinc-400">#{s.id}</td>
                   <td className="p-4 font-bold text-zinc-900 dark:text-zinc-100">{s.role_name || s.role_id}</td>
                   <td className="p-4 text-violet-600 dark:text-violet-400 font-semibold">{s.skill_name || s.skill_id}</td>
@@ -258,6 +371,163 @@ export function RoleSkillManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Skill Assistant Modal */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl border-violet-100 dark:border-violet-900 overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-indigo-950 via-zinc-900 to-violet-950 text-white p-6 space-y-1 relative">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-400" />
+              <DialogTitle className="text-lg font-extrabold text-white">
+                Gemini AI Skill Requirements Generator
+              </DialogTitle>
+            </div>
+            <p className="text-xs text-indigo-200/80">
+              Instantly generate core skill requirements, importance weights, and requirement flags for any role.
+            </p>
+          </div>
+
+
+          <div className="p-5 space-y-4 text-xs">
+            <div>
+              <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                Target Standard Role
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={aiTargetRoleId}
+                  onChange={(e) => setAiTargetRoleId(Number(e.target.value))}
+                  className="flex-1 h-10 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 font-semibold text-zinc-900 dark:text-zinc-100"
+                >
+                  {roles.map((r) => (
+                    <option key={r.role_id} value={r.role_id}>
+                      {r.role_name} ({r.category_name || "General"})
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={() => handleAiSuggest(aiTargetRoleId)}
+                  disabled={aiLoading}
+                  className="h-10 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs gap-1.5 border-0 shrink-0"
+                >
+                  {aiLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {aiSkillSuggestions.length > 0 ? "Regenerate" : "Generate"}
+                </Button>
+              </div>
+            </div>
+
+            {aiError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-rose-500" />
+                <span>{aiError}</span>
+              </div>
+            )}
+
+            {aiSkillSuggestions.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                      Suggested Skill Requirements ({selectedSkills.size}/{aiSkillSuggestions.length} selected)
+                    </span>
+                    {aiCached && (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300">
+                        CACHED · 0 RPD
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSkills(new Set(aiSkillSuggestions.map((s) => s.skill_name)))}
+                      className="text-[11px] font-semibold text-violet-600 dark:text-violet-400 hover:underline"
+                    >
+                      Select all
+                    </button>
+                    <span className="text-zinc-300">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSkills(new Set())}
+                      className="text-[11px] font-semibold text-zinc-400 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 max-h-72 overflow-y-auto p-1.5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                  {aiSkillSuggestions.map((s) => {
+                    const norm = s.skill_name.trim().toLowerCase();
+                    const isInDb = roleSkills.some(
+                      (ex) => (ex.skill_name && ex.skill_name.trim().toLowerCase() === norm)
+                    );
+                    const isSelected = selectedSkills.has(s.skill_name);
+
+                    return (
+                      <button
+                        key={s.skill_name}
+                        type="button"
+                        onClick={() => toggleSkill(s.skill_name)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                          isSelected
+                            ? "bg-violet-600 text-white border-violet-600 shadow-xs"
+                            : "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-violet-300"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                        <span>{s.skill_name}</span>
+                        {s.is_required && (
+                          <Star className={`h-3 w-3 ${isSelected ? "fill-amber-300 text-amber-300" : "fill-amber-500 text-amber-500"}`} />
+                        )}
+                        {isInDb && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] font-bold uppercase tracking-wider ${
+                              isSelected
+                                ? "bg-emerald-500/30 text-emerald-100 border border-emerald-400/40"
+                                : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            }`}
+                          >
+                            ✓ ALREADY EXISTS
+
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-bold ${
+                            isSelected ? "text-violet-200" : "text-zinc-400"
+                          }`}
+                        >
+                          {Math.round(s.importance_weight * 100)}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                  <Button variant="outline" size="sm" onClick={() => setAiModalOpen(false)} className="h-9 text-xs">
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkAdd}
+                    disabled={bulkAdding || selectedSkills.size === 0}
+                    className="h-9 text-xs bg-violet-600 hover:bg-violet-700 text-white font-bold gap-1.5 border-0 shadow-sm"
+                  >
+                    {bulkAdding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    Add {selectedSkills.size} Skill{selectedSkills.size !== 1 ? "s" : ""}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

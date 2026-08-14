@@ -2,8 +2,8 @@
 
 "use client";
 
-import React, { useState } from "react";
-import { Search, Plus, Loader2, Check, ShieldAlert, Pencil, Trash2 } from "lucide-react";
+import React, { useState, useCallback } from "react";
+import { Search, Plus, Loader2, Check, ShieldAlert, Pencil, Trash2,    X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { useSearchKeywords } from "../hooks/useSearchKeywords";
 import { useStandardRoles } from "../hooks/useStandardRoles";
 import { normalizeKeyword, validateKeywordInput } from "../validators";
 import { SearchKeyword } from "../types";
+import type { AiSuggestResult, AiSuggestedKeyword } from "@/app/api/vos-admin/job-roles/ai-suggest/route";
 
 export function SearchKeywordManager() {
   const { roles } = useStandardRoles();
@@ -26,6 +27,17 @@ export function SearchKeywordManager() {
   const [isPrimary, setIsPrimary] = useState(false);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // AI Suggest state
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiTargetRoleId, setAiTargetRoleId] = useState<number>(1);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestedKeyword[]>([]);
+  const [aiGovernance, setAiGovernance] = useState<AiSuggestResult["governance"] | undefined>(undefined);
+  const [aiCached, setAiCached] = useState(false);
+  const [selectedAliases, setSelectedAliases] = useState<Set<string>>(new Set());
+  const [bulkAdding, setBulkAdding] = useState(false);
 
   const openCreateModal = () => {
     setEditingKeyword(null);
@@ -89,6 +101,98 @@ export function SearchKeywordManager() {
     }
   };
 
+  const selectedRole = roles.find((r) => r.role_id === selectedRoleId);
+
+  const handleAiSuggest = useCallback(async (overrideRoleId?: number) => {
+    const roleIdToUse = overrideRoleId ?? aiTargetRoleId ?? selectedRoleId ?? roles[0]?.role_id;
+    const targetRoleObj = roles.find((r) => r.role_id === roleIdToUse);
+    if (!targetRoleObj) return;
+    setAiLoading(true);
+    setAiError("");
+    setAiSuggestions([]);
+    setSelectedAliases(new Set());
+    try {
+      const res = await fetch("/api/vos-admin/job-roles/ai-suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role_name: targetRoleObj.role_name,
+          category_name: targetRoleObj.category_name ?? "",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error || "AI suggestion failed.");
+      }
+      const data: AiSuggestResult = await res.json();
+      setAiSuggestions(data.keywords);
+      setAiGovernance(data.governance);
+      setAiCached(data.cached);
+      setSelectedAliases(new Set(data.keywords.map((k) => k.alias)));
+    } catch (err: unknown) {
+      setAiError((err as Error).message || "AI suggestion failed.");
+    } finally {
+      setAiLoading(false);
+    }
+  }, [aiTargetRoleId, selectedRoleId, roles]);
+
+  const openAiModal = () => {
+    const defaultRole = selectedRoleId ?? roles[0]?.role_id ?? 1;
+    setAiTargetRoleId(defaultRole);
+    setAiSuggestions([]);
+    setSelectedAliases(new Set());
+    setAiError("");
+    setAiModalOpen(true);
+  };
+
+  const toggleAlias = (alias: string) => {
+    setSelectedAliases((prev) => {
+      const next = new Set(prev);
+      if (next.has(alias)) next.delete(alias);
+      else next.add(alias);
+      return next;
+    });
+  };
+
+  const handleBulkAdd = async () => {
+    const targetId = aiTargetRoleId || selectedRoleId;
+    if (!targetId || selectedAliases.size === 0) return;
+    setBulkAdding(true);
+    const toAdd = aiSuggestions.filter((k) => selectedAliases.has(k.alias));
+
+    // Filter out keywords that ALREADY exist in DB to prevent unnecessary POST requests & RECORD_NOT_UNIQUE errors
+    const newOnly = toAdd.filter((k) => {
+      const norm = normalizeKeyword(k.alias);
+      const exists = keywords.some(
+        (ex) => ex.normalized_alias === norm || ex.alias_name.trim().toLowerCase() === norm
+      );
+      if (exists) {
+        console.log(`[SearchKeywordManager] ⏭️ Skipping "${k.alias}" — already exists in DB.`);
+      }
+      return !exists;
+    });
+
+    console.log(`[SearchKeywordManager] 💾 Posting ${newOnly.length} new keywords to Database for role_id=${targetId}:`, newOnly);
+
+    for (const k of newOnly) {
+      const created = await addKeyword({
+        alias_name: k.alias,
+        normalized_alias: normalizeKeyword(k.alias),
+        role_id: targetId,
+        match_weight: k.weight,
+        is_primary: false,
+      });
+      console.log(`[SearchKeywordManager] ✅ DB Created keyword alias "${k.alias}" (weight: ${k.weight}) → result:`, created);
+    }
+
+    setBulkAdding(false);
+    setAiSuggestions([]);
+    setSelectedAliases(new Set());
+    setAiModalOpen(false);
+  };
+
+
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* Top Banner */}
@@ -101,12 +205,21 @@ export function SearchKeywordManager() {
           <p className="text-xs text-zinc-500 mt-1">Map search terms recruiters use to official standard roles with relevance weights.</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            onClick={openAiModal}
+            className="h-9 px-4 rounded-xl text-xs font-bold gap-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white border-0 shadow-md transition-all"
+          >
+ 
+            AI Keyword Generator
+          </Button>
           <select
             value={selectedRoleId ?? ""}
-            onChange={(e) => setSelectedRoleId(e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) => {
+              setSelectedRoleId(e.target.value ? Number(e.target.value) : undefined);
+            }}
             className="h-9 text-xs rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 font-medium"
           >
-            <option value="">All Standard Roles</option>
+            <option value="">Filter by Standard Role...</option>
             {roles.map((r) => (
               <option key={r.role_id} value={r.role_id}>{r.role_name}</option>
             ))}
@@ -122,6 +235,80 @@ export function SearchKeywordManager() {
         <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
           <ShieldAlert className="h-4 w-4 shrink-0" />
           {error}
+        </div>
+      )}
+
+      {/* AI Suggest Error */}
+      {aiError && (
+        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 shrink-0" />
+          {aiError}
+        </div>
+      )}
+
+      {/* AI Suggestion Review Panel */}
+      {aiSuggestions.length > 0 && (
+        <div className="bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+ 
+              <span className="text-sm font-bold text-violet-800 dark:text-violet-200">
+                AI Suggestions for &ldquo;{selectedRole?.role_name}&rdquo;
+              </span>
+              {aiCached && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-200 dark:bg-violet-900 text-violet-700 dark:text-violet-300">
+                  CACHED · 0 RPD
+                </span>
+              )}
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => { setAiSuggestions([]); setSelectedAliases(new Set()); }} className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {aiSuggestions.map((k) => (
+              <button
+                key={k.alias}
+                type="button"
+                onClick={() => toggleAlias(k.alias)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                  selectedAliases.has(k.alias)
+                    ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+                    : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-300 dark:border-zinc-700"
+                }`}
+              >
+                {selectedAliases.has(k.alias) && <Check className="h-3 w-3" />}
+                {k.alias}
+                <span className={`text-[10px] font-bold ${ selectedAliases.has(k.alias) ? "text-violet-200" : "text-zinc-400" }`}>
+                  {Math.round(k.weight * 100)}%
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-1 border-t border-violet-200 dark:border-violet-800">
+            <span className="text-xs text-violet-600 dark:text-violet-400 font-medium">
+              {selectedAliases.size} of {aiSuggestions.length} selected
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedAliases(new Set())} className="h-8 text-xs">
+                Deselect All
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedAliases(new Set(aiSuggestions.map((k) => k.alias)))} className="h-8 text-xs">
+                Select All
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleBulkAdd}
+                disabled={bulkAdding || selectedAliases.size === 0}
+                className="h-8 text-xs bg-violet-600 hover:bg-violet-700 text-white gap-1.5 border-0"
+              >
+                {bulkAdding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                Add {selectedAliases.size} Keyword{selectedAliases.size !== 1 ? "s" : ""}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -154,8 +341,9 @@ export function SearchKeywordManager() {
                 </td>
               </tr>
             ) : (
-              keywords.map((k) => (
-                <tr key={k.alias_id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+              keywords.map((k, index) => (
+                <tr key={`${k.alias_id}-${index}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+
                   <td className="p-4 font-mono text-zinc-400">#{k.alias_id}</td>
                   <td className="p-4 font-bold text-zinc-900 dark:text-zinc-100">{k.alias_name}</td>
                   <td className="p-4 font-mono text-zinc-500">{k.normalized_alias}</td>
@@ -245,6 +433,181 @@ export function SearchKeywordManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AI Assistant Modal */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="sm:max-w-2xl rounded-2xl border-violet-100 dark:border-violet-900 overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-indigo-950 via-zinc-900 to-violet-950 text-white p-6 space-y-1 relative">
+            <div className="flex items-center gap-2">
+              
+              <DialogTitle className="text-lg font-extrabold text-white">
+                Gemini AI Keyword Generator
+              </DialogTitle>
+            </div>
+            <p className="text-xs text-indigo-200/80">
+              Instantly generate search terms, alternate job titles, and recruiter query synonyms for any role.
+            </p>
+          </div>
+
+
+          <div className="p-5 space-y-4 text-xs">
+            <div>
+              <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
+                Target Standard Role
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={aiTargetRoleId}
+                  onChange={(e) => setAiTargetRoleId(Number(e.target.value))}
+                  className="flex-1 h-10 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 font-semibold text-zinc-900 dark:text-zinc-100"
+                >
+                  {roles.map((r) => (
+                    <option key={r.role_id} value={r.role_id}>
+                      {r.role_name} ({r.category_name || "General"})
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={() => handleAiSuggest(aiTargetRoleId)}
+                  disabled={aiLoading}
+                  className="h-10 px-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs gap-1.5 border-0 shrink-0"
+                >
+                  {/* {aiLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )} */}
+                  {aiSuggestions.length > 0 ? "Regenerate" : "Generate"}
+                </Button>
+              </div>
+            </div>
+
+            {aiError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 text-rose-500" />
+                <span>{aiError}</span>
+              </div>
+            )}
+
+            {aiSuggestions.length > 0 && (
+              <div className="space-y-3 pt-2">
+                {/* Governance Summary Badges */}
+                {aiGovernance && (
+                  <div className="flex flex-wrap gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 text-[11px] font-semibold">
+                    {aiGovernance.autoApplied.length > 0 && (
+                      <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                        ✓ {aiGovernance.autoApplied.length} Auto-Applied
+                      </span>
+                    )}
+                    {aiGovernance.reused.length > 0 && (
+                      <span className="text-indigo-700 dark:text-indigo-300 font-medium">
+                        ↻ {aiGovernance.reused.length} Reused
+                      </span>
+                    )}
+                    {aiGovernance.reviewRequired.length > 0 && (
+                      <span className="text-amber-700 dark:text-amber-300 font-medium">
+                        ⚠ {aiGovernance.reviewRequired.length} Exceptions Queued
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                      Suggested Keywords ({selectedAliases.size}/{aiSuggestions.length} selected)
+                    </span>
+                    {aiCached && (
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300">
+                        CACHED · 0 RPD
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAliases(new Set(aiSuggestions.map((k) => k.alias)))}
+                      className="text-[11px] font-semibold text-violet-600 dark:text-violet-400 hover:underline"
+                    >
+                      Select all
+                    </button>
+                    <span className="text-zinc-300">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAliases(new Set())}
+                      className="text-[11px] font-semibold text-zinc-400 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2.5 max-h-72 overflow-y-auto p-1.5 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+                  {aiSuggestions.map((k) => {
+                    const norm = k.alias.trim().toLowerCase();
+                    const isInDb = keywords.some(
+                      (ex) => ex.normalized_alias === norm || ex.alias_name.trim().toLowerCase() === norm
+                    );
+                    const isSelected = selectedAliases.has(k.alias);
+
+                    return (
+                      <button
+                        key={k.alias}
+                        type="button"
+                        onClick={() => toggleAlias(k.alias)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                          isSelected
+                            ? "bg-violet-600 text-white border-violet-600 shadow-xs"
+                            : "bg-zinc-50 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700 hover:border-violet-300"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                        <span>{k.alias}</span>
+                        {isInDb && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded-md font-mono text-[9px] font-bold uppercase tracking-wider ${
+                              isSelected
+                                ? "bg-emerald-500/30 text-emerald-100 border border-emerald-400/40"
+                                : "bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            }`}
+                          >
+                            ✓ ALREADY EXISTS
+
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] font-bold ${
+                            isSelected ? "text-violet-200" : "text-zinc-400"
+                          }`}
+                        >
+                          {Math.round(k.weight * 100)}%
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                  <Button variant="outline" size="sm" onClick={() => setAiModalOpen(false)} className="h-9 text-xs">
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleBulkAdd}
+                    disabled={bulkAdding || selectedAliases.size === 0}
+                    className="h-9 text-xs bg-violet-600 hover:bg-violet-700 text-white font-bold gap-1.5 border-0 shadow-sm"
+                  >
+                    {bulkAdding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    Add {selectedAliases.size} Keyword{selectedAliases.size !== 1 ? "s" : ""}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

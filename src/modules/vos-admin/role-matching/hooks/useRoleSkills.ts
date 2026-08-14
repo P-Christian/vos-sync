@@ -32,13 +32,20 @@ export function useRoleSkills(roleId?: number) {
   const addRoleSkill = useCallback(async (payload: Partial<RoleSkillMapping>) => {
     try {
       const created = await createRoleSkill(payload);
-      setRoleSkills((prev) => [...prev, created]);
+      setRoleSkills((prev) => {
+        const exists = prev.some((s) => s.id === created.id);
+        if (exists) {
+          return prev.map((s) => (s.id === created.id ? { ...s, ...created } : s));
+        }
+        return [...prev, created];
+      });
       return true;
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to add role skill.");
       return false;
     }
   }, []);
+
 
   const editRoleSkill = useCallback(async (payload: Partial<RoleSkillMapping>) => {
     try {
