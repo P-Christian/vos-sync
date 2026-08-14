@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Search, AlertCircle, Briefcase } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useJobBrowse } from "./hooks/useJobBrowse";
 import { JobBrowseFilters } from "./components/JobBrowseFilters";
 import { JobBrowseCard } from "./components/JobBrowseCard";
@@ -11,7 +12,9 @@ import { ApplyModal } from "./components/ApplyModal";
 import { useFreelancerBookmarks } from "../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 import { RegisterRequiredModal } from "./components/RegisterRequiredModal";
+import { PublicJobSkeleton } from "@/modules/public/find-jobs/components/PublicJobSkeleton";
 import { PublicJobPosting } from "./types";
+
 
 export default function JobBrowseModule() {
   const {
@@ -131,37 +134,69 @@ export default function JobBrowseModule() {
         />
 
         {/* Job Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20 gap-3">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <span className="text-sm text-zinc-400 animate-pulse">Loading jobs...</span>
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-            <div className="p-4 bg-muted/40 rounded-2xl">
-              <Search className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">No jobs found</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Try adjusting your filters or search terms
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.map((job) => (
-              <JobBrowseCard
-                key={job.job_id}
-                job={job}
-                onViewDetail={openDetail}
-                isBookmarked={bookmarkedJobIds.includes(job.job_id)}
-                onToggleBookmark={handleToggleBookmark}
-              />
-            ))}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div
+              key="freelancer-jobs-skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <PublicJobSkeleton key={i} />
+              ))}
+            </motion.div>
+          ) : jobs.length === 0 ? (
+            <motion.div
+              key="freelancer-jobs-empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-col items-center justify-center py-20 gap-4 text-center border border-dashed rounded-3xl bg-card/50"
+            >
+              <div className="p-4 bg-muted/40 rounded-2xl">
+                <Search className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">No jobs found</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Try adjusting your filters or search terms
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={`freelancer-jobs-grid-${search}-${filterJobType}-${filterArrangement}-${filterExperience}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            >
+              {jobs.map((job, idx) => (
+                <motion.div
+                  key={job.job_id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: Math.min(idx * 0.04, 0.3) }}
+                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                >
+                  <JobBrowseCard
+                    job={job}
+                    onViewDetail={openDetail}
+                    isBookmarked={bookmarkedJobIds.includes(job.job_id)}
+                    onToggleBookmark={handleToggleBookmark}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
 
       {/* Job Detail Sheet */}
       <JobDetailSheet

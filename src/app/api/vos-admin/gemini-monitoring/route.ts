@@ -60,28 +60,75 @@ export async function GET() {
   const companyIds = recentRows.map((r) => r.company_id);
   const { userNames, companyNames } = await resolveAttributionNames(userIds, companyIds);
 
-  // Audit log — most recent 20 requests with PH timestamps
-  const auditLog = recentRows.map((r) => ({
-    id: r.id,
-    requestId: r.request_id,
-    feature: r.feature,
-    provider: r.provider,
-    model: r.model,
-    endpoint: r.endpoint,
-    promptTokens: r.prompt_tokens,
-    completionTokens: r.completion_tokens,
-    totalTokens: r.total_tokens,
-    finishReason: r.finish_reason,
-    responseStatus: r.response_status,
-    latencyMs: r.latency_ms,
-    httpStatus: r.status,
-    errorMessage: r.error_message,
-    userId: r.user_id,
-    companyId: r.company_id,
-    userName: r.user_id ? userNames[r.user_id] ?? `User #${r.user_id}` : null,
-    companyName: r.company_id ? companyNames[r.company_id] ?? `Company #${r.company_id}` : null,
-    createdAt: r.created_at,
-  }));
+  // Audit log — most recent 20 requests formatted as YYYY-MM-DD HH:mm:ss
+  const auditLog = recentRows.map((r) => {
+    let formattedDate = r.created_at || "";
+    if (r.created_at) {
+      try {
+        const d = new Date(r.created_at);
+        if (!isNaN(d.getTime())) {
+          const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: "Asia/Manila",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hourCycle: "h23",
+          }).formatToParts(d);
+
+          const m: Record<string, string> = {};
+          for (const p of parts) {
+            m[p.type] = p.value;
+          }
+          formattedDate = `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second}`;
+        } else {
+          formattedDate = String(r.created_at).replace("T", " ").split(".")[0];
+        }
+      } catch {
+        formattedDate = String(r.created_at).replace("T", " ").split(".")[0];
+      }
+    }
+
+
+    const isAdminRequest = (r.endpoint && r.endpoint.includes("vos-admin")) || r.feature === "ROLE_INTELLIGENCE";
+    const isFreelancerRequest = (r.endpoint && (r.endpoint.includes("freelancer") || r.endpoint.includes("applicant"))) || r.feature === "MATCH_EXPLAINER";
+
+    let resolvedCompanyName: string | null = null;
+    if (r.company_id) {
+      resolvedCompanyName = companyNames[r.company_id] ?? `Company #${r.company_id}`;
+    } else if (isAdminRequest) {
+      resolvedCompanyName = "Admin";
+    } else if (isFreelancerRequest) {
+      resolvedCompanyName = "User"; // Freelancer/jobseeker has no company — do not render company line
+    } else {
+      resolvedCompanyName = "Unknown";
+    }
+
+    return {
+      id: r.id,
+      requestId: r.request_id,
+      feature: r.feature,
+      provider: r.provider,
+      model: r.model,
+      endpoint: r.endpoint,
+      promptTokens: r.prompt_tokens,
+      completionTokens: r.completion_tokens,
+      totalTokens: r.total_tokens,
+      finishReason: r.finish_reason,
+      responseStatus: r.response_status,
+      latencyMs: r.latency_ms,
+      userId: r.user_id,
+      companyId: r.company_id,
+      userName: r.user_id ? (userNames[r.user_id] ?? `User #${r.user_id}`) : (isAdminRequest ? (userNames[1] ?? "User #1") : null),
+      companyName: resolvedCompanyName,
+      createdAt: formattedDate,
+    };
+  });
+
+
+
 
   return NextResponse.json({
     success: true,

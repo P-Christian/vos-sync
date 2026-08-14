@@ -140,6 +140,7 @@ function featureLabel(feature: string): string {
     MATCH_EXPLAINER: "Match Explainer",
     QUERY_UNDERSTANDING: "Query Understanding",
     BEST_MATCH: "Best Match AI",
+    ROLE_INTELLIGENCE: "Role Intelligence",
   };
   return map[feature] ?? feature;
 }
@@ -493,7 +494,7 @@ export default function GeminiMonitoringDashboard() {
                   <th className="p-3 text-right">In / Out Tokens</th>
                   <th className="p-3 text-right">Latency</th>
                   <th className="p-3 text-center">Status</th>
-                  <th className="p-3 text-right">User / Company</th>
+                  <th className="p-3 text-right">Requested By</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -518,27 +519,20 @@ export default function GeminiMonitoringDashboard() {
                       <td className="p-3 text-center">
                         <ResponseStatusBadge status={log.responseStatus} />
                       </td>
-                      <td className="p-3 text-right whitespace-nowrap">
-                        {log.userName ? (
+                        <td className="p-3 text-right whitespace-nowrap">
                           <div className="flex flex-col items-end">
-                            <span className="font-semibold text-foreground text-[11px]">{log.userName}</span>
-                            {log.companyName ? (
-                              <span className="text-[10px] text-muted-foreground font-normal">{log.companyName}</span>
-                            ) : log.companyId ? (
-                              <span className="text-[10px] text-muted-foreground font-normal">Company #{log.companyId}</span>
-                            ) : null}
-                          </div>
-                        ) : log.userId ? (
-                          <div className="flex flex-col items-end">
-                            <span className="font-semibold text-foreground text-[11px]">User #{log.userId}</span>
+                            <span className="font-semibold text-foreground text-[11px]">
+                              {log.userName || (log.userId ? `User #${log.userId}` : "System / Guest")}
+                            </span>
                             {log.companyName && (
-                              <span className="text-[10px] text-muted-foreground font-normal">{log.companyName}</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">
+                                {log.companyName}
+                              </span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-[10px]">System / Guest</span>
-                        )}
-                      </td>
+                        </td>
+
+
                     </tr>
                   ))
                 )}

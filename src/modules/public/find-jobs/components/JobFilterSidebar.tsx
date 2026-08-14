@@ -17,6 +17,8 @@ interface Props {
 const JOB_TYPES = ["All", "Full Time", "Part Time", "Contract", "Freelance", "Internship"];
 const WORK_SETUPS = ["All", "Remote", "On-site", "Hybrid"];
 
+import { motion } from "framer-motion";
+
 export function JobFilterSidebar({
   selectedJobType,
   selectedWorkSetup,
@@ -32,19 +34,21 @@ export function JobFilterSidebar({
           <Filter className="h-4 w-4 text-primary" />
           Filter Positions
           {activeFilterCount > 0 && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 transition-all">
               {activeFilterCount}
             </Badge>
           )}
         </h3>
         {activeFilterCount > 0 && (
-          <button
+          <motion.button
             type="button"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
             onClick={onResetFilters}
-            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors font-medium"
+            className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors font-medium cursor-pointer"
           >
             <RotateCcw className="h-3 w-3" /> Reset
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -57,19 +61,26 @@ export function JobFilterSidebar({
           {WORK_SETUPS.map((setup) => {
             const isSelected = selectedWorkSetup.toLowerCase() === setup.toLowerCase();
             return (
-              <button
+              <motion.button
                 key={setup}
                 type="button"
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onWorkSetupChange(setup)}
-                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "bg-muted/30 hover:bg-muted text-foreground"
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs scale-[1.01]"
+                    : "bg-muted/30 hover:bg-muted text-foreground hover:translate-x-0.5"
                 }`}
               >
                 <span>{setup === "All" ? "All Work Setups" : setup}</span>
-                {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}
-              </button>
+                {isSelected && (
+                  <motion.span
+                    layoutId="activeWorkSetupIndicator"
+                    className="h-1.5 w-1.5 rounded-full bg-primary-foreground"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </motion.button>
             );
           })}
         </div>
@@ -84,19 +95,26 @@ export function JobFilterSidebar({
           {JOB_TYPES.map((type) => {
             const isSelected = selectedJobType.toLowerCase() === type.toLowerCase();
             return (
-              <button
+              <motion.button
                 key={type}
                 type="button"
+                whileTap={{ scale: 0.98 }}
                 onClick={() => onJobTypeChange(type)}
-                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 cursor-pointer ${
                   isSelected
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "bg-muted/30 hover:bg-muted text-foreground"
+                    ? "bg-primary text-primary-foreground font-bold shadow-xs scale-[1.01]"
+                    : "bg-muted/30 hover:bg-muted text-foreground hover:translate-x-0.5"
                 }`}
               >
                 <span>{type === "All" ? "All Job Types" : type}</span>
-                {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-primary-foreground" />}
-              </button>
+                {isSelected && (
+                  <motion.span
+                    layoutId="activeJobTypeIndicator"
+                    className="h-1.5 w-1.5 rounded-full bg-primary-foreground"
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  />
+                )}
+              </motion.button>
             );
           })}
         </div>
@@ -104,3 +122,4 @@ export function JobFilterSidebar({
     </div>
   );
 }
+

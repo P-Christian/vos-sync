@@ -2,7 +2,8 @@
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.0-flash";
-const GEMINI_TIMEOUT_MS = 5000;
+const DEFAULT_GEMINI_TIMEOUT_MS = 12000;
+const GEMINI_TIMEOUT_MS = DEFAULT_GEMINI_TIMEOUT_MS;
 
 export interface GeminiUsageMetadata {
   promptTokenCount: number;
@@ -25,7 +26,7 @@ export interface GeminiRawResult {
  * Used exclusively by the monitoring middleware (geminiMonitoring.ts).
  * Do NOT call this directly from application features — use callGeminiMonitored() instead.
  */
-export async function callGeminiRaw(prompt: string): Promise<GeminiRawResult> {
+export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_GEMINI_TIMEOUT_MS): Promise<GeminiRawResult> {
   if (!GEMINI_API_KEY) {
     return {
       text: "",
@@ -41,7 +42,7 @@ export async function callGeminiRaw(prompt: string): Promise<GeminiRawResult> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(url, {
@@ -51,7 +52,7 @@ export async function callGeminiRaw(prompt: string): Promise<GeminiRawResult> {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.2,
-          maxOutputTokens: 512,
+          maxOutputTokens: 2048,
         },
       }),
       signal: controller.signal,

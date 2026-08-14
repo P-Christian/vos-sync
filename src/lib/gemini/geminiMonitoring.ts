@@ -9,7 +9,8 @@ export type GeminiFeature =
   | "AI_RERANKER"
   | "MATCH_EXPLAINER"
   | "QUERY_UNDERSTANDING"
-  | "BEST_MATCH";
+  | "BEST_MATCH"
+  | "ROLE_INTELLIGENCE";
 
 export type GeminiRequestType = "TEXT" | "CHAT" | "EMBEDDING" | "IMAGE";
 export type GeminiProvider = "GEMINI" | "OPENAI" | "ANTHROPIC" | "MISTRAL" | "OLLAMA";
@@ -22,6 +23,7 @@ interface MonitoringParams {
   provider?: GeminiProvider;
   userId?: number;
   companyId?: number;
+  timeoutMs?: number;
 }
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
@@ -96,13 +98,14 @@ export async function callGeminiMonitored(params: MonitoringParams): Promise<str
     provider = "GEMINI",
     userId,
     companyId,
+    timeoutMs,
   } = params;
 
   const requestId = generateRequestId();
   const startMs = Date.now();
 
   // Call Gemini — always awaited before telemetry write so latency is accurate
-  const result = await callGeminiRaw(prompt);
+  const result = await callGeminiRaw(prompt, timeoutMs);
 
   const latencyMs = Date.now() - startMs;
 
@@ -120,8 +123,9 @@ export async function callGeminiMonitored(params: MonitoringParams): Promise<str
     console.warn(`[gemini-monitoring] ⚠️ ${feature} — ${responseStatus}: ${result.errorMessage}`);
   }
 
-  // PH local time (UTC+8) — consistent with project DB convention
-  const createdAt = new Date(Date.now() + 8 * 3600 * 1000).toISOString().replace("Z", "+08:00");
+  // Standard ISO timestamp for Directus DB persistence (Asia/Manila timezone handles display)
+  const createdAt = new Date().toISOString();
+
 
   // Build telemetry record — raw facts only, no derived cost/billing fields
   const record: Record<string, unknown> = {
