@@ -238,6 +238,19 @@ Supported experiences include:
 
 ---
 
+## Messaging & Communication
+
+### Authenticated At-Rest Message Encryption (AES-256-GCM)
+
+* End-to-end server encryption utility (`src/lib/message-encryption.ts`) using Node.js `crypto` with `aes-256-gcm`.
+* Encrypts normal conversation messages (`message_content`) before persisting to Directus database (`vs_message`), securing message content against unauthorized database dumps.
+* Transparent automatic decryption on message retrieval for authorized conversation participants across both Client and Freelancer portals.
+* Real-time conversation list previews (`last_message_preview`) decrypted dynamically.
+* Structured fallback for unencrypted legacy messages and graceful decryption error handling.
+* Preserves structured JSON payload queries for system-generated recruitment and interview events (`message_type: "SYSTEM"`).
+
+---
+
 ## System Resilience & Outage Management
 
 VOS Sync includes dedicated infrastructure for detecting and communicating backend failures.

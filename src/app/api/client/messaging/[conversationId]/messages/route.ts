@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRestriction, checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
+import { encryptMessage, safeDecryptMessage } from "@/lib/message-encryption";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -273,6 +274,7 @@ export async function GET(
     // Reverse array so messages returned are in chronological order (oldest -> newest)
     const enriched = messages.map((msg) => ({
       ...msg,
+      message_content: safeDecryptMessage(msg.message_content as string | null | undefined),
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
       system_message: systemMsgMap[msg.message_id as number] ?? null,
       system_card_data: cardDataMap[msg.message_id as number] ?? null,
@@ -378,6 +380,15 @@ export async function POST(
 
     const nowPH = getPHTimeString();
 
+    const shouldEncrypt =
+      typeof body.message_content === "string" &&
+      body.message_content.length > 0 &&
+      (body.message_type ?? "TEXT") === "TEXT";
+
+    const contentToStore = shouldEncrypt
+      ? encryptMessage(body.message_content)
+      : body.message_content ?? null;
+
     // Insert message
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
       method: "POST",
@@ -386,7 +397,7 @@ export async function POST(
         conversation_id: Number(conversationId),
         sender_id: userId,
         message_type: body.message_type ?? "TEXT",
-        message_content: body.message_content ?? null,
+        message_content: contentToStore,
         created_at: nowPH,
         is_edited: false,
         is_deleted: false,
@@ -446,7 +457,13 @@ export async function POST(
     }).catch((e) => console.error("Update last_message_at error:", e));
 
     return NextResponse.json(
-      { message: { ...newMessage, attachments } },
+      {
+        message: {
+          ...newMessage,
+          message_content: safeDecryptMessage(newMessage?.message_content),
+          attachments,
+        },
+      },
       { status: 201 }
     );
   } catch (err: unknown) {

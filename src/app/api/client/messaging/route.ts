@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { checkRestriction, checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { safeDecryptMessage } from "@/lib/message-encryption";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -225,7 +226,8 @@ export async function GET(req: NextRequest) {
         if (lastMsg.message_type === "SYSTEM") {
           lastMessagePreview = lastMsg.message_content as string ?? "";
         } else if (lastMsg.message_type === "TEXT") {
-          const content = lastMsg.message_content as string ?? "";
+          const rawContent = (lastMsg.message_content as string) ?? "";
+          const content = safeDecryptMessage(rawContent) ?? "";
           lastMessagePreview =
             content.length > 60 ? content.slice(0, 60) + "…" : content;
         } else if (lastMsg.message_type === "IMAGE") {
