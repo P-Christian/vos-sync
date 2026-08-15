@@ -43,6 +43,8 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Real-time debounced search (300ms) on search inputs — automatically updates search results as users type.
 * High-fidelity skeleton card loading with 250ms minimum shimmer threshold across Find Jobs, Public Company Jobs, and Freelancer Jobs (`/vos-sync/freelancer/jobs`).
 * `AnimatePresence` and Framer Motion staggered entrance card animations and hover lift effects (`whileHover={{ y: -4 }}`).
+* **Freelancer Job Application Modal**: 4-step interactive application wizard with auto-prefilling, dynamic candidate profile photo asset resolution via Directus proxy with initials fallback, custom resume & cover letter uploads, and referral connectivity tracking.
+* **Directus Server-Side Pagination**: Responsive infinite scroll with initial 24-job fetch, batch +12 appending on scroll, dynamic Directus `meta` filter count evaluations, and callback-ref intersection observers.
 
 
 * Employee Reviews tab with total review count header badge and pagination controls.
@@ -240,6 +242,9 @@ Supported experiences include:
 
 ## Job Browse
 
+* **Standardized Job Card Layout**: Uniform equal-height grid cards with Next.js `<Image />` company avatars, clean single-line title truncation, structured metadata chips with location truncation, and bounded skills pills.
+* **Persistent Bottom Actions**: Pinned card footer displaying salary, quick-bookmark toggle, and view job details action across all card rows.
+* **Directus Server-Side Pagination & Infinite Scroll**: Initial server-side query fetching 24 jobs with debounced search and filters sent directly to Directus, and preloading scroll observer loading +12 job batches on scroll with total count metadata.
 * Public company profile links from job cards and job details.
 * Company logo and name navigation.
 * Opens company profiles in a separate browser tab.
@@ -282,23 +287,19 @@ Supported experiences include:
 * Shared reaction toggle API (`/api/shared/messaging/messages/[messageId]/reactions`) supporting optimistic toggle states with error rollback.
 * Click-and-hold (long-press) and drag-to-select gesture interaction with live hover animations.
 * Right-positioned quick reaction triggers and bottom-right overlapping reaction pill badges.
-* Animated party-popper (`🎉`) reaction triggering a localized micro-confetti burst animation via Framer Motion on user selection.
+* Fullscreen Hiring Celebration Surprise: Automatic detection of unread `HIRED` system messages upon opening a conversation, triggering a high-fidelity celebratory modal with multi-colored bursting confetti particles, glowing trophy visuals, and target job details.
+
 
 ---
 
 ## System Resilience & Outage Management
 
-VOS Sync includes dedicated infrastructure for detecting and communicating backend failures.
+VOS Sync includes dedicated infrastructure for detecting and communicating backend failures without disrupting active workflows.
 
-* Real-time `/api/health` monitoring.
-* Web server and Directus database connectivity checks.
-* Response latency measurement.
-* Next.js root and global error boundaries.
-* Dedicated `/server-down` and `/500` pages.
-* Retry Connection functionality.
-* On-demand health validation triggered by user action or page request.
-* Diagnostic status information with Philippine local-time timestamps.
-* Authentication-independent outage pages to avoid redirect loops during backend failures.
+* **Non-Disruptive Floating Outage Overlay**: System outage and service monitor rendered as a fixed modal backdrop overlay (`z-[9999] bg-black/60 backdrop-blur-md`) rather than destroying active page state, preserving user inputs, forms, and navigation context.
+* **In-Place Recovery & Diagnostics**: Real-time `/api/health` connectivity verification with live Web Server & Database Backend indicators, response latency, Philippine local-time (PST) timestamps, and in-place `reset()` reconnection.
+* **Dismissible Monitoring**: User dismiss action allowing workflow continuation if the disruption is non-critical.
+* **Dedicated Outage Pages**: Standalone `/server-down` and `/500` fallback routes configured to bypass authentication middleware to avoid redirect loops during infrastructure downtimes.
 
 ---
 
