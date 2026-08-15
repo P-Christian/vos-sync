@@ -69,7 +69,10 @@ export function useApplyJob() {
 
           const links = profile.social_links || [];
           const portfolioLink = links.find(
-            (l: { platform_name: string; profile_url: string }) => l.platform_name?.toLowerCase() === "portfolio"
+            (l: { platform_name: string; profile_url: string }) =>
+              l.platform_name?.toLowerCase() === "portfolio" ||
+              l.platform_name?.toLowerCase() === "personal portfolio" ||
+              l.platform_name?.toLowerCase()?.includes("portfolio")
           );
           if (portfolioLink?.profile_url) {
             prefill.portfolio_url = portfolioLink.profile_url;

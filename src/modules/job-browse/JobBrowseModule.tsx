@@ -1,7 +1,6 @@
-// src/modules/job-browse/JobBrowseModule.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Search, AlertCircle, Briefcase } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useJobBrowse } from "./hooks/useJobBrowse";
@@ -19,10 +18,14 @@ import { PublicJobPosting } from "./types";
 export default function JobBrowseModule() {
   const {
     jobs,
-    allJobs,
-    appliedJobIds,
+    totalCount,
+    filteredCount,
+    hasMore,
+    loadMore,
     loading,
+    loadingMore,
     error,
+    appliedJobIds,
     search,
     setSearch,
     filterJobType,
@@ -35,6 +38,7 @@ export default function JobBrowseModule() {
     sheetOpen,
     applyModalOpen,
     fetchJobs,
+    fetchApplications,
     openDetail,
     closeDetail,
     openApply,
@@ -45,26 +49,94 @@ export default function JobBrowseModule() {
   const userProfile = useUserProfile();
   const isGuest = !userProfile || userProfile.email === "guest@example.com";
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchJobs();
     if (!isGuest) {
       fetchBookmarks();
+      fetchApplications();
     }
-  }, [fetchJobs, fetchBookmarks, isGuest]);
+  }, [fetchBookmarks, fetchApplications, isGuest]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && allJobs.length > 0) {
+    if (typeof window !== "undefined" && jobs.length > 0) {
       const params = new URLSearchParams(window.location.search);
       const openJobId = params.get("open_job");
       if (openJobId) {
-        const matched = allJobs.find((j) => j.job_id === Number(openJobId));
+        const matched = jobs.find((j) => j.job_id === Number(openJobId));
         if (matched) {
           openDetail(matched);
         }
       }
     }
-  }, [allJobs, openDetail]);
+  }, [jobs, openDetail]);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Callback Ref: mounts and observes immediately when DOM node is attached, regardless of AnimatePresence
+  const sentinelCallbackRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+
+      if (!node || !hasMore || loading || loadingMore) return;
+
+      const scrollContainer = node.closest("main") || null;
+
+      console.log("[JobBrowseModule] 📌 Sentinel mounted into DOM. Target scrollContainer:", scrollContainer?.tagName || "WINDOW");
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            console.log("[JobBrowseModule] 👁️ Sentinel intersected viewport -> calling loadMore()");
+            loadMore();
+          }
+        },
+        {
+          root: scrollContainer,
+          rootMargin: "500px",
+        }
+      );
+
+      observer.observe(node);
+      observerRef.current = observer;
+    },
+    [hasMore, loading, loadingMore, loadMore]
+  );
+
+  // Global capture scroll listener on window/document/main
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+
+    const handleScroll = (e: Event) => {
+      const target = (e.target as HTMLElement) || document.documentElement;
+      let nearBottom = false;
+
+      if (target instanceof HTMLElement && target.scrollHeight > target.clientHeight) {
+        const { scrollTop, scrollHeight, clientHeight } = target;
+        if (scrollHeight - (scrollTop + clientHeight) < 600) {
+          nearBottom = true;
+        }
+      }
+
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 600) {
+        nearBottom = true;
+      }
+
+      if (nearBottom) {
+        console.log("[JobBrowseModule] 📜 Scroll triggered near bottom -> calling loadMore()");
+        loadMore();
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+    };
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   const handleApply = (job: PublicJobPosting) => {
     if (isGuest) {
@@ -105,7 +177,7 @@ export default function JobBrowseModule() {
             <div>
               <h1 className="text-xl font-bold tracking-tight">Find Work</h1>
               <p className="text-sm text-zinc-300 mt-1">
-                {allJobs.length} active job{allJobs.length !== 1 ? "s" : ""} available
+                {totalCount} active job{totalCount !== 1 ? "s" : ""} available
               </p>
             </div>
           </div>
@@ -129,8 +201,8 @@ export default function JobBrowseModule() {
           onArrangementChange={setFilterArrangement}
           filterExperience={filterExperience}
           onExperienceChange={setFilterExperience}
-          totalCount={allJobs.length}
-          filteredCount={jobs.length}
+          totalCount={totalCount}
+          filteredCount={filteredCount}
         />
 
         {/* Job Grid */}
@@ -168,31 +240,61 @@ export default function JobBrowseModule() {
               </div>
             </motion.div>
           ) : (
-            <motion.div
-              key={`freelancer-jobs-grid-${search}-${filterJobType}-${filterArrangement}-${filterExperience}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-            >
-              {jobs.map((job, idx) => (
-                <motion.div
-                  key={job.job_id}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(idx * 0.04, 0.3) }}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                >
-                  <JobBrowseCard
-                    job={job}
-                    onViewDetail={openDetail}
-                    isBookmarked={bookmarkedJobIds.includes(job.job_id)}
-                    onToggleBookmark={handleToggleBookmark}
-                  />
-                </motion.div>
-              ))}
-            </motion.div>
+            <div className="space-y-6">
+              <motion.div
+                key={`freelancer-jobs-grid-${filterJobType}-${filterArrangement}-${filterExperience}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+              >
+                {jobs.map((job, idx) => (
+                  <motion.div
+                    key={job.job_id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min((idx % 12) * 0.04, 0.3) }}
+                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                    className="h-full"
+                  >
+                    <JobBrowseCard
+                      job={job}
+                      onViewDetail={openDetail}
+                      isBookmarked={bookmarkedJobIds.includes(job.job_id)}
+                      onToggleBookmark={handleToggleBookmark}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Seamless preloading sentinel */}
+              {hasMore && (
+                <div ref={sentinelCallbackRef} className="h-14 w-full flex items-center justify-center py-4">
+                  <button
+                    type="button"
+                    onClick={() => loadMore()}
+                    disabled={loadingMore}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border/50 transition-colors"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="h-3.5 w-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                        <span>Loading more jobs...</span>
+                      </>
+                    ) : (
+                      <span>Loading more jobs...</span>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {!hasMore && jobs.length > 0 && (
+                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                  <span>Showing all {filteredCount} job{filteredCount !== 1 ? "s" : ""}</span>
+                </div>
+              )}
+            </div>
           )}
         </AnimatePresence>
       </div>
@@ -214,7 +316,7 @@ export default function JobBrowseModule() {
         job={selectedJob}
         open={applyModalOpen}
         onClose={closeApply}
-        onSuccess={fetchJobs}
+        onSuccess={() => fetchJobs(true)}
       />
 
       {/* Register Required Modal */}
