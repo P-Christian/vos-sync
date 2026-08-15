@@ -5,7 +5,6 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 ## Key Features
 
 ### VOS Admin
-
 #### Gemini AI Service Monitoring
 
 * Centralized `callGeminiMonitored()` wrapper for all Gemini API calls.
@@ -50,16 +49,40 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 
 
+### Client Dashboard (Employer Command Center)
+
+#### High-Level Hiring Aggregation Layer
+
+* Aggregated employer command center (`/client/dashboard`) answering *"What is happening and what should I do next?"* without duplicating full sidebar module functionality.
+* 7 core functional sections: Personalized Header with Post a Job CTA, 4-card KPI summary grid, interactive Hiring Overview time-series chart (7d/30d/3m/6m), top Job Performance table, Recent Applicants with match score preview, upcoming interview timeline widget, and prioritized Action Required checklist.
+* Fluid motion transitions and staggered entrance animations powered by Framer Motion.
+* Optimistic UI interactions for dismissing and resolving urgent action items.
+* Full theme token compliance with zero hardcoded color values.
+
+---
+
 ### Jobs Posting
 
-
+#### Database-Backed Role Taxonomy Integration & Canonical Categories
+* **Single Source of Truth (`vs_role_category`)**: Decoupled 3-tier taxonomy (`Category` $\rightarrow$ `Role` $\rightarrow$ `Skills`) sourcing canonical role families directly from Directus database table `vs_role_category` via dedicated client endpoints and cached custom hook (`useRoleCategories`).
+* **Searchable Category Combobox & Controlled Suggestions**: In-form searchable combobox with real-time text matching, candidate descriptions, and an integrated category suggestion modal (`SuggestCategoryModal`) featuring AI semantic deduplication pre-checks to protect taxonomy integrity while preventing employer posting friction.
+* **Referential Integrity**: Jobs maintain explicit foreign key mapping `category_id` $\rightarrow$ `vs_role_category(category_id)` alongside backwards-compatible legacy fallback resolution.
+* **Unified Search, Multi-Filter Toolbar & ATS Workflow**: Real-time client-side search across Job Title, Department, and Location, paired with a searchable Category combobox, Employment Type selector, Work Arrangement filter, and Status filter.
+* **Interactive Job Cards**: Full card click-to-preview with a 2-second hover tooltip, dedicated right-side ATS "View Applicants" primary action, and centralized job editing and live status controls inside the preview drawer.
+* **Framer Motion Animations**: Staggered card entrance transitions, smooth list reordering (`AnimatePresence` + `layout="position"`), and responsive hover lift states.
 
 #### Rule-Based Skill Intelligence
 
 * Reusable global skill-matching engine.
 * Exact, alias, technology-relation, hierarchy, and category-based matching.
-* Supports database-backed skill taxonomies without modifying the existing master skill schema.
-* Integrated into candidate matching and applicant ranking.
+### Applicant Management & Candidate Review
+
+* **Comprehensive Candidate Review Modal**: Responsive dual-column layout separating high-level profile overview, contact information, metrics, screening Q&A, and compensation from deep candidate history (experience timeline, education, certifications, and document attachments).
+* **Screening Questions & Responses**: Complete question-by-question candidate response display with individual unanswered indicators and a dedicated `"No screening answers submitted"` fallback state.
+* **Dynamic Candidate Avatars**: High-fidelity candidate profile pictures with Directus asset proxying, safe URL fallbacks, smooth `<Image />` loading, and initials badges.
+* **Inline Document Previews**: Interactive single-click document preview modal for Cover Letters and Resumes with full PDF/document viewer support and direct download links.
+* **Portfolio Website Integration**: Direct link display for candidate portfolio websites across Contact Information, Compensation & Portfolio, and Social Links with automatic profile fallback resolution.
+* **Strict Contextual ATS Action Workflow**: Contextual status transitions (`APPLIED` $\rightarrow$ `UNDER_REVIEW` [automatic upon candidate profile view or manual], `UNDER_REVIEW` $\rightarrow$ `SHORTLISTED`/`REJECTED`, `SHORTLISTED` $\rightarrow$ `INTERVIEWING` [system-driven on interview creation], `INTERVIEWING` $\rightarrow$ `HIRED`/`REJECTED` [system-driven on final evaluation]), contextual action gates (`Schedule Interview`, `View Interview`), and decoupled recruitment vs session lifecycle management.
 
 ### Best Match AI
 
@@ -83,11 +106,14 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Single-candidate and batch-candidate interviews.
 * Candidate-specific attendance, feedback, and decision tracking.
 * Custom date and time selection interface.
-* Automatic exclusion of rejected and withdrawn applicants.
-* 15-minute scheduling buffer between interviews.
+* Optional 15-minute scheduling buffer toggle between interviews with real-time overlap validation.
+* Intelligent next-available time suggestions on conflicts and visual distinction for buffer periods.
 * Server-side overlap validation with `409 Conflict` protection.
 * Real-time availability indicators and conflict detection.
 * Candidate-aware calendar labels and detailed schedule popovers.
+* Smart calendar cell event overflow handling with interactive date click and day agenda modal: clicking any calendar date number or overflow badge opens a comprehensive day modal with full interview cards or an empty state with a `"Schedule Interview on this Date"` shortcut.
+* Strict attendee eligibility gate: only `SHORTLISTED` (first round) and `INTERVIEWING` (additional rounds) candidates appear in the scheduling form, with active session deduplication preventing new bookings while an intermediate interview remains uncompleted.
+* Decoupled recruitment lifecycle: interview scheduling, rescheduling, cancellation, and intermediate completion do not mutate `application_status` (maintains `INTERVIEWING`), keeping candidates eligible for subsequent rounds without state conflation or status drift.
 * Read-only evaluation locking for completed or cancelled interviews.
 * Strict company-scoped scheduling isolation.
 
@@ -248,6 +274,15 @@ Supported experiences include:
 * Real-time conversation list previews (`last_message_preview`) decrypted dynamically.
 * Structured fallback for unencrypted legacy messages and graceful decryption error handling.
 * Preserves structured JSON payload queries for system-generated recruitment and interview events (`message_type: "SYSTEM"`).
+
+### Interactive Message Reactions
+
+* Curated professional 8-emoji reaction palette (`👍`, `❤️`, `😂`, `🎉`, `🔥`, `👀`, `🙏`, `❓`).
+* Dedicated relational reaction storage (`vs_message_reaction`) keeping reaction aggregations fast without modifying encrypted `message_content`.
+* Shared reaction toggle API (`/api/shared/messaging/messages/[messageId]/reactions`) supporting optimistic toggle states with error rollback.
+* Click-and-hold (long-press) and drag-to-select gesture interaction with live hover animations.
+* Right-positioned quick reaction triggers and bottom-right overlapping reaction pill badges.
+* Animated party-popper (`🎉`) reaction triggering a localized micro-confetti burst animation via Framer Motion on user selection.
 
 ---
 
