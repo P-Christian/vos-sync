@@ -32,10 +32,10 @@ export default function RecentApplicants({ applicants }: RecentApplicantsProps) 
             Shortlisted
           </Badge>
         );
-      case "INTERVIEW_SCHEDULED":
+      case "INTERVIEWING":
         return (
           <Badge variant="outline" className="bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-300">
-            Interview Scheduled
+            Interviewing
           </Badge>
         );
       case "APPLIED":
