@@ -50,5 +50,8 @@ next-env.d.ts
 
 
 zmine/
+ztest/
 /scratch
 /zdata
+progress_report.md
+.gitignore
