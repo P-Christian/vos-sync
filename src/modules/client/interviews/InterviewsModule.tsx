@@ -24,6 +24,13 @@ import {
 import { CalendarDays, AlertCircle, Plus, Filter, Search, Calendar, List } from "lucide-react";
 import { Interview, InterviewFormData, InterviewStatus } from "./types";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 
 export default function InterviewsModule() {
@@ -83,7 +90,10 @@ export default function InterviewsModule() {
   const [interviewToCancel, setInterviewToCancel] = useState<Interview | null>(null);
 
   const searchParams = useSearchParams();
-  const targetInterviewId = searchParams.get("interview_id");
+  const targetInterviewId =
+    searchParams.get("interviewId") ||
+    searchParams.get("interview_id") ||
+    searchParams.get("id");
 
   useEffect(() => {
     loadInterviews();
@@ -324,21 +334,43 @@ export default function InterviewsModule() {
               </div>
 
               {/* Filter */}
-              <div className="flex items-center gap-1.5">
-                <Filter className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                <select
+              <div className="flex items-center min-w-[150px]">
+                <Select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as InterviewStatus | "ALL")}
-                  className="h-8 px-2.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                  onValueChange={(val) => setFilterStatus(val as InterviewStatus | "ALL")}
                 >
-                  <option value="ALL">All Statuses</option>
-                  <option value="SCHEDULED">Scheduled</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="RESCHEDULED">Rescheduled</option>
-                  <option value="COMPLETED">Completed</option>
-                  <option value="CANCELLED">Cancelled</option>
-                  <option value="NO_SHOW">No Show</option>
-                </select>
+                  <SelectTrigger className="h-8 text-xs rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 gap-1.5 px-2.5 shadow-2xs font-semibold">
+                    <Filter className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                    <SelectValue placeholder="All Statuses" />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="text-xs">
+                    <SelectItem value="ALL" className="text-xs font-medium">All Statuses</SelectItem>
+                    <SelectItem value="SCHEDULED" className="text-xs font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-indigo-500 shrink-0" />
+                        <span>Scheduled</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="RESCHEDULED" className="text-xs font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                        <span>Rescheduled</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="COMPLETED" className="text-xs font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
+                        <span>Completed</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="CANCELLED" className="text-xs font-medium">
+                      <div className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
+                        <span>Cancelled</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardHeader>

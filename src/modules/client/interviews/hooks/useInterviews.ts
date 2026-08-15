@@ -27,6 +27,7 @@ export const EMPTY_FORM: InterviewFormData = {
   meeting_link: "",
   meeting_location: "",
   interview_notes: "",
+  include_buffer: true,
 };
 
 export function useInterviews() {

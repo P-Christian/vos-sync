@@ -69,6 +69,7 @@ export interface InterviewFormData {
   meeting_link: string;
   meeting_location: string;
   interview_notes: string;
+  include_buffer?: boolean;
 }
 
 export interface EvaluationFormData {

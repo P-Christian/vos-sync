@@ -25,7 +25,7 @@ interface InterviewDateTimePickerProps {
   scheduledDatesSet?: Set<string>;
   existingInterviews?: Interview[];
   dateInterviews?: Interview[];
-  getSlotStatus?: (timeSlot: string) => { isBooked: boolean; booking?: Interview };
+  getSlotStatus?: (timeSlot: string, dateStr?: string) => { isBooked: boolean; isBuffer?: boolean; booking?: Interview };
   hasConflict?: boolean;
 }
 
@@ -46,6 +46,26 @@ const TIME_SLOTS = (() => {
   }
   return slots;
 })();
+
+export function formatSlotRange(timeSlot: string, durationMinutes: number = 60): { startStr: string; endStr: string; fullLabel: string } {
+  const parts = timeSlot.split(":");
+  const h = parseInt(parts[0] || "9", 10);
+  const m = parseInt(parts[1] || "0", 10);
+  const startMin = h * 60 + m;
+  const endMin = startMin + (durationMinutes || 60);
+
+  const toLabel = (totalMins: number) => {
+    const hours24 = Math.floor(totalMins / 60) % 24;
+    const mins = totalMins % 60;
+    const period = hours24 >= 12 ? "PM" : "AM";
+    const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+    return `${hours12}:${String(mins).padStart(2, "0")} ${period}`;
+  };
+
+  const startStr = toLabel(startMin);
+  const endStr = toLabel(endMin);
+  return { startStr, endStr, fullLabel: `${startStr} – ${endStr}` };
+}
 
 export function getInterviewDisplayLabel(iv: Interview): string {
   const apps = iv.applications ?? [];
@@ -123,6 +143,7 @@ export default function InterviewDateTimePicker({
   durationMinutes = 60,
   scheduledDatesSet = new Set(),
   existingInterviews = [],
+  dateInterviews = [],
   getSlotStatus,
   hasConflict,
 }: InterviewDateTimePickerProps) {
@@ -298,10 +319,10 @@ export default function InterviewDateTimePicker({
           <CalendarIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
           <span className="truncate">{displayLabel}</span>
         </div>
-        {scheduledDatesSet.size > 0 && (
+        {dateInterviews && dateInterviews.length > 0 && (
           <span className="flex items-center gap-1 text-[10px] font-extrabold text-rose-500 shrink-0 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/40">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-            {scheduledDatesSet.size} dates booked
+            {dateInterviews.length} interview{dateInterviews.length !== 1 ? "s" : ""} booked
           </span>
         )}
       </Button>
@@ -444,25 +465,46 @@ export default function InterviewDateTimePicker({
                       <span className="text-[10px] text-zinc-400 font-semibold">{selectedYMD}</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 max-h-60 overflow-y-auto p-1 pr-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto p-1 pr-2">
                       {TIME_SLOTS.map((timeSlot) => {
-                        const status = getSlotStatus ? getSlotStatus(timeSlot) : { isBooked: false };
+                        const status = getSlotStatus ? getSlotStatus(timeSlot, selectedYMD) : { isBooked: false };
                         const isSelected = parsed.time === timeSlot;
+                        const slotInfo = formatSlotRange(timeSlot, durationMinutes);
 
                         if (status.isBooked && status.booking) {
+                          if (status.isBuffer) {
+                            const bufferSlotInfo = formatSlotRange(timeSlot, 15);
+                            return (
+                              <div key={timeSlot} className="relative group">
+                                <Button
+                                  disabled
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full h-8 text-[11px] px-2 font-semibold rounded-lg border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-not-allowed opacity-85 flex items-center justify-between"
+                                >
+                                  <span className="flex items-center gap-1.5 truncate">
+                                    <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                                    <span className="truncate">{bufferSlotInfo.fullLabel}</span>
+                                  </span>
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300 shrink-0">Buffer (15m)</span>
+                                </Button>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div key={timeSlot} className="relative group">
                               <Button
                                 disabled
                                 variant="outline"
                                 size="sm"
-                                className="w-full h-8 text-[11px] px-2 font-semibold rounded-lg border-rose-200 bg-rose-50/60 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/40 dark:text-rose-400 cursor-not-allowed opacity-80 flex items-center justify-between"
+                                className="w-full h-8 text-[11px] px-2 font-semibold rounded-lg border-destructive/30 bg-destructive/10 text-destructive cursor-not-allowed opacity-80 flex items-center justify-between"
                               >
                                 <span className="flex items-center gap-1 truncate">
-                                  <Lock className="h-3 w-3 shrink-0 text-rose-500" />
-                                  <span className="truncate">{timeSlot}</span>
+                                  <Lock className="h-3 w-3 shrink-0 text-destructive" />
+                                  <span className="truncate">{slotInfo.fullLabel}</span>
                                 </span>
-                                <span className="text-[9px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 shrink-0">Booked</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-destructive shrink-0">Booked</span>
                               </Button>
                             </div>
                           );
@@ -472,8 +514,8 @@ export default function InterviewDateTimePicker({
                           <motion.button
                             key={timeSlot}
                             type="button"
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={() => handleSelectTime(timeSlot)}
                             className={cn(
                               "w-full h-8 text-[11px] px-2 font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer border",
@@ -482,12 +524,12 @@ export default function InterviewDateTimePicker({
                                 : "border-emerald-200/80 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
                             )}
                           >
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 truncate">
                               <CheckCircle className="h-3 w-3 shrink-0" />
-                              <span>{timeSlot}</span>
+                              <span className="truncate">{slotInfo.fullLabel}</span>
                             </span>
                             {isSelected && (
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-white">Selected</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-white shrink-0 ml-1">Selected</span>
                             )}
                           </motion.button>
                         );
