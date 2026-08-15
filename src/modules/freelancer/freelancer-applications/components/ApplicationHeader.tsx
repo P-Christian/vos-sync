@@ -42,7 +42,7 @@ export const ApplicationHeader: React.FC<Props> = ({
             <SelectItem value="ALL">All Statuses</SelectItem>
             <SelectItem value="APPLIED">Applied</SelectItem>
             <SelectItem value="SHORTLISTED">Shortlisted</SelectItem>
-            <SelectItem value="INTERVIEW_SCHEDULED">Interview Scheduled</SelectItem>
+            <SelectItem value="INTERVIEWING">Interviewing</SelectItem>
             <SelectItem value="HIRED">Hired</SelectItem>
             <SelectItem value="REJECTED">Rejected</SelectItem>
           </SelectContent>

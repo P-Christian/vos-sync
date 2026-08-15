@@ -20,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Applicant, ApplicationStatus, STATUS_LABELS, STATUS_FLOW } from "../types";
-import { AlertCircle } from "lucide-react";
+import { Applicant, ApplicationStatus, STATUS_LABELS, ALLOWED_STATUS_TRANSITIONS } from "../types";
+import { AlertCircle, Info } from "lucide-react";
 
 interface StatusUpdateDrawerProps {
   applicant: Applicant | null;
@@ -44,20 +44,24 @@ export default function StatusUpdateDrawer({
   saving,
   error,
 }: StatusUpdateDrawerProps) {
+  const currentStatus = applicant?.application_status ?? "APPLIED";
+  const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[currentStatus] ?? [];
+
   const [selectedStatus, setSelectedStatus] = useState<ApplicationStatus>(
-    applicant?.application_status ?? "APPLIED"
+    allowedTransitions[0] ?? currentStatus
   );
   const [notes, setNotes] = useState(applicant?.client_notes ?? "");
 
   React.useEffect(() => {
     if (applicant) {
-      setSelectedStatus(applicant.application_status);
+      const allowed = ALLOWED_STATUS_TRANSITIONS[applicant.application_status] ?? [];
+      setSelectedStatus(allowed[0] ?? applicant.application_status);
       setNotes(applicant.client_notes ?? "");
     }
   }, [applicant]);
 
   const handleSave = async () => {
-    if (!applicant) return;
+    if (!applicant || allowedTransitions.length === 0) return;
     await onSave(applicant.application_id, selectedStatus, notes);
   };
 
@@ -84,33 +88,51 @@ export default function StatusUpdateDrawer({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-              Status <span className="text-rose-500">*</span>
-            </Label>
-            <Select
-              value={selectedStatus}
-              onValueChange={(v) => setSelectedStatus(v as ApplicationStatus)}
-            >
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_FLOW.map((s) => (
-                  <SelectItem key={s} value={s} className="text-sm">
-                    {STATUS_LABELS[s]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {allowedTransitions.length > 0 ? (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                New Status <span className="text-rose-500">*</span>
+              </Label>
+              <Select
+                value={selectedStatus}
+                onValueChange={(v) => setSelectedStatus(v as ApplicationStatus)}
+              >
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedTransitions.map((s) => (
+                    <SelectItem key={s} value={s} className="text-sm">
+                      {STATUS_LABELS[s]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-xs text-muted-foreground">
+              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-foreground">
+                  Current Status: {STATUS_LABELS[currentStatus]}
+                </p>
+                <p className="mt-1 leading-relaxed">
+                  {currentStatus === "INTERVIEWING"
+                    ? "Active interviews are managed directly from the Interview Workspace. You can reschedule or cancel the session from there."
+                    : currentStatus === "HIRED" || currentStatus === "REJECTED"
+                    ? "This candidate is in a terminal status and cannot be transitioned manually."
+                    : "No manual status transitions are available for this candidate."}
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label
               htmlFor="status-notes"
               className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
             >
-              client Notes (optional)
+              Internal Notes (optional)
             </Label>
             <Textarea
               id="status-notes"
@@ -132,13 +154,15 @@ export default function StatusUpdateDrawer({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="h-9 text-sm rounded-lg"
-          >
-            {saving ? "Saving..." : "Save Status"}
-          </Button>
+          {allowedTransitions.length > 0 && (
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="h-9 text-sm rounded-lg"
+            >
+              {saving ? "Saving..." : "Save Status"}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

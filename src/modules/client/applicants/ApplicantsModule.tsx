@@ -36,6 +36,15 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   const jobIdParam = searchParams.get("job_id");
   const tabParam = searchParams.get("tab");
+  const applicantIdParam =
+    searchParams.get("applicantId") ||
+    searchParams.get("applicant_id") ||
+    searchParams.get("applicationId") ||
+    searchParams.get("application_id") ||
+    searchParams.get("id");
+
+  const effectiveApplicationId =
+    initialApplicationId || (applicantIdParam ? parseInt(applicantIdParam, 10) : undefined);
 
   const [showBestMatches, setShowBestMatches] = useState<boolean>(tabParam === "best-matches");
 
@@ -77,21 +86,21 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(() => Boolean(initialApplicationId));
+  const [detailOpen, setDetailOpen] = useState(() => Boolean(effectiveApplicationId));
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
 
-  // Sync selectedApplicant from applicants list if initialApplicationId is passed
+  // Sync selectedApplicant from applicants list if effectiveApplicationId is passed
   const [syncedInitialId, setSyncedInitialId] = useState<number | null>(null);
   if (
-    initialApplicationId &&
+    effectiveApplicationId &&
     applicants.length > 0 &&
-    syncedInitialId !== initialApplicationId
+    syncedInitialId !== effectiveApplicationId
   ) {
-    const found = applicants.find((a) => a.application_id === initialApplicationId);
+    const found = applicants.find((a) => a.application_id === effectiveApplicationId);
     if (found) {
-      setSyncedInitialId(initialApplicationId);
+      setSyncedInitialId(effectiveApplicationId);
       setSelectedApplicant(found);
     }
   }
@@ -107,10 +116,11 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   }, [fetchApplicants, filterStatus, jobId]);
 
   useEffect(() => {
-    if (initialApplicationId) {
-      fetchApplicantDetail(initialApplicationId);
+    if (effectiveApplicationId) {
+      fetchApplicantDetail(effectiveApplicationId);
+      setDetailOpen(true);
     }
-  }, [initialApplicationId, fetchApplicantDetail]);
+  }, [effectiveApplicationId, fetchApplicantDetail]);
 
   const handleJobChange = (value: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -146,7 +156,11 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   };
 
   const handleViewDetails = (applicant: Applicant) => {
-    setSelectedApplicant(applicant);
+    if (applicant.application_status === "APPLIED") {
+      setSelectedApplicant({ ...applicant, application_status: "UNDER_REVIEW" });
+    } else {
+      setSelectedApplicant(applicant);
+    }
     fetchApplicantDetail(applicant.application_id);
     setDetailOpen(true);
   };
