@@ -1,6 +1,6 @@
-// src/app/api/client/interviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
+import { createSystemMessage } from "@/lib/messaging/system-message";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -329,12 +329,36 @@ export async function PATCH(
                         }).catch((e) => console.error("Rejection mail error:", e));
                       }
                     }
+
+                    // Create System Message in conversation for HIRED / REJECTED
+                    if (decision === "HIRED" || decision === "REJECTED") {
+                      const systemText =
+                        decision === "HIRED"
+                          ? "Client hired you."
+                          : "Application status changed: REJECTED";
+
+                      const statusEventType =
+                        decision === "HIRED" ? "HIRED" : "APPLICATION_STATUS_CHANGED";
+
+                      await createSystemMessage({
+                        clientId: userId,
+                        freelancerId: applicationObj.user_id,
+                        jobId: applicationObj.job_id ?? null,
+                        text: systemText,
+                        senderId: userId,
+                        systemEventType: statusEventType,
+                        applicationId: jaData.application_id ?? null,
+                        interviewId: jaData.interview_id ?? null,
+                      }).catch((e) =>
+                        console.error("Status change system message error on interview evaluate:", e)
+                      );
+                    }
                   }
                 }
               }
             }
           } catch (evalMailErr) {
-            console.error("Error sending evaluation email:", evalMailErr);
+            console.error("Error sending evaluation email/system message:", evalMailErr);
           }
         }
       }
