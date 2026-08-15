@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function ServerDownPage() {
-    return <ServerDownContent title="Server & Database Maintenance" errorCode="503_DATABASE_DOWN" />;
+    return <ServerDownContent title="Server & Database Maintenance" errorCode="503_DATABASE_DOWN" isOverlay={false} />;
 }
