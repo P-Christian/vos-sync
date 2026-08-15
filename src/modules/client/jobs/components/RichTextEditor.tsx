@@ -41,7 +41,7 @@ export function RichTextEditor({
     if (editorRef.current) {
       const targetHtml = formatToHtml(value);
       const currentHtml = editorRef.current.innerHTML;
-      if (!currentHtml && targetHtml) {
+      if (currentHtml !== targetHtml && document.activeElement !== editorRef.current) {
         editorRef.current.innerHTML = targetHtml;
       }
     }
@@ -113,6 +113,61 @@ export function RichTextEditor({
             e.preventDefault();
             node.textContent = text.substring(range.startOffset);
             exec("insertOrderedList");
+            return;
+          }
+        }
+      }
+    }
+
+    // Handle Enter key inside an empty list item to exit list
+    if (e.key === "Enter" && !e.shiftKey) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        let node: Node | null = range.startContainer;
+        let liElement: HTMLLIElement | null = null;
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === "LI") {
+            liElement = node as HTMLLIElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        if (liElement) {
+          const liText = (liElement.textContent || "").replace(/\u200B/g, "").trim();
+          if (!liText) {
+            e.preventDefault();
+            e.stopPropagation();
+            exec("insertUnorderedList");
+            return;
+          }
+        }
+      }
+    }
+
+    // Handle Backspace at beginning of list item or empty list item to remove bullet
+    if (e.key === "Backspace") {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0 && selection.isCollapsed) {
+        const range = selection.getRangeAt(0);
+        let node: Node | null = range.startContainer;
+        let liElement: HTMLLIElement | null = null;
+        while (node && node !== editorRef.current) {
+          if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === "LI") {
+            liElement = node as HTMLLIElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+
+        if (liElement) {
+          const isAtStart = range.startOffset === 0 && (node === liElement || node === liElement.firstChild);
+          const isEmpty = (liElement.textContent || "").replace(/\u200B/g, "").trim() === "";
+          if (isAtStart || isEmpty) {
+            e.preventDefault();
+            e.stopPropagation();
+            exec("insertUnorderedList");
             return;
           }
         }

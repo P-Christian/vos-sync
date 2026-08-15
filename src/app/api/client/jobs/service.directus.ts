@@ -43,6 +43,7 @@ interface DirectusJobPosting {
   job_location: string;
   job_department?: string | null;
   job_description?: string;
+  category_id?: number | null;
   job_category?: string;
   work_arrangement?: string;
   number_of_openings?: number;
@@ -240,6 +241,7 @@ function mapToFrontendJob(
 ): JobPosting {
   const descriptionObj = {
     text: rawJob.job_description || "",
+    category_id: rawJob.category_id != null ? Number(rawJob.category_id) : null,
     job_category: rawJob.job_category || "",
     work_arrangement: rawJob.work_arrangement || "Remote",
     number_of_openings: String(rawJob.number_of_openings || 1),
@@ -275,6 +277,7 @@ function mapToFrontendJob(
     created_at: rawJob.created_at,
     updated_at: rawJob.updated_at,
     // Flat fields fallback
+    category_id: rawJob.category_id != null ? Number(rawJob.category_id) : null,
     job_category: rawJob.job_category,
     work_arrangement: rawJob.work_arrangement,
     number_of_openings: String(rawJob.number_of_openings || 1),
@@ -291,6 +294,7 @@ function mapToFrontendJob(
 
 interface ParsedPayloadDescription {
   text?: string;
+  category_id?: number | null;
   job_category?: string;
   work_arrangement?: string;
   number_of_openings?: string | number;
@@ -324,6 +328,7 @@ function parsePayload(payload: Record<string, unknown>) {
   if (payload.status !== undefined) jobPayload.status = String(payload.status);
   if (payload.created_at !== undefined) jobPayload.created_at = String(payload.created_at);
   if (payload.updated_at !== undefined) jobPayload.updated_at = String(payload.updated_at);
+  if (payload.category_id !== undefined) jobPayload.category_id = payload.category_id != null ? Number(payload.category_id) : null;
 
   let skills: { id: number; skill_name?: string; source?: string; confidence_score?: number | null }[] | undefined = undefined;
   let benefits: string[] | undefined = undefined;
@@ -341,6 +346,7 @@ function parsePayload(payload: Record<string, unknown>) {
       parsedDesc = (payload.job_description as ParsedPayloadDescription) || {};
     }
     jobPayload.job_description = parsedDesc.text || "";
+    jobPayload.category_id = parsedDesc.category_id != null ? Number(parsedDesc.category_id) : (jobPayload.category_id ?? null);
     jobPayload.job_category = parsedDesc.job_category || "";
     jobPayload.work_arrangement = parsedDesc.work_arrangement || "Remote";
     jobPayload.number_of_openings = Number(parsedDesc.number_of_openings || 1);
@@ -366,6 +372,16 @@ function parsePayload(payload: Record<string, unknown>) {
     skills = parsedReqs.skills || [];
     benefits = parsedReqs.benefits || [];
     screeningQuestions = parsedReqs.screening_questions || [];
+  }
+
+  if (payload.skills !== undefined && Array.isArray(payload.skills)) {
+    skills = payload.skills as { id: number; skill_name?: string; source?: string; confidence_score?: number | null }[];
+  }
+  if (payload.benefits !== undefined && Array.isArray(payload.benefits)) {
+    benefits = payload.benefits as string[];
+  }
+  if (payload.screening_questions !== undefined && Array.isArray(payload.screening_questions)) {
+    screeningQuestions = payload.screening_questions as string[];
   }
 
   return { jobPayload, skills, benefits, screeningQuestions };

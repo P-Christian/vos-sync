@@ -11,6 +11,15 @@ export type JobSkill = {
   confidence_score?: number | null;
 }
 export type SalaryType = 'Salary Range' | 'Fixed Salary' | 'Hourly Rate';
+
+export interface RoleCategory {
+  category_id: number;
+  category_code: string;
+  category_name: string;
+  description?: string | null;
+  is_active?: boolean;
+}
+
 export interface JobPosting {
   job_id: number;
   company_id: number;
@@ -28,6 +37,7 @@ export interface JobPosting {
   applicants_count?: number;
   created_at?: string;
   updated_at?: string;
+  category_id?: number | null;
   job_category?: string;
   work_arrangement?: string;
   number_of_openings?: string;
@@ -82,6 +92,7 @@ export interface PublicJobPosting {
   company_youtube?: string | null;
 
   job_title: string;
+  category_id?: number | null;
   job_category: string;
   job_type: JobType;
   work_arrangement: WorkArrangement;
@@ -136,6 +147,7 @@ export interface JobFormData {
   salary_negotiable: boolean;
   experience_level: ExperienceLevel | "";
   status: JobStatus;
+  category_id?: number | null;
   job_category?: string;
   work_arrangement?: string;
   number_of_openings?: string;

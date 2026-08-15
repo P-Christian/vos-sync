@@ -10,8 +10,17 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Link from "next/link";
 import {
   MapPin,
   Briefcase,
@@ -24,17 +33,19 @@ import {
   Mail,
   Phone,
   Facebook,
-
   Instagram,
   Youtube,
+  Pencil,
 } from "lucide-react";
-import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
+import { PublicJobPosting, JobPosting, JobStatus, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
 
 interface Props {
   job: PublicJobPosting | null;
   open: boolean;
   onClose: () => void;
-  onApply: (job: PublicJobPosting) => void;
+  onApply?: (job: PublicJobPosting) => void;
+  onEdit?: (job: JobPosting) => void;
+  onStatusChange?: (jobId: number, newStatus: JobStatus) => void;
   appliedJobIds?: number[];
 }
 
@@ -73,17 +84,18 @@ function getImageUrl(value: string | null | undefined): string {
   return `/api/client/assets/${value}`;
 }
 
-const parseJsonField = (value: string | null | undefined): Record<string, unknown> => {
-  if (!value) return {};
+const parseJsonField = (value: string | null | undefined): { text: string; extra: Record<string, unknown> } => {
+  if (!value) return { text: "", extra: {} };
   const trimmed = value.trim();
   if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
     try {
-      return JSON.parse(trimmed);
+      const parsed = JSON.parse(trimmed);
+      return { text: (parsed.text as string) ?? "", extra: parsed };
     } catch {
       // ignore
     }
   }
-  return {};
+  return { text: value, extra: {} };
 };
 
 const renderInlineMarkdown = (str: string) => {
@@ -116,17 +128,32 @@ const renderInlineMarkdown = (str: string) => {
 
 function renderFormattedContent(text: string | null | undefined) {
   if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
-  if (/<(b|strong|ul|ol|li|p|div|br)\b[^>]*>/i.test(text)) {
+
+  const trimmed = text.trim();
+  if (!trimmed || trimmed === "<p><br></p>" || trimmed === "<br>") {
+    return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
+  }
+
+  // If text contains HTML tags (from RichTextEditor), render with explicit bullet and list styling
+  if (/<(b|strong|ul|ol|li|p|div|br|span|em|i)\b[^>]*>/i.test(trimmed)) {
     return (
       <div
-        className="text-sm text-foreground/80 leading-relaxed space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold"
-        dangerouslySetInnerHTML={{ __html: text }}
+        className="text-sm text-foreground/85 leading-relaxed space-y-2 
+          [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-2 
+          [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:my-2 
+          [&_li]:leading-relaxed [&_li]:text-foreground/85
+          [&_b]:font-bold [&_b]:text-foreground 
+          [&_strong]:font-bold [&_strong]:text-foreground
+          [&_p]:my-1.5 [&_p]:leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: trimmed }}
       />
     );
   }
-  const blocks = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+
+  // Fallback for markdown or plain text with bullets (- , * , • , 1.)
+  const blocks = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {blocks.map((block, bIdx) => {
         const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
         const isList =
@@ -136,7 +163,7 @@ function renderFormattedContent(text: string | null | undefined) {
 
         if (isList) {
           return (
-            <ul key={bIdx} className="space-y-1.5 list-disc pl-4 text-sm text-foreground/80 leading-relaxed">
+            <ul key={bIdx} className="space-y-1.5 list-disc pl-5 text-sm text-foreground/85 leading-relaxed">
               {lines.map((line, lIdx) => {
                 const cleaned = line.replace(/^[-*•\d+\.]\s*/, "");
                 return <li key={lIdx}>{renderInlineMarkdown(cleaned)}</li>;
@@ -145,7 +172,7 @@ function renderFormattedContent(text: string | null | undefined) {
           );
         } else {
           return (
-            <p key={bIdx} className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+            <p key={bIdx} className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
               {renderInlineMarkdown(block)}
             </p>
           );
@@ -155,22 +182,22 @@ function renderFormattedContent(text: string | null | undefined) {
   );
 }
 
-export function JobDetailSheet({ job, open, onClose }: Props) {
+export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: Props) {
   if (!job) return null;
 
   const descData = parseJsonField(job.job_description);
   const reqsData = parseJsonField(job.job_requirements);
 
-  const descriptionText = (descData.text as string) || job.job_description || "";
-  const responsibilitiesText = (descData.job_responsibilities as string) || job.job_responsibilities || "";
-  const qualificationsText = (reqsData.job_qualifications as string) || job.job_qualifications || "";
-  const salaryType = (reqsData.salary_type as string) || job.salary_type || "Salary Range";
-  const arrangement = (descData.work_arrangement as string) || job.work_arrangement || "Remote";
-  const openings = (descData.number_of_openings as string) || job.number_of_openings || "1";
-  const education = (reqsData.education as string) || job.education || "";
-  const skills = (reqsData.skills as JobSkill[]) || job.skills || [];
-  const benefits = (reqsData.benefits as string[]) || job.benefits || [];
-  const screeningQuestions = (reqsData.screening_questions as string[]) || job.screening_questions || [];
+  const descriptionText = descData.text || job.job_description || "";
+  const responsibilitiesText = (descData.extra.job_responsibilities as string) || job.job_responsibilities || "";
+  const qualificationsText = (reqsData.extra.job_qualifications as string) || job.job_qualifications || "";
+  const salaryType = (reqsData.extra.salary_type as string) || job.salary_type || "Salary Range";
+  const arrangement = (descData.extra.work_arrangement as string) || job.work_arrangement || "Remote";
+  const openings = (descData.extra.number_of_openings as string) || job.number_of_openings || "1";
+  const education = (reqsData.extra.education as string) || job.education || "";
+  const skills = (reqsData.extra.skills as JobSkill[]) || job.skills || [];
+  const benefits = (reqsData.extra.benefits as string[]) || job.benefits || [];
+  const screeningQuestions = (reqsData.extra.screening_questions as string[]) || job.screening_questions || [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -192,9 +219,9 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex items-start gap-4">
+        <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0 bg-card">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="w-16 h-16 -mt-12 relative z-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-md font-bold text-foreground shrink-0 overflow-hidden shadow-xs">
                 {job.company_logo ? (
                   <img src={getImageUrl(job.company_logo)} alt={job.company?.company_name ?? ""} className="w-full h-full object-cover" />
@@ -212,15 +239,49 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
               </div>
             </div>
 
-            {/* <a
-              href={`/vos-sync/freelancer/jobs/${job.job_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline font-semibold shrink-0 mr-6"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Open job in a new window
-            </a> */}
+            {/* Actions in Sheet Header */}
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {onStatusChange && (
+                <Select
+                  value={job.status}
+                  onValueChange={(v) => onStatusChange(job.job_id, v as JobStatus)}
+                >
+                  <SelectTrigger className="h-8 text-xs font-semibold rounded-lg w-28 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ACTIVE" className="text-xs font-semibold text-primary">Active</SelectItem>
+                    <SelectItem value="DRAFT" className="text-xs font-semibold text-amber-600">Draft</SelectItem>
+                    <SelectItem value="CLOSED" className="text-xs font-semibold text-rose-600">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
+              {onEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    onClose();
+                    onEdit(job as any);
+                  }}
+                  className="h-8 px-3 text-xs gap-1.5 rounded-lg border-border hover:border-primary hover:text-primary font-semibold"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit Job
+                </Button>
+              )}
+
+              <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}`}>
+                <Button
+                  size="sm"
+                  className="h-8 px-3 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  View Applicants
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Quick meta */}
