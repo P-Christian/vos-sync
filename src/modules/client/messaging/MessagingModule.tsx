@@ -49,6 +49,7 @@ export default function MessagingModule({
     refreshMessages,
     send,
     upload,
+    toggleReaction,
     clearMessages,
   } = useMessages();
 
@@ -252,6 +253,7 @@ export default function MessagingModule({
                     onRefresh={handleRefreshMessages}
                     onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
                     onBack={() => setMobileShowChat(false)}
+                    onToggleReaction={toggleReaction}
                   />
                 </div>
               ) : (

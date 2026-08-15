@@ -3,6 +3,7 @@
 import {
   Conversation,
   Message,
+  MessageReactionGroup,
   CreateConversationPayload,
   SendMessagePayload,
 } from "../types";
@@ -106,4 +107,20 @@ export async function uploadFile(file: File): Promise<{
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Failed to upload file.");
   return json;
+}
+
+// ─── Toggle message reaction ───────────────────────────────────────────────
+
+export async function toggleReaction(
+  messageId: number,
+  reaction: string
+): Promise<MessageReactionGroup[]> {
+  const res = await fetch(`/api/shared/messaging/messages/${messageId}/reactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reaction }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Failed to toggle reaction.");
+  return json.reactions ?? [];
 }

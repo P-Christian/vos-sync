@@ -41,6 +41,21 @@ export interface Conversation {
   last_message_preview?: string;
 }
 
+export const ALLOWED_REACTIONS = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "🙏", "❓"] as const;
+export type ReactionEmoji = (typeof ALLOWED_REACTIONS)[number];
+
+export interface MessageReactionUser {
+  user_id: number;
+  user_name: string;
+}
+
+export interface MessageReactionGroup {
+  reaction: string;
+  count: number;
+  users: MessageReactionUser[];
+  reacted_by_me: boolean;
+}
+
 export interface Message {
   message_id: number;
   conversation_id: number;
@@ -53,6 +68,7 @@ export interface Message {
   is_deleted: boolean;
   attachments: MessageAttachment[];
   system_message?: SystemMessageData | null;
+  reactions?: MessageReactionGroup[];
 }
 
 export interface MessageAttachment {

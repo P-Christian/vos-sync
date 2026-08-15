@@ -8,6 +8,7 @@ import {
   fetchMessages,
   sendMessage,
   uploadFile,
+  toggleReaction,
 } from "../providers/MessagingProvider";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 
@@ -189,6 +190,101 @@ export function useMessages() {
     }
   }, []);
 
+  // ─── Toggle reaction ──────────────────────────────────────────────────
+
+  const toggleMessageReaction = useCallback(
+    async (messageId: number, reaction: string) => {
+      // Optimistic update
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.message_id !== messageId) return msg;
+          const currentReactions = msg.reactions ?? [];
+
+          // Remove any other reaction currently reacted by me
+          let nextReactions = currentReactions
+            .map((r) => {
+              if (r.reacted_by_me && r.reaction !== reaction) {
+                return { ...r, count: r.count - 1, reacted_by_me: false };
+              }
+              return r;
+            })
+            .filter((r) => r.count > 0);
+
+          const existingTarget = nextReactions.find(
+            (r) => r.reaction === reaction
+          );
+
+          if (existingTarget) {
+            if (existingTarget.reacted_by_me) {
+              // Toggled off same emoji
+              if (existingTarget.count <= 1) {
+                nextReactions = nextReactions.filter(
+                  (r) => r.reaction !== reaction
+                );
+              } else {
+                nextReactions = nextReactions.map((r) =>
+                  r.reaction === reaction
+                    ? {
+                        ...r,
+                        count: r.count - 1,
+                        reacted_by_me: false,
+                      }
+                    : r
+                );
+              }
+            } else {
+              // Switched to this emoji
+              nextReactions = nextReactions.map((r) =>
+                r.reaction === reaction
+                  ? {
+                      ...r,
+                      count: r.count + 1,
+                      reacted_by_me: true,
+                    }
+                  : r
+              );
+            }
+          } else {
+            // New emoji selected
+            nextReactions.push({
+              reaction,
+              count: 1,
+              reacted_by_me: true,
+              users: [],
+            });
+          }
+
+          return {
+            ...msg,
+            reactions: nextReactions,
+          };
+        })
+      );
+
+      try {
+        const updatedReactions = await toggleReaction(messageId, reaction);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.message_id === messageId
+              ? { ...msg, reactions: updatedReactions }
+              : msg
+          )
+        );
+      } catch (err) {
+        console.error("Failed to toggle reaction:", err);
+        const activeId = activeConversationIdRef.current;
+        if (activeId) {
+          fetchMessages(activeId, { limit: 50, offset: 0 })
+            .then((latest) => {
+              if (latest) setMessages(sortChronologically(latest));
+            })
+            .catch(() => {});
+        }
+      }
+    },
+    []
+  );
+
   // ─── Clear messages ────────────────────────────────────────────────────
 
   const clearMessages = useCallback(() => {
@@ -210,6 +306,7 @@ export function useMessages() {
     refreshMessages,
     send,
     upload,
+    toggleReaction: toggleMessageReaction,
     clearMessages,
     clearError: () => setError(""),
   };

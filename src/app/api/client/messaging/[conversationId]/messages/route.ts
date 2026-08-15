@@ -270,7 +270,100 @@ export async function GET(
       }
     }
 
-    // Enrich messages with attachments, system_message, and system_card_data
+    // Batch-fetch vs_message_reaction for messages
+    const reactionsMap = new Map<
+      number,
+      { reaction: string; count: number; users: { user_id: number; user_name: string }[]; reacted_by_me: boolean }[]
+    >();
+
+    if (messageIds.length > 0) {
+      try {
+        const reactionsRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_message_reaction?filter[message_id][_in]=${messageIds.join(
+            ","
+          )}&fields=reaction_id,message_id,user_id,reaction,created_at&sort[]=created_at&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+
+        if (reactionsRes.ok) {
+          const reactionsJson = await reactionsRes.json();
+          const rawReactions = (reactionsJson.data ?? []) as {
+            reaction_id: number;
+            message_id: number;
+            user_id: number;
+            reaction: string;
+          }[];
+
+          const rUserIds = Array.from(new Set(rawReactions.map((r) => r.user_id)));
+          const rUsersMap = new Map<number, string>();
+          if (rUserIds.length > 0) {
+            const ruRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${rUserIds.join(
+                ","
+              )}&fields=user_id,user_fname,user_lname&limit=100`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
+            if (ruRes.ok) {
+              const ruJson = await ruRes.json();
+              for (const u of (ruJson.data ?? []) as {
+                user_id: number;
+                user_fname?: string;
+                user_lname?: string;
+              }[]) {
+                const name =
+                  `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() || "User";
+                rUsersMap.set(u.user_id, name);
+              }
+            }
+          }
+
+          const msgGroupMap = new Map<
+            number,
+            Map<
+              string,
+              {
+                reaction: string;
+                count: number;
+                users: { user_id: number; user_name: string }[];
+                reacted_by_me: boolean;
+              }
+            >
+          >();
+
+          for (const r of rawReactions) {
+            if (!msgGroupMap.has(r.message_id)) {
+              msgGroupMap.set(r.message_id, new Map());
+            }
+            const emojiMap = msgGroupMap.get(r.message_id)!;
+            if (!emojiMap.has(r.reaction)) {
+              emojiMap.set(r.reaction, {
+                reaction: r.reaction,
+                count: 0,
+                users: [],
+                reacted_by_me: false,
+              });
+            }
+            const g = emojiMap.get(r.reaction)!;
+            g.count += 1;
+            g.users.push({
+              user_id: r.user_id,
+              user_name: rUsersMap.get(r.user_id) || "User",
+            });
+            if (r.user_id === userId) {
+              g.reacted_by_me = true;
+            }
+          }
+
+          for (const [mid, emojiMap] of msgGroupMap.entries()) {
+            reactionsMap.set(mid, Array.from(emojiMap.values()));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching message reactions:", err);
+      }
+    }
+
+    // Enrich messages with attachments, system_message, system_card_data, and reactions
     // Reverse array so messages returned are in chronological order (oldest -> newest)
     const enriched = messages.map((msg) => ({
       ...msg,
@@ -278,6 +371,7 @@ export async function GET(
       attachments: attachmentsMap.get(msg.message_id as number) ?? [],
       system_message: systemMsgMap[msg.message_id as number] ?? null,
       system_card_data: cardDataMap[msg.message_id as number] ?? null,
+      reactions: reactionsMap.get(msg.message_id as number) ?? [],
     })).reverse();
 
     return NextResponse.json({ messages: enriched });
