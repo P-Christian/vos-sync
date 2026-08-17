@@ -56,31 +56,66 @@ function AnimatedEmoji({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function parseDate(dateStr: string): Date {
+  if (!dateStr) return new Date(0);
+  const cleanStr = String(dateStr).replace("T", " ").replace("Z", "").trim();
+  const [datePart = "", timePart = "00:00:00"] = cleanStr.split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart
+    .split("-")
+    .map((n) => parseInt(n, 10) || 0);
+  const timeClean = timePart.split(".")[0] || "00:00:00";
+  const [hour = 0, minute = 0, second = 0] = timeClean
+    .split(":")
+    .map((n) => parseInt(n, 10) || 0);
+  return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
+}
+
 function formatTime(dateStr: string): string {
   if (!dateStr) return "";
-  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
-  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
-  const [rawHour = 0, minute = 0] = timePart.split(":").map(Number);
+  const messageDate = parseDate(dateStr);
+  if (isNaN(messageDate.getTime())) return "";
 
-  const messageDate = new Date(year, month - 1, day);
-  const today = new Date();
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-
-  const diffDays = Math.floor(
-    (todayDate.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDate = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate()
   );
 
+  const diffDays = Math.round(
+    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const rawHour = messageDate.getHours();
+  const minute = messageDate.getMinutes();
   const period = rawHour >= 12 ? "PM" : "AM";
   const hour = rawHour % 12 || 12;
   const timeFormatted = `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
 
-  if (diffDays === 0) return timeFormatted;
-  if (diffDays === 1) return `Yesterday, ${timeFormatted}`;
+  // If today: only show time
+  if (diffDays === 0) {
+    return timeFormatted;
+  }
 
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const monthName = monthNames[month - 1] ?? "";
-  if (year === today.getFullYear()) return `${monthName} ${day}, ${timeFormatted}`;
-  return `${monthName} ${day}, ${year}, ${timeFormatted}`;
+  // If yesterday: "Yesterday, 4:17 PM"
+  if (diffDays === 1) {
+    return `Yesterday, ${timeFormatted}`;
+  }
+
+  // If previous date: "Aug 14, 4:17 PM"
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  const monthStr = monthNames[messageDate.getMonth()] ?? "";
+  const day = messageDate.getDate();
+
+  if (messageDate.getFullYear() === now.getFullYear()) {
+    return `${monthStr} ${day}, ${timeFormatted}`;
+  }
+
+  return `${monthStr} ${day}, ${messageDate.getFullYear()}, ${timeFormatted}`;
 }
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -96,10 +131,12 @@ function isImageType(mimeType: string | null | undefined): boolean {
 
 function DateDivider({ label }: { label: string }) {
   return (
-    <div className="sticky top-2 z-10 flex items-center justify-center my-3 px-4 pointer-events-none">
-      <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/90 dark:bg-zinc-800/90 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs backdrop-blur-md">
+    <div className="flex items-center gap-3 my-4 px-2 select-none pointer-events-none">
+      <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
+      <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide">
         {label}
       </span>
+      <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
     </div>
   );
 }
