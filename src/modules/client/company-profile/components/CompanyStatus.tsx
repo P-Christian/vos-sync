@@ -5,6 +5,7 @@ import React from "react";
 import { CheckCircle2, AlertCircle, ShieldAlert, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { VerificationStatus } from "../types";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface CompanyStatusProps {
   status: VerificationStatus;
@@ -100,7 +101,12 @@ export default function CompanyStatus({ status, remarks, publicRejectionReason }
   const feedback = publicRejectionReason || remarks;
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border p-5 space-y-4 ${cfg.container}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative overflow-hidden rounded-2xl border p-5 space-y-4 ${cfg.container}`}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className={`p-3 rounded-xl border shrink-0 ${cfg.iconWrapper}`}>
@@ -118,17 +124,26 @@ export default function CompanyStatus({ status, remarks, publicRejectionReason }
         </Badge>
       </div>
 
-      {feedback && (
-        <div className="mt-2 p-4 rounded-xl border bg-background/80 dark:bg-background/40 backdrop-blur-xs space-y-1.5 shadow-2xs">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
-            <ShieldAlert className="h-4 w-4" />
-            Verification Reviewer Feedback / Action Items
-          </div>
-          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap font-medium">
-            {feedback}
-          </p>
-        </div>
-      )}
-    </div>
+      <AnimatePresence>
+        {feedback && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="mt-2 p-4 rounded-xl border bg-background/80 dark:bg-background/40 backdrop-blur-xs space-y-1.5 shadow-2xs overflow-hidden"
+          >
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              <ShieldAlert className="h-4 w-4" />
+              Verification Reviewer Feedback / Action Items
+            </div>
+            <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap font-medium">
+              {feedback}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
+

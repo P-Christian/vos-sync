@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 // src/modules/client/company-profile/components/CompanyPreviewModal.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Sheet,
   SheetContent,
@@ -95,6 +95,44 @@ export default function CompanyPreviewModal({
   onClose,
   company,
 }: CompanyPreviewModalProps) {
+  const [industries, setIndustries] = useState<Array<{ industry_id: number | string; industry_name: string }>>([]);
+  const [sizes, setSizes] = useState<Array<{ company_size_id: number; company_size_name: string }>>([]);
+  const [orgTypes, setOrgTypes] = useState<Array<{ organization_type_id: number; organization_type_name: string }>>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    async function loadMasterData() {
+      try {
+        const [indRes, sizeRes, orgRes] = await Promise.all([
+          fetch("/api/client/company-profile?directusCollection=vs_industry&limit=-1"),
+          fetch("/api/client/company-profile?directusCollection=vs_company_size&limit=-1"),
+          fetch("/api/client/company-profile?directusCollection=vs_organization_type&limit=-1"),
+        ]);
+        const [indData, sizeData, orgData] = await Promise.all([
+          indRes.json(),
+          sizeRes.json(),
+          orgRes.json(),
+        ]);
+        setIndustries(indData.data || []);
+        setSizes(sizeData.data || []);
+        setOrgTypes(orgData.data || []);
+      } catch (err) {
+        console.error("Failed to load master classification data for preview", err);
+      }
+    }
+    loadMasterData();
+  }, [open]);
+
+  const resolvedIndustry =
+    industries.find((i) => String(i.industry_id) === String(company.industry_id))?.industry_name ||
+    (typeof company.industry_id === "string" && isNaN(Number(company.industry_id)) ? company.industry_id : null);
+
+  const resolvedSize =
+    sizes.find((s) => s.company_size_id === Number(company.company_size_id))?.company_size_name || null;
+
+  const resolvedOrgType =
+    orgTypes.find((o) => o.organization_type_id === Number(company.organization_type_id))?.organization_type_name || null;
+
   const addressParts = [
     company.company_address,
     company.company_brgy,
@@ -116,16 +154,18 @@ export default function CompanyPreviewModal({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-xl p-0 overflow-y-auto flex flex-col gap-0"
+        className="w-full sm:max-w-2xl p-0 overflow-y-auto flex flex-col gap-0"
       >
         {/* Cover + Logo Header */}
         <div className="relative shrink-0">
-          <div className="h-36 w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 overflow-hidden">
+          <div className="h-36 w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 overflow-hidden relative">
             {company.company_cover ? (
-              <img
+              <Image
                 src={getImageUrl(company.company_cover)}
                 alt="Company Cover"
-                className="w-full h-full object-cover"
+                fill
+                unoptimized
+                className="object-cover"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -134,18 +174,21 @@ export default function CompanyPreviewModal({
             )}
           </div>
           {/* Logo */}
-          <div className="absolute -bottom-5 left-6 h-16 w-16 rounded-xl border-2 border-white dark:border-zinc-900 bg-white dark:bg-zinc-900 shadow-md overflow-hidden flex items-center justify-center z-10">
+          <div className="absolute -bottom-5 left-6 h-16 w-16 rounded-xl border-2 border-white dark:border-zinc-900 bg-white dark:bg-zinc-900 shadow-md overflow-hidden flex items-center justify-center z-10 relative">
             {company.company_logo ? (
-              <img
+              <Image
                 src={getImageUrl(company.company_logo)}
                 alt="Company Logo"
-                className="w-full h-full object-cover"
+                fill
+                unoptimized
+                className="object-cover"
               />
             ) : (
               <Building2 className="h-7 w-7 text-zinc-400" />
             )}
           </div>
         </div>
+
 
         {/* Content */}
         <div className="flex-1 px-6 pt-10 pb-8 space-y-6">
@@ -201,36 +244,44 @@ export default function CompanyPreviewModal({
               Company Details
             </p>
             <div className="space-y-2.5">
-              <InfoRow
-                icon={Briefcase}
-                label="Industry"
-                value={company.industry_id ? `Industry #${company.industry_id}` : null}
-              />
-              <InfoRow
-                icon={Users}
-                label="Company Size"
-                value={
-                  company.company_size_id
-                    ? `Size #${company.company_size_id}`
-                    : null
-                }
-              />
-              <InfoRow
-                icon={CalendarDays}
-                label="Year Established"
-                value={
-                  company.year_established
-                    ? String(company.year_established)
-                    : null
-                }
-              />
-              <InfoRow
-                icon={MapPin}
-                label="Address"
-                value={addressParts || null}
-              />
+              {resolvedIndustry && (
+                <InfoRow
+                  icon={Briefcase}
+                  label="Industry"
+                  value={resolvedIndustry}
+                />
+              )}
+              {resolvedOrgType && (
+                <InfoRow
+                  icon={Building2}
+                  label="Organization Type"
+                  value={resolvedOrgType}
+                />
+              )}
+              {resolvedSize && (
+                <InfoRow
+                  icon={Users}
+                  label="Company Size"
+                  value={resolvedSize}
+                />
+              )}
+              {company.year_established ? (
+                <InfoRow
+                  icon={CalendarDays}
+                  label="Year Established"
+                  value={String(company.year_established)}
+                />
+              ) : null}
+              {addressParts ? (
+                <InfoRow
+                  icon={MapPin}
+                  label="Address"
+                  value={addressParts}
+                />
+              ) : null}
             </div>
           </div>
+
 
           {/* Contact */}
           <div className="space-y-3">

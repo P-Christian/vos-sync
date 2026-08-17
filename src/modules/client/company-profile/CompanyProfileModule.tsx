@@ -26,13 +26,36 @@ import {
   Globe,
   Loader2,
   Building2,
-
   Eye,
   Send,
   RefreshCw,
   FileText,
 } from "lucide-react";
 import { EditableCompanyFields } from "./types";
+import { motion, AnimatePresence } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
+};
+
 
 export default function CompanyProfileModule() {
   const {
@@ -461,340 +484,416 @@ export default function CompanyProfileModule() {
   }
 
   return (
-    <div className="space-y-6 client-page-transition">
-      <style>{`
-        @keyframes page-entry {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .client-page-transition {
-          animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}</style>
-
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6"
+    >
       {/* Success / Error Messages */}
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          {successMessage}
-        </div>
-      )}
-      {error && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
+      <AnimatePresence>
+        {successMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm overflow-hidden"
+          >
+            <CheckCircle className="h-4 w-4 shrink-0" />
+            {successMessage}
+          </motion.div>
+        )}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm overflow-hidden"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cards Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* ── Left Column ──────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Card 1: Company Information */}
-          <Card className="shadow-sm border bg-card rounded-xl gap-0 py-0 overflow-hidden">
-            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Building className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Company Information
-                </CardTitle>
-              </div>
-              {isOwnerOrAdmin && !isEditingInfo && (
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium" onClick={handleEditInfo}>
-                  <Pencil />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-6">
-              {isEditingInfo ? (
-                <div className="space-y-6">
-                  <CompanyBasicInfo
-                    data={displayDataInfo}
-                    onChange={handleFieldChange}
-                    readOnly={false}
-                  />
-                  <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                    <Button variant="outline" size="sm" onClick={handleCancelInfo} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm">
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border bg-card rounded-xl gap-0 py-0 overflow-hidden">
+              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Building className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Company Information
+                  </CardTitle>
                 </div>
-              ) : (
-                <CompanyBasicInfo
-                  data={company ?? {}}
-                  onChange={() => {}}
-                  readOnly={true}
-                />
-              )}
-            </CardContent>
-          </Card>
+                {isOwnerOrAdmin && !isEditingInfo && (
+                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditInfo}>
+                    <Pencil />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {isEditingInfo ? (
+                    <motion.div
+                      key="editing-info"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-6"
+                    >
+                      <CompanyBasicInfo
+                        data={displayDataInfo}
+                        onChange={handleFieldChange}
+                        readOnly={false}
+                      />
+                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                        <Button variant="outline" size="sm" onClick={handleCancelInfo} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                          {saving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-info"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <CompanyBasicInfo
+                        data={company ?? {}}
+                        onChange={() => {}}
+                        readOnly={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Card 2: Company Classification */}
-          <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Layers className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Company Classification
-                </CardTitle>
-              </div>
-              {isOwnerOrAdmin && !isEditingClassification && (
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium" onClick={handleEditClassification}>
-                  <Pencil />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-6">
-              {isEditingClassification ? (
-                <div className="space-y-6">
-                  <CompanyClassification
-                    data={displayDataClassification}
-                    onChange={handleFieldChange}
-                    readOnly={false}
-                  />
-                  <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                    <Button variant="outline" size="sm" onClick={handleCancelClassification} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm">
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Company Classification
+                  </CardTitle>
                 </div>
-              ) : (
-                <CompanyClassification
-                  data={company ?? {}}
-                  onChange={() => {}}
-                  readOnly={true}
-                />
-              )}
-            </CardContent>
-          </Card>
+                {isOwnerOrAdmin && !isEditingClassification && (
+                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditClassification}>
+                    <Pencil />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {isEditingClassification ? (
+                    <motion.div
+                      key="editing-class"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-6"
+                    >
+                      <CompanyClassification
+                        data={displayDataClassification}
+                        onChange={handleFieldChange}
+                        readOnly={false}
+                      />
+                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                        <Button variant="outline" size="sm" onClick={handleCancelClassification} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                          {saving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-class"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <CompanyClassification
+                        data={company ?? {}}
+                        onChange={() => {}}
+                        readOnly={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Card 3: Company Address */}
-          <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Company Address
-                </CardTitle>
-              </div>
-              {isOwnerOrAdmin && !isEditingAddress && (
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium" onClick={handleEditAddress}>
-                  <Pencil />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-6">
-              {isEditingAddress ? (
-                <div className="space-y-6">
-                  <CompanyAddress
-                    data={displayDataAddress}
-                    onChange={handleFieldChange}
-                    readOnly={false}
-                  />
-                  <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                    <Button variant="outline" size="sm" onClick={handleCancelAddress} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm">
-                      {saving ? "Saving..." : "Save Changes"}
-                    </Button>
-                  </div>
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Company Address
+                  </CardTitle>
                 </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Province</span>
-                      <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_province || "—"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">City / Municipality</span>
-                      <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_city || "—"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Barangay</span>
-                      <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_brgy || "—"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Zip Code</span>
-                      <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_zipCode || "—"}</p>
-                    </div>
-                  </div>
-                  <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Street Address</span>
-                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_address || "—"}</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {isOwnerOrAdmin && !isEditingAddress && (
+                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditAddress}>
+                    <Pencil />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {isEditingAddress ? (
+                    <motion.div
+                      key="editing-addr"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-6"
+                    >
+                      <CompanyAddress
+                        data={displayDataAddress}
+                        onChange={handleFieldChange}
+                        readOnly={false}
+                      />
+                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                        <Button variant="outline" size="sm" onClick={handleCancelAddress} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                          {saving ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-addr"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-6"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Province</span>
+                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_province || "—"}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">City / Municipality</span>
+                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_city || "—"}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Barangay</span>
+                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_brgy || "—"}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Zip Code</span>
+                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_zipCode || "—"}</p>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Street Address</span>
+                        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_address || "—"}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* ── Right Column ─────────────────────────────────────────── */}
         <div className="lg:col-span-1 space-y-6">
-
           {/* Profile Completion */}
-          <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-            <CardContent className="p-6">
-              <CompanyCompletionBar percent={completionPercent} />
-            </CardContent>
-          </Card>
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+              <CardContent className="p-6">
+                <CompanyCompletionBar percent={completionPercent} />
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Verification Status */}
           {company?.verification_status && (
+            <motion.div variants={itemVariants}>
+              <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+                <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Verification Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <CompanyStatus
+                    status={company.verification_status}
+                    remarks={company.rejection_reason || company.verification_remarks}
+                    publicRejectionReason={company.public_rejection_reason || company.rejection_reason || company.verification_remarks}
+                  />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Verification Documents */}
+          <motion.div variants={itemVariants}>
             <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
               <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-primary" />
+                <FileText className="h-5 w-5 text-primary" />
                 <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Verification Status
+                  Verification Documents
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <CompanyStatus
-                  status={company.verification_status}
-                  remarks={company.rejection_reason || company.verification_remarks}
-                  publicRejectionReason={company.public_rejection_reason || company.rejection_reason || company.verification_remarks}
+                <CompanyDocuments
+                  companyId={company?.company_id}
+                  onDocsChange={(count) => setUploadedDocsCount(count)}
                 />
               </CardContent>
             </Card>
-          )}
-          {/* Verification Documents */}
-          <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                Verification Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <CompanyDocuments
-                companyId={company?.company_id}
-                onDocsChange={(count) => setUploadedDocsCount(count)}
-              />
-            </CardContent>
-          </Card>
+          </motion.div>
+
           {/* Submit / Resubmit for Verification */}
           {isOwnerOrAdmin &&
             (verificationStatus === "DRAFT" || verificationStatus === "REJECTED") && (
-              <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-                <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
-                  <Send className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                    {verificationStatus === "REJECTED" ? "Resubmit Profile" : "Submit for Verification"}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  {!canSubmit && (
-                    <p className="text-xs text-zinc-555 dark:text-zinc-400 leading-relaxed">
-                      Your profile must be at least{" "}
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">80% complete</span>,
-                      include a company logo, and have at least{" "}
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300">one verification document uploaded</span>
-                      {" "}before you can submit for verification. Currently at <span className="font-semibold">{Math.round(completionPercent)}%</span> with <span className="font-semibold">{uploadedDocsCount} documents</span> uploaded.
-                    </p>
-                  )}
-                  {canSubmit && verificationStatus === "REJECTED" && (
-                    <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50">
-                      Please review the rejection reason above, make the necessary corrections, then resubmit.
-                    </p>
-                  )}
-                  <Button
-                    onClick={handleSubmitForVerification}
-                    disabled={!canSubmit || submitting}
-                    className="w-full h-10 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm disabled:opacity-50"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Submitting...
-                      </>
-                    ) : verificationStatus === "REJECTED" ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Resubmit for Verification
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Submit for Verification
-                      </>
+              <motion.div variants={itemVariants}>
+                <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+                  <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+                    <Send className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                      {verificationStatus === "REJECTED" ? "Resubmit Profile" : "Submit for Verification"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    {!canSubmit && (
+                      <p className="text-xs text-zinc-555 dark:text-zinc-400 leading-relaxed">
+                        Your profile must be at least{" "}
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">80% complete</span>,
+                        include a company logo, and have at least{" "}
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">one verification document uploaded</span>
+                        {" "}before you can submit for verification. Currently at <span className="font-semibold">{Math.round(completionPercent)}%</span> with <span className="font-semibold">{uploadedDocsCount} documents</span> uploaded.
+                      </p>
                     )}
-                  </Button>
-                </CardContent>
-              </Card>
+                    {canSubmit && verificationStatus === "REJECTED" && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50">
+                        Please review the rejection reason above, make the necessary corrections, then resubmit.
+                      </p>
+                    )}
+                    <Button
+                      onClick={handleSubmitForVerification}
+                      disabled={!canSubmit || submitting}
+                      className="w-full h-10 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Submitting...
+                        </>
+                      ) : verificationStatus === "REJECTED" ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Resubmit for Verification
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Submit for Verification
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
 
           {/* Preview Public Profile */}
           {company && (
-            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                  Public Profile
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-3">
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  Preview how job seekers will see your company profile once it goes public.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPreview(true)}
-                  className="w-full h-9 text-sm rounded-xl font-medium"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview Public Profile
-                </Button>
-              </CardContent>
-            </Card>
+            <motion.div variants={itemVariants}>
+              <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+                <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+                  <Eye className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    Public Profile
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 space-y-3">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                    Preview how job seekers will see your company profile once it goes public.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowPreview(true)}
+                    className="w-full h-9 text-sm rounded-xl font-medium transition-colors hover:border-primary/50"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Public Profile
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
           {/* Public Visibility */}
-          <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-            <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
-              <Globe className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                Public Visibility
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                    {company?.is_public ? "Public Profile" : "Private Profile"}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    {company?.is_public
-                      ? "Searchable by job seekers and visible on postings."
-                      : "Only visible to authorized organization users."}
-                  </p>
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  Public Visibility
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                      {company?.is_public ? "Public Profile" : "Private Profile"}
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      {company?.is_public
+                        ? "Searchable by job seekers and visible on postings."
+                        : "Only visible to authorized organization users."}
+                    </p>
+                  </div>
+                  {isOwnerOrAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={saving}
+                      onClick={async () => {
+                        clearMessages();
+                        const nextVal = company?.is_public ? 0 : 1;
+                        await updateProfile({ is_public: nextVal });
+                      }}
+                      className="h-9 px-4 text-xs font-semibold rounded-xl transition-colors hover:border-primary/50"
+                    >
+                      Change Visibility
+                    </Button>
+                  )}
                 </div>
-                {isOwnerOrAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={saving}
-                    onClick={async () => {
-                      clearMessages();
-                      const nextVal = company?.is_public ? 0 : 1;
-                      await updateProfile({ is_public: nextVal });
-                    }}
-                    className="h-9 px-4 text-xs font-semibold rounded-xl"
-                  >
-                    Change Visibility
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
 
@@ -806,6 +905,7 @@ export default function CompanyProfileModule() {
           company={company}
         />
       )}
-    </div>
+    </motion.div>
   );
 }
+

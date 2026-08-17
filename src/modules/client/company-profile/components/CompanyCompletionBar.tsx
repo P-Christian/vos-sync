@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 
 interface CompanyCompletionBarProps {
   percent: number;
@@ -45,14 +46,22 @@ export default function CompanyCompletionBar({ percent }: CompanyCompletionBarPr
           <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
             Profile Completion
           </span>
-          <span className={`text-xs font-bold tabular-nums ${textColorClass}`}>
+          <motion.span
+            key={clamped}
+            initial={{ opacity: 0.6, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className={`text-xs font-bold tabular-nums ${textColorClass}`}
+          >
             {clamped}%
-          </span>
+          </motion.span>
         </div>
         <div className={`h-2 w-full rounded-full overflow-hidden ${bgTrackClass}`}>
-          <div
-            className={`h-full rounded-full transition-all duration-500 ease-out ${colorClass}`}
-            style={{ width: `${clamped}%` }}
+          <motion.div
+            className={`h-full rounded-full ${colorClass}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${clamped}%` }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           />
         </div>
         <p className={`text-[11px] font-medium ${textColorClass}`}>{label}</p>
@@ -60,3 +69,4 @@ export default function CompanyCompletionBar({ percent }: CompanyCompletionBarPr
     </div>
   );
 }
+
