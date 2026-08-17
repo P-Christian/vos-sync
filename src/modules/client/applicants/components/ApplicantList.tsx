@@ -2,13 +2,14 @@
 "use client";
 
 import React from "react";
-import { Applicant } from "../types";
+import { Applicant, ApplicationStatus } from "../types";
 import ApplicantCard from "./ApplicantCard";
 import { Users } from "lucide-react";
 
 interface ApplicantListProps {
   applicants: Applicant[];
   onUpdateStatus: (applicant: Applicant) => void;
+  onQuickStatusUpdate?: (applicant: Applicant, status: ApplicationStatus) => void;
   onScheduleInterview: (applicant: Applicant) => void;
   onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
@@ -17,6 +18,7 @@ interface ApplicantListProps {
 export default function ApplicantList({
   applicants,
   onUpdateStatus,
+  onQuickStatusUpdate,
   onScheduleInterview,
   onViewScheduledInterview,
   onViewDetails,
@@ -42,6 +44,7 @@ export default function ApplicantList({
           key={a.application_id}
           applicant={a}
           onUpdateStatus={onUpdateStatus}
+          onQuickStatusUpdate={onQuickStatusUpdate}
           onScheduleInterview={onScheduleInterview}
           onViewScheduledInterview={onViewScheduledInterview}
           onViewDetails={onViewDetails}
@@ -50,4 +53,7 @@ export default function ApplicantList({
     </div>
   );
 }
+
+
+
 

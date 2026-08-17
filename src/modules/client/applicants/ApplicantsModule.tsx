@@ -10,7 +10,7 @@ import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, ArrowLeft } from "lucide-react";
-import { Applicant, ApplicationStatus } from "./types";
+import { Applicant, ApplicantFilterStatus, ApplicationStatus } from "./types";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +57,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   const {
     applicants,
+    rawApplicants,
     loading,
     saving,
     error,
@@ -113,8 +114,36 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   const jobId = jobIdParam ? parseInt(jobIdParam, 10) : undefined;
 
   useEffect(() => {
-    fetchApplicants(filterStatus, jobId);
-  }, [fetchApplicants, filterStatus, jobId]);
+    fetchApplicants(undefined, jobId);
+  }, [fetchApplicants, jobId]);
+
+  const statusCounts = React.useMemo(() => {
+    const counts: Record<ApplicantFilterStatus, number> = {
+      ACTIVE_PIPELINE: 0,
+      ALL: rawApplicants.length,
+      APPLIED: 0,
+      UNDER_REVIEW: 0,
+      SHORTLISTED: 0,
+      INTERVIEWING: 0,
+      HIRED: 0,
+      REJECTED: 0,
+      WITHDRAWN: 0,
+    };
+    for (const a of rawApplicants) {
+      if (a.application_status in counts) {
+        counts[a.application_status]++;
+      }
+      if (
+        a.application_status === "APPLIED" ||
+        a.application_status === "UNDER_REVIEW" ||
+        a.application_status === "SHORTLISTED" ||
+        a.application_status === "INTERVIEWING"
+      ) {
+        counts.ACTIVE_PIPELINE++;
+      }
+    }
+    return counts;
+  }, [rawApplicants]);
 
   useEffect(() => {
     if (effectiveApplicationId) {
@@ -175,6 +204,22 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     if (ok) setDrawerOpen(false);
   };
 
+  const handleQuickStatusUpdate = async (
+    applicant: Applicant,
+    newStatus: ApplicationStatus
+  ) => {
+    const ok = await updateStatus(
+      applicant.application_id,
+      newStatus,
+      applicant.client_notes || ""
+    );
+    if (ok && applicant.application_id === selectedApplicant?.application_id) {
+      setSelectedApplicant((prev) =>
+        prev ? { ...prev, application_status: newStatus } : null
+      );
+    }
+  };
+
   const handleOpenSchedule = (applicant: Applicant) => {
     loadInterviews();
     setInterviewFormData({
@@ -187,6 +232,13 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   const handleInterviewFieldChange = (field: keyof InterviewFormData, value: unknown) => {
     setInterviewFormData((prev) => ({ ...prev, [field]: value }));
+    if (interviewErrors[field]) {
+      setInterviewErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleSaveInterview = async () => {
@@ -202,7 +254,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     const ok = await createInterview(interviewFormData);
     if (ok) {
       setInterviewDialogOpen(false);
-      fetchApplicants();
+      fetchApplicants(undefined, jobId);
     }
   };
 
@@ -317,6 +369,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 onSearchChange={setSearch}
                 status={filterStatus}
                 onStatusChange={setFilterStatus}
+                counts={statusCounts}
               />
             </CardHeader>
             <CardContent>
@@ -329,6 +382,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 <ApplicantList
                   applicants={applicants}
                   onUpdateStatus={handleUpdateStatus}
+                  onQuickStatusUpdate={handleQuickStatusUpdate}
                   onScheduleInterview={handleOpenSchedule}
                   onViewScheduledInterview={handleViewScheduledInterview}
                   onViewDetails={handleViewDetails}
