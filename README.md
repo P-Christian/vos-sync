@@ -77,6 +77,30 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 ---
 
+### Client Notification Center
+
+#### Streamlined Alert Center, Real-Time Search & Multi-Category Filtering
+* **Interactive Search & Multi-Category Toolbar**: Real-time search across candidate names, job titles, and alert messages paired with scrollable category filter pills (**All**, **Applications**, **Interviews**, **Messages**, **Team Activity**) with dynamic live count badges.
+* **Unread State Filter**: Combinable "Unread only" toggle pill allowing recruiters to filter by unread status independently or across any category.
+* **Actor Suppression & Team Activity**: Strict `actor_user_id !== recipient_user_id` governance suppressing self-notifications on recruiter actions (shortlisting, rejecting, hiring, scheduling) while dispatching `TEAM_ACTIVITY` exclusively to other hiring team members.
+* **Chronological Date Grouping**: Organizes notifications dynamically into clear time sections (**Today**, **Yesterday**, **This Week**, **Earlier**).
+* **Contextual Event Badges**: Category-specific color-coded icons (Applications, Shortlisting, Withdrawals, Interviews, Messages, Job Approvals) for rapid visual scanning.
+* **Full-Card Click Target & Quick Actions**: Entire card functions as an interactive navigation target with subtle unread background tints, trailing chevron indicators, and an on-hover quick mark-as-read trigger.
+* **Granular Preference Management**: Dual-channel control (Email & In-App) per notification category group with master toggles and real-time persistence.
+
+---
+
+### Client Company Profile
+
+#### Comprehensive Employer Organization & Verification Management
+
+* **Dynamic Organization Profile Management**: Full editing suite for company basic info, classification, addresses, public visibility toggles, and real-time public profile preview slide-over.
+* **Fast & Snappy Motion Animations**: Powered by `framer-motion` and `AnimatePresence` with non-disruptive, lightweight transitions (150ms–250ms), staggered card entrances, and smooth edit-to-view mode morphing.
+* **Animated Profile Completion Meter**: Real-time animated progress bar reflecting profile completeness towards verification readiness.
+* **Interactive Document Verification Pipeline**: Multi-slot verification upload zone (DTI/SEC, Business Permit, TIN, and optional supporting documents) with animated item additions, removals, and contextual status banners.
+
+---
+
 ### Jobs Posting
 
 #### Database-Backed Role Taxonomy Integration & Canonical Categories
@@ -266,6 +290,14 @@ Supported experiences include:
 ---
 
 ## Applicant & Talent Management
+
+### Review Candidates (Applicant Management)
+
+* **Two-Row Metadata Stacking**: Structured card information with primary identifiers (Name, Email, Job Title) on the top row and softer muted secondary stats (experience, jobs, resumes, profile %, applied date) beneath.
+* **Uniform Status Badge Column**: Status badges anchored to a dedicated vertical column immediately before the action button group.
+* **Explicit Action Controls**: Visual hierarchy with ghost "View Candidate", outline "Message", and solid primary "Schedule Interview" buttons.
+* **Cleaned 3-Dots Quick Actions**: Reserved exclusively for secondary administrative transitions (*Move to Under Review*, *Shortlist*, *Mark as Hired*, *Reject*, *Reopen*) and *Custom Status & Notes...* without action duplication.
+* **Interactive Status Filter Badges with Popovers**: Positioned directly on top of the candidate search bar with hover popover tooltips explaining each stage, real-time candidate counts, and defaulting to **"Active Pipeline"** (in-progress applicants: `Applied`, `Under Review`, `Shortlisted`, `Interviewing`, excluding `Hired`, `Rejected`, and `Withdrawn`).
 
 ### Saved Candidates
 

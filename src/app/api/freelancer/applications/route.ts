@@ -593,7 +593,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Employer in-app notification
+          // Employer in-app notification (APPLICATION_RECEIVED)
           if (companyId) {
             const compUserRes2 = await fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id&limit=1`, { headers: getHeaders(), cache: "no-store" });
             if (compUserRes2.ok) {
@@ -613,6 +613,18 @@ export async function POST(req: NextRequest) {
               }
             }
           }
+
+          // Candidate in-app confirmation (APPLICATION_SUBMITTED)
+          await createNotification({
+            event_type: "APPLICATION_SUBMITTED",
+            recipient_user_id: userId,
+            entity_type: "job_application",
+            entity_id: Number(applicationId),
+            category: "APPLICATION_SUBMITTED",
+            title: "Application Submitted",
+            message: `Your application for "${jobTitle}" was submitted successfully.`,
+            action_url: `/vos-sync/freelancer/my-applications`,
+          }).catch((err: unknown) => console.error("[Candidate in-app] APPLICATION_SUBMITTED error:", err));
 
           // Chat System Message
           if (companyId) {

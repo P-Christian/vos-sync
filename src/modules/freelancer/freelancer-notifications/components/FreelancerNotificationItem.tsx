@@ -35,6 +35,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Application Updates": "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  "APPLICATION_SUBMITTED": "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300",
+  "APPLICATION_STATUS_UPDATED": "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
   "INTERVIEW": "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
   "Referral Updates": "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
   "Profile Activity": "bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
@@ -47,6 +49,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 const CATEGORY_ICONS: Record<string, string> = {
   "Application Updates": "Briefcase",
+  "APPLICATION_SUBMITTED": "Briefcase",
+  "APPLICATION_STATUS_UPDATED": "Briefcase",
   "INTERVIEW": "Calendar",
   "Referral Updates": "Share2",
   "Profile Activity": "User",
