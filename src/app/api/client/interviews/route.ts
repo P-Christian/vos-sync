@@ -328,7 +328,6 @@ export async function POST(req: NextRequest) {
       const durationMs = (Number(body.duration_minutes) || 60) * 60 * 1000;
       const includeBuffer = body.include_buffer !== false;
       const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
-      const newEndWithBuffer = newStart + durationMs + bufferMs;
 
       const overlapRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${companyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,scheduled_at,duration_minutes,interview_status&limit=100`,

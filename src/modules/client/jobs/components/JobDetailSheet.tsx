@@ -263,7 +263,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                   variant="outline"
                   onClick={() => {
                     onClose();
-                    onEdit(job as any);
+                    onEdit(job as unknown as JobPosting);
                   }}
                   className="h-8 px-3 text-xs gap-1.5 rounded-lg border-border hover:border-primary hover:text-primary font-semibold"
                 >

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 // src/modules/freelancer/freelancer-messaging/components/HiringCelebrationModal.tsx

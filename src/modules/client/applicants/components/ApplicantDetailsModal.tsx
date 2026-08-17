@@ -225,7 +225,6 @@ export default function ApplicantDetailsModal({
   const status: ApplicationStatus = detail?.application_status ?? activeApplicant?.application_status ?? "APPLIED";
   const jobTitle = detail?.job_title ?? activeApplicant?.job_title ?? "—";
   const appliedAt = detail?.applied_at ?? activeApplicant?.applied_at;
-  const canSchedule = status !== "REJECTED" && status !== "HIRED";
   const expectedSalary = formatCurrency(detail?.expected_salary ?? null);
 
   const rawImage = detail?.profile_image ?? activeApplicant?.applicant_profile_image_url ?? activeApplicant?.profile_image_url;

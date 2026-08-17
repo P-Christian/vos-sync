@@ -91,7 +91,7 @@ export default function JobForm({
   saving,
   editingJob,
 }: JobFormProps) {
-  const { categories: roleCategories, findCategoryByName, findCategoryById } = useRoleCategories();
+  const { categories: roleCategories, findCategoryById } = useRoleCategories();
   const [step, setStep] = useState(1);
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
 

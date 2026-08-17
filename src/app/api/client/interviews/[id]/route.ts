@@ -117,7 +117,6 @@ export async function PATCH(
               const durationMs = durMinutes * 60 * 1000;
               const includeBuffer = payload.include_buffer !== false;
               const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
-              const newEndWithBuffer = newStart + durationMs + bufferMs;
 
               const overlapRes = await fetch(
                 `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${targetCompanyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&filter[interview_id][_neq]=${interviewId}&fields=interview_id,scheduled_at,duration_minutes&limit=100`,

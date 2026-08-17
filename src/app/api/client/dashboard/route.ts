@@ -1,6 +1,5 @@
 // src/app/api/client/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { formatInterviewDateTime } from "../interviews/route";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -202,7 +201,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch interview application links if there are interviews
     const interviewIds = interviewsList.map((i) => i.interview_id);
-    let interviewAppsMap: Record<number, number> = {}; // interview_id -> application_id
+    const interviewAppsMap: Record<number, number> = {}; // interview_id -> application_id
     const allInterviewAppIds: number[] = [];
     if (interviewIds.length > 0) {
       const iAppUrl = `${DIRECTUS_BASE}/items/vs_interview_application?filter[interview_id][_in]=${interviewIds.join(",")}&fields=interview_id,application_id&limit=100`;

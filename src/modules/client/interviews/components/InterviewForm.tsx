@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 "use client";
 
 // src/modules/client/interviews/components/InterviewForm.tsx
@@ -64,6 +65,7 @@ interface InterviewFormProps {
 }
 
 const BLOCKING_STATUSES = new Set(["SCHEDULED", "CONFIRMED", "RESCHEDULED"]);
+const ELIGIBLE_STATUSES = new Set(["SHORTLISTED", "INTERVIEWING"]);
 const BUFFER_MINUTES = 15;
 const BUFFER_MS = BUFFER_MINUTES * 60 * 1000;
 
@@ -295,7 +297,6 @@ export default function InterviewForm({
   // additional rounds) candidates may be selected as attendees. Candidates who
   // already have an active, uncompleted scheduled interview session (active_interview_id)
   // are excluded when creating a new interview.
-  const ELIGIBLE_STATUSES = new Set(["SHORTLISTED", "INTERVIEWING"]);
   const filteredApplicants = useMemo(() => {
     if (!selectedJobId) return [];
     return availableApplicants.filter((a) => {

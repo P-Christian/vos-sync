@@ -49,7 +49,6 @@ export default function JobBrowseModule() {
   const userProfile = useUserProfile();
   const isGuest = !userProfile || userProfile.email === "guest@example.com";
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isGuest) {

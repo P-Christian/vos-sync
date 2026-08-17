@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/job-browse/hooks/useJobBrowse.ts
 "use client";
 
@@ -41,7 +42,9 @@ export function useJobBrowse() {
 
   // Keep track of current jobs count in ref for fetch pagination
   const jobsCountRef = useRef(0);
-  jobsCountRef.current = jobs.length;
+  useEffect(() => {
+    jobsCountRef.current = jobs.length;
+  }, [jobs.length]);
 
   const fetchApplications = useCallback(async () => {
     try {

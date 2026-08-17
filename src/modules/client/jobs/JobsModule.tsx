@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 // src/modules/client/jobs/JobsModule.tsx
 "use client";
 import { JobDetailSheet } from "./components/JobDetailSheet";

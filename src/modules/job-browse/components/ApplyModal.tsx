@@ -156,19 +156,6 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
     }
   };
 
-  const handleSaveDraft = async () => {
-    const ok = await submitApplication(true);
-    if (ok) {
-      setTimeout(() => {
-        reset();
-        setCurrentStep(1);
-        setConsentAccepted(false);
-        onClose();
-        onSuccess();
-      }, 1200);
-    }
-  };
-
   if (!job) return null;
 
   const hasScreening = !!(job.screening_questions && job.screening_questions.length > 0);
