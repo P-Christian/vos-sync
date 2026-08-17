@@ -4,6 +4,8 @@ export type ConversationType = "JOB_APPLICATION" | "DIRECT_MESSAGE" | "SUPPORT";
 export type ConversationStatus = "ACTIVE" | "ARCHIVED" | "BLOCKED";
 export type MessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
 
+export type HiringViewerRole = "CANDIDATE" | "CLIENT" | "FREELANCER";
+
 export type SystemEventType =
   | "APPLICATION_SUBMITTED"
   | "APPLICATION_STATUS_CHANGED"
@@ -41,6 +43,21 @@ export interface Conversation {
   last_message_preview?: string;
 }
 
+export const ALLOWED_REACTIONS = ["👍", "❤️", "😂", "🎉", "🔥", "👀", "🙏", "❓"] as const;
+export type ReactionEmoji = (typeof ALLOWED_REACTIONS)[number];
+
+export interface MessageReactionUser {
+  user_id: number;
+  user_name: string;
+}
+
+export interface MessageReactionGroup {
+  reaction: string;
+  count: number;
+  users: MessageReactionUser[];
+  reacted_by_me: boolean;
+}
+
 export interface Message {
   message_id: number;
   conversation_id: number;
@@ -53,6 +70,7 @@ export interface Message {
   is_deleted: boolean;
   attachments: MessageAttachment[];
   system_message?: SystemMessageData | null;
+  reactions?: MessageReactionGroup[];
 }
 
 export interface MessageAttachment {
@@ -76,3 +94,16 @@ export const CONVERSATION_TYPE_LABELS: Record<ConversationType, string> = {
   DIRECT_MESSAGE: "Direct Message",
   SUPPORT: "Support",
 };
+
+export interface CelebrationEvent {
+  type: "HIRED";
+  message_id: number;
+  job_title?: string | null;
+  applicant_name?: string | null;
+}
+
+export interface MessageFetchResult {
+  messages: Message[];
+  celebration?: CelebrationEvent | null;
+}
+

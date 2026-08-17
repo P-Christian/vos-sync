@@ -16,28 +16,32 @@ function getHeaders(): Record<string, string> {
 
 export async function GET() {
   try {
-    const [catRes, rolesRes, aliasesRes, skillsRes] = await Promise.all([
+    const [catRes, rolesRes, aliasesRes, skillsRes, pendingRes] = await Promise.all([
       fetch(`${DIRECTUS_BASE}/items/vs_role_category?aggregate[count]=category_id`, { headers: getHeaders(), cache: "no-store" }),
       fetch(`${DIRECTUS_BASE}/items/vs_role_title?aggregate[count]=role_id`, { headers: getHeaders(), cache: "no-store" }),
       fetch(`${DIRECTUS_BASE}/items/vs_role_title_alias?aggregate[count]=alias_id`, { headers: getHeaders(), cache: "no-store" }),
       fetch(`${DIRECTUS_BASE}/items/vs_role_skill_mapping?aggregate[count]=id`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_role_category_suggestion?aggregate[count]=suggestion_id&filter[status][_eq]=PENDING`, { headers: getHeaders(), cache: "no-store" }),
     ]);
 
     const catJson = catRes.ok ? await catRes.json() : {};
     const rolesJson = rolesRes.ok ? await rolesRes.json() : {};
     const aliasesJson = aliasesRes.ok ? await aliasesRes.json() : {};
     const skillsJson = skillsRes.ok ? await skillsRes.json() : {};
+    const pendingJson = pendingRes.ok ? await pendingRes.json() : {};
 
     const totalCategories = Number(catJson.data?.[0]?.count?.category_id ?? 0);
     const totalStandardRoles = Number(rolesJson.data?.[0]?.count?.role_id ?? 0);
     const totalSearchKeywords = Number(aliasesJson.data?.[0]?.count?.alias_id ?? 0);
     const totalRoleSkills = Number(skillsJson.data?.[0]?.count?.id ?? 0);
+    const pendingRequests = Number(pendingJson.data?.[0]?.count?.suggestion_id ?? 0);
 
     return NextResponse.json({
       totalCategories,
       totalStandardRoles,
       totalSearchKeywords,
       totalRoleSkills,
+      pendingRequests,
       lastUpdated: new Date().toISOString(),
     });
   } catch (err: unknown) {

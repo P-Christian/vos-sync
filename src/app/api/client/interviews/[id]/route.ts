@@ -1,6 +1,6 @@
-// src/app/api/client/interviews/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
+import { createSystemMessage } from "@/lib/messaging/system-message";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -115,8 +115,8 @@ export async function PATCH(
             if (!isNaN(newStart)) {
               const durMinutes = Number(payload.duration_minutes || currIv?.duration_minutes) || 60;
               const durationMs = durMinutes * 60 * 1000;
-              const bufferMs = 15 * 60 * 1000;
-              const newEndWithBuffer = newStart + durationMs + bufferMs;
+              const includeBuffer = payload.include_buffer !== false;
+              const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
 
               const overlapRes = await fetch(
                 `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${targetCompanyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&filter[interview_id][_neq]=${interviewId}&fields=interview_id,scheduled_at,duration_minutes&limit=100`,
@@ -125,15 +125,19 @@ export async function PATCH(
 
               if (overlapRes.ok) {
                 const existingActive = (await overlapRes.json()).data ?? [];
+                const newEnd = newStart + durationMs;
                 for (const existing of existingActive) {
                   const exStart = new Date(existing.scheduled_at.replace(" ", "T")).getTime();
                   if (isNaN(exStart)) continue;
                   const exEnd = exStart + (existing.duration_minutes || 60) * 60 * 1000;
 
-                  if (newStart < (exEnd + bufferMs) && newEndWithBuffer > exStart) {
+                  const isDirectOverlap = (newStart >= exStart && newStart < exEnd) || (newStart < exStart && newEnd > exStart);
+                  const isBufferOverlap = bufferMs > 0 && (newStart >= exEnd && newStart < (exEnd + bufferMs));
+
+                  if (isDirectOverlap || isBufferOverlap) {
                     return NextResponse.json(
                       {
-                        error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)} (including 15m buffer).`,
+                        error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)}${includeBuffer ? " (including 15m buffer)" : ""}.`,
                       },
                       { status: 409 }
                     );
@@ -159,6 +163,10 @@ export async function PATCH(
           { status: res.status }
         );
       }
+
+      // Cancellation: application status remains INTERVIEWING. The candidate
+      // passed screening — only the interview session was cancelled. They stay
+      // eligible for rebooking without reverting to SHORTLISTED.
 
       return NextResponse.json({ success: true });
     }
@@ -201,24 +209,36 @@ export async function PATCH(
       if (fetchJunctionRes.ok) {
         const jaData = (await fetchJunctionRes.json()).data;
         if (jaData?.application_id) {
-          const targetStatus =
-            decision === "HIRED"
-              ? "HIRED"
-              : decision === "REJECTED"
-              ? "REJECTED"
-              : "INTERVIEW_COMPLETED";
+          // NO_ACTION (Keep Under Review): leave application status unchanged.
+          // The interview session is marked COMPLETED, but the candidate remains
+          // INTERVIEWING and is eligible for additional interview rounds.
+          if (decision === "HIRED" || decision === "REJECTED") {
+            const targetStatus = decision;
 
-          await fetch(
-            `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,application_status,client_notes`,
-            {
-              method: "PATCH",
-              headers: getHeaders(),
-              body: JSON.stringify({
-                application_status: targetStatus,
-                client_notes: feedbackText ? `Interview feedback: ${feedbackText}` : undefined,
-              }),
-            }
-          );
+            await fetch(
+              `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,application_status,client_notes`,
+              {
+                method: "PATCH",
+                headers: getHeaders(),
+                body: JSON.stringify({
+                  application_status: targetStatus,
+                  client_notes: feedbackText ? `Interview feedback: ${feedbackText}` : undefined,
+                }),
+              }
+            );
+          } else if (feedbackText) {
+            // NO_ACTION: only update feedback notes, not the status
+            await fetch(
+              `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,client_notes`,
+              {
+                method: "PATCH",
+                headers: getHeaders(),
+                body: JSON.stringify({
+                  client_notes: `Interview feedback: ${feedbackText}`,
+                }),
+              }
+            );
+          }
 
           // Check if all candidates for the interview have been evaluated, update vs_interview status to COMPLETED
           if (jaData.interview_id) {
@@ -308,12 +328,36 @@ export async function PATCH(
                         }).catch((e) => console.error("Rejection mail error:", e));
                       }
                     }
+
+                    // Create System Message in conversation for HIRED / REJECTED
+                    if (decision === "HIRED" || decision === "REJECTED") {
+                      const systemText =
+                        decision === "HIRED"
+                          ? "Client hired you."
+                          : "Application status changed: REJECTED";
+
+                      const statusEventType =
+                        decision === "HIRED" ? "HIRED" : "APPLICATION_STATUS_CHANGED";
+
+                      await createSystemMessage({
+                        clientId: userId,
+                        freelancerId: applicationObj.user_id,
+                        jobId: applicationObj.job_id ?? null,
+                        text: systemText,
+                        senderId: userId,
+                        systemEventType: statusEventType,
+                        applicationId: jaData.application_id ?? null,
+                        interviewId: jaData.interview_id ?? null,
+                      }).catch((e) =>
+                        console.error("Status change system message error on interview evaluate:", e)
+                      );
+                    }
                   }
                 }
               }
             }
           } catch (evalMailErr) {
-            console.error("Error sending evaluation email:", evalMailErr);
+            console.error("Error sending evaluation email/system message:", evalMailErr);
           }
         }
       }

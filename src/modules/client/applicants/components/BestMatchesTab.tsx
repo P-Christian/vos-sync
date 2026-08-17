@@ -54,7 +54,7 @@ export default function BestMatchesTab({
   const selectedMatch = candidateMatches[selectedResultIndex] || candidateMatches[0];
   const selectedApplicant = useMemo(() => {
     if (!selectedMatch) return undefined;
-    return applicants.find((a) => a.application_id === selectedMatch.applicationId);
+    return applicants.find((a) => Number(a.application_id) === Number(selectedMatch.applicationId));
   }, [applicants, selectedMatch]);
 
   const selectedRuleMatch = useMemo(() => {
@@ -71,16 +71,23 @@ export default function BestMatchesTab({
     // 1. Check Session Storage Cache
     const cached = getBestMatchCache(job.job_id, applicants.length, job.updated_at);
     if (cached && cached.candidates.length > 0) {
-      queueMicrotask(() => setCandidateMatches(cached.candidates));
+      // Validate that cached candidates exist in the active applicants list
+      const hasValidApplicants = cached.candidates.every((c) =>
+        applicants.some((a) => Number(a.application_id) === Number(c.applicationId))
+      );
 
-      // Populate rule matches map locally for breakdown details
-      const map = new Map<number, MatchResult>();
-      for (const applicant of applicants) {
-        map.set(applicant.application_id, calculateMatch(job, applicant));
+      if (hasValidApplicants) {
+        queueMicrotask(() => setCandidateMatches(cached.candidates));
+
+        // Populate rule matches map locally for breakdown details
+        const map = new Map<number, MatchResult>();
+        for (const applicant of applicants) {
+          map.set(Number(applicant.application_id), calculateMatch(job, applicant));
+        }
+        ruleMatchesMap.current = map;
+        queueMicrotask(() => setProcessing(false));
+        return;
       }
-      ruleMatchesMap.current = map;
-      queueMicrotask(() => setProcessing(false));
-      return;
     }
 
     // 2. Prevent duplicate calls using concurrency lock
@@ -162,8 +169,6 @@ export default function BestMatchesTab({
     );
   }
 
-
-
   const getScoreColor = (score: number) => {
     if (score >= 85) return "text-indigo-600 dark:text-indigo-400";
     if (score >= 70) return "text-emerald-600 dark:text-emerald-400";
@@ -171,14 +176,16 @@ export default function BestMatchesTab({
   };
 
   const getScoreBg = (score: number) => {
-    if (score >= 85) return "bg-indigo-50 dark:bg-indigo-950/30 border-indigo-100 dark:border-indigo-900/30";
-    if (score >= 70) return "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-100 dark:border-emerald-900/30";
-    return "bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/30";
+    if (score >= 85) return "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/40";
+    if (score >= 70) return "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/40";
+    return "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40";
   };
 
-  const initials = (name: string) => {
-    return name
-      .split(" ")
+  const initials = (name?: string) => {
+    if (!name || typeof name !== "string") return "AP";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 0 || !parts[0]) return "AP";
+    return parts
       .map((p) => p[0])
       .join("")
       .toUpperCase()
@@ -189,18 +196,18 @@ export default function BestMatchesTab({
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ── Left Column: Candidate List (Grid Span 7) ────── */}
       <div className="lg:col-span-7 space-y-3">
-        <div className="p-2 bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-xl flex items-center justify-between px-3.5">
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+        <div className="p-2.5 bg-muted/40 dark:bg-zinc-900/40 border border-border/80 rounded-xl flex items-center justify-between px-3.5">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             Best Match Recommendations
           </span>
-          <span className="text-xs text-zinc-500 font-semibold">
+          <span className="text-xs text-muted-foreground font-semibold">
             {candidateMatches.length} candidate{candidateMatches.length !== 1 ? "s" : ""} evaluated
           </span>
         </div>
 
         <div className="space-y-3">
           {candidateMatches.map((cMatch, index) => {
-            const applicantObj = applicants.find((a) => a.application_id === cMatch.applicationId);
+            const applicantObj = applicants.find((a) => Number(a.application_id) === Number(cMatch.applicationId));
             if (!applicantObj) return null;
 
             const isSelected = selectedResultIndex === index;
@@ -214,7 +221,7 @@ export default function BestMatchesTab({
                   cursor-pointer transition-all duration-200 border relative overflow-hidden group
                   ${isSelected
                     ? "border-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 shadow-md ring-1 ring-indigo-500/30"
-                    : "border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-950/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700"
+                    : "border-border/80 bg-card hover:shadow-md hover:border-border"
                   }
                 `}
               >
@@ -230,7 +237,7 @@ export default function BestMatchesTab({
                   <div className="flex items-start gap-4">
                     {/* Candidate Avatar */}
                     <div className="relative shrink-0">
-                      <div className="h-11 w-11 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-850 border border-zinc-200/50 flex items-center justify-center">
+                      <div className="h-11 w-11 overflow-hidden rounded-full bg-muted border border-border/60 flex items-center justify-center">
                         {profileImage ? (
                           <Image
                             src={`/api/client/assets/${profileImage}`}
@@ -240,7 +247,7 @@ export default function BestMatchesTab({
                             className="h-full w-full object-cover"
                           />
                         ) : (
-                          <span className="font-bold text-xs text-zinc-500">
+                          <span className="font-bold text-xs text-muted-foreground">
                             {initials(applicantObj.applicant_name)}
                           </span>
                         )}
@@ -249,7 +256,7 @@ export default function BestMatchesTab({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 group-hover:text-indigo-600 transition-colors">
+                        <h4 className="font-bold text-sm text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                           {applicantObj.applicant_name}
                         </h4>
 
@@ -264,22 +271,22 @@ export default function BestMatchesTab({
                       </div>
 
                       {/* AI Recruiter Summary Line */}
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 line-clamp-2 leading-snug">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug">
                         {cMatch.explanation}
                       </p>
 
                       {/* Candidate Meta Info */}
-                      <div className="flex flex-wrap items-center gap-x-3 mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      <div className="flex flex-wrap items-center gap-x-3 mt-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1 font-medium">
-                          <Briefcase className="h-3.5 w-3.5 text-zinc-400" />
+                          <Briefcase className="h-3.5 w-3.5 text-muted-foreground/70" />
                           {applicantObj.experience_years} years experience
                         </span>
 
                         {applicantObj.location && (
                           <>
-                            <span className="h-3 w-px bg-zinc-200 dark:bg-zinc-800" />
+                            <span className="h-3 w-px bg-border" />
                             <span className="flex items-center gap-1">
-                              <MapPin className="h-3.5 w-3.5 text-zinc-400" />
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground/70" />
                               {applicantObj.location}
                             </span>
                           </>
@@ -290,7 +297,7 @@ export default function BestMatchesTab({
                     <div className="flex items-center shrink-0">
                       <ChevronRight
                         className={`h-5 w-5 transition-transform duration-200 ${
-                          isSelected ? "text-indigo-500 translate-x-0.5" : "text-zinc-300 dark:text-zinc-700"
+                          isSelected ? "text-indigo-500 translate-x-0.5" : "text-muted-foreground/40"
                         }`}
                       />
                     </div>
@@ -305,9 +312,9 @@ export default function BestMatchesTab({
       {/* ── Right Column: Selected Candidate Detailed Insights (Grid Span 5) ────── */}
       <div className="lg:col-span-5 lg:sticky lg:top-4">
         {selectedMatch && selectedApplicant ? (
-          <Card className="border border-zinc-200/80 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-md shadow-lg overflow-hidden">
+          <Card className="border border-border/80 bg-card shadow-lg overflow-hidden  flex flex-col">
             <div
-              className={`h-1.5 w-full ${
+              className={`h-1.5 w-full shrink-0 ${
                 selectedMatch.finalScore >= 85
                   ? "bg-indigo-600"
                   : selectedMatch.finalScore >= 70
@@ -316,9 +323,9 @@ export default function BestMatchesTab({
               }`}
             />
 
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-zinc-200 dark:border-zinc-800">
+            <CardHeader className="pb-3 border-b border-border/50 shrink-0">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-border">
                   {selectedMatch.finalScore >= 85
                     ? "Highly Recommended"
                     : selectedMatch.finalScore >= 70
@@ -327,7 +334,7 @@ export default function BestMatchesTab({
                 </Badge>
 
                 <div
-                  className={`px-2.5 py-0.5 text-xs font-extrabold rounded-lg border ${getScoreBg(
+                  className={`px-2.5 py-0.5 text-xs font-extrabold rounded-full border ${getScoreBg(
                     selectedMatch.finalScore
                   )} ${getScoreColor(selectedMatch.finalScore)}`}
                 >
@@ -335,87 +342,109 @@ export default function BestMatchesTab({
                 </div>
               </div>
 
-              <CardTitle className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-                {selectedApplicant.applicant_name}
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 overflow-hidden rounded-full bg-muted border border-border/60 flex items-center justify-center shrink-0">
+                  {selectedApplicant.applicant_profile_image_url ? (
+                    <Image
+                      src={`/api/client/assets/${selectedApplicant.applicant_profile_image_url}`}
+                      alt={selectedApplicant.applicant_name}
+                      width={44}
+                      height={44}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-bold text-xs text-muted-foreground">
+                      {initials(selectedApplicant.applicant_name)}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <CardTitle className="text-base font-bold text-foreground truncate">
+                    {selectedApplicant.applicant_name}
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground truncate">{selectedApplicant.applicant_email}</p>
+                </div>
+              </div>
             </CardHeader>
 
-            <CardContent className="space-y-5 text-xs">
-              {/* Recruiter Recommendation Summary */}
-              <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-1">
-                <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
-                  Recruiter AI Evaluation
-                </span>
-                <p className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-medium">
-                  {selectedMatch.explanation}
-                </p>
+            <CardContent className="flex-1 flex flex-col justify-between pt-4 text-xs space-y-4">
+              <div className="space-y-4">
+                {/* Recruiter Recommendation Summary */}
+                <div className="p-3.5 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-1">
+                  <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                    Recruiter AI Evaluation
+                  </span>
+                  <p className="text-xs text-foreground/90 leading-relaxed font-medium">
+                    {selectedMatch.explanation}
+                  </p>
+                </div>
+
+                {/* Strengths */}
+                {selectedMatch.strengths && selectedMatch.strengths.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+                      Key Strengths
+                    </span>
+                    <div className="space-y-1.5">
+                      {selectedMatch.strengths.map((str, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-foreground/90">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                          <span className="text-xs leading-snug">{str}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Weaknesses / Gaps */}
+                {selectedMatch.weaknesses && selectedMatch.weaknesses.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
+                      Development Areas / Gaps
+                    </span>
+                    <div className="space-y-1.5">
+                      {selectedMatch.weaknesses.map((weak, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-foreground/90">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                          <span className="text-xs leading-snug">{weak}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Skill Breakdown details if available */}
+                {selectedRuleMatch && (selectedRuleMatch.matchingSkills.length > 0 || selectedRuleMatch.missingSkills.length > 0) && (
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                      Technical Skills Match ({selectedRuleMatch.matchingSkills.length})
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedRuleMatch.matchingSkills.map((skill) => (
+                        <Badge
+                          key={skill}
+                          variant="secondary"
+                          className="bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] py-0.5 px-2 rounded-md"
+                        >
+                          ✓ {skill}
+                        </Badge>
+                      ))}
+                      {selectedRuleMatch.missingSkills.map((skill) => (
+                        <Badge
+                          key={skill}
+                          variant="outline"
+                          className="bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 text-[10px] py-0.5 px-2 rounded-md"
+                        >
+                          • {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Strengths */}
-              {selectedMatch.strengths && selectedMatch.strengths.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
-                    Key Strengths
-                  </span>
-                  <div className="space-y-1.5">
-                    {selectedMatch.strengths.map((str, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-zinc-700 dark:text-zinc-300">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{str}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Weaknesses / Gaps */}
-              {selectedMatch.weaknesses && selectedMatch.weaknesses.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
-                    Development Areas / Gaps
-                  </span>
-                  <div className="space-y-1.5">
-                    {selectedMatch.weaknesses.map((weak, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-zinc-700 dark:text-zinc-300">
-                        <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                        <span>{weak}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Skill Breakdown details if available */}
-              {selectedRuleMatch && (
-                <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-900">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                    Technical Skills Match ({selectedRuleMatch.matchingSkills.length})
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedRuleMatch.matchingSkills.map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant="secondary"
-                        className="bg-emerald-50 border border-emerald-200/50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 text-[10px] py-0.5 px-2 rounded-md"
-                      >
-                        ✓ {skill}
-                      </Badge>
-                    ))}
-                    {selectedRuleMatch.missingSkills.map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant="outline"
-                        className="bg-rose-50/50 border border-rose-200/40 text-rose-600 dark:bg-rose-950/10 dark:text-rose-400 text-[10px] py-0.5 px-2 rounded-md"
-                      >
-                        • {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Actions */}
-              <div className="flex gap-2 pt-2">
+              <div className="flex gap-2.5 py-4 mt-auto border-t border-border/50">
                 <Button
                   onClick={() => onViewDetails(selectedApplicant)}
                   variant="outline"
@@ -431,7 +460,7 @@ export default function BestMatchesTab({
                     <Button
                       onClick={() => onScheduleInterview(selectedApplicant)}
                       size="sm"
-                      className="flex-1 h-9 rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-bold text-xs"
+                      className="flex-1 h-9 rounded-lg gap-1.5 font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
                     >
                       <CalendarPlus className="h-4 w-4" />
                       Schedule Interview

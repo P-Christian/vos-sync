@@ -2,18 +2,18 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { MapPin, Users, Clock, Briefcase, Pencil, Landmark, Banknote, ExternalLink    } from "lucide-react";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import Link from "next/link";
+import { MapPin, Users, Clock, Briefcase, Landmark, Banknote, ChevronRight } from "lucide-react";
 import JobStatusBadge from "./JobStatusBadge";
 import { JobPosting, JobStatus, JOB_TYPE_LABELS } from "../types";
 
@@ -26,6 +26,7 @@ interface JobCardProps {
     newStatus: JobStatus
   ) => void;
 }
+
 const parseJsonField = (value: string | null | undefined): Record<string, unknown> => {
   if (!value) return {};
   const trimmed = value.trim();
@@ -60,180 +61,161 @@ function timeAgo(dateStr?: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-// Border accent per status — transition handles the animation
+// Border accent per status
 const STATUS_BORDER: Record<JobStatus, string> = {
-  ACTIVE: "border-l-[#14a800]",
+  ACTIVE: "border-l-primary",
   DRAFT: "border-l-amber-500",
   CLOSED: "border-l-rose-500",
 };
 
-// Select trigger colour per status
-const STATUS_TRIGGER: Record<JobStatus, string> = {
-  ACTIVE: "text-[#14a800] border-emerald-200 bg-emerald-50/60 dark:bg-emerald-950/20 dark:border-emerald-800/40 hover:border-emerald-400",
-  DRAFT: "text-amber-600 border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800/40 hover:border-amber-400",
-  CLOSED: "text-rose-600 border-rose-200 bg-rose-50/60 dark:bg-rose-950/20 dark:border-rose-800/40 hover:border-rose-450",
+const cardVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: "easeOut" as const },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.98,
+    transition: { duration: 0.2, ease: "easeIn" as const },
+  },
 };
 
 export default function JobCard({
   job,
   onView,
-  onEdit,
-  onStatusChange
 }: JobCardProps) {
   const descData = parseJsonField(job.job_description);
   const reqsData = parseJsonField(job.job_requirements);
 
-  const category = (descData.job_category as string) || "";
+  const category = (descData.job_category as string) || (job.job_category as string) || "";
   const arrangement = (descData.work_arrangement as string) || (job.work_arrangement as string) || "Remote";
   const salaryType = (reqsData.salary_type as string) || (job.salary_type as string) || "Salary Range";
 
   return (
-    <Card
-      className={[
-        "group hover:shadow-md py-0 overflow-hidden ",
-        "border border-zinc-200/80 dark:border-zinc-800/80",
-        "hover:border-zinc-300 dark:hover:border-zinc-700",
-        "bg-white dark:bg-zinc-950/60 shadow-sm",
-        "hover:-translate-y-[1px]",
-        // left border — width always 4px, colour transitions smoothly
-        "border-l-4",
-        STATUS_BORDER[job.status] ?? "border-l-zinc-300",
-        "transition-all duration-500 ease-in-out",
-      ].join(" ")}
+    <motion.div
+      layout="position"
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="w-full"
     >
-      <CardContent className="p-5 sm:p-6">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-
-          {/* ── Left: content ─────────────────────────────────── */}
-          <div className="min-w-0 flex-1 space-y-2.5">
-
-            {/* Title & Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-bold text-zinc-900 dark:text-zinc-50 text-sm sm:text-base leading-snug tracking-tight group-hover:text-[#14a800] transition-colors duration-200">
-                {job.job_title}
-              </h3>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <JobStatusBadge status={job.status} />
-                {category && (
-                  <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/40 dark:border-emerald-800/30 rounded-md">
-                    {category}
-                  </Badge>
-                )}
-                {arrangement && (
-                  <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/40 dark:border-blue-800/30 rounded-md">
-                    {arrangement}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Department */}
-            {job.job_department && (
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1">
-                <Landmark className="h-3.5 w-3.5 text-zinc-400" />
-                <span>{job.job_department} Department</span>
-              </div>
-            )}
-
-            {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-500 dark:text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                {job.job_location}
-              </span>
-              <span className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
-              <span className="flex items-center gap-1.5">
-                <Briefcase className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
-              </span>
-              <span className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
-              <span className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                {job.applicants_count ?? 0} applicant{(job.applicants_count ?? 0) !== 1 ? "s" : ""}
-              </span>
-              <span className="h-3 w-px bg-zinc-200 dark:bg-zinc-800 hidden sm:block" />
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                Posted {timeAgo(job.created_at)}
-              </span>
-            </div>
-
-            {/* Salary badge */}
-            <div className="pt-0.5 flex flex-wrap items-center justify-between gap-4 w-full">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/20 px-3 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-800/20">
-                <Banknote className="h-3.5 w-3.5" />
-                {formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, salaryType)}
-              </span>
-
-              {/* Primary ATS actions */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}`}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-3 text-xs gap-1.5 rounded-lg border-zinc-200 hover:border-emerald-500 hover:text-[#14a800] dark:border-zinc-800 dark:hover:border-emerald-500 transition-all duration-200 font-semibold"
-                  >
-                    <Users className="h-3.5 w-3.5" />
-                    View Applicants
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Right: actions (fixed width, never shifts) ────── */}
-          <div className="flex flex-row md:flex-col items-stretch gap-2 shrink-0 w-full md:w-28 pt-3 md:pt-0 border-t md:border-t-0 border-zinc-100 dark:border-zinc-900">
-            {/* Preview */}
-            <Button
-              size="sm"
-              variant="outline"
+      <TooltipProvider delayDuration={2000}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Card
               onClick={() => onView(job)}
-              className="h-8 px-3 text-xs gap-1.5 rounded-lg"
+              className={[
+                "group hover:shadow-md py-0 overflow-hidden cursor-pointer",
+                "border border-border/80 hover:border-primary/50",
+                "bg-card shadow-sm",
+                "hover:-translate-y-[1px]",
+                "border-l-4",
+                STATUS_BORDER[job.status] ?? "border-l-muted",
+                "transition-all duration-300 ease-in-out",
+              ].join(" ")}
             >
-              <ExternalLink className="h-3.5 w-3.5" />
-              Preview
-            </Button>
-            {/* Edit — always visible */}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onEdit(job)}
-              className="h-8 px-3 text-xs gap-1.5 rounded-lg border-zinc-200 hover:border-emerald-500 hover:text-[#14a800] dark:hover:text-emerald-400 transition-all duration-200 font-semibold shadow-none w-full justify-center"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Button>
+              <CardContent className="p-5 sm:p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-            {/* Status selector — always visible, same slot */}
-            <Select
-              value={job.status}
-              onValueChange={(v) => onStatusChange(job.job_id, v as JobStatus)}
-            >
-              <SelectTrigger
-                className={[
-                  "h-8 text-xs font-semibold rounded-lg border w-full",
-                  "transition-all duration-300",
-                  STATUS_TRIGGER[job.status] ?? STATUS_TRIGGER.CLOSED,
-                ].join(" ")}
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ACTIVE" className="text-xs font-semibold text-[#14a800]">
-                  Active
-                </SelectItem>
-                <SelectItem value="DRAFT" className="text-xs font-semibold text-amber-600">
-                  Draft
-                </SelectItem>
-                <SelectItem value="CLOSED" className="text-xs font-semibold text-rose-600">
-                  Closed
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                  {/* ── Left: Main Job Details ──────────────────────── */}
+                  <div className="min-w-0 flex-1 space-y-2.5">
 
-        </div>
-      </CardContent>
-    </Card>
+                    {/* Title & Badges */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-foreground text-sm sm:text-base leading-snug tracking-tight group-hover:text-primary transition-colors duration-200">
+                        {job.job_title}
+                      </h3>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <JobStatusBadge status={job.status} />
+                        {category && (
+                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/40 dark:border-emerald-800/30 rounded-md">
+                            {category}
+                          </Badge>
+                        )}
+                        {arrangement && (
+                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/40 dark:border-blue-800/30 rounded-md">
+                            {arrangement}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Department */}
+                    {job.job_department && (
+                      <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                        <Landmark className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        <span>{job.job_department} Department</span>
+                      </div>
+                    )}
+
+                    {/* Meta row */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        {job.job_location}
+                      </span>
+                      <span className="h-3 w-px bg-border hidden sm:block" />
+                      <span className="flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
+                      </span>
+                      <span className="h-3 w-px bg-border hidden sm:block" />
+                      <span className="flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        {job.applicants_count ?? 0} applicant{(job.applicants_count ?? 0) !== 1 ? "s" : ""}
+                      </span>
+                      <span className="h-3 w-px bg-border hidden sm:block" />
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
+                        Posted {timeAgo(job.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Salary badge */}
+                    <div className="pt-0.5">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/20 px-3 py-1 rounded-lg border border-emerald-100/50 dark:border-emerald-800/20">
+                        <Banknote className="h-3.5 w-3.5" />
+                        {formatSalary(job.salary_min, job.salary_max, job.salary_negotiable, salaryType)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ── Right: Clean Primary ATS Action ───────────────── */}
+                  <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/50">
+                    <Link
+                      href={`/vos-sync/client/applicants?job_id=${job.job_id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-3.5 text-xs gap-2 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 font-semibold shadow-xs"
+                      >
+                        <Users className="h-3.5 w-3.5 text-primary" />
+                        View Applicants
+                        {typeof job.applicants_count === "number" && job.applicants_count > 0 && (
+                          <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-[10px] font-bold">
+                            {job.applicants_count}
+                          </span>
+                        )}
+                        <ChevronRight className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </Button>
+                    </Link>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            Click to preview and edit job details
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </motion.div>
   );
 }
+

@@ -1,6 +1,19 @@
 // src/modules/vos-admin/role-matching/services/roleMatchingService.ts
 
-import { JobCategory, StandardRole, SearchKeyword, RoleSkillMapping, DashboardMetrics, SimulationResult, MasterSkill } from "../types";
+import {
+  JobCategory,
+  StandardRole,
+  SearchKeyword,
+  RoleSkillMapping,
+  DashboardMetrics,
+  SimulationResult,
+  MasterSkill,
+  IntelligenceRequest,
+  IntelligenceRequestStatus,
+  IntelligenceRequestAction,
+  ReviewRequestPayload,
+  CandidateSimulationProfile,
+} from "../types";
 
 const BASE_URL = "/api/vos-admin/job-roles";
 
@@ -163,12 +176,45 @@ export async function fetchMasterSkills(): Promise<MasterSkill[]> {
   return data.master_skills ?? [];
 }
 
-export async function runMatchSimulation(keyword: string, candidateId?: number): Promise<SimulationResult> {
+export async function runMatchSimulation(
+  keyword: string,
+  candidateId?: number,
+  candidate?: CandidateSimulationProfile
+): Promise<SimulationResult> {
   const res = await fetch(`${BASE_URL}/tester`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ keyword, candidate_id: candidateId }),
+    body: JSON.stringify({ keyword, candidate_id: candidateId, candidate }),
   });
   if (!res.ok) throw new Error("Failed to run match simulation.");
   return res.json();
+}
+
+// Intelligence Requests (Approval Queue)
+export async function fetchIntelligenceRequests(
+  status?: IntelligenceRequestStatus
+): Promise<IntelligenceRequest[]> {
+  const url = status
+    ? `${BASE_URL}/suggestions?status=${status}`
+    : `${BASE_URL}/suggestions`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Failed to fetch intelligence requests.");
+  const data = await res.json();
+  return data.requests ?? [];
+}
+
+export async function reviewIntelligenceRequest(
+  suggestionId: number,
+  action: IntelligenceRequestAction,
+  payload?: Omit<ReviewRequestPayload, "action">
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}/suggestions`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ suggestion_id: suggestionId, action, ...payload }),
+  });
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(errJson.error || "Failed to review intelligence request.");
+  }
 }

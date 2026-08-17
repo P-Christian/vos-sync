@@ -3,7 +3,7 @@
 // src/modules/vos-admin/role-matching/hooks/useMatchTester.ts
 
 import { useState, useCallback } from "react";
-import { SimulationResult } from "../types";
+import { SimulationResult, CandidateSimulationProfile } from "../types";
 import { runMatchSimulation } from "../services/roleMatchingService";
 
 export function useMatchTester() {
@@ -11,12 +11,12 @@ export function useMatchTester() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const runTest = useCallback(async (keyword: string, candidateId?: number) => {
+  const runTest = useCallback(async (keyword: string, candidateId?: number, candidate?: CandidateSimulationProfile) => {
     if (!keyword.trim()) return;
     setLoading(true);
     setError("");
     try {
-      const res = await runMatchSimulation(keyword, candidateId);
+      const res = await runMatchSimulation(keyword, candidateId, candidate);
       setResult(res);
     } catch (err: unknown) {
       setError((err as Error).message || "Simulation test failed.");

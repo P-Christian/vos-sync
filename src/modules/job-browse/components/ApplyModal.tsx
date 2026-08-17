@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,12 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const resumeInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
+  const avatarSrc = profileData?.profile_image_url
+    ? (profileData.profile_image_url.startsWith("http") || profileData.profile_image_url.startsWith("/")
+        ? profileData.profile_image_url
+        : `${(process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")}/assets/${profileData.profile_image_url}?width=256&height=256&fit=cover&quality=95`)
+    : null;
+
   // Load pre-fill whenever the modal opens with a new job
   useEffect(() => {
     if (open && job) {
@@ -138,19 +145,6 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
   const handleSubmit = async () => {
     const ok = await submitApplication(false);
-    if (ok) {
-      setTimeout(() => {
-        reset();
-        setCurrentStep(1);
-        setConsentAccepted(false);
-        onClose();
-        onSuccess();
-      }, 1200);
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    const ok = await submitApplication(true);
     if (ok) {
       setTimeout(() => {
         reset();
@@ -269,8 +263,20 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <div className="space-y-6">
                 {/* User card matching image */}
                 <div className="p-4 bg-[#0a192f] text-white rounded-2xl flex items-center gap-4 relative overflow-hidden shadow-md">
-                  <div className="w-14 h-14 bg-rose-200 text-[#0a192f] rounded-2xl flex items-center justify-center text-xl font-bold font-mono">
-                    {profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}
+                  <div className="w-14 h-14 bg-rose-200 text-[#0a192f] rounded-2xl flex items-center justify-center text-xl font-bold font-mono overflow-hidden shrink-0 relative border border-white/20">
+                    {avatarSrc ? (
+                      <Image
+                        src={avatarSrc}
+                        alt={`${profileData?.user_fname ?? "Candidate"} avatar`}
+                        width={192}
+                        height={192}
+                        quality={95}
+                        unoptimized
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}</span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <h3 className="font-bold text-sm tracking-wide">
@@ -604,14 +610,31 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
                 <div className="space-y-4 text-xs border rounded-2xl divide-y bg-muted/10 overflow-hidden">
                   {/* Applicant Details */}
-                  <div className="p-4 space-y-1 bg-background">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Applicant</span>
-                    <p className="font-bold text-sm text-foreground">
-                      {profileData?.user_fname} {profileData?.user_lname}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {profileData?.user_email} &bull; {profileData?.user_contact}
-                    </p>
+                  <div className="p-4 flex items-center gap-3 bg-background">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-rose-200 text-[#0a192f] flex items-center justify-center font-bold font-mono text-sm border border-border relative">
+                      {avatarSrc ? (
+                        <Image
+                          src={avatarSrc}
+                          alt="Applicant avatar"
+                          width={128}
+                          height={128}
+                          quality={95}
+                          unoptimized
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{profileData ? getInitials(profileData.user_fname, profileData.user_lname) : "?"}</span>
+                      )}
+                    </div>
+                    <div className="space-y-0.5 min-w-0">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Applicant</span>
+                      <p className="font-bold text-sm text-foreground truncate">
+                        {profileData?.user_fname} {profileData?.user_lname}
+                      </p>
+                      <p className="text-muted-foreground text-xs truncate">
+                        {profileData?.user_email} &bull; {profileData?.user_contact}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Resume & Cover letter */}
@@ -742,7 +765,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
           </div>
 
           <div className="flex gap-2">
-            {!successMessage && (
+            {/* {!successMessage && (
               <Button
                 variant="outline"
                 onClick={handleSaveDraft}
@@ -751,7 +774,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               >
                 Save Draft
               </Button>
-            )}
+            )} */}
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}

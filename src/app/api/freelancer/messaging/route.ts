@@ -1,6 +1,7 @@
 // src/app/api/freelancer/messaging/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { safeDecryptMessage } from "@/lib/message-encryption";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -211,9 +212,24 @@ export async function GET(req: NextRequest) {
       let lastMessagePreview = "";
       if (lastMsg) {
         if (lastMsg.message_type === "SYSTEM") {
-          lastMessagePreview = (lastMsg.message_content as string) ?? "";
+          const rawContent = (lastMsg.message_content as string) ?? "";
+          const lower = rawContent.toLowerCase();
+          if (lower.includes("hired") || lower.includes("client hired")) {
+            lastMessagePreview = "You were hired!";
+          } else if (lower.includes("application submitted")) {
+            lastMessagePreview = "Application submitted";
+          } else if (lower.includes("status changed") || lower.includes("application updated")) {
+            lastMessagePreview = "Application status updated";
+          } else if (lower.includes("interview scheduled")) {
+            lastMessagePreview = "Interview scheduled";
+          } else if (lower.includes("interview rescheduled") || lower.includes("interview updated")) {
+            lastMessagePreview = "Interview rescheduled";
+          } else {
+            lastMessagePreview = rawContent;
+          }
         } else if (lastMsg.message_type === "TEXT") {
-          const content = (lastMsg.message_content as string) ?? "";
+          const rawContent = (lastMsg.message_content as string) ?? "";
+          const content = safeDecryptMessage(rawContent) ?? "";
           lastMessagePreview =
             content.length > 60 ? content.slice(0, 60) + "…" : content;
         } else if (lastMsg.message_type === "IMAGE") {

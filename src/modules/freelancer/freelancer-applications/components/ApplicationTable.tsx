@@ -58,13 +58,9 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
     icon: Star,
     className: 'bg-purple-50 text-purple-700 border-transparent dark:bg-purple-950/30 dark:text-purple-300',
   },
-  INTERVIEW_SCHEDULED: {
+  INTERVIEWING: {
     icon: Calendar,
     className: 'bg-primary/15 text-primary border-transparent',
-  },
-  INTERVIEW_COMPLETED: {
-    icon: CheckCircle,
-    className: 'bg-teal-50 text-teal-700 border-transparent dark:bg-teal-950/30 dark:text-teal-300',
   },
   HIRED: {
     icon: CheckCircle,
@@ -477,13 +473,13 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                       </>
                     ) : (
                       (() => {
-                        const statusOrder = ["APPLIED", "SHORTLISTED", "INTERVIEW_SCHEDULED", "HIRED"];
+                        const statusOrder = ["APPLIED", "SHORTLISTED", "INTERVIEWING", "HIRED"];
                         const currentIndex = statusOrder.indexOf(selectedApp.application_status);
                         
                         const steps = [
                           { label: "Applied", desc: "Your application was successfully submitted." },
                           { label: "Shortlisted", desc: "The employer has shortlisted you for potential opportunities." },
-                          { label: "Interview Scheduled", desc: "An interview has been scheduled with the employer." },
+                          { label: "Interviewing", desc: "You have entered the interview phase with the employer." },
                           { label: "Hired", desc: "Congratulations! You have been hired for this role." }
                         ];
 

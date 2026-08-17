@@ -33,6 +33,7 @@ interface Props {
   onRefresh: () => void;
   onLoadOlder?: () => void;
   onBack?: () => void;
+  onToggleReaction?: (messageId: number, reaction: string) => void;
 }
 
 function parseDate(dateStr: string): Date {
@@ -124,6 +125,7 @@ export default function ChatPanel({
   onRefresh,
   onLoadOlder,
   onBack,
+  onToggleReaction,
 }: Props) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -350,6 +352,7 @@ export default function ChatPanel({
                   isOwn={isOwn}
                   showDateDivider={showDateDivider}
                   dateLabel={showDateDivider ? getDateLabel(msg.created_at) : undefined}
+                  onToggleReaction={onToggleReaction}
                 />
               );
             })}

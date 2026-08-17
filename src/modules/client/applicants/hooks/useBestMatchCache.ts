@@ -22,7 +22,7 @@ export interface CachedBestMatch {
 }
 
 const CACHE_PREFIX = "vos_sync_best_matches_";
-const CURRENT_CACHE_VERSION = "v2";
+const CURRENT_CACHE_VERSION = "v3";
 
 export function getBestMatchCache(
   jobId: number,

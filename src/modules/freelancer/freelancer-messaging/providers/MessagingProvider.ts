@@ -1,8 +1,8 @@
-// src/modules/freelancer/freelancer-messaging/providers/MessagingProvider.ts
-
 import {
   Conversation,
   Message,
+  MessageFetchResult,
+  MessageReactionGroup,
   SendMessagePayload,
 } from "../types";
 
@@ -25,7 +25,7 @@ export async function fetchConversations(params?: {
 export async function fetchMessages(
   conversationId: number,
   params?: { limit?: number; offset?: number }
-): Promise<Message[]> {
+): Promise<MessageFetchResult> {
   const qs = new URLSearchParams();
   if (params?.limit) qs.set("limit", String(params.limit));
   if (params?.offset) qs.set("offset", String(params.offset));
@@ -36,7 +36,10 @@ export async function fetchMessages(
   );
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Failed to fetch messages.");
-  return json.messages ?? [];
+  return {
+    messages: json.messages ?? [],
+    celebration: json.celebration ?? null,
+  };
 }
 
 // ─── Send message ──────────────────────────────────────────────────────────
@@ -90,4 +93,20 @@ export async function uploadFile(file: File): Promise<{
   const json = await res.json();
   if (!res.ok) throw new Error(json.error ?? "Failed to upload file.");
   return json;
+}
+
+// ─── Toggle message reaction ───────────────────────────────────────────────
+
+export async function toggleReaction(
+  messageId: number,
+  reaction: string
+): Promise<MessageReactionGroup[]> {
+  const res = await fetch(`/api/shared/messaging/messages/${messageId}/reactions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reaction }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error ?? "Failed to toggle reaction.");
+  return json.reactions ?? [];
 }

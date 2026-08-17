@@ -13,6 +13,7 @@ export default function InternalServerErrorPage() {
             title="500 - Internal Server Error"
             description="The server encountered an unexpected condition or database connectivity failure that prevented it from fulfilling your request."
             errorCode="500_INTERNAL_SERVER_ERROR"
+            isOverlay={false}
         />
     );
 }

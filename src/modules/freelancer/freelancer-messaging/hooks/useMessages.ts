@@ -3,11 +3,12 @@
 // src/modules/freelancer/freelancer-messaging/hooks/useMessages.ts
 
 import { useCallback, useState, useEffect, useRef } from "react";
-import { Message, SendMessagePayload } from "../types";
+import { CelebrationEvent, Message, SendMessagePayload } from "../types";
 import {
   fetchMessages,
   sendMessage,
   uploadFile,
+  toggleReaction,
 } from "../providers/MessagingProvider";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 
@@ -25,6 +26,7 @@ function sortChronologically(list: Message[]): Message[] {
 
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [celebration, setCelebration] = useState<CelebrationEvent | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -53,7 +55,8 @@ export function useMessages() {
         const activeId = activeConversationIdRef.current;
         if (activeId) {
           fetchMessages(activeId, { limit: 50, offset: 0 })
-            .then((latestMessages) => {
+            .then((result) => {
+              const latestMessages = result.messages;
               if (latestMessages && latestMessages.length > 0) {
                 setMessages((prev) => {
                   const map = new Map<number, Message>();
@@ -84,9 +87,12 @@ export function useMessages() {
     setError("");
     setHasMore(true);
     try {
-      const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
-      setMessages(sortChronologically(data));
-      setHasMore(data.length >= 50);
+      const result = await fetchMessages(conversationId, { limit: 50, offset: 0 });
+      setMessages(sortChronologically(result.messages));
+      if (result.celebration) {
+        setCelebration(result.celebration);
+      }
+      setHasMore(result.messages.length >= 50);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to load messages."
@@ -102,7 +108,8 @@ export function useMessages() {
     setError("");
     try {
       const currentOffset = messages.length;
-      const olderData = await fetchMessages(conversationId, { limit: 50, offset: currentOffset });
+      const result = await fetchMessages(conversationId, { limit: 50, offset: currentOffset });
+      const olderData = result.messages;
       if (olderData.length === 0) {
         setHasMore(false);
       } else {
@@ -127,9 +134,9 @@ export function useMessages() {
     async (conversationId: number) => {
       setError("");
       try {
-        const data = await fetchMessages(conversationId, { limit: 50, offset: 0 });
-        setMessages(sortChronologically(data));
-        setHasMore(data.length >= 50);
+        const result = await fetchMessages(conversationId, { limit: 50, offset: 0 });
+        setMessages(sortChronologically(result.messages));
+        setHasMore(result.messages.length >= 50);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Failed to refresh messages."
@@ -178,14 +185,114 @@ export function useMessages() {
     }
   }, []);
 
+  const toggleMessageReaction = useCallback(
+    async (messageId: number, reaction: string) => {
+      // Optimistic update
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.message_id !== messageId) return msg;
+          const currentReactions = msg.reactions ?? [];
+
+          // Remove any other reaction currently reacted by me
+          let nextReactions = currentReactions
+            .map((r) => {
+              if (r.reacted_by_me && r.reaction !== reaction) {
+                return { ...r, count: r.count - 1, reacted_by_me: false };
+              }
+              return r;
+            })
+            .filter((r) => r.count > 0);
+
+          const existingTarget = nextReactions.find(
+            (r) => r.reaction === reaction
+          );
+
+          if (existingTarget) {
+            if (existingTarget.reacted_by_me) {
+              // Toggled off same emoji
+              if (existingTarget.count <= 1) {
+                nextReactions = nextReactions.filter(
+                  (r) => r.reaction !== reaction
+                );
+              } else {
+                nextReactions = nextReactions.map((r) =>
+                  r.reaction === reaction
+                    ? {
+                        ...r,
+                        count: r.count - 1,
+                        reacted_by_me: false,
+                      }
+                    : r
+                );
+              }
+            } else {
+              // Switched to this emoji
+              nextReactions = nextReactions.map((r) =>
+                r.reaction === reaction
+                  ? {
+                      ...r,
+                      count: r.count + 1,
+                      reacted_by_me: true,
+                    }
+                  : r
+              );
+            }
+          } else {
+            // New emoji selected
+            nextReactions.push({
+              reaction,
+              count: 1,
+              reacted_by_me: true,
+              users: [],
+            });
+          }
+
+          return {
+            ...msg,
+            reactions: nextReactions,
+          };
+        })
+      );
+
+      try {
+        const updatedReactions = await toggleReaction(messageId, reaction);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.message_id === messageId
+              ? { ...msg, reactions: updatedReactions }
+              : msg
+          )
+        );
+      } catch (err) {
+        console.error("Failed to toggle reaction:", err);
+        const activeId = activeConversationIdRef.current;
+        if (activeId) {
+          fetchMessages(activeId, { limit: 50, offset: 0 })
+            .then((result) => {
+              if (result?.messages) setMessages(sortChronologically(result.messages));
+            })
+            .catch(() => {});
+        }
+      }
+    },
+    []
+  );
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError("");
     setHasMore(true);
+    setCelebration(null);
+  }, []);
+
+  const dismissCelebration = useCallback(() => {
+    setCelebration(null);
   }, []);
 
   return {
     messages,
+    celebration,
+    dismissCelebration,
     loading,
     loadingOlder,
     hasMore,
@@ -197,6 +304,7 @@ export function useMessages() {
     refreshMessages,
     send,
     upload,
+    toggleReaction: toggleMessageReaction,
     clearMessages,
     clearError: () => setError(""),
   };

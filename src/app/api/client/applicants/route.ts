@@ -386,7 +386,7 @@ export async function GET(req: NextRequest) {
       ),
 
       fetch(
-        `${DIRECTUS_BASE}/items/vs_interview?filter[application_id][_in]=${appIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,application_id&limit=500`,
+        `${DIRECTUS_BASE}/items/vs_interview_application?filter[application_id][_in]=${appIds.join(",")}&fields=interview_id,application_id&limit=1000`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -430,10 +430,30 @@ export async function GET(req: NextRequest) {
         ? (await resumeRes.json()).data ?? []
         : [];
 
-    const interviewRows: { interview_id: number; application_id: number }[] =
+    const interviewAppRows: { interview_id: number; application_id: number }[] =
       interviewsRes.ok
         ? (await interviewsRes.json()).data ?? []
         : [];
+
+    const distinctInterviewIds = [
+      ...new Set(interviewAppRows.map((r) => r.interview_id).filter(Boolean)),
+    ];
+
+    let activeInterviewIdSet = new Set<number>();
+    if (distinctInterviewIds.length > 0) {
+      const activeIvRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${distinctInterviewIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,interview_status&limit=500`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      );
+      if (activeIvRes.ok) {
+        const activeIvRows: { interview_id: number }[] =
+          (await activeIvRes.json()).data ?? [];
+        activeInterviewIdSet = new Set(activeIvRows.map((r) => r.interview_id));
+      }
+    }
 
     const educationRows: { user_id: number; school_name_raw?: string | null; course_name_raw?: string | null }[] =
       educationRes.ok
@@ -470,8 +490,10 @@ export async function GET(req: NextRequest) {
 
     const screeningCountMap: Record<number, number> = {};
 
-    interviewRows.forEach((row) => {
-      activeInterviewsMap[row.application_id] = row.interview_id;
+    interviewAppRows.forEach((row) => {
+      if (activeInterviewIdSet.has(row.interview_id)) {
+        activeInterviewsMap[row.application_id] = row.interview_id;
+      }
     });
 
     educationRows.forEach((row) => {

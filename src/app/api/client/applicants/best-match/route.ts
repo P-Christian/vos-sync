@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
+import { evaluateTaxonomyProposal } from "@/modules/vos-admin/role-matching/services/taxonomy/taxonomyGovernanceService";
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,6 +51,26 @@ export async function POST(req: NextRequest) {
         result: null,
         message: "Gemini AI unavailable or API key not configured.",
       });
+    }
+
+    // Non-blocking asynchronous taxonomy governance enrichment on the server
+    try {
+      const cleaned = rawGemini
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed?.taxonomyProposal && typeof parsed.taxonomyProposal === "object") {
+        void evaluateTaxonomyProposal({
+          roleName: parsed.taxonomyProposal.roleName || "",
+          keywords: Array.isArray(parsed.taxonomyProposal.keywords) ? parsed.taxonomyProposal.keywords : [],
+          skills: Array.isArray(parsed.taxonomyProposal.skills) ? parsed.taxonomyProposal.skills : [],
+        })
+          .then((res) => console.info("[BEST_MATCH API] ✅ Server-side Taxonomy Governance completed:", res))
+          .catch((err) => console.error("[BEST_MATCH API] ⚠️ Server-side Taxonomy Governance failed:", err?.message ?? err));
+      }
+    } catch {
+      // Non-blocking if JSON parsing fails
     }
 
     return NextResponse.json({

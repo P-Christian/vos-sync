@@ -691,7 +691,7 @@ export async function PATCH(req: NextRequest) {
       .replace("T", " ");
 
     if (body.action === "withdraw") {
-      const allowedFrom = ["DRAFT", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW_SCHEDULED"];
+      const allowedFrom = ["DRAFT", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEWING"];
       if (!allowedFrom.includes(appData.application_status)) {
         return NextResponse.json(
           { error: `Cannot withdraw application when status is ${appData.application_status}.` },

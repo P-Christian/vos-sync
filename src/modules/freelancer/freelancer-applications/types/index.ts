@@ -5,8 +5,7 @@ export type ApplicationStatus =
   | 'APPLIED'
   | 'UNDER_REVIEW'
   | 'SHORTLISTED'
-  | 'INTERVIEW_SCHEDULED'
-  | 'INTERVIEW_COMPLETED'
+  | 'INTERVIEWING'
   | 'HIRED'
   | 'REJECTED'
   | 'WITHDRAWN';
@@ -84,8 +83,7 @@ export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   APPLIED: 'Applied',
   UNDER_REVIEW: 'Under Review',
   SHORTLISTED: 'Shortlisted',
-  INTERVIEW_SCHEDULED: 'Interview Scheduled',
-  INTERVIEW_COMPLETED: 'Interview Completed',
+  INTERVIEWING: 'Interviewing',
   HIRED: 'Hired',
   REJECTED: 'Rejected',
   WITHDRAWN: 'Withdrawn',

@@ -78,10 +78,12 @@ function getUserIdFromToken(token: string): number | null {
 
 const VALID_STATUSES = [
   "APPLIED",
+  "UNDER_REVIEW",
   "SHORTLISTED",
-  "INTERVIEW_SCHEDULED",
+  "INTERVIEWING",
   "HIRED",
   "REJECTED",
+  "WITHDRAWN",
 ];
 
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
@@ -159,6 +161,37 @@ export async function GET(
     const applicantUserId = application.user_id;
 
     // ---------------------------------------------------
+    // AUTO-TRANSITION: APPLIED -> UNDER_REVIEW ON VIEW
+    // ---------------------------------------------------
+    if (application.application_status === "APPLIED") {
+      const nowPH = getPHTimeString();
+      application.application_status = "UNDER_REVIEW";
+      application.status_updated_at = nowPH;
+
+      fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}`, {
+        method: "PATCH",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          application_status: "UNDER_REVIEW",
+          status_updated_at: nowPH,
+        }),
+      }).catch((e) => console.error("Error auto-updating status to UNDER_REVIEW:", e));
+
+      if (applicantUserId) {
+        createNotification({
+          event_type: "application_status_changed",
+          recipient_user_id: applicantUserId,
+          entity_type: "job_application",
+          entity_id: Number(id),
+          category: "Application Updates",
+          title: "Application Status Updated",
+          message: "Your application is now under review by the employer.",
+          action_url: "/vos-sync/freelancer/applications",
+        }).catch((e) => console.error("Error sending review notification:", e));
+      }
+    }
+
+    // ---------------------------------------------------
     // PARALLEL REQUESTS
     // ---------------------------------------------------
 
@@ -172,6 +205,7 @@ export async function GET(
       resumeRes,
       socialRes,
       skillsMapRes,
+      interviewAppRes,
     ] = await Promise.all([
       fetch(
         `${DIRECTUS_BASE}/items/vs_user/${applicantUserId}`,
@@ -239,6 +273,14 @@ export async function GET(
 
       fetch(
         `${DIRECTUS_BASE}/items/vs_user_skills_map?filter[user_id][_eq]=${applicantUserId}&fields=id,skill_id`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      ),
+
+      fetch(
+        `${DIRECTUS_BASE}/items/vs_interview_application?filter[application_id][_eq]=${application.application_id}&fields=interview_id&limit=50`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -439,40 +481,95 @@ skills = (skillsJson.data as Skill[] ?? []).map(
     // ---------------------------------------------------
 
     let screeningAnswers: { question_id: number; question_text: string; answer_text: string }[] | null = null;
+    
+    // 1. Fetch all configured screening questions for this job
+    const jobQuestionsRes = application.job_id
+      ? await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[job_id][_eq]=${application.job_id}&fields=question_id,question_text&limit=100`,
+          { headers: getHeaders(), cache: "no-store" }
+        )
+      : null;
+
+    const jobQuestions: { question_id: number; question_text: string }[] =
+      jobQuestionsRes && jobQuestionsRes.ok ? (await jobQuestionsRes.json()).data ?? [] : [];
+
+    // 2. Fetch candidate answers submitted for this application
     const ansRes = await fetch(
       `${DIRECTUS_BASE}/items/vs_job_application_answer?filter[application_id][_eq]=${application.application_id}&fields=question_id,answer_text&limit=100`,
       { headers: getHeaders(), cache: "no-store" }
     );
-    if (ansRes.ok) {
-      const ansJson = await ansRes.json();
-      const ansList: { question_id: number; answer_text: string }[] = ansJson.data ?? [];
-      const qIds = [...new Set(ansList.map((a) => a.question_id).filter(Boolean))];
 
-      const qTextMap: Record<number, string> = {};
-      if (qIds.length > 0) {
-        const qRes = await fetch(
-          `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[question_id][_in]=${qIds.join(",")}&fields=question_id,question_text&limit=100`,
-          { headers: getHeaders(), cache: "no-store" }
-        );
-        if (qRes.ok) {
-          const qJson = await qRes.json();
-          const qList: { question_id: number; question_text: string }[] = qJson.data ?? [];
-          qList.forEach((q) => {
-            qTextMap[q.question_id] = q.question_text;
-          });
+    if (ansRes.ok || jobQuestions.length > 0) {
+      const ansList: { question_id: number; answer_text: string }[] = ansRes.ok
+        ? (await ansRes.json()).data ?? []
+        : [];
+      const ansMap = new Map<number, string>();
+      ansList.forEach((a) => {
+        if (a.question_id) ansMap.set(a.question_id, a.answer_text);
+      });
+
+      if (jobQuestions.length > 0) {
+        // Map all job questions, including unanswered ones with empty string
+        screeningAnswers = jobQuestions.map((q) => ({
+          question_id: q.question_id,
+          question_text: q.question_text || `Question #${q.question_id}`,
+          answer_text: ansMap.get(q.question_id) ?? "",
+        }));
+      } else if (ansList.length > 0) {
+        // Fallback if questions are recorded with answers
+        const qIds = [...new Set(ansList.map((a) => a.question_id).filter(Boolean))];
+        const qTextMap: Record<number, string> = {};
+        if (qIds.length > 0) {
+          const qRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_job_screening_question?filter[question_id][_in]=${qIds.join(",")}&fields=question_id,question_text&limit=100`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (qRes.ok) {
+            const qJson = await qRes.json();
+            const qList: { question_id: number; question_text: string }[] = qJson.data ?? [];
+            qList.forEach((q) => {
+              qTextMap[q.question_id] = q.question_text;
+            });
+          }
         }
-      }
 
-      screeningAnswers = ansList.map((a) => ({
-        question_id: a.question_id,
-        question_text: qTextMap[a.question_id] || `Question #${a.question_id}`,
-        answer_text: a.answer_text,
-      }));
+        screeningAnswers = ansList.map((a) => ({
+          question_id: a.question_id,
+          question_text: qTextMap[a.question_id] || `Question #${a.question_id}`,
+          answer_text: a.answer_text ?? "",
+        }));
+      } else {
+        screeningAnswers = [];
+      }
     }
 
     // ---------------------------------------------------
-    // RESPONSE
+    // ACTIVE INTERVIEW
     // ---------------------------------------------------
+    let activeInterviewId: number | null = null;
+    const interviewAppRows: { interview_id: number }[] =
+      interviewAppRes.ok ? (await interviewAppRes.json()).data ?? [] : [];
+    const ivIds = interviewAppRows.map((r) => r.interview_id).filter(Boolean);
+    if (ivIds.length > 0) {
+      const activeIvRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${ivIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,interview_status&limit=1`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (activeIvRes.ok) {
+        const activeIvRows: { interview_id: number }[] =
+          (await activeIvRes.json()).data ?? [];
+        if (activeIvRows.length > 0) {
+          activeInterviewId = activeIvRows[0].interview_id;
+        }
+      }
+    }
+
+    const portfolioFromSocials = socialLinks.find(
+      (s) => s.platform_name?.toLowerCase().includes("portfolio") || s.platform?.toLowerCase().includes("portfolio")
+    )?.profile_url;
+
+    const resolvedPortfolioUrl = application.portfolio_url?.trim() || portfolioFromSocials?.trim() || null;
+
     const applicant = {
       application_id: application.application_id,
       job_id: application.job_id,
@@ -505,7 +602,7 @@ skills = (skillsJson.data as Skill[] ?? []).map(
 
       cover_letter: application.cover_letter,
 
-      portfolio_url: application.portfolio_url,
+      portfolio_url: resolvedPortfolioUrl,
 
       expected_salary: application.expected_salary
         ? Number(application.expected_salary)
@@ -533,6 +630,8 @@ skills = (skillsJson.data as Skill[] ?? []).map(
       certifications,
 
       work_experience: workExperience,
+
+      active_interview_id: activeInterviewId,
     };
  
     return NextResponse.json({

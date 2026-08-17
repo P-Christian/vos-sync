@@ -9,6 +9,7 @@ import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
 import ChatPanel from "./components/ChatPanel";
 import EmptyState from "./components/EmptyState";
+import HiringCelebrationModal from "./components/HiringCelebrationModal";
 import { Conversation } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
 
   const {
     messages,
+    celebration,
+    dismissCelebration,
     loading: msgsLoading,
     loadingOlder,
     hasMore,
@@ -40,6 +43,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
     refreshMessages,
     send,
     upload,
+    toggleReaction,
     clearMessages,
   } = useMessages();
 
@@ -217,6 +221,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
                   onRefresh={handleRefreshMessages}
                   onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
                   onBack={() => setMobileShowChat(false)}
+                  onToggleReaction={toggleReaction}
                 />
               </div>
             ) : (
@@ -227,6 +232,12 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Fullscreen Hiring Celebration Surprise Modal ── */}
+      <HiringCelebrationModal
+        celebration={celebration}
+        onDismiss={dismissCelebration}
+      />
     </div>
   );
 }

@@ -36,6 +36,7 @@ import {
   AlertCircle,
   CheckCircle,
   Lock,
+  Calendar,
 } from "lucide-react";
 import {
   format,
@@ -271,16 +272,16 @@ export default function InterviewBigCalendar({
   const getEventBadgeStyle = (status: InterviewStatus) => {
     switch (status) {
       case "SCHEDULED":
-        return "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100";
       case "CONFIRMED":
-        return "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60 hover:bg-emerald-100";
+        return "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100";
       case "RESCHEDULED":
         return "bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 hover:bg-amber-100";
       case "COMPLETED":
         return "bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/60 hover:bg-purple-100";
       case "CANCELLED":
+        return "bg-rose-50/70 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-200/80 dark:border-rose-900/50 line-through opacity-75 hover:bg-rose-100/60";
       case "NO_SHOW":
-        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border-zinc-200 dark:border-zinc-700 line-through opacity-70";
+        return "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700 line-through opacity-70";
       default:
         return "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700";
     }
@@ -510,16 +511,16 @@ export default function InterviewBigCalendar({
               Scheduled
             </span>
             <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Confirmed
-            </span>
-            <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
               Rescheduled
             </span>
             <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
               <span className="h-2 w-2 rounded-full bg-purple-500" />
               Completed
+            </span>
+            <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-rose-500" />
+              Cancelled
             </span>
           </div>
 
@@ -566,17 +567,26 @@ export default function InterviewBigCalendar({
             const dayInterviews = interviewsByDate.get(dateKey) || [];
             const isCurrentMonthDay = isSameMonth(day, currentDate);
             const isTodayDate = isToday(day);
-            const MAX_VISIBLE_EVENTS = isFullscreen ? 5 : 3;
-            const overflowCount = dayInterviews.length - MAX_VISIBLE_EVENTS;
+            const MAX_FIT_COUNT = isFullscreen ? 5 : 3;
+            const hasOverflow = dayInterviews.length > MAX_FIT_COUNT;
+            const visibleCount = hasOverflow ? MAX_FIT_COUNT - 1 : MAX_FIT_COUNT;
+            const overflowCount = dayInterviews.length - visibleCount;
+            const visibleInterviews = dayInterviews.slice(0, visibleCount);
 
             return (
               <div
                 key={dateKey}
+                onClick={() =>
+                  setSelectedDayInterviews({
+                    date: day,
+                    interviews: dayInterviews,
+                  })
+                }
                 className={`${
                   isFullscreen
                     ? "min-h-[150px] sm:min-h-[180px] p-2 sm:p-2.5"
                     : "min-h-[120px] sm:min-h-[140px] p-1.5 sm:p-2"
-                } flex flex-col justify-between transition-colors relative group ${
+                } flex flex-col justify-between transition-colors relative group cursor-pointer hover:bg-zinc-50/90 dark:hover:bg-zinc-900/60 ${
                   !isCurrentMonthDay
                     ? "bg-zinc-100/40 dark:bg-zinc-900/20 text-zinc-400 dark:text-zinc-600"
                     : "bg-white dark:bg-zinc-950"
@@ -585,7 +595,7 @@ export default function InterviewBigCalendar({
                 {/* Day Header Row */}
                 <div className="flex items-center justify-between mb-1">
                   <span
-                    className={`text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center ${
+                    className={`text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center transition-all ${
                       isTodayDate
                         ? "bg-indigo-600 text-white shadow-sm"
                         : isCurrentMonthDay
@@ -599,7 +609,8 @@ export default function InterviewBigCalendar({
                   {/* Add Interview Quick Action Button */}
                   {(onScheduleDate || onCreateInterview) && (
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (isFullscreen) {
                           openFullscreenSchedule(format(day, "yyyy-MM-dd"));
                         } else if (onScheduleDate) {
@@ -616,8 +627,7 @@ export default function InterviewBigCalendar({
 
                 {/* Day Events Stack */}
                 <div className={`flex-1 space-y-1 overflow-y-auto ${isFullscreen ? "max-h-[140px]" : "max-h-[100px]"} scrollbar-none`}>
-                  {dayInterviews
-                    .slice(0, MAX_VISIBLE_EVENTS)
+                  {visibleInterviews
                     .map((item) => {
                       const startTime = format(
                         parseISO(item.scheduled_at),
@@ -629,7 +639,10 @@ export default function InterviewBigCalendar({
                         return (
                           <button
                             key={item.interview_id}
-                            onClick={() => openFullscreenDetails(item)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openFullscreenDetails(item);
+                            }}
                             className={`w-full text-left p-1.5 rounded-lg border text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
                               item.interview_status
                             )}`}
@@ -651,7 +664,10 @@ export default function InterviewBigCalendar({
                         <Popover key={item.interview_id}>
                           <PopoverTrigger asChild>
                             <button
-                              onClick={() => onViewDetails(item)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onViewDetails(item);
+                              }}
                               className={`w-full text-left p-1.5 rounded-lg border text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
                                 item.interview_status
                               )}`}
@@ -757,15 +773,16 @@ export default function InterviewBigCalendar({
                     })}
 
                   {/* Overflow badge */}
-                  {overflowCount > 0 && (
+                  {hasOverflow && (
                     <button
-                      onClick={() =>
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedDayInterviews({
                           date: day,
                           interviews: dayInterviews,
-                        })
-                      }
-                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 transition-colors"
+                        });
+                      }}
+                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
                     >
                       + {overflowCount} more interviews
                     </button>
@@ -793,106 +810,156 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-md w-full p-4 space-y-3 max-h-[85vh] overflow-y-auto"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl md:max-w-2xl w-full p-5 sm:p-6 space-y-4 max-h-[88vh] flex flex-col"
             >
-              <div className="flex items-center justify-between border-b pb-2 border-zinc-100 dark:border-zinc-800">
-                <h3 className="font-bold text-sm text-zinc-900 dark:text-white">
-                  Interviews on {format(selectedDayInterviews.date, "MMMM d, yyyy")}
-                </h3>
+              <div className="flex items-center justify-between border-b pb-3 border-zinc-100 dark:border-zinc-800 shrink-0">
+                <div>
+                  <h3 className="font-bold text-base text-zinc-900 dark:text-white">
+                    Interviews on {format(selectedDayInterviews.date, "MMMM d, yyyy")}
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    {selectedDayInterviews.interviews.length === 0
+                      ? "No interviews scheduled"
+                      : `${selectedDayInterviews.interviews.length} interview${selectedDayInterviews.interviews.length !== 1 ? "s" : ""} scheduled`}
+                  </p>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 w-6 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
                   onClick={() => setSelectedDayInterviews(null)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="space-y-2 max-h-72 overflow-y-auto">
-                {selectedDayInterviews.interviews.map((item) => (
-                  <div
-                    key={item.interview_id}
-                    className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 space-y-2 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-zinc-900 dark:text-white">
-                        {format(parseISO(item.scheduled_at), "h:mm a")}
-                      </span>
-                      <InterviewStatusBadge status={item.interview_status} />
+
+              <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[62vh]">
+                {selectedDayInterviews.interviews.length > 0 ? (
+                  selectedDayInterviews.interviews.map((item) => (
+                    <div
+                      key={item.interview_id}
+                      className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50 space-y-3 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
+                          <span className="font-bold text-sm text-zinc-900 dark:text-white">
+                            {format(parseISO(item.scheduled_at), "h:mm a")}
+                          </span>
+                          <span className="text-xs text-zinc-400 font-normal">
+                            ({item.duration_minutes || 60}m · {item.interview_format.toLowerCase()})
+                          </span>
+                        </div>
+                        <InterviewStatusBadge status={item.interview_status} />
+                      </div>
+
+                      <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                        {getCandidateLabel(item)}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-800">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedDayInterviews(null);
+                            if (isFullscreen) {
+                              openFullscreenDetails(item);
+                            } else {
+                              onViewDetails(item);
+                            }
+                          }}
+                          className="h-8 text-xs px-3 rounded-lg font-semibold"
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View & Q&A
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedDayInterviews(null);
+                            if (isFullscreen) {
+                              openFullscreenFeedback(item);
+                            } else {
+                              onOpenEvaluation(item);
+                            }
+                          }}
+                          className="h-8 text-xs px-3 rounded-lg text-emerald-700 dark:text-emerald-300 font-semibold"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Feedback
+                        </Button>
+                        {(item.interview_status === "SCHEDULED" ||
+                          item.interview_status === "CONFIRMED" ||
+                          item.interview_status === "RESCHEDULED") && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedDayInterviews(null);
+                                if (isFullscreen) {
+                                  openFullscreenReschedule(item);
+                                } else {
+                                  onReschedule(item);
+                                }
+                              }}
+                              className="h-8 text-xs px-3 rounded-lg font-semibold text-amber-600 dark:text-amber-400"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" /> Reschedule
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedDayInterviews(null);
+                                if (isFullscreen) {
+                                  openFullscreenCancel(item);
+                                } else {
+                                  onOpenCancelModal(item);
+                                }
+                              }}
+                              className="h-8 text-xs px-3 rounded-lg font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
+                            >
+                              <XCircle className="h-3.5 w-3.5 mr-1.5 text-rose-500" /> Cancel
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-zinc-700 dark:text-zinc-300 font-medium">
-                      {getCandidateLabel(item)}
+                  ))
+                ) : (
+                  <div className="py-10 px-4 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3">
+                    <Calendar className="h-9 w-9 mx-auto text-zinc-400 dark:text-zinc-600" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                        No interviews scheduled for this date
+                      </p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        There are no candidate interview sessions booked for {format(selectedDayInterviews.date, "MMMM d, yyyy")}.
+                      </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-zinc-200/60 dark:border-zinc-800">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedDayInterviews(null);
-                          if (isFullscreen) {
-                            openFullscreenDetails(item);
-                          } else {
-                            onViewDetails(item);
-                          }
-                        }}
-                        className="h-7 text-[10px] px-2 rounded-md font-semibold"
-                      >
-                        <Eye className="h-3 w-3 mr-1 text-zinc-500" /> View & Q&A
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedDayInterviews(null);
-                          if (isFullscreen) {
-                            openFullscreenFeedback(item);
-                          } else {
-                            onOpenEvaluation(item);
-                          }
-                        }}
-                        className="h-7 text-[10px] px-2 rounded-md text-emerald-700 dark:text-emerald-300 font-semibold"
-                      >
-                        <MessageSquare className="h-3 w-3 mr-1 text-emerald-600" /> Feedback
-                      </Button>
-                      {(item.interview_status === "SCHEDULED" ||
-                        item.interview_status === "CONFIRMED" ||
-                        item.interview_status === "RESCHEDULED") && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDayInterviews(null);
-                              if (isFullscreen) {
-                                openFullscreenReschedule(item);
-                              } else {
-                                onReschedule(item);
-                              }
-                            }}
-                            className="h-7 text-[10px] px-2 rounded-md font-semibold text-amber-600 dark:text-amber-400"
-                          >
-                            <RefreshCw className="h-3 w-3 mr-1 text-amber-500" /> Reschedule
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDayInterviews(null);
-                              if (isFullscreen) {
-                                openFullscreenCancel(item);
-                              } else {
-                                onOpenCancelModal(item);
-                              }
-                            }}
-                            className="h-7 text-[10px] px-2 rounded-md font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
-                          >
-                            <XCircle className="h-3 w-3 mr-1 text-rose-500" /> Cancel
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    {(onScheduleDate || onCreateInterview) && (
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const dateStr = format(selectedDayInterviews.date, "yyyy-MM-dd");
+                            setSelectedDayInterviews(null);
+                            if (isFullscreen) {
+                              openFullscreenSchedule(dateStr);
+                            } else if (onScheduleDate) {
+                              onScheduleDate(dateStr);
+                            }
+                          }}
+                          className="h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg gap-1.5"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Schedule Interview on this Date
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
             </motion.div>
           </div>

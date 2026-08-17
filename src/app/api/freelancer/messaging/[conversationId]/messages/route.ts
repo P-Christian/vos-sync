@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRestriction } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
+import { encryptMessage, safeDecryptMessage } from "@/lib/message-encryption";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +106,7 @@ export async function GET(
 
     const messageIds = messages.map((m) => m.message_id as number);
     const attachmentsMap = new Map<number, Record<string, unknown>[]>();
+    let toMarkIds: number[] = [];
 
     if (messageIds.length > 0) {
       const attachRes = await fetch(
@@ -141,7 +143,7 @@ export async function GET(
           (readRes as Record<string, unknown>[]).map((r) => r.message_id as number)
         );
 
-        const toMarkIds = unreadIds.filter((id) => !alreadyReadIds.has(id));
+        toMarkIds = unreadIds.filter((id) => !alreadyReadIds.has(id));
 
         if (toMarkIds.length > 0) {
           const nowISO = new Date().toISOString().slice(0, 19).replace("T", " ");
@@ -200,9 +202,13 @@ export async function GET(
         const appMap = new Map<number, Record<string, unknown>>(appsRes.map((a: Record<string, unknown>) => [a.application_id as number, a]));
         const ivMap = new Map<number, Record<string, unknown>>(ivsRes.map((i: Record<string, unknown>) => [i.interview_id as number, i]));
 
-        // Collect user_ids and job_ids for application cards
-        const userIds = Array.from(new Set(appsRes.map((a: Record<string, unknown>) => a.user_id).filter(Boolean))) as number[];
-        const jobIds = Array.from(new Set(appsRes.map((a: Record<string, unknown>) => a.job_id).filter(Boolean))) as number[];
+        // Collect user_ids and job_ids for application and interview cards
+        const userIds = Array.from(
+          new Set([...appsRes.map((a: Record<string, unknown>) => a.user_id), conv.freelancer_id].filter(Boolean))
+        ) as number[];
+        const jobIds = Array.from(
+          new Set([...appsRes.map((a: Record<string, unknown>) => a.job_id), conv.job_id].filter(Boolean))
+        ) as number[];
 
         const [usersRes, jobsRes] = await Promise.all([
           userIds.length > 0
@@ -219,6 +225,7 @@ export async function GET(
 
         const userMap = new Map<number, Record<string, unknown>>(usersRes.map((u: Record<string, unknown>) => [u.user_id as number, u]));
         const jobMap = new Map<number, Record<string, unknown>>(jobsRes.map((j: Record<string, unknown>) => [j.job_id as number, j]));
+        const convJob = jobMap.get(conv.job_id as number);
 
         for (const sm of smList) {
           const mid = sm.message_id as number;
@@ -230,9 +237,37 @@ export async function GET(
               const j = jobMap.get(app.job_id as number);
               cardDataMap[mid] = {
                 event_type: et,
+                viewer_role: "FREELANCER",
                 application_id: app.application_id,
+
+                // Structured Domain Entities
+                applicant: {
+                  user_id: app.user_id as number,
+                  name: u ? `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() : "Unknown",
+                  email: (u?.user_email as string) ?? null,
+                  phone: (u?.user_contact as string) ?? null,
+                  avatar: u?.profile_image_url ? `/api/freelancer/assets/${(u.profile_image_url as string).split("/").pop()}` : null,
+                },
+                job: {
+                  job_id: (app.job_id ?? conv.job_id) as number | null,
+                  title: (j?.job_title as string) ?? "Position",
+                  salary_min: (j?.salary_min as number) ?? null,
+                  salary_max: (j?.salary_max as number) ?? null,
+                },
+                application: {
+                  status: (app.application_status as string) ?? "APPLIED",
+                  expected_salary: (app.expected_salary as number) ?? null,
+                  cover_letter: (app.cover_letter as string) ?? null,
+                  portfolio_url: (app.portfolio_url as string) ?? null,
+                  applied_at: (app.applied_at as string) ?? null,
+                  updated_at: (app.status_updated_at ?? app.updated_at ?? app.date_updated ?? null) as string | null,
+                },
+
+                // Flat fallbacks for backward compatibility
                 application_status: app.application_status ?? "APPLIED",
                 applied_at: app.applied_at ?? null,
+                updated_at: (app.status_updated_at ?? app.updated_at ?? app.date_updated ?? null) as string | null,
+                status_updated_at: (app.status_updated_at ?? null) as string | null,
                 expected_salary: app.expected_salary ?? null,
                 cover_letter: app.cover_letter ?? null,
                 portfolio_url: app.portfolio_url ?? null,
@@ -250,6 +285,32 @@ export async function GET(
             if (iv) {
               cardDataMap[mid] = {
                 event_type: et,
+                viewer_role: "FREELANCER",
+
+                // Structured Domain Entities
+                interview: {
+                  interview_id: iv.interview_id as number,
+                  scheduled_at: (iv.scheduled_at as string) ?? null,
+                  duration_minutes: (iv.duration_minutes as number) ?? 60,
+                  timezone: (iv.timezone as string) ?? "Asia/Manila",
+                  interview_format: (iv.interview_format as string) ?? "ONLINE",
+                  meeting_link: (iv.meeting_link as string) ?? null,
+                  meeting_location: (iv.meeting_location as string) ?? null,
+                  interview_status: (iv.interview_status as string) ?? null,
+                  created_at: (iv.created_at as string) ?? null,
+                  updated_at: (iv.updated_at as string) ?? null,
+                },
+                candidate: {
+                  user_id: conv.freelancer_id as number,
+                  name: "You",
+                  avatar: null,
+                },
+                job: {
+                  job_id: (conv.job_id as number) ?? null,
+                  title: (convJob?.job_title as string) ?? "Position",
+                },
+
+                // Flat fallbacks
                 interview_id: iv.interview_id,
                 scheduled_at: iv.scheduled_at ?? null,
                 duration_minutes: iv.duration_minutes ?? 60,
@@ -258,6 +319,9 @@ export async function GET(
                 meeting_link: iv.meeting_link ?? null,
                 meeting_location: iv.meeting_location ?? null,
                 interview_status: iv.interview_status ?? null,
+                created_at: (iv.created_at ?? null) as string | null,
+                updated_at: (iv.updated_at ?? null) as string | null,
+                job_title: (convJob?.job_title as string) ?? "Position",
               };
             }
           }
@@ -265,14 +329,161 @@ export async function GET(
       }
     }
 
-    const enriched = messages.map((msg) => ({
-      ...msg,
-      attachments: attachmentsMap.get(msg.message_id as number) ?? [],
-      system_message: systemMsgMap[msg.message_id as number] ?? null,
-      system_card_data: cardDataMap[msg.message_id as number] ?? null,
-    })).reverse();
+    // Batch-fetch vs_message_reaction for messages
+    const reactionsMap = new Map<
+      number,
+      { reaction: string; count: number; users: { user_id: number; user_name: string }[]; reacted_by_me: boolean }[]
+    >();
 
-    return NextResponse.json({ messages: enriched });
+    if (messageIds.length > 0) {
+      try {
+        const reactionsRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_message_reaction?filter[message_id][_in]=${messageIds.join(
+            ","
+          )}&fields=reaction_id,message_id,user_id,reaction,created_at&sort[]=created_at&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+
+        if (reactionsRes.ok) {
+          const reactionsJson = await reactionsRes.json();
+          const rawReactions = (reactionsJson.data ?? []) as {
+            reaction_id: number;
+            message_id: number;
+            user_id: number;
+            reaction: string;
+          }[];
+
+          const rUserIds = Array.from(new Set(rawReactions.map((r) => r.user_id)));
+          const rUsersMap = new Map<number, string>();
+          if (rUserIds.length > 0) {
+            const ruRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${rUserIds.join(
+                ","
+              )}&fields=user_id,user_fname,user_lname&limit=100`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
+            if (ruRes.ok) {
+              const ruJson = await ruRes.json();
+              for (const u of (ruJson.data ?? []) as {
+                user_id: number;
+                user_fname?: string;
+                user_lname?: string;
+              }[]) {
+                const name =
+                  `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() || "User";
+                rUsersMap.set(u.user_id, name);
+              }
+            }
+          }
+
+          const msgGroupMap = new Map<
+            number,
+            Map<
+              string,
+              {
+                reaction: string;
+                count: number;
+                users: { user_id: number; user_name: string }[];
+                reacted_by_me: boolean;
+              }
+            >
+          >();
+
+          for (const r of rawReactions) {
+            if (!msgGroupMap.has(r.message_id)) {
+              msgGroupMap.set(r.message_id, new Map());
+            }
+            const emojiMap = msgGroupMap.get(r.message_id)!;
+            if (!emojiMap.has(r.reaction)) {
+              emojiMap.set(r.reaction, {
+                reaction: r.reaction,
+                count: 0,
+                users: [],
+                reacted_by_me: false,
+              });
+            }
+            const g = emojiMap.get(r.reaction)!;
+            g.count += 1;
+            g.users.push({
+              user_id: r.user_id,
+              user_name: rUsersMap.get(r.user_id) || "User",
+            });
+            if (r.user_id === userId) {
+              g.reacted_by_me = true;
+            }
+          }
+
+          for (const [mid, emojiMap] of msgGroupMap.entries()) {
+            reactionsMap.set(mid, Array.from(emojiMap.values()));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching message reactions:", err);
+      }
+    }
+
+    let celebration: {
+      type: "HIRED";
+      message_id: number;
+      job_title?: string | null;
+      applicant_name?: string | null;
+    } | null = null;
+
+    // Only trigger celebration on initial conversation load (offset === 0) if a HIRED message was unread before this request
+    if (offset === 0 && toMarkIds.length > 0) {
+      const unreadHiredMsg = messages.find((m) => {
+        const mid = m.message_id as number;
+        return toMarkIds.includes(mid) && systemMsgMap[mid]?.event_type === "HIRED";
+      });
+
+      if (unreadHiredMsg) {
+        const mid = unreadHiredMsg.message_id as number;
+        const cardData = cardDataMap[mid];
+        celebration = {
+          type: "HIRED",
+          message_id: mid,
+          job_title: (cardData?.job_title as string) ?? "Position",
+          applicant_name: (cardData?.applicant_name as string) ?? null,
+        };
+      }
+    }
+
+    const enriched = messages.map((msg) => {
+      let content = safeDecryptMessage(msg.message_content as string | null | undefined);
+      const cardData = cardDataMap[msg.message_id as number];
+      const sm = systemMsgMap[msg.message_id as number];
+
+      if (msg.message_type === "SYSTEM" && (cardData || sm)) {
+        const eventType = (sm?.event_type ?? cardData?.event_type) as string;
+        const jobTitle = (cardData?.job_title as string) || "Position";
+
+        if (eventType === "HIRED") {
+          content = `You were hired for ${jobTitle}!`;
+        } else if (eventType === "APPLICATION_SUBMITTED") {
+          content = `You applied for ${jobTitle}`;
+        } else if (eventType === "APPLICATION_STATUS_CHANGED") {
+          const status = (cardData?.application_status as string) || "";
+          content = status
+            ? `Your application for ${jobTitle} was updated to ${status}`
+            : `Your application for ${jobTitle} was updated`;
+        } else if (eventType === "INTERVIEW_SCHEDULED") {
+          content = `Interview scheduled for ${jobTitle}`;
+        } else if (eventType === "INTERVIEW_UPDATED") {
+          content = `Your interview for ${jobTitle} was rescheduled`;
+        }
+      }
+
+      return {
+        ...msg,
+        message_content: content,
+        attachments: attachmentsMap.get(msg.message_id as number) ?? [],
+        system_message: sm ?? null,
+        system_card_data: cardData ?? null,
+        reactions: reactionsMap.get(msg.message_id as number) ?? [],
+      };
+    }).reverse();
+
+    return NextResponse.json({ messages: enriched, celebration });
   } catch (err: unknown) {
     console.error("GET /api/freelancer/messaging/[id]/messages error:", err);
     return NextResponse.json(
@@ -359,6 +570,15 @@ export async function POST(
 
     const nowPH = getPHTimeString();
 
+    const shouldEncrypt =
+      typeof body.message_content === "string" &&
+      body.message_content.length > 0 &&
+      (body.message_type ?? "TEXT") === "TEXT";
+
+    const contentToStore = shouldEncrypt
+      ? encryptMessage(body.message_content)
+      : body.message_content ?? null;
+
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
       method: "POST",
       headers: getHeaders(),
@@ -366,7 +586,7 @@ export async function POST(
         conversation_id: Number(conversationId),
         sender_id: userId,
         message_type: body.message_type ?? "TEXT",
-        message_content: body.message_content ?? null,
+        message_content: contentToStore,
         created_at: nowPH,
         is_edited: false,
         is_deleted: false,
@@ -421,7 +641,13 @@ export async function POST(
     }).catch((e) => console.error("Update last_message_at error:", e));
 
     return NextResponse.json(
-      { message: { ...newMessage, attachments } },
+      {
+        message: {
+          ...newMessage,
+          message_content: safeDecryptMessage(newMessage?.message_content),
+          attachments,
+        },
+      },
       { status: 201 }
     );
   } catch (err: unknown) {

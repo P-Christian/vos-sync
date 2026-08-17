@@ -16,6 +16,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandItem,
+  CommandGroup,
+} from "@/components/ui/command";
+import {
   ArrowLeft,
   ArrowRight,
   Check,
@@ -31,31 +43,23 @@ import {
   MapPin,
   CircleDollarSign,
   GraduationCap,
+  ChevronsUpDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { searchMasterSkillsAction, addMasterSkillAction } from "../services/jobs.actions";
 import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, ExperienceLevel } from "../types";
 import { RichTextEditor } from "./RichTextEditor";
+import { useRoleCategories } from "../hooks/useRoleCategories";
+import { SuggestCategoryModal } from "./SuggestCategoryModal";
 
 interface JobFormProps {
   data: JobFormData;
-  onChange: (field: keyof JobFormData, value: string | boolean | string[] | { id: number; skill_name: string; source?: string; confidence_score?: number | null }[]) => void;
+  onChange: (field: keyof JobFormData, value: string | number | boolean | null | string[] | { id: number; skill_name: string; source?: string; confidence_score?: number | null }[]) => void;
   onCancel: () => void;
   onSubmit: () => void;
   saving: boolean;
   editingJob: boolean;
 }
-
-const CATEGORIES = [
-  "Software Development",
-  "Design / Creative",
-  "Marketing & Communications",
-  "Sales & Business Development",
-  "Customer Support & Success",
-  "Finance & Accounting",
-  "Human Resources",
-  "Virtual Assistance",
-  "Others",
-];
 
 const BENEFITS_OPTIONS = [
   "HMO / Medical Insurance",
@@ -87,8 +91,25 @@ export default function JobForm({
   saving,
   editingJob,
 }: JobFormProps) {
+  const { categories: roleCategories, findCategoryById } = useRoleCategories();
   const [step, setStep] = useState(1);
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
+
+  // Category Searchable Combobox & Suggestion State
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [suggestCategoryModalOpen, setSuggestCategoryModalOpen] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+
+  const filteredRoleCategories = React.useMemo(() => {
+    if (!categorySearchQuery.trim()) return roleCategories;
+    const q = categorySearchQuery.toLowerCase().trim();
+    return roleCategories.filter(
+      (c) =>
+        c.category_name.toLowerCase().includes(q) ||
+        c.category_code.toLowerCase().includes(q) ||
+        (c.description && c.description.toLowerCase().includes(q))
+    );
+  }, [roleCategories, categorySearchQuery]);
 
   // Skills Auto-Complete State
   const [skillQuery, setSkillQuery] = useState("");
@@ -496,7 +517,10 @@ export default function JobForm({
       </div>
 
       {/* Wizard Contents */}
-      <div className="flex-1 overflow-y-auto pr-2 my-4 min-h-0">
+      <div
+        className="flex-1 overflow-y-auto pr-2 my-4 min-h-0 overscroll-contain"
+        onWheel={(e) => e.stopPropagation()}
+      >
         {/* STEP 1: Basic Information */}
         {step === 1 && (
           <div className="space-y-4 animate-fadeIn px-1">
@@ -527,30 +551,112 @@ export default function JobForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="jf-category" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Category <span className="text-rose-500">*</span>
+                  Role Category <span className="text-rose-500">*</span>
                 </Label>
-                <Select
-                  value={data.job_category}
-                  onValueChange={(v) => {
-                    onChange("job_category", v);
-                    if (localErrors.job_category) setLocalErrors((p) => ({ ...p, job_category: "" }));
-                  }}
-                >
-                  <SelectTrigger
-                    id="jf-category"
-                    className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_category ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
-                      }`}
+                <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="jf-category"
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={categoryPopoverOpen}
+                      className={cn(
+                        "w-full h-10 justify-between text-sm rounded-lg font-normal border-zinc-200 hover:border-emerald-500 bg-background",
+                        !data.job_category && !data.category_id && "text-muted-foreground",
+                        localErrors.job_category && "border-rose-500 focus:ring-rose-500"
+                      )}
+                    >
+                      <span className="truncate">
+                        {data.category_id
+                          ? findCategoryById(data.category_id)?.category_name || data.job_category || "Select Role Category"
+                          : data.job_category || "Select Role Category"}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[--radix-popover-trigger-width] p-0"
+                    align="start"
+                    onWheel={(e) => e.stopPropagation()}
                   >
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-sm">
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Search categories..."
+                        value={categorySearchQuery}
+                        onValueChange={setCategorySearchQuery}
+                        className="h-9 text-xs"
+                      />
+                      <CommandList
+                        className="max-h-60 overflow-y-auto overscroll-contain"
+                        onWheel={(e) => e.stopPropagation()}
+                      >
+                        {filteredRoleCategories.length === 0 ? (
+                          <div className="py-4 px-3 text-center space-y-2">
+                            <p className="text-xs text-muted-foreground">
+                              No categories matching &quot;{categorySearchQuery}&quot;
+                            </p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setCategoryPopoverOpen(false);
+                                setSuggestCategoryModalOpen(true);
+                              }}
+                              className="h-7 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                            >
+                              <Plus className="h-3 w-3" />
+                              Suggest &quot;{categorySearchQuery}&quot;
+                            </Button>
+                          </div>
+                        ) : (
+                          <CommandGroup>
+                            {filteredRoleCategories.map((cat) => {
+                              const isSelected =
+                                (data.category_id && data.category_id === cat.category_id) ||
+                                (!data.category_id && data.job_category?.toLowerCase() === cat.category_name.toLowerCase());
+                              return (
+                                <CommandItem
+                                  key={cat.category_id}
+                                  value={String(cat.category_id)}
+                                  onSelect={() => {
+                                    onChange("category_id", cat.category_id);
+                                    onChange("job_category", cat.category_name);
+                                    if (localErrors.job_category) setLocalErrors((p) => ({ ...p, job_category: "" }));
+                                    setCategoryPopoverOpen(false);
+                                  }}
+                                  className="text-xs flex items-center justify-between cursor-pointer py-2"
+                                >
+                                  <div>
+                                    <span className="font-medium text-foreground">{cat.category_name}</span>
+                                    {cat.description && (
+                                      <p className="text-[10px] text-muted-foreground line-clamp-1">{cat.description}</p>
+                                    )}
+                                  </div>
+                                  {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0 ml-2" />}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        )}
+                        <div className="p-2 border-t border-border/80 bg-muted/30">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCategoryPopoverOpen(false);
+                              setSuggestCategoryModalOpen(true);
+                            }}
+                            className="w-full text-left text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-primary/5 transition-colors font-medium cursor-pointer"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Can&apos;t find the right category? <span className="underline ml-auto font-semibold text-primary">Suggest new</span>
+                          </button>
+                        </div>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {localErrors.job_category && (
                   <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
                     <AlertCircle className="h-3 w-3" /> {localErrors.job_category}
@@ -646,7 +752,7 @@ export default function JobForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="jf-location" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Location / Region <span className="text-rose-500">*</span>
+                 Address <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   id="jf-location"
@@ -719,7 +825,10 @@ export default function JobForm({
 
               {/* Dropdown Results list */}
               {(skillResults.length > 0 || skillQuery.trim().length > 0) && (
-                <ul className="absolute z-[100] top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg divide-y divide-zinc-150 dark:divide-zinc-800/80">
+                <ul
+                  className="absolute z-[100] top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto overscroll-contain bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-lg divide-y divide-zinc-150 dark:divide-zinc-800/80"
+                  onWheel={(e) => e.stopPropagation()}
+                >
                   {skillResults.map((skill) => (
                     <li
                       key={`${skill.id}-${skill.skill_name}`}
@@ -1365,6 +1474,22 @@ export default function JobForm({
           )}
         </div>
       </div>
+
+      <SuggestCategoryModal
+        open={suggestCategoryModalOpen}
+        onOpenChange={setSuggestCategoryModalOpen}
+        initialQuery={categorySearchQuery}
+        jobId={data.job_id ?? null}
+        onSelectCategory={(catId, catName) => {
+          if (catId) {
+            onChange("category_id", catId);
+          } else {
+            onChange("category_id", null);
+          }
+          onChange("job_category", catName);
+          if (localErrors.job_category) setLocalErrors((p) => ({ ...p, job_category: "" }));
+        }}
+      />
 
       <style>{`
         @keyframes fadeIn {

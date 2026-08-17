@@ -179,9 +179,18 @@ export function useApplicants() {
             );
           }
 
-          setDetail(
-            json.applicant ?? null
-          );
+          if (json.applicant) {
+            setDetail(json.applicant);
+            setApplicants((prev) =>
+              prev.map((a) =>
+                a.application_id === applicationId
+                  ? { ...a, application_status: json.applicant.application_status }
+                  : a
+              )
+            );
+          } else {
+            setDetail(null);
+          }
         } catch (err: unknown) {
           setDetailError(
             err instanceof Error

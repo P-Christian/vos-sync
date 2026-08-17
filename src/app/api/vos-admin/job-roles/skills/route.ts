@@ -103,14 +103,148 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // 1. If requesting master skill creation or lookup
+    if (body.create_master || body.master) {
+      const skillName = (body.skill_name || "").trim();
+      if (!skillName) {
+        return NextResponse.json({ error: "Skill name is required." }, { status: 400 });
+      }
+
+      // Check if skill already exists in vs_master_skills
+      const searchRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_master_skills?filter[skill_name][_icontains]=${encodeURIComponent(skillName)}`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (searchRes.ok) {
+        const searchJson = await searchRes.json();
+        const existing = (searchJson.data ?? []).find(
+          (m: { skill_name: string }) => m.skill_name.trim().toLowerCase() === skillName.toLowerCase()
+        );
+        if (existing) {
+          return NextResponse.json(existing);
+        }
+      }
+
+      // Create new master skill
+      const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_master_skills`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({ skill_name: skillName, category: body.category || "General" }),
+      });
+      if (!createRes.ok) {
+        const errJson = await createRes.json().catch(() => ({}));
+        throw new Error(errJson.errors?.[0]?.message || "Failed to create master skill.");
+      }
+      const createdJson = await createRes.json();
+      return NextResponse.json(createdJson.data);
+    }
+
+    // 2. Normal role skill mapping creation
+    let targetSkillId = body.skill_id;
+
+    // If skill_name was passed without skill_id, resolve or create master skill
+    if (!targetSkillId && body.skill_name) {
+      const sName = body.skill_name.trim();
+      const searchRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_master_skills?filter[skill_name][_icontains]=${encodeURIComponent(sName)}`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (searchRes.ok) {
+        const searchJson = await searchRes.json();
+        const existing = (searchJson.data ?? []).find(
+          (m: { skill_name: string }) => m.skill_name.trim().toLowerCase() === sName.toLowerCase()
+        );
+        if (existing) {
+          targetSkillId = existing.id;
+        }
+      }
+
+      if (!targetSkillId) {
+        const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_master_skills`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({ skill_name: sName }),
+        });
+        if (createRes.ok) {
+          const createdJson = await createRes.json();
+          targetSkillId = createdJson.data?.id;
+        }
+      }
+    }
+
+    if (!body.role_id || !targetSkillId) {
+      return NextResponse.json({ error: "role_id and skill_id are required." }, { status: 400 });
+    }
+
+    // Check if mapping already exists to prevent duplicate key errors
+    const checkRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_role_skill_mapping?filter[role_id][_eq]=${body.role_id}&filter[skill_id][_eq]=${targetSkillId}`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (checkRes.ok) {
+      const checkJson = await checkRes.json();
+      const existingMapping = checkJson.data?.[0];
+      if (existingMapping) {
+        // Already mapped: update weight and requirement
+        const updateRes = await fetch(`${DIRECTUS_BASE}/items/vs_role_skill_mapping/${existingMapping.id}`, {
+          method: "PATCH",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            importance_weight: Number(body.importance_weight ?? 1.0),
+            is_required: body.is_required ? 1 : 0,
+          }),
+        });
+        if (updateRes.ok) {
+          const updatedJson = await updateRes.json();
+          return NextResponse.json(updatedJson.data);
+        }
+        return NextResponse.json(existingMapping);
+      }
+    }
+
+    // Insert new mapping
+    const payload = {
+      role_id: Number(body.role_id),
+      skill_id: Number(targetSkillId),
+      importance_weight: Number(body.importance_weight ?? 1.0),
+      is_required: body.is_required ? 1 : 0,
+    };
+
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_role_skill_mapping`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to create role skill mapping.");
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.errors?.[0]?.message || "Failed to create role skill mapping.");
+    }
     const json = await res.json();
-    return NextResponse.json(json.data);
+
+    // Lookup skill name for full hydration
+    let resolvedSkillName = body.skill_name;
+    if (!resolvedSkillName) {
+      const skillLookup = await fetch(`${DIRECTUS_BASE}/items/vs_master_skills/${targetSkillId}`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      }).catch(() => null);
+      if (skillLookup?.ok) {
+        const sJson = await skillLookup.json();
+        resolvedSkillName = sJson.data?.skill_name;
+      }
+    }
+
+    const createdRecord = {
+      id: json.data?.id,
+      role_id: Number(body.role_id),
+      skill_id: Number(targetSkillId),
+      skill_name: resolvedSkillName || `Skill #${targetSkillId}`,
+      importance_weight: Number(body.importance_weight ?? 1.0),
+      is_required: Boolean(body.is_required),
+    };
+
+    return NextResponse.json(createdRecord);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message || "Server error" }, { status: 500 });
   }

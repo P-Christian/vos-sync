@@ -1,6 +1,5 @@
 // src/app/api/vos-admin/job-roles/ai-suggest/route.ts
-// Single batched Gemini call → keywords + skills + description for a role.
-// Server-side in-memory cache (10 min TTL) prevents duplicate RPD consumption.
+// Context-aware AI suggestions with Two-Layer Deduplication against Master Taxonomy
 
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
@@ -8,18 +7,30 @@ import { evaluateTaxonomyProposal, GovernanceResult } from "@/modules/vos-admin/
 
 export const revalidate = 0;
 
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+function getHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json" };
+  if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+  return h;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface AiSuggestedKeyword {
   alias: string;
   weight: number;
   type: "SYNONYM" | "KEYWORD" | "ABBREVIATION" | "EXACT";
+  is_new_keyword?: boolean;
 }
 
 export interface AiSuggestedSkill {
   skill_name: string;
   importance_weight: number;
   is_required: boolean;
+  matched_master_id?: number | null;
+  is_new_skill?: boolean;
 }
 
 export interface AiSuggestResult {
@@ -30,7 +41,16 @@ export interface AiSuggestResult {
   governance?: GovernanceResult;
 }
 
-// ── Server-side cache (module-level, survives between requests) ───────────────
+// ── Normalization Helper ──────────────────────────────────────────────────────
+
+function normalizeToken(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/[._\-/\s]/g, "")
+    .trim();
+}
+
+// ── Server-side Cache (10 min TTL) ───────────────────────────────────────────
 
 interface CacheEntry {
   data: Omit<AiSuggestResult, "cached">;
@@ -58,43 +78,74 @@ function setCache(key: string, data: Omit<AiSuggestResult, "cached">): void {
   suggestCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
-// ── Prompt ────────────────────────────────────────────────────────────────────
+// ── Context-Aware Prompt ──────────────────────────────────────────────────────
 
-function buildPrompt(roleName: string, categoryName: string): string {
-  return `You are a job taxonomy expert for a Philippine job marketplace.
+function buildPrompt(
+  roleName: string,
+  categoryName: string,
+  existingSkills: { skill_id?: number; name: string }[] = [],
+  existingKeywords: string[] = [],
+  previousSuggestions: string[] = []
+): string {
+  const skillsContext =
+    existingSkills.length > 0
+      ? `\nCURRENT EXISTING SKILLS ALREADY MAPPED TO THIS ROLE (DO NOT SUGGEST THESE OR THEIR VARIATIONS/SYNONYMS):\n${existingSkills
+          .map((s) => `- ${s.name}`)
+          .join("\n")}\n`
+      : "";
 
-For the standard job role "${roleName}" in the category "${categoryName}", provide accurate suggestions.
+  const keywordsContext =
+    existingKeywords.length > 0
+      ? `\nCURRENT EXISTING KEYWORDS ALREADY MAPPED TO THIS ROLE (DO NOT SUGGEST THESE OR THEIR VARIATIONS):\n${existingKeywords
+          .map((k) => `- ${k}`)
+          .join("\n")}\n`
+      : "";
 
+  const previousContext =
+    previousSuggestions.length > 0
+      ? `\nPREVIOUS SUGGESTIONS ALREADY SHOWN IN THIS SESSION (DO NOT REPEAT THESE CANDIDATES):\n${previousSuggestions
+          .slice(-25)
+          .map((p) => `- ${p}`)
+          .join("\n")}\n`
+      : "";
+
+  return `You are a job taxonomy and recruitment intelligence expert for a modern job marketplace.
+
+For the standard job role "${roleName}" in the category "${categoryName}", suggest NEW, DISTINCT, and COMPLEMENTARY skills and search keywords.
+${skillsContext}${keywordsContext}${previousContext}
 Return ONLY a valid JSON object with exactly this structure (no markdown, no extra text):
 {
   "description": "One professional sentence (max 120 chars) describing what this role does.",
   "keywords": [
-    { "alias": "lowercase alias or synonym", "weight": 0.50-1.00, "type": "SYNONYM|KEYWORD|ABBREVIATION|EXACT" }
+    { "alias": "lowercase distinct alias or search term", "weight": 0.50-1.00, "type": "SYNONYM|KEYWORD|ABBREVIATION|EXACT" }
   ],
   "skills": [
-    { "skill_name": "Exact skill name", "importance_weight": 0.50-1.00, "is_required": true|false }
+    { "skill_name": "Exact distinct skill name", "importance_weight": 0.50-1.00, "is_required": true|false }
   ]
 }
 
 Rules:
-- keywords: 8 to 10 items. Common search terms, abbreviations, and alternate job titles. All lowercase. weight >= 0.50.
-- skills: 5 to 8 items. Real technical or professional skills. importance_weight = 1.0 for core required, 0.6-0.8 for bonus. is_required = true only for non-negotiable skills.
+- DO NOT return any skill, keyword, or session candidate listed above.
+- keywords: 5 to 8 distinct search phrases, synonyms, and abbreviations. All lowercase. weight >= 0.50.
+- skills: 5 to 8 distinct technical or professional competencies. importance_weight = 0.50-1.00.
 - Return ONLY valid JSON. No markdown fences, no explanation text.`;
 }
 
 // ── Parser ────────────────────────────────────────────────────────────────────
 
-function parseGeminiResponse(raw: string): Omit<AiSuggestResult, "cached"> | null {
+function parseGeminiResponse(raw: string): {
+  description: string;
+  keywords: { alias: string; weight: number; type: "SYNONYM" | "KEYWORD" | "ABBREVIATION" | "EXACT" }[];
+  skills: { skill_name: string; importance_weight: number; is_required: boolean }[];
+} | null {
   try {
     let cleaned = raw.trim();
 
-    // Strip markdown code fences if present anywhere
     const matchJsonFence = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (matchJsonFence && matchJsonFence[1]) {
       cleaned = matchJsonFence[1].trim();
     }
 
-    // Isolate JSON object between first '{' and last '}'
     const startIdx = cleaned.indexOf("{");
     const endIdx = cleaned.lastIndexOf("}");
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
@@ -108,15 +159,17 @@ function parseGeminiResponse(raw: string): Omit<AiSuggestResult, "cached"> | nul
     };
 
     const description = typeof parsed.description === "string" ? parsed.description.trim() : "";
-    const keywords: AiSuggestedKeyword[] = (parsed.keywords ?? [])
+    const keywords = (parsed.keywords ?? [])
       .filter((k) => typeof k.alias === "string" && k.alias.trim())
       .map((k) => ({
         alias: k.alias!.trim().toLowerCase(),
         weight: Math.min(1.0, Math.max(0.5, Number(k.weight) || 0.8)),
-        type: (["SYNONYM", "KEYWORD", "ABBREVIATION", "EXACT"].includes(k.type ?? "") ? k.type! : "SYNONYM") as AiSuggestedKeyword["type"],
+        type: (["SYNONYM", "KEYWORD", "ABBREVIATION", "EXACT"].includes(k.type ?? "")
+          ? k.type!
+          : "SYNONYM") as AiSuggestedKeyword["type"],
       }));
 
-    const skills: AiSuggestedSkill[] = (parsed.skills ?? [])
+    const skills = (parsed.skills ?? [])
       .filter((s) => typeof s.skill_name === "string" && s.skill_name.trim())
       .map((s) => ({
         skill_name: s.skill_name!.trim(),
@@ -126,24 +179,12 @@ function parseGeminiResponse(raw: string): Omit<AiSuggestResult, "cached"> | nul
 
     return { description, keywords, skills };
   } catch {
-    console.error("[ai-suggest] ❌ JSON parsing failed. Raw response snippet:", raw.slice(0, 300));
+    console.error("[ai-suggest] ❌ JSON parsing failed. Raw snippet:", raw.slice(0, 300));
     return null;
   }
 }
 
-
-
-
-// ── Route Handler ─────────────────────────────────────────────────────────────
-
-export async function GET() {
-  return NextResponse.json({
-    status: "online",
-    endpoint: "/api/vos-admin/job-roles/ai-suggest",
-    methods: ["POST"],
-    description: "Generates job role keywords, skills, and descriptions using Gemini AI.",
-  });
-}
+// ── User ID Helper ────────────────────────────────────────────────────────────
 
 function getUserIdFromReq(req: NextRequest): number {
   try {
@@ -167,94 +208,205 @@ function getUserIdFromReq(req: NextRequest): number {
   } catch {
     // ignore parse error
   }
-  return 1; // Default admin user ID for admin portal requests
+  return 1;
 }
 
+// ── Route Handlers ────────────────────────────────────────────────────────────
+
+export async function GET() {
+  return NextResponse.json({
+    status: "online",
+    endpoint: "/api/vos-admin/job-roles/ai-suggest",
+    methods: ["POST"],
+    description: "Generates deduplicated job role skills, keywords, and descriptions using Gemini AI.",
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const roleName: string = (body.role_name ?? "").trim();
     const categoryName: string = (body.category_name ?? "General").trim();
-
-    console.log(`\n==================== [AI SUGGEST DEBUG] ====================`);
-    console.log(`[ai-suggest] 📥 INPUT: role_name="${roleName}", category_name="${categoryName}"`);
+    const existingSkills: { skill_id?: number; name: string }[] = body.existing_skills ?? [];
+    const existingKeywords: string[] = body.existing_keywords ?? [];
+    const previousSuggestions: string[] = body.previous_suggestions ?? [];
+    const forceRefresh: boolean = Boolean(body.force_refresh || body.refresh);
 
     if (!roleName) {
-      console.warn(`[ai-suggest] ⚠️ Invalid input: role_name is empty`);
       return NextResponse.json({ error: "role_name is required" }, { status: 400 });
     }
 
     const cacheKey = getCacheKey(roleName, categoryName);
 
-    // Cache hit — return without consuming RPD
-    const cached = getFromCache(cacheKey);
-    if (cached) {
-      console.log(`[ai-suggest] ⚡ CACHE HIT for "${cacheKey}" — returning cached data (0 RPD used)`);
-      console.log(`[ai-suggest] 📦 CACHED PAYLOAD:`, JSON.stringify(cached, null, 2));
-      console.log(`============================================================\n`);
-      return NextResponse.json({ ...cached, cached: true });
+    // Cache hit check (unless force_refresh is requested)
+    if (!forceRefresh) {
+      const cached = getFromCache(cacheKey);
+      if (cached) {
+        const existingSkillTokens = new Set(
+          existingSkills.map((s) => normalizeToken(s.name)).filter(Boolean)
+        );
+        const existingKeywordTokens = new Set(
+          existingKeywords.map((k) => normalizeToken(k)).filter(Boolean)
+        );
+
+        const filteredSkills = cached.skills.filter(
+          (s) => !existingSkillTokens.has(normalizeToken(s.skill_name))
+        );
+        const filteredKeywords = cached.keywords.filter(
+          (k) => !existingKeywordTokens.has(normalizeToken(k.alias))
+        );
+
+        if (filteredSkills.length > 0 || filteredKeywords.length > 0) {
+          return NextResponse.json({
+            ...cached,
+            skills: filteredSkills,
+            keywords: filteredKeywords,
+            cached: true,
+          });
+        }
+      }
     }
 
-
-    // Cache miss — call Gemini (1 RPD consumed)
-    console.log(`[ai-suggest] 🌐 CACHE MISS for "${cacheKey}" — calling Gemini AI...`);
-    const prompt = buildPrompt(roleName, categoryName);
+    // Call Gemini AI
+    const prompt = buildPrompt(roleName, categoryName, existingSkills, existingKeywords, previousSuggestions);
     const userId = getUserIdFromReq(req);
-    const raw = await callGeminiMonitored({
-      prompt,
-      feature: "ROLE_INTELLIGENCE",
-      endpoint: "/api/vos-admin/job-roles/ai-suggest",
-      timeoutMs: 15000,
-      userId,
-    });
 
-
-    console.log(`[ai-suggest] 🤖 RAW GEMINI RESPONSE:\n`, raw || "(null/empty)");
+    let raw: string | null = null;
+    try {
+      raw = await callGeminiMonitored({
+        prompt,
+        feature: "ROLE_INTELLIGENCE",
+        endpoint: "/api/vos-admin/job-roles/ai-suggest",
+        timeoutMs: 15000,
+        userId,
+      });
+    } catch (err: unknown) {
+      const errorMsg = (err as Error)?.message || "AI service temporarily unavailable.";
+      return NextResponse.json({ error: errorMsg }, { status: 503 });
+    }
 
     if (!raw) {
-      console.error(`[ai-suggest] ❌ Gemini API returned no text (null/empty)`);
-      console.log(`============================================================\n`);
       return NextResponse.json(
-        { error: "Gemini returned no response. Check rate limits or API key." },
+        { error: "AI service returned no response. Please check rate limits or try again." },
         { status: 503 }
       );
     }
 
-    const result = parseGeminiResponse(raw);
-    if (!result) {
-      console.error(`[ai-suggest] ❌ Failed to parse JSON structure from Gemini response`);
-      console.log(`============================================================\n`);
+    const parsed = parseGeminiResponse(raw);
+    if (!parsed) {
       return NextResponse.json(
-        { error: "Failed to parse Gemini response." },
+        { error: "Failed to parse structured response from AI service." },
         { status: 500 }
       );
     }
 
-    console.log(`[ai-suggest] ✅ PARSED STRUCTURED AI RESULT:`);
-    console.log(`  - Description: "${result.description}"`);
-    console.log(`  - Keywords count: ${result.keywords.length}`, result.keywords);
-    console.log(`  - Skills count: ${result.skills.length}`, result.skills);
+    // ── LAYER 2: Server-Side Deduplication & Master Taxonomy Matching ─────────
+    // Fetch master skills library to match against canonical entities
+    let masterSkillsList: { id: number; skill_name: string }[] = [];
+    try {
+      const masterRes = await fetch(`${DIRECTUS_BASE}/items/vs_master_skills?limit=-1`, {
+        headers: getHeaders(),
+        cache: "no-store",
+      });
+      if (masterRes.ok) {
+        const mJson = await masterRes.json();
+        masterSkillsList = mJson.data ?? [];
+      }
+    } catch {
+      // non-fatal
+    }
 
-    // ── Run Shared Taxonomy Governance Evaluation ─────────────────────────────
-    console.log(`[ai-suggest] 🛡️ Running Taxonomy Governance Pipeline...`);
+    // Build normalized lookup sets of existing items & previous session suggestions
+    const existingSkillTokens = new Set(
+      existingSkills.map((s) => normalizeToken(s.name)).filter(Boolean)
+    );
+    const existingKeywordTokens = new Set(
+      existingKeywords.map((k) => normalizeToken(k)).filter(Boolean)
+    );
+    const previousSuggestionTokens = new Set(
+      previousSuggestions.map((p) => normalizeToken(p)).filter(Boolean)
+    );
+
+    // 1. Process and deduplicate skills
+    const seenSkillTokens = new Set<string>();
+    const deduplicatedSkills: AiSuggestedSkill[] = [];
+
+    for (const s of parsed.skills) {
+      const norm = normalizeToken(s.skill_name);
+      if (
+        !norm ||
+        existingSkillTokens.has(norm) ||
+        previousSuggestionTokens.has(norm) ||
+        seenSkillTokens.has(norm)
+      ) {
+        continue; // Skip existing, session-shown, or redundant
+      }
+      seenSkillTokens.add(norm);
+
+      // Match against master skills library
+      const matchedMaster = masterSkillsList.find(
+        (m) => normalizeToken(m.skill_name) === norm
+      );
+
+      deduplicatedSkills.push({
+        skill_name: matchedMaster ? matchedMaster.skill_name : s.skill_name,
+        importance_weight: s.importance_weight,
+        is_required: s.is_required,
+        matched_master_id: matchedMaster ? matchedMaster.id : null,
+        is_new_skill: !matchedMaster,
+      });
+    }
+
+    // 2. Process and deduplicate keywords
+    const seenKeywordTokens = new Set<string>();
+    const deduplicatedKeywords: AiSuggestedKeyword[] = [];
+
+    for (const k of parsed.keywords) {
+      const norm = normalizeToken(k.alias);
+      if (
+        !norm ||
+        existingKeywordTokens.has(norm) ||
+        previousSuggestionTokens.has(norm) ||
+        seenKeywordTokens.has(norm)
+      ) {
+        continue; // Skip existing, session-shown, or redundant
+      }
+      seenKeywordTokens.add(norm);
+
+      deduplicatedKeywords.push({
+        alias: k.alias,
+        weight: k.weight,
+        type: k.type,
+        is_new_keyword: true,
+      });
+    }
+
+    // ── Shared Governance Evaluation ──────────────────────────────────────────
     const governance = await evaluateTaxonomyProposal({
       roleName,
       categoryName,
-      keywords: result.keywords.map((k) => ({ name: k.alias, weight: k.weight, type: k.type })),
-      skills: result.skills.map((s) => ({ name: s.skill_name, weight: s.importance_weight, isRequired: s.is_required })),
+      keywords: deduplicatedKeywords.map((k) => ({ name: k.alias, weight: k.weight, type: k.type })),
+      skills: deduplicatedSkills.map((s) => ({
+        name: s.skill_name,
+        weight: s.importance_weight,
+        isRequired: s.is_required,
+      })),
     });
 
-    console.log(`============================================================\n`);
+    const finalResult: AiSuggestResult = {
+      description: parsed.description,
+      keywords: deduplicatedKeywords,
+      skills: deduplicatedSkills,
+      cached: false,
+      governance,
+    };
 
-    const finalResult = { ...result, governance };
-    setCache(cacheKey, result);
-    return NextResponse.json({ ...finalResult, cached: false });
+    // Cache if clean
+    setCache(cacheKey, finalResult);
+
+    return NextResponse.json(finalResult);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Internal server error";
-    console.error(`[ai-suggest] 💥 ERROR:`, msg);
-    console.log(`============================================================\n`);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-

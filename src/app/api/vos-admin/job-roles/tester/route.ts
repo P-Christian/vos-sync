@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
     const analyzed = analyzeQuery(keyword);
     const taxonomyContext = resolveTaxonomyFromDB(analyzed, { aliasList, rolesList, catList });
 
-    // 2. Sample candidate profile
-    const sampleRawCandidate = {
+    // 2. Candidate profile (Default / Custom from body)
+    const defaultRawCandidate = {
       user_id: body.candidate_id || 999,
       name: "Laplace Dummy",
       email: "laplace@example.com",
@@ -89,7 +89,17 @@ export async function POST(req: NextRequest) {
       ],
     };
 
-    const normalizedCandidate = normalizeRawCandidate(sampleRawCandidate);
+    const rawCandidate = body.candidate
+      ? {
+          ...defaultRawCandidate,
+          ...body.candidate,
+          skills: body.candidate.skills ?? defaultRawCandidate.skills,
+          work_experience: body.candidate.work_experience ?? defaultRawCandidate.work_experience,
+          certifications: body.candidate.certifications ?? defaultRawCandidate.certifications,
+        }
+      : defaultRawCandidate;
+
+    const normalizedCandidate = normalizeRawCandidate(rawCandidate);
 
     // 3. Execute Data-Driven Matching Engine
     const engineResult = runMatchingEngine(normalizedCandidate, {
@@ -100,6 +110,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       keyword,
+      candidate: rawCandidate,
       resolvedContext: taxonomyContext,
       overallScore: engineResult.compatibility.score,
       rankingScore: engineResult.ranking.score,

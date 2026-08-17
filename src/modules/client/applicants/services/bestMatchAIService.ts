@@ -4,7 +4,6 @@ import { JobPosting } from "../../jobs/types";
 import { Applicant } from "../types";
 import { calculateMatch, MatchResult } from "../utils/matchEngine";
 import { CandidateMatch } from "../hooks/useBestMatchCache";
-import { evaluateTaxonomyProposal } from "@/modules/vos-admin/role-matching/services/taxonomy/taxonomyGovernanceService";
 
 export interface BestMatchProcessResult {
   candidateMatches: CandidateMatch[];
@@ -116,17 +115,6 @@ Provide JSON response ONLY (no markdown fences, no extra text):
               weaknesses: Array.isArray(item.weaknesses) ? item.weaknesses : [],
             });
           }
-        }
-
-        // Non-blocking asynchronous taxonomy governance enrichment
-        if (parsed?.taxonomyProposal && typeof parsed.taxonomyProposal === "object") {
-          void evaluateTaxonomyProposal({
-            roleName: parsed.taxonomyProposal.roleName || job.job_title,
-            keywords: Array.isArray(parsed.taxonomyProposal.keywords) ? parsed.taxonomyProposal.keywords : [],
-            skills: Array.isArray(parsed.taxonomyProposal.skills) ? parsed.taxonomyProposal.skills : [],
-          })
-            .then((res) => console.info("[BEST_MATCH] ✅ Taxonomy Governance completed asynchronously:", res))
-            .catch((err) => console.error("[BEST_MATCH] ⚠️ Taxonomy Governance failed:", err?.message ?? err));
         }
       }
     }

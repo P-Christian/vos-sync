@@ -2,14 +2,14 @@
 
 // src/modules/client/messaging/components/MessageBubble.tsx
 
-import React, { useState } from "react";
-import { FileText, ImageIcon, CheckCheck, Download, Eye } from "lucide-react";
-import { Message } from "../types";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { FileText, ImageIcon, CheckCheck, Download, Eye, Smile } from "lucide-react";
+import { Message, ALLOWED_REACTIONS } from "../types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -27,15 +27,60 @@ interface Props {
   isOwn: boolean;
   showDateDivider?: boolean;
   dateLabel?: string;
+  onToggleReaction?: (messageId: number, reaction: string) => void;
 }
+
+// ─── AnimatedEmoji — single-responsibility, reused in picker + badge pill ────
+
+function AnimatedEmoji({
+  emoji,
+  isAnimating,
+}: {
+  emoji: string;
+  isAnimating: boolean;
+}) {
+  return (
+    <motion.span
+      animate={
+        isAnimating
+          ? { scale: [1, 1.45, 0.88, 1], rotate: [0, -14, 10, 0] }
+          : { scale: 1, rotate: 0 }
+      }
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="inline-block select-none leading-none"
+    >
+      {emoji}
+    </motion.span>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatTime(dateStr: string): string {
   if (!dateStr) return "";
-  const [, timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
   const [rawHour = 0, minute = 0] = timePart.split(":").map(Number);
+
+  const messageDate = new Date(year, month - 1, day);
+  const today = new Date();
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const diffDays = Math.floor(
+    (todayDate.getTime() - messageDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
   const suffix = rawHour >= 12 ? "PM" : "AM";
   const hour = rawHour % 12 || 12;
-  return `${hour}:${minute.toString().padStart(2, "0")} ${suffix}`;
+  const timeFormatted = `${hour}:${minute.toString().padStart(2, "0")} ${suffix}`;
+
+  if (diffDays === 0) return timeFormatted;
+  if (diffDays === 1) return `Yesterday, ${timeFormatted}`;
+
+  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const monthName = monthNames[month - 1] ?? "";
+  if (year === today.getFullYear()) return `${monthName} ${day}, ${timeFormatted}`;
+  return `${monthName} ${day}, ${year}, ${timeFormatted}`;
 }
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -49,13 +94,26 @@ function isImageType(mimeType: string | null | undefined): boolean {
   return !!mimeType?.startsWith("image/");
 }
 
+function DateDivider({ label }: { label: string }) {
+  return (
+    <div className="sticky top-2 z-10 flex items-center justify-center my-3 px-4 pointer-events-none">
+      <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/90 dark:bg-zinc-800/90 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs backdrop-blur-md">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ─── MessageBubble ────────────────────────────────────────────────────────────
+
 export default function MessageBubble({
   message,
   isOwn,
   showDateDivider,
   dateLabel,
+  onToggleReaction,
 }: Props) {
-  const { message_type, message_content, created_at, attachments, is_edited } =
+  const { message_type, message_content, created_at, attachments, is_edited, reactions } =
     message;
 
   const [previewDoc, setPreviewDoc] = useState<{
@@ -63,7 +121,86 @@ export default function MessageBubble({
     fileUrl: string;
   } | null>(null);
 
-  // ─── System message ────────────────────────────────────────────────────
+  const [showPicker, setShowPicker] = useState(false);
+
+  // Tracks which emoji this user just clicked — cleared after 350 ms
+  const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
+
+  const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const animTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+
+  const myReaction = reactions?.find((r) => r.reacted_by_me)?.reaction;
+  const hasReactions = !!(reactions && reactions.length > 0);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    };
+  }, []);
+
+  // Close picker when clicking outside the bubble or picker
+  useEffect(() => {
+    if (!showPicker) return;
+    const handleOutsideClick = (e: PointerEvent) => {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(e.target as Node) &&
+        bubbleRef.current &&
+        !bubbleRef.current.contains(e.target as Node)
+      ) {
+        setShowPicker(false);
+      }
+    };
+    document.addEventListener("pointerdown", handleOutsideClick);
+    return () => document.removeEventListener("pointerdown", handleOutsideClick);
+  }, [showPicker]);
+
+  // ─── Unified reaction handler ─────────────────────────────────────────────
+
+  const handleReact = useCallback(
+    (emoji: string) => {
+      if (onToggleReaction) {
+        onToggleReaction(message.message_id, emoji);
+      }
+      setAnimatingReaction(emoji);
+      animTimerRef.current = setTimeout(() => {
+        setAnimatingReaction(null);
+      }, 350);
+      setShowPicker(false);
+    },
+    [message.message_id, onToggleReaction]
+  );
+
+  // ─── 3s Hold to open picker ─────────────────────────────────────────
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    // Prevent browser text-selection / scroll from cancelling the hold
+    e.preventDefault();
+    holdTimerRef.current = setTimeout(() => {
+      setShowPicker(true);
+    }, 3000);
+  };
+
+  const handlePointerUp = () => {
+    // Releasing does NOT close the picker — only click-outside does
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  };
+
+  const handlePointerCancel = () => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+  };
+
+  // ─── System message ───────────────────────────────────────────────────────
 
   if (message_type === "SYSTEM") {
     return (
@@ -72,9 +209,7 @@ export default function MessageBubble({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
       >
-        {showDateDivider && dateLabel && (
-          <DateDivider label={dateLabel} />
-        )}
+        {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
         <div className="flex justify-center my-3 px-4">
           <SystemMessageRenderer message={message} />
         </div>
@@ -82,168 +217,293 @@ export default function MessageBubble({
     );
   }
 
+  // ─── Regular message ──────────────────────────────────────────────────────
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
+      className="relative select-none"
     >
       {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
+
       <div
         className={cn(
-          "flex mb-1.5",
+          "group relative flex items-end gap-2",
+          hasReactions ? "mb-3.5" : "mb-1.5",
           isOwn ? "justify-end" : "justify-start"
         )}
       >
+        {/* ── Reaction trigger button (left for own messages) ── */}
+        {isOwn && (
+          <div
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0",
+              showPicker && "opacity-100"
+            )}
+          >
+            <button
+              type="button"
+              title="Add reaction"
+              onClick={() => setShowPicker((prev) => !prev)}
+              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer"
+            >
+              <Smile className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* ── Bubble column ──────────────────────────────────────────────── */}
         <div
           className={cn(
-            "max-w-[75%] flex flex-col gap-1",
+            "relative max-w-[75%] flex flex-col gap-1",
             isOwn ? "items-end" : "items-start"
           )}
+          ref={bubbleRef}
+          style={{ touchAction: "none" }}
+          onPointerDown={handlePointerDown}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         >
-          {/* Text content */}
-          {message_content && (
-            <div
-              className={cn(
-                "px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm",
-                isOwn
-                  ? "bg-indigo-600 text-white rounded-br-md"
-                  : "bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border border-zinc-200/60 dark:border-zinc-700/60 rounded-bl-md"
-              )}
-            >
-              {message_content}
-            </div>
-          )}
+          {/* ── Floating Reaction Picker ──────────────────────────────────── */}
+          <AnimatePresence>
+            {showPicker && (
+              <motion.div
+                ref={pickerRef}
+                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.85, y: 10 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className={cn(
+                  "absolute -top-12 z-40 flex items-center gap-1 p-1.5 min-w-max",
+                  "bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md",
+                  "border border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl",
+                  isOwn ? "right-0" : "left-0"
+                )}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {ALLOWED_REACTIONS.map((emoji) => {
+                  const isSelected = emoji === myReaction;
 
-          {/* Attachments */}
-          {attachments?.map((att) => (
-            <div key={att.attachment_id}>
-              {isImageType(att.mime_type) ? (
-                <div
-                  className={cn(
-                    "rounded-2xl overflow-hidden shadow-sm border max-w-[220px] group relative",
-                    isOwn
-                      ? "border-indigo-500/30"
-                      : "border-zinc-200 dark:border-zinc-700"
-                  )}
-                >
-                  <Image
-                    width={220}
-                    height={192}
-                    unoptimized
-                    src={att.file_path}
-                    alt={att.file_name}
-                    className="w-full h-auto max-h-48 object-cover cursor-pointer"
-                    onClick={() =>
-                      setPreviewDoc({
-                        fileName: att.file_name,
-                        fileUrl: att.file_path,
-                      })
-                    }
-                  />
-                  {att.file_name && (
-                    <div
+                  return (
+                    <button
+                      key={emoji}
+                      type="button"
+                      data-emoji={emoji}
+                      onClick={() => handleReact(emoji)}
                       className={cn(
-                        "px-3 py-1.5 text-[10px] flex items-center justify-between gap-1",
-                        isOwn
-                          ? "bg-indigo-600 text-indigo-100"
-                          : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500"
+                        "relative h-8 w-8 flex items-center justify-center rounded-xl text-lg",
+                        "transition-colors duration-150 cursor-pointer",
+                        isSelected
+                          ? "bg-indigo-100/90 dark:bg-indigo-950/90 border border-indigo-400/80 dark:border-indigo-600/80 scale-110 shadow-xs"
+                          : "hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:scale-110"
                       )}
                     >
-                      <div className="flex items-center gap-1 min-w-0">
-                        <ImageIcon className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{att.file_name}</span>
+                      {/* AnimatedEmoji fires when this picker button is clicked */}
+                      <AnimatedEmoji
+                        emoji={emoji}
+                        isAnimating={animatingReaction === emoji}
+                      />
+                      {isSelected && (
+                        <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ── Content area ──────────────────────────────────────────────── */}
+          <div className="relative group/content">
+            {/* Text bubble */}
+            {message_content && (
+              <div
+                className={cn(
+                  "px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-xs cursor-default select-text",
+                  isOwn
+                    ? "bg-indigo-600 text-white rounded-br-md"
+                    : "bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border border-zinc-200/60 dark:border-zinc-700/60 rounded-bl-md"
+                )}
+              >
+                {message_content}
+              </div>
+            )}
+
+            {/* Attachments */}
+            {attachments?.map((att) => (
+              <div key={att.attachment_id}>
+                {isImageType(att.mime_type) ? (
+                  <div
+                    className={cn(
+                      "rounded-2xl overflow-hidden shadow-sm border max-w-[220px]",
+                      isOwn ? "border-indigo-500/30" : "border-zinc-200 dark:border-zinc-700"
+                    )}
+                  >
+                    <Image
+                      width={220}
+                      height={192}
+                      unoptimized
+                      src={att.file_path}
+                      alt={att.file_name}
+                      className="w-full h-auto max-h-48 object-cover cursor-pointer"
+                      onClick={() =>
+                        setPreviewDoc({ fileName: att.file_name, fileUrl: att.file_path })
+                      }
+                    />
+                    {att.file_name && (
+                      <div
+                        className={cn(
+                          "px-3 py-1.5 text-[10px] flex items-center justify-between gap-1",
+                          isOwn
+                            ? "bg-indigo-600 text-indigo-100"
+                            : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500"
+                        )}
+                      >
+                        <div className="flex items-center gap-1 min-w-0">
+                          <ImageIcon className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{att.file_name}</span>
+                        </div>
+                        <a
+                          href={att.file_path}
+                          download={att.file_name}
+                          title="Download Image"
+                          className="hover:opacity-80 p-0.5"
+                        >
+                          <Download className="h-3 w-3 shrink-0" />
+                        </a>
                       </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-sm max-w-[240px]",
+                      isOwn
+                        ? "bg-indigo-600 border-indigo-500/40 text-white rounded-br-md"
+                        : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-bl-md"
+                    )}
+                  >
+                    <div className={cn("p-1.5 rounded-lg shrink-0", isOwn ? "bg-white/20" : "bg-zinc-100 dark:bg-zinc-700")}>
+                      <FileText className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium truncate">{att.file_name}</p>
+                      {att.file_size && (
+                        <p className={cn("text-[10px]", isOwn ? "text-indigo-200" : "text-zinc-400")}>
+                          {formatFileSize(att.file_size)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewDoc({ fileName: att.file_name, fileUrl: att.file_path })
+                        }
+                        title="Preview Document"
+                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
                       <a
                         href={att.file_path}
                         download={att.file_name}
-                        title="Download Image"
-                        className="hover:opacity-80 p-0.5"
+                        title="Download Document"
+                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
                       >
-                        <Download className="h-3 w-3 shrink-0" />
+                        <Download className="h-3.5 w-3.5" />
                       </a>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-sm max-w-[240px]",
-                    isOwn
-                      ? "bg-indigo-500 border-indigo-400/40 text-white rounded-br-md"
-                      : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-bl-md"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "p-1.5 rounded-lg shrink-0",
-                      isOwn ? "bg-white/20" : "bg-zinc-100 dark:bg-zinc-700"
-                    )}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium truncate">{att.file_name}</p>
-                    {att.file_size && (
-                      <p
+                )}
+              </div>
+            ))}
+
+            {/* ── Reaction Pill Badge (bottom-right, overlapping) ────────── */}
+            <AnimatePresence>
+              {hasReactions && (
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0, y: 4 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.6, opacity: 0, y: 4 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                  className="absolute -bottom-2.5 right-2 z-20 flex items-center gap-0.5 backdrop-blur-xs shadow-xs rounded-full"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  {reactions!.map((r) => {
+                    const tooltipText =
+                      r.users && r.users.length > 0
+                        ? r.users.map((u) => u.user_name).join(", ")
+                        : `${r.count} reaction${r.count > 1 ? "s" : ""}`;
+
+                    return (
+                      <motion.button
+                        layout
+                        key={r.reaction}
+                        type="button"
+                        onClick={() => handleReact(r.reaction)}
+                        title={tooltipText}
                         className={cn(
-                          "text-[10px]",
-                          isOwn ? "text-indigo-200" : "text-zinc-400"
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
+                          "border transition-colors duration-150 cursor-pointer active:scale-95",
+                          r.reacted_by_me
+                            ? "bg-indigo-50 border-indigo-300 text-indigo-600 dark:bg-indigo-950/40 dark:border-indigo-700 dark:text-indigo-400"
+                            : "bg-white border-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600"
                         )}
                       >
-                        {formatFileSize(att.file_size)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPreviewDoc({
-                          fileName: att.file_name,
-                          fileUrl: att.file_path,
-                        })
-                      }
-                      title="Preview Document"
-                      className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </button>
-                    <a
-                      href={att.file_path}
-                      download={att.file_name}
-                      title="Download Document"
-                      className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                </div>
+                        {/* AnimatedEmoji fires only for the emoji this user just clicked */}
+                        <AnimatedEmoji
+                          emoji={r.reaction}
+                          isAnimating={animatingReaction === r.reaction}
+                        />
+                        <span className="font-medium leading-none">{r.count}</span>
+                      </motion.button>
+                    );
+                  })}
+                </motion.div>
               )}
-            </div>
-          ))}
+            </AnimatePresence>
+          </div>
 
-          {/* Meta: time + edited */}
+          {/* ── Timestamp ────────────────────────────────────────────────── */}
           <div
             className={cn(
               "flex items-center gap-1.5 px-1",
+              hasReactions ? "mt-2.5" : "mt-0",
               isOwn ? "flex-row-reverse" : "flex-row"
             )}
           >
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
               {formatTime(created_at)}
             </span>
-            {is_edited && (
-              <span className="text-[10px] text-zinc-400 italic">edited</span>
-            )}
-            {isOwn && (
-              <CheckCheck className="h-3 w-3 text-indigo-400 shrink-0" />
-            )}
+            {is_edited && <span className="text-[10px] text-zinc-400 italic">edited</span>}
+            {isOwn && <CheckCheck className="h-3 w-3 text-indigo-400 shrink-0" />}
           </div>
         </div>
+
+        {/* ── Reaction trigger button (right for other messages) ── */}
+        {!isOwn && (
+          <div
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0",
+              showPicker && "opacity-100"
+            )}
+          >
+            <button
+              type="button"
+              title="Add reaction"
+              onClick={() => setShowPicker((prev) => !prev)}
+              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer"
+            >
+              <Smile className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Attachment Document Preview Modal */}
+      {/* ── Document Preview Modal ────────────────────────────────────── */}
       <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>
         <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
           <DialogHeader className="px-6 py-3.5 border-b shrink-0 flex flex-row items-center justify-between">
@@ -266,24 +526,11 @@ export default function MessageBubble({
           </DialogHeader>
           <div className="flex-1 bg-zinc-100 dark:bg-zinc-950 overflow-hidden relative">
             {previewDoc && (
-              <DocumentViewer
-                fileUrl={previewDoc.fileUrl}
-                fileName={previewDoc.fileName}
-              />
+              <DocumentViewer fileUrl={previewDoc.fileUrl} fileName={previewDoc.fileName} />
             )}
           </div>
         </DialogContent>
       </Dialog>
     </motion.div>
-  );
-}
-
-function DateDivider({ label }: { label: string }) {
-  return (
-    <div className="sticky top-2 z-10 flex items-center justify-center my-3 px-4 pointer-events-none">
-      <span className="px-3 py-1 rounded-full text-[10px] font-semibold bg-white/90 dark:bg-zinc-800/90 text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/80 shadow-xs backdrop-blur-md">
-        {label}
-      </span>
-    </div>
   );
 }

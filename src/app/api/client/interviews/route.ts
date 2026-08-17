@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
       const matchedJunction = junctionApps.filter((ja) => ja.interview_id === iv.interview_id);
 
       const applications = matchedJunction.map((ja) => {
-        const app = appsMap[ja.application_id] ?? { user_id: null, job_id: null, application_status: "INTERVIEW_SCHEDULED" };
+        const app = appsMap[ja.application_id] ?? { user_id: null, job_id: null, application_status: "INTERVIEWING" };
         const u = app.user_id ? usersMap[app.user_id] : null;
         const applicantName = u ? `${u.user_fname} ${u.user_lname}`.trim() : `Applicant #${app.user_id}`;
         const jobTitle = app.job_id ? (jobsMap[app.job_id] ?? "Unknown Role") : "Unknown Role";
@@ -293,12 +293,41 @@ export async function POST(req: NextRequest) {
       scheduledAt = `${body.interview_date} ${body.interview_time}:00`;
     }
 
-    // Server-side schedule overlap check with 15-minute buffer
+    // Check if any selected candidate already has an active, uncompleted scheduled interview session
+    const candidateActiveIvRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_interview_application?filter[application_id][_in]=${rawAppIds.join(",")}&fields=application_id,interview_id&limit=100`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (candidateActiveIvRes.ok) {
+      const candidateIvRows: { application_id: number; interview_id: number }[] =
+        (await candidateActiveIvRes.json()).data ?? [];
+      const ivIds = candidateIvRows.map((r) => r.interview_id).filter(Boolean);
+      if (ivIds.length > 0) {
+        const activeCheckRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${ivIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,scheduled_at&limit=10`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (activeCheckRes.ok) {
+          const activeIvs: DirectusInterview[] = (await activeCheckRes.json()).data ?? [];
+          if (activeIvs.length > 0) {
+            return NextResponse.json(
+              {
+                error:
+                  "One or more selected candidates already have an active scheduled interview session. Please complete or evaluate their current interview before scheduling a new one.",
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
+
+    // Server-side schedule overlap check
     const newStart = new Date(scheduledAt.replace(" ", "T")).getTime();
     if (!isNaN(newStart)) {
       const durationMs = (Number(body.duration_minutes) || 60) * 60 * 1000;
-      const bufferMs = 15 * 60 * 1000;
-      const newEndWithBuffer = newStart + durationMs + bufferMs;
+      const includeBuffer = body.include_buffer !== false;
+      const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
 
       const overlapRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${companyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id,scheduled_at,duration_minutes,interview_status&limit=100`,
@@ -308,15 +337,19 @@ export async function POST(req: NextRequest) {
       if (overlapRes.ok) {
         const existingActive: DirectusInterview[] = (await overlapRes.json()).data ?? [];
 
+        const newEnd = newStart + durationMs;
         for (const existing of existingActive) {
           const exStart = new Date(existing.scheduled_at.replace(" ", "T")).getTime();
           if (isNaN(exStart)) continue;
           const exEnd = exStart + (existing.duration_minutes || 60) * 60 * 1000;
 
-          if (newStart < (exEnd + bufferMs) && newEndWithBuffer > exStart) {
+          const isDirectOverlap = (newStart >= exStart && newStart < exEnd) || (newStart < exStart && newEnd > exStart);
+          const isBufferOverlap = bufferMs > 0 && (newStart >= exEnd && newStart < (exEnd + bufferMs));
+
+          if (isDirectOverlap || isBufferOverlap) {
             return NextResponse.json(
               {
-                error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)} (including 15m buffer).`,
+                error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)}${includeBuffer ? " (including 15m buffer)" : ""}.`,
               },
               { status: 409 }
             );
@@ -375,12 +408,46 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(junctionPayloads),
     });
 
-    // 3. Update application status to INTERVIEW_SCHEDULED & dispatch emails/notifications
+    // 3. Update application status to INTERVIEWING & dispatch emails/notifications
+    //    Active-interview duplicate guard: reject if candidate already has an active
+    //    interview session (SCHEDULED/CONFIRMED/RESCHEDULED) on a DIFFERENT interview.
     for (const appId of rawAppIds) {
+      const dupRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview_application?filter[application_id][_eq]=${appId}&fields=interview_id&limit=100`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (dupRes.ok) {
+        const linkedInterviews: { interview_id: number }[] = (await dupRes.json()).data ?? [];
+        const otherInterviewIds = linkedInterviews
+          .map((r) => r.interview_id)
+          .filter((id) => id !== newInterviewId);
+
+        if (otherInterviewIds.length > 0) {
+          const activeRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${otherInterviewIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=interview_id&limit=1`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+          if (activeRes.ok) {
+            const activeRows = (await activeRes.json()).data ?? [];
+            if (activeRows.length > 0) {
+              // Rollback: delete the interview and any junction rows already created
+              await fetch(`${DIRECTUS_BASE}/items/vs_interview/${newInterviewId}`, {
+                method: "DELETE",
+                headers: getHeaders(),
+              }).catch(() => {});
+              return NextResponse.json(
+                { error: `Candidate (Application #${appId}) already has an active interview session. Complete or cancel the existing interview before scheduling another.` },
+                { status: 409 }
+              );
+            }
+          }
+        }
+      }
+
       await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${appId}`, {
         method: "PATCH",
         headers: getHeaders(),
-        body: JSON.stringify({ application_status: "INTERVIEW_SCHEDULED" }),
+        body: JSON.stringify({ application_status: "INTERVIEWING" }),
       }).catch((e) => console.error("Error updating app status:", e));
 
       // Dispatch notifications to candidate

@@ -179,14 +179,38 @@ async function getCompanyNames(companyIds: number[]): Promise<Record<number, Com
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 24));
+    const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
+    const search = searchParams.get("search")?.trim() || "";
     const jobType = searchParams.get("job_type");
     const workArrangement = searchParams.get("work_arrangement");
     const experienceLevel = searchParams.get("experience_level");
 
-    let filterQuery = "filter[status][_eq]=ACTIVE";
-    if (jobType) filterQuery += `&filter[job_type][_eq]=${encodeURIComponent(jobType)}`;
-    if (workArrangement) filterQuery += `&filter[work_arrangement][_eq]=${encodeURIComponent(workArrangement)}`;
-    if (experienceLevel) filterQuery += `&filter[experience_level][_eq]=${encodeURIComponent(experienceLevel)}`;
+    const andConditions: Record<string, unknown>[] = [
+      { status: { _eq: "ACTIVE" } },
+    ];
+
+    if (jobType && jobType !== "ALL") {
+      andConditions.push({ job_type: { _eq: jobType } });
+    }
+    if (workArrangement && workArrangement !== "ALL") {
+      andConditions.push({ work_arrangement: { _eq: workArrangement } });
+    }
+    if (experienceLevel && experienceLevel !== "ALL") {
+      andConditions.push({ experience_level: { _eq: experienceLevel } });
+    }
+    if (search) {
+      andConditions.push({
+        _or: [
+          { job_title: { _icontains: search } },
+          { job_location: { _icontains: search } },
+          { job_category: { _icontains: search } },
+          { job_description: { _icontains: search } },
+        ],
+      });
+    }
+
+    const filterJson = JSON.stringify({ _and: andConditions });
 
     const fields = [
       "job_id", "company_id", "job_title", "job_category", "job_type",
@@ -196,10 +220,9 @@ export async function GET(req: NextRequest) {
       "experience_level", "education", "status", "created_at",
     ].join(",");
 
-    const jobsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_posting?${filterQuery}&sort[]=-created_at&fields=${fields}&limit=500`,
-      { headers: getHeaders(), cache: "no-store" }
-    );
+    const directusUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter=${encodeURIComponent(filterJson)}&sort[]=-created_at&fields=${fields}&limit=${limit}&offset=${offset}&meta=*`;
+
+    const jobsRes = await fetch(directusUrl, { headers: getHeaders(), cache: "no-store" });
 
     if (!jobsRes.ok) {
       const err = await jobsRes.json().catch(() => ({}));
@@ -211,8 +234,25 @@ export async function GET(req: NextRequest) {
 
     const jobsJson = await jobsRes.json();
     const rawJobs: Record<string, unknown>[] = jobsJson.data ?? [];
+    
+    const directusFilterCount = typeof jobsJson.meta?.filter_count === "number" ? jobsJson.meta.filter_count : null;
+    const directusTotalCount = typeof jobsJson.meta?.total_count === "number" ? jobsJson.meta.total_count : null;
 
-    if (rawJobs.length === 0) return NextResponse.json({ jobs: [] });
+    const hasMore = directusFilterCount !== null
+      ? offset + rawJobs.length < directusFilterCount
+      : rawJobs.length === limit;
+
+    const filterCount = directusFilterCount ?? (hasMore ? offset + rawJobs.length + 1 : offset + rawJobs.length);
+    const totalCount = directusTotalCount ?? filterCount;
+
+    if (rawJobs.length === 0) {
+      return NextResponse.json({
+        jobs: [],
+        total: totalCount,
+        filterCount: filterCount,
+        hasMore: false,
+      });
+    }
 
     const jobIds = rawJobs.map((j) => j.job_id as number);
     const companyIds = [...new Set(rawJobs.map((j) => j.company_id as number).filter(Boolean))];
@@ -265,7 +305,12 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ jobs });
+    return NextResponse.json({
+      jobs,
+      total: totalCount,
+      filterCount: filterCount,
+      hasMore,
+    });
   } catch (err: unknown) {
     console.error("GET /api/freelancer/jobs error:", err);
     return NextResponse.json(
