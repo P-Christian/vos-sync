@@ -5,9 +5,7 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X,
   Briefcase,
-  FolderTree,
   CheckCircle2,
   Search,
   Plus,
@@ -57,7 +55,7 @@ interface RoleDetailSheetProps {
   onEditSkill: (payload: Partial<RoleSkillMapping>) => Promise<boolean>;
   onRemoveSkill: (id: number) => Promise<boolean>;
   onAddKeyword: (payload: Partial<SearchKeyword>) => Promise<boolean>;
-  onEditKeyword: (payload: Partial<SearchKeyword>) => Promise<boolean>;
+  onEditKeyword?: (payload: Partial<SearchKeyword>) => Promise<boolean>;
   onRemoveKeyword: (aliasId: number) => Promise<boolean>;
 }
 
@@ -74,7 +72,6 @@ export function RoleDetailSheet({
   onEditSkill,
   onRemoveSkill,
   onAddKeyword,
-  onEditKeyword,
   onRemoveKeyword,
 }: RoleDetailSheetProps) {
   // Active Tab
@@ -124,14 +121,16 @@ export function RoleDetailSheet({
   // Sync role state when role changes
   React.useEffect(() => {
     if (role) {
-      setRoleNameInput(role.role_name);
-      setExpLevelInput(role.experience_level || "MID");
-      setCatIdInput(role.category_id || 1);
-      setErrorMessage("");
-      setSessionSkillsHistory([]);
-      setSessionKeywordsHistory([]);
+      queueMicrotask(() => {
+        setRoleNameInput(role.role_name);
+        setExpLevelInput(role.experience_level || "MID");
+        setCatIdInput(role.category_id || 1);
+        setErrorMessage("");
+        setSessionSkillsHistory([]);
+        setSessionKeywordsHistory([]);
+      });
     }
-  }, [role?.role_id]);
+  }, [role]);
 
   // Filter skills and keywords for this specific role
   const roleSkills = useMemo(
@@ -526,7 +525,7 @@ export function RoleDetailSheet({
 
                 {roleSkills.length === 0 ? (
                   <div className="p-8 text-center bg-muted/30 rounded-xl border border-dashed text-muted-foreground">
-                    No skills mapped yet. Click "Add Skill" or "AI Suggest" to add core competencies.
+                    No skills mapped yet. Click &quot;Add Skill&quot; or &quot;AI Suggest&quot; to add core competencies.
                   </div>
                 ) : (
                   <div className="divide-y divide-border border rounded-xl overflow-hidden bg-background">
@@ -632,7 +631,7 @@ export function RoleDetailSheet({
 
                 {roleKeywords.length === 0 ? (
                   <div className="p-8 text-center bg-muted/30 rounded-xl border border-dashed text-muted-foreground">
-                    No keywords mapped yet. Click "Add Keyword" or "AI Suggest" to add search aliases.
+                    No keywords mapped yet. Click &quot;Add Keyword&quot; or &quot;AI Suggest&quot; to add search aliases.
                   </div>
                 ) : (
                   <div className="divide-y divide-border border rounded-xl overflow-hidden bg-background">

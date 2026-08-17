@@ -750,7 +750,7 @@ export function MatchTestStudio() {
                 </div>
                 <h3 className="text-base font-bold text-foreground">Ready to Run Simulation</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Click <strong>"Run Match Simulation"</strong> to evaluate the candidate profile against the active database taxonomy rules and scoring model.
+                  Click <strong>&quot;Run Match Simulation&quot;</strong> to evaluate the candidate profile against the active database taxonomy rules and scoring model.
                 </p>
               </motion.div>
             )}

@@ -11,8 +11,6 @@ import {
   Search,
   CheckCircle2,
   Loader2,
-  Sparkles,
-  Tag,
 } from "lucide-react";
 import { useJobCategories } from "../hooks/useJobCategories";
 import { useStandardRoles } from "../hooks/useStandardRoles";

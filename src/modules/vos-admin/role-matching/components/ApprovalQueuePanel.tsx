@@ -154,13 +154,15 @@ function ReviewDialog({
   // Sync fields when a new request is selected
   React.useEffect(() => {
     if (open) {
-      setResolutionMode("CREATE_NEW");
-      setCategoryName(request.category_name ?? "");
-      setCategoryCode(slugifyCode(request.category_name ?? ""));
-      setCategoryDesc(request.category_description ?? "");
-      setSelectedExistingCategoryId(categories.length > 0 ? String(categories[0].category_id) : "");
-      setAdminRemarks("");
-      setActionError("");
+      queueMicrotask(() => {
+        setResolutionMode("CREATE_NEW");
+        setCategoryName(request.category_name ?? "");
+        setCategoryCode(slugifyCode(request.category_name ?? ""));
+        setCategoryDesc(request.category_description ?? "");
+        setSelectedExistingCategoryId(categories.length > 0 ? String(categories[0].category_id) : "");
+        setAdminRemarks("");
+        setActionError("");
+      });
     }
   }, [open, request, categories]);
 

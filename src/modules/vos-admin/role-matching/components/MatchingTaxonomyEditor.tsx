@@ -2,7 +2,7 @@
 
 // src/modules/vos-admin/role-matching/components/MatchingTaxonomyEditor.tsx
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronDown,
@@ -16,7 +16,6 @@ import {
   Trash2,
   Loader2,
   SlidersHorizontal,
-  ExternalLink,
   ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -349,7 +348,7 @@ export function MatchingTaxonomyEditor() {
             transition={{ duration: 0.15 }}
             className="p-12 text-center text-muted-foreground text-xs"
           >
-            No matching taxonomy items found for "{searchQuery}".
+            No matching taxonomy items found for &quot;{searchQuery}&quot;.
           </motion.div>
         ) : (
           <AnimatePresence>
