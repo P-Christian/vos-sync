@@ -4,6 +4,8 @@ export type ConversationType = "JOB_APPLICATION" | "DIRECT_MESSAGE" | "SUPPORT";
 export type ConversationStatus = "ACTIVE" | "ARCHIVED" | "BLOCKED";
 export type MessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
 
+export type HiringViewerRole = "CANDIDATE" | "CLIENT" | "FREELANCER";
+
 export type SystemEventType =
   | "APPLICATION_SUBMITTED"
   | "APPLICATION_STATUS_CHANGED"

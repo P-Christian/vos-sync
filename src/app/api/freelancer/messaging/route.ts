@@ -212,7 +212,21 @@ export async function GET(req: NextRequest) {
       let lastMessagePreview = "";
       if (lastMsg) {
         if (lastMsg.message_type === "SYSTEM") {
-          lastMessagePreview = (lastMsg.message_content as string) ?? "";
+          const rawContent = (lastMsg.message_content as string) ?? "";
+          const lower = rawContent.toLowerCase();
+          if (lower.includes("hired") || lower.includes("client hired")) {
+            lastMessagePreview = "You were hired!";
+          } else if (lower.includes("application submitted")) {
+            lastMessagePreview = "Application submitted";
+          } else if (lower.includes("status changed") || lower.includes("application updated")) {
+            lastMessagePreview = "Application status updated";
+          } else if (lower.includes("interview scheduled")) {
+            lastMessagePreview = "Interview scheduled";
+          } else if (lower.includes("interview rescheduled") || lower.includes("interview updated")) {
+            lastMessagePreview = "Interview rescheduled";
+          } else {
+            lastMessagePreview = rawContent;
+          }
         } else if (lastMsg.message_type === "TEXT") {
           const rawContent = (lastMsg.message_content as string) ?? "";
           const content = safeDecryptMessage(rawContent) ?? "";

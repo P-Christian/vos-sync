@@ -1,6 +1,7 @@
 // src/app/api/messaging/system-card/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { HiringViewerRole } from "@/modules/client/messaging/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -238,11 +239,49 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      const socialLinksList = socialLinks.map((s: { platform_name?: string; profile_url?: string; url?: string }) => ({
+        platform_name: s.platform_name || "Link",
+        url: s.profile_url || s.url || "#",
+      }));
+
+      const isCandidate = app?.user_id === userId || conv.freelancer_id === userId;
+      const viewerRole: HiringViewerRole = isCandidate ? "FREELANCER" : "CLIENT";
+
       return NextResponse.json({
         event_type,
+        viewer_role: viewerRole,
         application_id,
+
+        // Domain Entity Projection
+        applicant: {
+          user_id: app?.user_id,
+          name: applicantName,
+          email: applicantEmail,
+          phone: applicantPhone,
+          avatar: applicantAvatar,
+          resume: resumeObj,
+          social_links: socialLinksList,
+        },
+        job: {
+          job_id: app?.job_id ?? conv.job_id ?? null,
+          title: jobTitle,
+          salary_min: salaryMin,
+          salary_max: salaryMax,
+        },
+        application: {
+          status: app?.application_status ?? "APPLIED",
+          expected_salary: app?.expected_salary ?? null,
+          cover_letter: app?.cover_letter ?? null,
+          portfolio_url: app?.portfolio_url ?? null,
+          applied_at: app?.applied_at ?? null,
+          updated_at: app?.status_updated_at ?? app?.updated_at ?? app?.date_updated ?? null,
+        },
+
+        // Flat fallbacks for backward compatibility
         application_status: app?.application_status ?? "APPLIED",
         applied_at: app?.applied_at ?? null,
+        updated_at: app?.status_updated_at ?? app?.updated_at ?? app?.date_updated ?? null,
+        status_updated_at: app?.status_updated_at ?? null,
         expected_salary: app?.expected_salary ?? null,
         cover_letter: app?.cover_letter ?? null,
         portfolio_url: app?.portfolio_url ?? null,
@@ -254,10 +293,7 @@ export async function GET(req: NextRequest) {
         salary_min: salaryMin,
         salary_max: salaryMax,
         resume: resumeObj,
-        social_links: socialLinks.map((s: { platform_name?: string; profile_url?: string; url?: string }) => ({
-          platform_name: s.platform_name || "Link",
-          url: s.profile_url || s.url || "#",
-        })),
+        social_links: socialLinksList,
       });
     }
 
@@ -268,17 +304,66 @@ export async function GET(req: NextRequest) {
       }
 
       const ivRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_interview/${interview_id}?fields=interview_id,scheduled_at,duration_minutes,timezone,interview_format,meeting_link,meeting_location,interview_status`,
+        `${DIRECTUS_BASE}/items/vs_interview/${interview_id}?fields=interview_id,scheduled_at,duration_minutes,timezone,interview_format,meeting_link,meeting_location,interview_status,created_at,updated_at`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (!ivRes.ok) {
         return NextResponse.json({ error: "Interview not found." }, { status: 404 });
       }
       const iv = (await ivRes.json()).data;
+      const isCandidate = conv.freelancer_id === userId;
+      const viewerRole: HiringViewerRole = isCandidate ? "FREELANCER" : "CLIENT";
+
+      // Also resolve candidate name and job title from conversation if available
+      const [candUserRes, jobRes] = await Promise.all([
+        conv.freelancer_id
+          ? fetch(
+              `${DIRECTUS_BASE}/items/vs_user/${conv.freelancer_id}?fields=user_fname,user_lname`,
+              { headers: getHeaders(), cache: "no-store" }
+            ).then((r) => (r.ok ? r.json() : { data: null }))
+          : Promise.resolve({ data: null }),
+        conv.job_id
+          ? fetch(
+              `${DIRECTUS_BASE}/items/vs_job_posting/${conv.job_id}?fields=job_title`,
+              { headers: getHeaders(), cache: "no-store" }
+            ).then((r) => (r.ok ? r.json() : { data: null }))
+          : Promise.resolve({ data: null }),
+      ]);
+
+      const candUser = candUserRes.data;
+      const job = jobRes.data;
+      const applicantName = `${candUser?.user_fname ?? ""} ${candUser?.user_lname ?? ""}`.trim() || "Candidate";
+      const jobTitle = job?.job_title ?? "Position";
 
       return NextResponse.json({
         event_type,
-        interview_id,
+        viewer_role: viewerRole,
+
+        // Domain Entity Projection
+        interview: {
+          interview_id: iv?.interview_id ?? interview_id,
+          scheduled_at: iv?.scheduled_at ?? null,
+          duration_minutes: iv?.duration_minutes ?? 60,
+          timezone: iv?.timezone ?? "Asia/Manila",
+          interview_format: iv?.interview_format ?? "ONLINE",
+          meeting_link: iv?.meeting_link ?? null,
+          meeting_location: iv?.meeting_location ?? null,
+          interview_status: iv?.interview_status ?? null,
+          created_at: iv?.created_at ?? null,
+          updated_at: iv?.updated_at ?? null,
+        },
+        candidate: {
+          user_id: conv.freelancer_id,
+          name: applicantName,
+          avatar: null,
+        },
+        job: {
+          job_id: conv.job_id ?? null,
+          title: jobTitle,
+        },
+
+        // Flat fallbacks
+        interview_id: iv?.interview_id ?? interview_id,
         scheduled_at: iv?.scheduled_at ?? null,
         duration_minutes: iv?.duration_minutes ?? 60,
         timezone: iv?.timezone ?? "Asia/Manila",
@@ -286,6 +371,10 @@ export async function GET(req: NextRequest) {
         meeting_link: iv?.meeting_link ?? null,
         meeting_location: iv?.meeting_location ?? null,
         interview_status: iv?.interview_status ?? null,
+        created_at: iv?.created_at ?? null,
+        updated_at: iv?.updated_at ?? null,
+        applicant_name: applicantName,
+        job_title: jobTitle,
       });
     }
 
