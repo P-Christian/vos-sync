@@ -29,22 +29,35 @@ export function useRoleSkills(roleId?: number) {
     }
   }, [roleId]);
 
-  const addRoleSkill = useCallback(async (payload: Partial<RoleSkillMapping>) => {
-    try {
-      const created = await createRoleSkill(payload);
-      setRoleSkills((prev) => {
-        const exists = prev.some((s) => s.id === created.id);
-        if (exists) {
-          return prev.map((s) => (s.id === created.id ? { ...s, ...created } : s));
-        }
-        return [...prev, created];
-      });
-      return true;
-    } catch (err: unknown) {
-      setError((err as Error).message || "Failed to add role skill.");
-      return false;
-    }
-  }, []);
+  const addRoleSkill = useCallback(
+    async (payload: Partial<RoleSkillMapping>) => {
+      try {
+        const created = await createRoleSkill(payload);
+        const resolvedSkillName =
+          created.skill_name ||
+          payload.skill_name ||
+          masterSkills.find((m) => m.id === (created.skill_id ?? payload.skill_id))?.skill_name;
+
+        const hydrated: RoleSkillMapping = {
+          ...created,
+          skill_name: resolvedSkillName || created.skill_name || `Skill #${created.skill_id}`,
+        };
+
+        setRoleSkills((prev) => {
+          const exists = prev.some((s) => s.id === hydrated.id);
+          if (exists) {
+            return prev.map((s) => (s.id === hydrated.id ? { ...s, ...hydrated } : s));
+          }
+          return [...prev, hydrated];
+        });
+        return true;
+      } catch (err: unknown) {
+        setError((err as Error).message || "Failed to add role skill.");
+        return false;
+      }
+    },
+    [masterSkills]
+  );
 
 
   const editRoleSkill = useCallback(async (payload: Partial<RoleSkillMapping>) => {
