@@ -40,7 +40,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
     >
       <Card className="border bg-card rounded-2xl shadow-2xs overflow-hidden flex flex-col justify-between h-full">
         <div>
-          <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-border/60">
+          <CardHeader className="  flex flex-row items-center justify-between border-b border-border/60">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <Briefcase className="h-4 w-4" />

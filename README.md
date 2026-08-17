@@ -29,6 +29,20 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Automatic Directus deduplication & race-condition conflict handling across `vs_role_category`, `vs_role_title`, `vs_role_title_alias`, `vs_master_skills`, and `vs_role_skill_mapping`.
 * Queues ambiguous `RELATED_ROLE` and `BROAD_ROLE` concepts for Admin Exception Review.
 
+#### Matching Intelligence Module
+
+* Renamed and broadened "Role & Skill Intelligence" into **Matching Intelligence** — a unified governance layer for all job taxonomy, search relevance, and candidate-job matching signals.
+* Dashboard exposes five live metrics: Job Categories, Standard Roles, Keywords & Synonyms, Role Skill Mappings, and **Pending Requests** (count of `PENDING` category suggestions awaiting review).
+* **Unified Matching Taxonomy Editor**: Consolidated 4 disconnected manager interfaces into a single interactive 4-tier tree editor (`/vos-admin/job-roles/taxonomy`) with real-time multi-level search (across categories, roles, skills, and keywords) and direct in-tree CRUD controls for categories and roles.
+* **Role Detail Slide-Over Sheet**: Rich side-drawer panel (`RoleDetailSheet`) enabling comprehensive role management with visual importance weight sliders (`0%`–`100%`), required/preferred competency toggles, keyword match weight sliders, and built-in AI Skill and AI Keyword Generators with deduplication.
+* **Streamlined 3 Governance Hubs**: Dashboard navigation simplified to **Approval Queue**, **Matching Taxonomy**, and **Match Test Studio**.
+* **Interactive Match Test Studio & Candidate Sandbox**: Live query simulation environment (`MatchTestStudio`) equipped with an interactive Jobseeker Profile Inspector & Sandbox Editor allowing admins to customize headline, professional summary, skills (add/remove tag chips), work history roles, and industry certifications (`certifications`), or switch across candidate archetypes (Full-Stack, Frontend, Social Media, Data Analyst) to evaluate engine scoring, compatibility breakdowns, and verified evidence signals in real-time.
+* **Approval Queue** at `/vos-admin/job-roles/approval-queue`: admin-facing governance panel fed from `vs_role_category_suggestion` supporting 3 resolution actions: **Create New Category**, **Map to Existing Category**, and **Reject Suggestion** with mandatory admin audit remarks.
+* **Non-Destructive Job Governance**: Rejecting a taxonomy suggestion strictly rejects the taxonomy candidate; the originating job remains active and usable with `category_id = NULL`.
+* **Originating Job Linkage**: Category suggestions link to originating `job_id`; approving via *Create New* or *Map Existing* automatically synchronizes `category_id` and canonical `job_category` onto the linked `vs_job_posting` record.
+* Generalized `IntelligenceEntityType`, `IntelligenceRequestStatus`, `ResolutionType`, and `IntelligenceRequest` types designed to extend to Job Roles, Skills, Keywords, and other matching entities without redesigning the module.
+* Approval transaction is atomic: category resolution must succeed before the suggestion is marked `APPROVED`; failures leave the suggestion `PENDING`.
+
 ---
 
 
@@ -289,6 +303,15 @@ Supported experiences include:
 * Right-positioned quick reaction triggers and bottom-right overlapping reaction pill badges.
 * Fullscreen Hiring Celebration Surprise: Automatic detection of unread `HIRED` system messages upon opening a conversation, triggering a high-fidelity celebratory modal with multi-colored bursting confetti particles, glowing trophy visuals, and target job details.
 
+### Dynamic Role-Aware System Message Cards
+
+* Unified system message card renderers (`ApplicationCard.tsx`, `InterviewCard.tsx`) adapting layout, badges, and contextual copy dynamically based on the viewer's authenticated role (`CANDIDATE` vs `CLIENT`).
+* Contextual event messaging across recruitment and interview milestones (`HIRED`, `APPLICATION_SUBMITTED`, `APPLICATION_STATUS_CHANGED`, `INTERVIEW_SCHEDULED`, `INTERVIEW_UPDATED`):
+  * **Hired**: Freelancer sees *"You Were Hired"* and *"You were hired for [Position]"*, while the employer sees *"Candidate Hired"* and *"You hired [Candidate Name] for [Position]"*.
+  * **Application Submitted**: Freelancer sees *"Application Submitted"* with their target job, while the employer receives *"New Application"* with the applicant's name and position.
+  * **Status Updates**: Tailored update headlines for candidates and recruiters with event date prioritization (`updated_at` / `status_updated_at`).
+  * **Interview Cards**: Role- and status-aware interview cards with status-driven headers, icons, and contextual headlines (`SCHEDULED`, `CONFIRMED`, `RESCHEDULED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`). Action buttons (*"Join Online Meeting"*) are strictly gated by active interview states and automatically hidden upon completion or cancellation.
+* Integrated document viewers, resumé downloads, external portfolio links, cover letter accordions, and salary badges within the conversation thread.
 
 ---
 

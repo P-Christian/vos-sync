@@ -752,7 +752,7 @@ export default function JobForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="jf-location" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                  Location / Region <span className="text-rose-500">*</span>
+                 Address <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   id="jf-location"
@@ -1479,6 +1479,7 @@ export default function JobForm({
         open={suggestCategoryModalOpen}
         onOpenChange={setSuggestCategoryModalOpen}
         initialQuery={categorySearchQuery}
+        jobId={data.job_id ?? null}
         onSelectCategory={(catId, catName) => {
           if (catId) {
             onChange("category_id", catId);

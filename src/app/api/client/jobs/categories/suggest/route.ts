@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
     const description = (body.description || "").trim();
     const companyId = body.company_id ? Number(body.company_id) : null;
     const userId = body.user_id ? Number(body.user_id) : null;
+    const jobId = body.job_id ? Number(body.job_id) : null;
 
     if (!categoryName) {
       return NextResponse.json({ error: "Category name is required." }, { status: 400 });
@@ -103,6 +104,7 @@ export async function POST(req: NextRequest) {
           method: "POST",
           headers: getHeaders(),
           body: JSON.stringify({
+            job_id: jobId,
             category_name: categoryName,
             category_description: description,
             company_id: companyId,

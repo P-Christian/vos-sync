@@ -136,6 +136,7 @@ export interface PublicJobPosting {
   screening_questions?: string[];
 }
 export interface JobFormData {
+  job_id?: number | null;
   job_title: string;
   job_description: string;
   job_requirements: string;

@@ -22,6 +22,7 @@ interface SuggestCategoryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialQuery?: string;
+  jobId?: number | null;
   onSelectCategory: (categoryId: number | null, categoryName: string) => void;
 }
 
@@ -38,6 +39,7 @@ export function SuggestCategoryModal({
   open,
   onOpenChange,
   initialQuery = "",
+  jobId = null,
   onSelectCategory,
 }: SuggestCategoryModalProps) {
   const [categoryName, setCategoryName] = useState(initialQuery);
@@ -70,6 +72,7 @@ export function SuggestCategoryModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          job_id: jobId,
           category_name: trimmed,
           description: description.trim(),
         }),

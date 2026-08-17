@@ -241,6 +241,7 @@ export default function JobsModule() {
       "";
 
     setFormData({
+      job_id: job.job_id,
       job_title: job.job_title ?? "",
       job_description: resolvedDescription,
       job_requirements: reqsData.text || resolvedQualifications,

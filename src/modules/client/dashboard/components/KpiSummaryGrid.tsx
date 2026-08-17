@@ -70,7 +70,7 @@ export default function KpiSummaryGrid({ stats }: KpiSummaryGridProps) {
             className="cursor-pointer group"
           >
             <Card className="border bg-card shadow-2xs hover:shadow-md transition-all duration-200 group-hover:border-primary/40 rounded-2xl overflow-hidden relative">
-              <CardContent className="p-5 flex flex-col justify-between h-full space-y-4">
+              <CardContent className="px-5 flex flex-col justify-between h-full space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     {card.title}
