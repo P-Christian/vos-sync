@@ -84,7 +84,7 @@ export function useApplicants() {
   );
 
   // --------------------------------
-  // Update status
+  // Update status (Optimistic UI)
   // --------------------------------
 
   const updateStatus = useCallback(
@@ -96,14 +96,29 @@ export function useApplicants() {
       setSaving(true);
       setError("");
 
+      let rollbackList: Applicant[] = [];
+
+      // 1. Optimistic local mutation
+      setApplicants((prev) => {
+        rollbackList = prev;
+        return prev.map((applicant) =>
+          applicant.application_id === applicationId
+            ? {
+                ...applicant,
+                application_status: status,
+                client_notes: notes,
+              }
+            : applicant
+        );
+      });
+
       try {
         const res = await fetch(
           `/api/client/applicants/${applicationId}`,
           {
             method: "PATCH",
             headers: {
-              "Content-Type":
-                "application/json",
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               application_status: status,
@@ -116,27 +131,14 @@ export function useApplicants() {
 
         if (!res.ok) {
           throw new Error(
-            json.error ||
-              "Failed to update status."
+            json.error || "Failed to update status."
           );
         }
 
-        setApplicants((prev) =>
-          prev.map((applicant) =>
-            applicant.application_id ===
-            applicationId
-              ? {
-                  ...applicant,
-                  application_status:
-                    status,
-                  client_notes: notes,
-                }
-              : applicant
-          )
-        );
-
         return true;
       } catch (err: unknown) {
+        // Rollback on failure
+        setApplicants(rollbackList);
         setError(
           err instanceof Error
             ? err.message

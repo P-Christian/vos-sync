@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -171,12 +172,19 @@ export default function ApplicantCard({
           <div className="flex items-center gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50 w-full lg:w-auto justify-between lg:justify-end">
             {/* Status Badge - Anchored to a fixed column */}
             <div className="shrink-0 flex items-center">
-              <Badge
-                variant="outline"
-                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[applicant.application_status]}`}
+              <motion.div
+                key={applicant.application_status}
+                initial={{ scale: 0.82, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 450, damping: 26 }}
               >
-                {STATUS_LABELS[applicant.application_status]}
-              </Badge>
+                <Badge
+                  variant="outline"
+                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-200 shadow-2xs ${STATUS_STYLES[applicant.application_status]}`}
+                >
+                  {STATUS_LABELS[applicant.application_status]}
+                </Badge>
+              </motion.div>
             </div>
 
             {/* Action Buttons Group */}

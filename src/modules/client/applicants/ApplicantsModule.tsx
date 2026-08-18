@@ -10,7 +10,8 @@ import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, ArrowLeft } from "lucide-react";
-import { Applicant, ApplicantFilterStatus, ApplicationStatus } from "./types";
+import { toast } from "sonner";
+import { Applicant, ApplicantFilterStatus, ApplicationStatus, STATUS_LABELS } from "./types";
 import {
   Dialog,
   DialogContent,
@@ -208,15 +209,25 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     applicant: Applicant,
     newStatus: ApplicationStatus
   ) => {
+    const candidateName =
+      applicant.applicant_name || `Applicant #${applicant.application_id}`;
+    const statusLabel = STATUS_LABELS[newStatus] || newStatus;
+
     const ok = await updateStatus(
       applicant.application_id,
       newStatus,
       applicant.client_notes || ""
     );
-    if (ok && applicant.application_id === selectedApplicant?.application_id) {
-      setSelectedApplicant((prev) =>
-        prev ? { ...prev, application_status: newStatus } : null
-      );
+
+    if (ok) {
+      toast.success(`${candidateName} moved to ${statusLabel}`);
+      if (applicant.application_id === selectedApplicant?.application_id) {
+        setSelectedApplicant((prev) =>
+          prev ? { ...prev, application_status: newStatus } : null
+        );
+      }
+    } else {
+      toast.error(`Failed to update ${candidateName}'s status.`);
     }
   };
 
