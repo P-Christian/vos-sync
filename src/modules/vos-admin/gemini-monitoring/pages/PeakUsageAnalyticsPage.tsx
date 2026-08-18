@@ -114,7 +114,6 @@ const TIME_RANGE_OPTIONS = [
 
 export function PeakUsageAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,7 +131,6 @@ export function PeakUsageAnalyticsPage() {
 
   const fetchAnalytics = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
-    else setLoading(true);
     setError(null);
 
     try {
@@ -152,13 +150,14 @@ export function PeakUsageAnalyticsPage() {
     } catch (err) {
       setError((err as Error)?.message || "Failed to load peak usage analytics.");
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   }, [selectedProvider, timeRange, dateFrom, dateTo]);
 
   useEffect(() => {
-    fetchAnalytics();
+    queueMicrotask(() => {
+      fetchAnalytics();
+    });
     const interval = setInterval(() => fetchAnalytics(true), 30000);
     return () => clearInterval(interval);
   }, [fetchAnalytics]);

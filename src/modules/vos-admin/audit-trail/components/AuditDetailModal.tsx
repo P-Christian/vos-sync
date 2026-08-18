@@ -21,7 +21,6 @@ import {
   Bot,
   Globe,
   Laptop,
-  Sliders,
   Sparkles,
 } from 'lucide-react';
 

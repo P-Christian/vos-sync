@@ -4,7 +4,6 @@ import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail, isEmailEnabl
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
-import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";

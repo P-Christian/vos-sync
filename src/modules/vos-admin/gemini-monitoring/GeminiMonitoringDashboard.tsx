@@ -20,7 +20,6 @@ import {
   Radio,
   Layers,
   TrendingDown,
-  TrendingUp,
   Blocks,
   Filter,
   RotateCcw,
@@ -412,7 +411,9 @@ export default function GeminiMonitoringDashboard() {
   }, [selectedProvider, timeRange, dateFrom, dateTo, selectedFeature]);
 
   useEffect(() => {
-    fetchTelemetry();
+    queueMicrotask(() => {
+      fetchTelemetry();
+    });
     const interval = setInterval(() => fetchTelemetry(true), 30000);
     return () => clearInterval(interval);
   }, [fetchTelemetry]);
@@ -474,14 +475,6 @@ export default function GeminiMonitoringDashboard() {
     status503: 0,
     timeouts: 0,
   };
-
-  const hourlyBuckets = data?.peakUsageTrends?.hourlyBuckets || Array.from({ length: 24 }, (_, i) => ({
-    hourLabel: `${i.toString().padStart(2, "0")}:00`,
-    requests: 0,
-    tokens: 0,
-    errors: 0,
-    avgLatencyMs: 0,
-  }));
 
   const timeRangeLabel = TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label || "Selected Period";
 

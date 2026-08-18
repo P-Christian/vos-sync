@@ -47,7 +47,7 @@ export function ApplicantAiAnalysisModal({
 
   const applicationId = applicant?.application_id;
 
-  const fetchAnalysis = async (forceRegenerate = false) => {
+  const fetchAnalysis = React.useCallback(async (forceRegenerate = false) => {
     if (!applicant || !applicationId) return;
 
     if (!forceRegenerate) {
@@ -100,13 +100,15 @@ export function ApplicantAiAnalysisModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [applicant, applicationId]);
 
   useEffect(() => {
     if (open && applicant) {
-      fetchAnalysis(false);
+      queueMicrotask(() => {
+        fetchAnalysis(false);
+      });
     }
-  }, [open, applicationId]);
+  }, [open, applicant, fetchAnalysis]);
 
   const getScoreColor = (score: number) => {
     if (score >= 85) return "text-emerald-500 bg-emerald-500/10 border-emerald-500/30";

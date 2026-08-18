@@ -27,7 +27,6 @@ import {
   Tag,
   Target,
   Compass,
-  ArrowRight,
   RefreshCw,
   SlidersHorizontal,
 } from "lucide-react";
@@ -93,7 +92,9 @@ export default function AIProfileAssistantModal({
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isGenerating) {
-      setCurrentStepIndex(0);
+      queueMicrotask(() => {
+        setCurrentStepIndex(0);
+      });
       interval = setInterval(() => {
         setCurrentStepIndex((prev) => {
           if (prev < GENERATION_STEPS.length - 1) return prev + 1;

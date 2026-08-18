@@ -35,13 +35,6 @@ interface AutoCreateJobModalProps {
   onDirectSaveDraft: (jobData: JobFormData) => Promise<void>;
 }
 
-const EXAMPLE_PROMPTS = [
-  "Senior Full-Stack Developer to build our web platform using React, Next.js, Node.js, and PostgreSQL. Remote in the Philippines.",
-  "Junior Frontend Developer working with React and TypeScript. Hybrid setup in Makati City.",
-  "DevOps & Cloud Engineer with AWS, Docker, and Kubernetes experience. Budget is around 70k to 90k PHP.",
-  "UI/UX Designer to create mobile and web app prototypes using Figma.",
-];
-
 const GENERATION_STEPS = [
   "Analyzing your request",
   "Reading company profile & location",
@@ -68,7 +61,9 @@ export function AutoCreateJobModal({
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isGenerating) {
-      setCurrentStepIndex(0);
+      queueMicrotask(() => {
+        setCurrentStepIndex(0);
+      });
       interval = setInterval(() => {
         setCurrentStepIndex((prev) => {
           if (prev < GENERATION_STEPS.length - 1) return prev + 1;

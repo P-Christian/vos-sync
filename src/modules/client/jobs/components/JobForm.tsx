@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1341,9 +1342,12 @@ export default function JobForm({
             <div className="p-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4">
               <div className="h-14 w-14 rounded-2xl bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center shrink-0 overflow-hidden border border-border/80 relative">
                 {companyLogoUrl ? (
-                  <img
+                  <Image
                     src={companyLogoUrl}
                     alt={companyProfile?.company_name || "Company Logo"}
+                    width={56}
+                    height={56}
+                    unoptimized
                     className="h-full w-full object-cover"
                   />
                 ) : (

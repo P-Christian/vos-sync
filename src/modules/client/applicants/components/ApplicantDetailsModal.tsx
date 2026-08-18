@@ -231,17 +231,21 @@ export default function ApplicantDetailsModal({
   useEffect(() => {
     const appId = activeApplicant?.application_id || detail?.application_id;
     if (!appId || !open) {
-      setCachedAnalysis(null);
+      queueMicrotask(() => {
+        setCachedAnalysis(null);
+      });
       return;
     }
 
     // 1. Instant check from local cache
     const cached = getCachedApplicantAnalysis(appId);
-    if (cached) {
-      setCachedAnalysis(cached);
-    } else {
-      setCachedAnalysis(null);
-    }
+    queueMicrotask(() => {
+      if (cached) {
+        setCachedAnalysis(cached);
+      } else {
+        setCachedAnalysis(null);
+      }
+    });
 
     // 2. Query DB to verify if evaluation exists for this exact application_id
     let isMounted = true;
