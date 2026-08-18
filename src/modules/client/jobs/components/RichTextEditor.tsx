@@ -1,7 +1,11 @@
+// src/modules/client/jobs/components/RichTextEditor.tsx
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { Bold, List, ListOrdered } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Bold, List, ListOrdered, Sparkles, Loader2, Wand2, Send, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface RichTextEditorProps {
   id: string;
@@ -9,6 +13,8 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   error?: boolean;
+  fieldType?: "job_description" | "job_responsibilities" | "job_qualifications";
+  jobTitle?: string;
 }
 
 export function RichTextEditor({
@@ -17,8 +23,15 @@ export function RichTextEditor({
   onChange,
   placeholder,
   error,
+  fieldType = "job_description",
+  jobTitle = "",
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const [isRefining, setIsRefining] = useState(false);
+  const [activeAction, setActiveAction] = useState<string | null>(null);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
+  const [refineSuccess, setRefineSuccess] = useState(false);
 
   // Convert legacy markdown **bold** or newlines to HTML for visual editor display
   const formatToHtml = (val: string | null | undefined): string => {
@@ -60,6 +73,43 @@ export function RichTextEditor({
     document.execCommand(command, false, arg);
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleRefine = async (action: string, customInstruction = "") => {
+    setIsRefining(true);
+    setActiveAction(action);
+    setRefineSuccess(false);
+
+    try {
+      const currentHtml = editorRef.current?.innerHTML || value || "";
+      const res = await fetch("/api/client/jobs/refine-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: currentHtml,
+          action,
+          custom_prompt: customInstruction,
+          field_type: fieldType,
+          job_title: jobTitle,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.refined_html) {
+        if (editorRef.current) {
+          editorRef.current.innerHTML = data.refined_html;
+        }
+        onChange(data.refined_html);
+        setRefineSuccess(true);
+        setTimeout(() => setRefineSuccess(false), 2500);
+      }
+    } catch (err) {
+      console.error("Failed to refine text:", err);
+    } finally {
+      setIsRefining(false);
+      setActiveAction(null);
+      setCustomPopoverOpen(false);
     }
   };
 
@@ -177,15 +227,16 @@ export function RichTextEditor({
 
   return (
     <div
-      className={`border rounded-lg overflow-hidden bg-white dark:bg-zinc-950 transition-colors ${
+      className={`border rounded-xl overflow-hidden bg-white dark:bg-zinc-950 transition-colors ${
         error
           ? "border-rose-500 focus-within:ring-rose-500"
           : "border-zinc-200 dark:border-zinc-800 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500"
       }`}
     >
+      {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-150 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50">
         <span className="text-[11px] text-zinc-400 font-medium select-none">
-          Shortcuts: Ctrl+B (Bold) | Ctrl+Shift+8 (Bullet) | Ctrl+Shift+7 (Numbered)
+          Formatting: Bold (Ctrl+B) | List (Ctrl+Shift+8)
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -195,7 +246,7 @@ export function RichTextEditor({
               exec("bold");
             }}
             title="Bold (Ctrl+B)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 font-bold transition-colors"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 font-bold transition-colors cursor-pointer"
           >
             <Bold className="h-3.5 w-3.5" />
           </button>
@@ -206,7 +257,7 @@ export function RichTextEditor({
               exec("insertUnorderedList");
             }}
             title="Bullet List (Ctrl+Shift+8 or type '- ' + Space)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
           >
             <List className="h-3.5 w-3.5" />
           </button>
@@ -217,12 +268,14 @@ export function RichTextEditor({
               exec("insertOrderedList");
             }}
             title="Numbered List (Ctrl+Shift+7 or type '1. ' + Space)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
           >
             <ListOrdered className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Editor Surface */}
       <div
         id={id}
         ref={editorRef}
@@ -230,8 +283,119 @@ export function RichTextEditor({
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         data-placeholder={placeholder}
-        className="min-h-[140px] max-h-[300px] p-3 text-sm leading-relaxed outline-none focus:outline-none overflow-y-auto text-zinc-800 dark:text-zinc-200 empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 empty:before:pointer-events-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:font-bold [&_strong]:font-bold"
+        className="min-h-[140px] max-h-[300px] p-3.5 text-sm leading-relaxed outline-none focus:outline-none overflow-y-auto text-zinc-800 dark:text-zinc-200 empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 empty:before:pointer-events-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:font-bold [&_strong]:font-bold"
       />
+
+      {/* In-Editor AI Actions Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 border-t border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">AI Assist:</span>
+        </div>
+
+        <div className="flex items-center gap-1 flex-wrap">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRefining}
+            onClick={() => handleRefine("improve")}
+            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+          >
+            {isRefining && activeAction === "improve" ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : refineSuccess && activeAction === "improve" ? (
+              <Check className="h-3 w-3 mr-1 text-emerald-600" />
+            ) : null}
+            ✨ Improve
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRefining}
+            onClick={() => handleRefine("concise")}
+            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+          >
+            {isRefining && activeAction === "concise" ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : null}
+            ✂ Make Concise
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRefining}
+            onClick={() => handleRefine("technical")}
+            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+          >
+            {isRefining && activeAction === "technical" ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : null}
+            ⚙ More Technical
+          </Button>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={isRefining}
+            onClick={() => handleRefine("regenerate")}
+            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+          >
+            {isRefining && activeAction === "regenerate" ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : null}
+            🔄 Regenerate
+          </Button>
+
+          {/* Custom Instruction Popover */}
+          <Popover open={customPopoverOpen} onOpenChange={setCustomPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={isRefining}
+                className="h-6 px-2 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md gap-1"
+              >
+                <Wand2 className="h-3 w-3" /> Custom
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-3" align="end">
+              <div className="space-y-2">
+                <span className="text-xs font-semibold block text-foreground">Custom AI Instruction</span>
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    placeholder="e.g. Make suitable for entry-level..."
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        if (customPrompt.trim()) handleRefine("custom", customPrompt.trim());
+                      }
+                    }}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isRefining || !customPrompt.trim()}
+                    onClick={() => handleRefine("custom", customPrompt.trim())}
+                    className="h-8 w-8 p-0 bg-[#14a800] hover:bg-[#118f00] text-white"
+                  >
+                    {isRefining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
     </div>
   );
 }

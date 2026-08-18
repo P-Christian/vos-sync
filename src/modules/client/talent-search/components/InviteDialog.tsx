@@ -2,8 +2,8 @@
 
 // src/modules/client/talent-search/components/InviteDialog.tsx
 
-import { useState, useEffect } from "react";
-import { Send, Briefcase, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Send, Briefcase, AlertCircle, Loader2, Check, ChevronsUpDown, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { SearchableSelect } from "@/components/ui/searchable-select";
+import { cn } from "@/lib/utils";
 
 interface JobOption {
   job_id: number;
@@ -46,6 +46,9 @@ export default function InviteDialog({
   const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -71,18 +74,44 @@ export default function InviteDialog({
     fetchCompanyJobs();
   }, [open, talentName]);
 
-  const handleSend = async () => {
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  const handleSend = useCallback(async () => {
     const jobIdNum = selectedJobId && selectedJobId !== "none" ? Number(selectedJobId) : undefined;
     await onSend(message, jobIdNum);
-  };
+  }, [selectedJobId, onSend, message]);
 
-  const selectOptions = [
+  const selectOptions = useMemo(() => [
     { value: "none", label: "General Interest (No Specific Job)" },
     ...jobs.map((j) => ({
       value: String(j.job_id),
       label: `${j.job_title} (#${j.job_id})`,
     })),
-  ];
+  ], [jobs]);
+
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery.trim()) return selectOptions;
+    const q = searchQuery.toLowerCase().trim();
+    return selectOptions.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [selectOptions, searchQuery]);
+
+  const selectedLabel = useMemo(() => {
+    return selectOptions.find((opt) => opt.value === (selectedJobId || "none"))?.label || "General Interest (No Specific Job)";
+  }, [selectOptions, selectedJobId]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -104,25 +133,82 @@ export default function InviteDialog({
         <div className="space-y-4">
           {/* Searchable job select */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <Briefcase className="h-3.5 w-3.5" />
               Link to Company Job Posting (optional)
             </Label>
             {loadingJobs ? (
-              <div className="flex items-center gap-2 text-xs text-zinc-400 h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground h-9 px-3 rounded-lg border border-border">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Loading company jobs…
               </div>
             ) : (
-              <SearchableSelect
-                options={selectOptions}
-                value={selectedJobId || "none"}
-                onValueChange={(val) => setSelectedJobId(val)}
-                placeholder="Search and select a job..."
-                className="h-9 text-xs rounded-lg border-zinc-200 dark:border-zinc-800"
-              />
+              <div className="relative" ref={dropdownRef}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={isDropdownOpen}
+                  onClick={() => {
+                    setIsDropdownOpen((prev) => !prev);
+                    setSearchQuery("");
+                  }}
+                  className={cn(
+                    "w-full h-9 justify-between text-xs rounded-lg border-border font-normal px-3",
+                    !selectedJobId && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">{selectedLabel}</span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+
+                {isDropdownOpen && (
+                  <div className="absolute z-50 mt-1 w-full rounded-lg border border-border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95">
+                    <div className="flex items-center border-b border-border px-2.5 py-1.5">
+                      <Search className="mr-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      <input
+                        type="text"
+                        placeholder="Search company jobs..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                        className="flex h-7 w-full rounded-md bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto p-1 overscroll-contain">
+                      {filteredOptions.length === 0 ? (
+                        <div className="py-4 text-center text-xs text-muted-foreground">
+                          No matching jobs found.
+                        </div>
+                      ) : (
+                        filteredOptions.map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedJobId(opt.value);
+                              setIsDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-7 pr-2 text-xs outline-none hover:bg-accent hover:text-accent-foreground text-left transition-colors",
+                              (selectedJobId || "none") === opt.value && "bg-accent/50 font-medium"
+                            )}
+                          >
+                            <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                              {(selectedJobId || "none") === opt.value && (
+                                <Check className="h-3.5 w-3.5 text-primary" />
+                              )}
+                            </span>
+                            <span className="truncate">{opt.label}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-muted-foreground">
               Select an open position or choose general interest invitation
             </p>
           </div>

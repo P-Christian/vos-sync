@@ -336,7 +336,7 @@ Expected JSON schema:
 {
   "match_score": 75,
   "fit_level": "Good Match",
-  "executive_summary": "Concise 2-3 sentence overview explaining how well this candidate fits the role.",
+  "executive_summary": "Concise 3-4 sentence overview explaining how well this candidate fits the role.",
   "strengths": [
     "Key strength 1 related to job requirements",
     "Key strength 2 with specific proof from profile",
