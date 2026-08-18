@@ -26,10 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw } from "lucide-react";
+import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "lucide-react";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS } from "./types";
-
+import { AutoCreateJobModal } from "./components/AutoCreateJobModal";
 import { useRoleCategories } from "./hooks/useRoleCategories";
 
 export default function JobsModule() {
@@ -63,6 +63,7 @@ export default function JobsModule() {
     setIsPreviewOpen(true);
   };
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAutoCreateOpen, setIsAutoCreateOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<JobPosting | null>(null);
   const [formData, setFormData] = useState<JobFormData>(EMPTY_FORM);
 
@@ -78,14 +79,13 @@ export default function JobsModule() {
 
   // Auto-open job details sheet if targetJobId is present in URL params
   useEffect(() => {
-    if (targetJobId && jobs.length > 0) {
-      const match = jobs.find((j) => j.job_id === Number(targetJobId));
-      if (match) {
-        setSelectedJob(match);
-        setIsPreviewOpen(true);
-      }
+    if (!targetJobId || loading || jobs.length === 0) return;
+    const found = jobs.find((j) => String(j.job_id) === String(targetJobId));
+    if (found) {
+      setSelectedJob(found);
+      setIsPreviewOpen(true);
     }
-  }, [targetJobId, jobs]);
+  }, [targetJobId, loading, jobs]);
 
   const parseJsonField = (value: string | null | undefined): { text: string; extra: Record<string, unknown> } => {
     if (!value) return { text: "", extra: {} };
@@ -101,58 +101,43 @@ export default function JobsModule() {
     return { text: value, extra: {} };
   };
 
-  // Dynamic Category Options extracted from vs_role_category & existing jobs
+  // Transform dynamic role categories into SearchableSelect options
   const categoryOptions = useMemo(() => {
-    const categoriesSet = new Set<string>();
-    roleCategories.forEach((c) => categoriesSet.add(c.category_name));
-    jobs.forEach((job) => {
-      const descData = parseJsonField(job.job_description);
-      const cat = ((descData.extra?.job_category as string) || job.job_category || "").trim();
-      if (cat) categoriesSet.add(cat);
+    const list = [{ value: "ALL", label: "All Categories" }];
+    roleCategories.forEach((c) => {
+      list.push({ value: c.category_name, label: c.category_name });
     });
-    return [
-      { value: "ALL", label: "All Categories" },
-      ...Array.from(categoriesSet).map((cat) => ({ value: cat, label: cat })),
-    ];
-  }, [roleCategories, jobs]);
+    return list;
+  }, [roleCategories]);
 
-  // Client-side filtering logic
+  // Filtered jobs memo
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      const descData = parseJsonField(job.job_description);
-      const category = ((descData.extra?.job_category as string) || job.job_category || "").trim();
-      const arrangement = ((descData.extra?.work_arrangement as string) || job.work_arrangement || "Remote").trim();
-
-      // 1. Search Query: matches job_title, job_department, job_location
+      // 1. Text Search (job_title, job_department, job_location)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const titleMatch = (job.job_title ?? "").toLowerCase().includes(q);
-        const deptMatch = (job.job_department ?? "").toLowerCase().includes(q);
-        const locMatch = (job.job_location ?? "").toLowerCase().includes(q);
-        if (!titleMatch && !deptMatch && !locMatch) return false;
+        const matchesTitle = job.job_title?.toLowerCase().includes(q) ?? false;
+        const matchesDept = job.job_department?.toLowerCase().includes(q) ?? false;
+        const matchesLoc = job.job_location?.toLowerCase().includes(q) ?? false;
+        if (!matchesTitle && !matchesDept && !matchesLoc) return false;
       }
 
-      // 2. Category Filter (matches category_id or category name)
+      // 2. Category Filter (matches category_id or category_name)
       if (filterCategory !== "ALL") {
-        const matchedRoleCategory = roleCategories.find(
-          (c) => c.category_name.toLowerCase() === filterCategory.toLowerCase()
-        );
-        const matchesId =
-          matchedRoleCategory &&
-          job.category_id != null &&
-          Number(job.category_id) === matchedRoleCategory.category_id;
-        const matchesName = category.toLowerCase() === filterCategory.toLowerCase();
-        if (!matchesId && !matchesName) return false;
+        const catObj = roleCategories.find((c) => c.category_name === filterCategory);
+        const matchesCatId = catObj && job.category_id && job.category_id === catObj.category_id;
+        const matchesCatName = job.job_category?.toLowerCase() === filterCategory.toLowerCase();
+        if (!matchesCatId && !matchesCatName) return false;
       }
 
       // 3. Employment Type Filter
-      if (filterJobType !== "ALL") {
-        if (job.job_type !== filterJobType) return false;
+      if (filterJobType !== "ALL" && job.job_type !== filterJobType) {
+        return false;
       }
 
       // 4. Work Arrangement Filter
-      if (filterWorkArrangement !== "ALL") {
-        if (arrangement.toLowerCase() !== filterWorkArrangement.toLowerCase()) return false;
+      if (filterWorkArrangement !== "ALL" && job.work_arrangement !== filterWorkArrangement) {
+        return false;
       }
 
       return true;
@@ -182,25 +167,74 @@ export default function JobsModule() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleNewJob = () => {
+  const handleNewJob = (initialData?: Partial<JobFormData>) => {
     setEditingJob(null);
+    const defaultBenefits = ["13th Month Pay & Bonuses", "Paid Leave (Sick, Vacation)"];
+    const hasInitialSalary = Boolean(initialData?.salary_min && initialData.salary_min.trim() !== "");
+    const isNegotiable = initialData?.salary_negotiable !== undefined ? initialData.salary_negotiable : !hasInitialSalary;
+
     setFormData({
       ...EMPTY_FORM,
-      category_id: null,
-      job_category: "",
-      work_arrangement: "Remote",
-      number_of_openings: "1",
-      job_responsibilities: "",
-      job_qualifications: "",
-      skills: [],
-      salary_type: "Salary Range",
-      currency: "PHP",
-      benefits: [],
-      education: "",
-      screening_questions: [],
+      category_id: initialData?.category_id ?? null,
+      job_category: initialData?.job_category ?? "",
+      work_arrangement: initialData?.work_arrangement ?? "Remote",
+      number_of_openings: initialData?.number_of_openings ?? "1",
+      job_responsibilities: initialData?.job_responsibilities ?? "",
+      job_qualifications: initialData?.job_qualifications ?? "",
+      skills: initialData?.skills ?? [],
+      salary_type: initialData?.salary_type ?? "Salary Range",
+      currency: initialData?.currency ?? "PHP",
+      salary_min: initialData?.salary_min ?? "",
+      salary_max: initialData?.salary_max ?? "",
+      salary_negotiable: isNegotiable,
+      benefits: initialData?.benefits && initialData.benefits.length > 0 ? initialData.benefits : defaultBenefits,
+      education: initialData?.education || "Bachelor's Degree Graduate",
+      screening_questions: initialData?.screening_questions ?? [],
+      job_title: initialData?.job_title ?? "",
+      job_description: initialData?.job_description ?? "",
+      job_type: initialData?.job_type ?? "FULL_TIME",
+      job_location: initialData?.job_location ?? "",
+      job_department: initialData?.job_department ?? "",
+      experience_level: initialData?.experience_level || "MID",
+      status: initialData?.status ?? "DRAFT",
     });
     clearMessages();
     setIsDialogOpen(true);
+  };
+
+  const handleDirectSaveDraft = async (draftData: JobFormData) => {
+    const serializedDescription = JSON.stringify({
+      text: draftData.job_description,
+      category_id: draftData.category_id,
+      job_category: draftData.job_category,
+      work_arrangement: draftData.work_arrangement || "Remote",
+      number_of_openings: draftData.number_of_openings || "1",
+      job_responsibilities: draftData.job_responsibilities || "",
+    });
+
+    const serializedRequirements = JSON.stringify({
+      text: draftData.job_requirements,
+      job_qualifications: draftData.job_qualifications || "",
+      skills: draftData.skills || [],
+      salary_type: draftData.salary_type || "Salary Range",
+      currency: draftData.currency || "PHP",
+      benefits: draftData.benefits || [],
+      education: draftData.education || "",
+      screening_questions: draftData.screening_questions || [],
+    });
+
+    const payload = {
+      ...draftData,
+      status: "DRAFT" as JobStatus,
+      skills: draftData.skills || [],
+      benefits: draftData.benefits || [],
+      education: draftData.education || "",
+      screening_questions: draftData.screening_questions || [],
+      job_description: serializedDescription,
+      job_requirements: serializedRequirements,
+    };
+
+    await createJob(payload);
   };
 
   const handleEditJob = (job: JobPosting) => {
@@ -349,13 +383,23 @@ export default function JobsModule() {
               {activeCount} active &bull; {draftCount} draft
             </p>
           </div>
-          <Button
-            onClick={handleNewJob}
-            className="h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-sm font-medium gap-1.5 w-full sm:w-auto shadow-sm border-0"
-          >
-            <Plus className="h-4 w-4" />
-            New Job Post
-          </Button>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <Button
+              onClick={() => setIsAutoCreateOpen(true)}
+              className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold gap-1.5 shadow-sm border-0 flex-1 sm:flex-none cursor-pointer"
+            >
+              <Sparkles className="h-4 w-4" />
+              Auto Create Job
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handleNewJob()}
+              className="h-10 rounded-xl text-sm font-medium gap-1.5 flex-1 sm:flex-none"
+            >
+              <Plus className="h-4 w-4" />
+              Manual Post
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -583,8 +627,15 @@ export default function JobsModule() {
                   }}
                   onEdit={handleEditJob}
                   onStatusChange={async (jobId, newStatus) => {
-                    await changeJobStatus(jobId, newStatus);
+                    const currentStatus = selectedJob?.status;
                     setSelectedJob((prev) => prev ? { ...prev, status: newStatus } : null);
+                    try {
+                      await changeJobStatus(jobId, newStatus);
+                    } catch {
+                      if (currentStatus) {
+                        setSelectedJob((prev) => prev ? { ...prev, status: currentStatus } : null);
+                      }
+                    }
                   }}
                   onApply={() => { }}
                 />
@@ -621,6 +672,16 @@ export default function JobsModule() {
             />
           </DialogContent>
         </Dialog>
+
+        {/* Auto Create Job Modal */}
+        <AutoCreateJobModal
+          open={isAutoCreateOpen}
+          onOpenChange={setIsAutoCreateOpen}
+          onJobGenerated={(aiJob) => {
+            handleNewJob(aiJob);
+          }}
+          onDirectSaveDraft={handleDirectSaveDraft}
+        />
       </div>
     </CompanyVerificationGuard>
   );

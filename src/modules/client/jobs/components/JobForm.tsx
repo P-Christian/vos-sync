@@ -100,6 +100,38 @@ export default function JobForm({
   const [suggestCategoryModalOpen, setSuggestCategoryModalOpen] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
 
+  // Company Profile for Logo in Preview Mode
+  const [companyProfile, setCompanyProfile] = useState<{
+    company_name?: string | null;
+    company_logo?: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    async function loadCompanyProfile() {
+      try {
+        const res = await fetch("/api/client/company-profile", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.company) {
+            setCompanyProfile(json.company);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadCompanyProfile();
+  }, []);
+
+  const companyLogoUrl = React.useMemo(() => {
+    const raw = companyProfile?.company_logo;
+    if (!raw) return null;
+    if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) {
+      return raw;
+    }
+    return `/api/client/assets/${raw}`;
+  }, [companyProfile?.company_logo]);
+
   const filteredRoleCategories = React.useMemo(() => {
     if (!categorySearchQuery.trim()) return roleCategories;
     const q = categorySearchQuery.toLowerCase().trim();
@@ -950,6 +982,8 @@ export default function JobForm({
               <RichTextEditor
                 id="jf-desc"
                 value={data.job_description ?? ""}
+                fieldType="job_description"
+                jobTitle={data.job_title}
                 onChange={(val) => {
                   onChange("job_description", val);
                   if (localErrors.job_description) setLocalErrors((p) => ({ ...p, job_description: "" }));
@@ -972,6 +1006,8 @@ export default function JobForm({
               <RichTextEditor
                 id="jf-resp"
                 value={data.job_responsibilities ?? ""}
+                fieldType="job_responsibilities"
+                jobTitle={data.job_title}
                 onChange={(val) => {
                   onChange("job_responsibilities", val);
                   if (localErrors.job_responsibilities) setLocalErrors((p) => ({ ...p, job_responsibilities: "" }));
@@ -994,6 +1030,8 @@ export default function JobForm({
               <RichTextEditor
                 id="jf-quals"
                 value={data.job_qualifications ?? ""}
+                fieldType="job_qualifications"
+                jobTitle={data.job_title}
                 onChange={(val) => {
                   onChange("job_qualifications", val);
                   if (localErrors.job_qualifications) setLocalErrors((p) => ({ ...p, job_qualifications: "" }));
@@ -1204,7 +1242,7 @@ export default function JobForm({
                   Target Experience Level
                 </Label>
                 <Select
-                  value={data.experience_level}
+                  value={data.experience_level || "MID"}
                   onValueChange={(v) => onChange("experience_level", v as ExperienceLevel)}
                 >
                   <SelectTrigger id="jf-exp" className="h-10 text-sm border-zinc-200 rounded-lg">
@@ -1225,11 +1263,11 @@ export default function JobForm({
                   Minimum Education Required
                 </Label>
                 <Select
-                  value={data.education || "No Education Requirement / Open to All"}
+                  value={data.education || "Bachelor's Degree Graduate"}
                   onValueChange={(v) => onChange("education", v)}
                 >
                   <SelectTrigger id="jf-education" className="h-10 text-sm border-zinc-200 rounded-lg">
-                    <SelectValue />
+                    <SelectValue placeholder="Select Minimum Education" />
                   </SelectTrigger>
                   <SelectContent>
                     {EDUCATION_OPTIONS.map((edu) => (
@@ -1301,8 +1339,16 @@ export default function JobForm({
           <div className="space-y-5 animate-fadeIn px-1">
             {/* Visual Header Banner */}
             <div className="p-6 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl flex items-start gap-4">
-              <div className="h-12 w-12 rounded-xl bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center shrink-0">
-                <Building className="h-6 w-6 text-emerald-500" />
+              <div className="h-14 w-14 rounded-2xl bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center shrink-0 overflow-hidden border border-border/80 relative">
+                {companyLogoUrl ? (
+                  <img
+                    src={companyLogoUrl}
+                    alt={companyProfile?.company_name || "Company Logo"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Building className="h-6 w-6 text-emerald-500" />
+                )}
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

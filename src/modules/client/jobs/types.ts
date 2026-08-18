@@ -160,6 +160,9 @@ export interface JobFormData {
   benefits?: string[];
   education?: string;
   screening_questions?: string[];
+  is_new_category_suggested?: boolean;
+  category_suggestion_rationale?: string;
+  suggested_category_name?: string;
 }
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {
