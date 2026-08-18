@@ -293,6 +293,8 @@ Supported experiences include:
 
 ### Review Candidates (Applicant Management)
 
+* **AI Candidate-Job Evaluation & Cross-Role Matching**: On-demand AI evaluation modal in Candidate Details powered by Google Gemini analyzing candidate skills, work history, education, certifications, and screening answers against target job requirements with match scores, key strengths, probing questions, recruiter recommendations, and cross-role opportunity scans across all active company job openings.
+* **Instant Client-Side Cache & Regenerate**: Stores AI evaluations in `localStorage` for instant reopening with a dynamic CTA ("Check AI Analysis" / "View AI Analysis") and an on-demand "Regenerate" trigger.
 * **Two-Row Metadata Stacking**: Structured card information with primary identifiers (Name, Email, Job Title) on the top row and softer muted secondary stats (experience, jobs, resumes, profile %, applied date) beneath.
 * **Uniform Status Badge Column**: Status badges anchored to a dedicated vertical column immediately before the action button group.
 * **Explicit Action Controls**: Visual hierarchy with ghost "View Candidate", outline "Message", and solid primary "Schedule Interview" buttons.
