@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import {
   Applicant,
+  ApplicantFilterStatus,
   ApplicationStatus,
   CandidateDetail,
 } from "../types";
@@ -15,9 +16,7 @@ export function useApplicants() {
 
   const [error, setError] = useState("");
 
-  const [filterStatus, setFilterStatus] = useState<
-    ApplicationStatus | "ALL"
-  >("ALL");
+  const [filterStatus, setFilterStatus] = useState<ApplicantFilterStatus>("ACTIVE_PIPELINE");
 
   const [search, setSearch] = useState("");
 
@@ -36,7 +35,7 @@ export function useApplicants() {
 
   const fetchApplicants = useCallback(
     async (
-      status?: ApplicationStatus | "ALL",
+      status?: ApplicantFilterStatus,
       jobId?: number
     ) => {
       setLoading(true);
@@ -45,7 +44,7 @@ export function useApplicants() {
       try {
         const params = new URLSearchParams();
 
-        if (status && status !== "ALL") {
+        if (status && status !== "ALL" && status !== "ACTIVE_PIPELINE") {
           params.set("status", status);
         }
 
@@ -85,7 +84,7 @@ export function useApplicants() {
   );
 
   // --------------------------------
-  // Update status
+  // Update status (Optimistic UI)
   // --------------------------------
 
   const updateStatus = useCallback(
@@ -97,14 +96,29 @@ export function useApplicants() {
       setSaving(true);
       setError("");
 
+      let rollbackList: Applicant[] = [];
+
+      // 1. Optimistic local mutation
+      setApplicants((prev) => {
+        rollbackList = prev;
+        return prev.map((applicant) =>
+          applicant.application_id === applicationId
+            ? {
+                ...applicant,
+                application_status: status,
+                client_notes: notes,
+              }
+            : applicant
+        );
+      });
+
       try {
         const res = await fetch(
           `/api/client/applicants/${applicationId}`,
           {
             method: "PATCH",
             headers: {
-              "Content-Type":
-                "application/json",
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
               application_status: status,
@@ -117,27 +131,14 @@ export function useApplicants() {
 
         if (!res.ok) {
           throw new Error(
-            json.error ||
-              "Failed to update status."
+            json.error || "Failed to update status."
           );
         }
 
-        setApplicants((prev) =>
-          prev.map((applicant) =>
-            applicant.application_id ===
-            applicationId
-              ? {
-                  ...applicant,
-                  application_status:
-                    status,
-                  client_notes: notes,
-                }
-              : applicant
-          )
-        );
-
         return true;
       } catch (err: unknown) {
+        // Rollback on failure
+        setApplicants(rollbackList);
         setError(
           err instanceof Error
             ? err.message
@@ -228,9 +229,14 @@ export function useApplicants() {
     return applicants.filter(
       (applicant) => {
         const matchesStatus =
-          filterStatus === "ALL" ||
-          applicant.application_status ===
-            filterStatus;
+          filterStatus === "ALL"
+            ? true
+            : filterStatus === "ACTIVE_PIPELINE"
+            ? (applicant.application_status === "APPLIED" ||
+               applicant.application_status === "UNDER_REVIEW" ||
+               applicant.application_status === "SHORTLISTED" ||
+               applicant.application_status === "INTERVIEWING")
+            : applicant.application_status === filterStatus;
 
         if (!matchesStatus) {
           return false;

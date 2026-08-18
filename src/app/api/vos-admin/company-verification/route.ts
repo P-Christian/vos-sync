@@ -15,6 +15,21 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "default_super_secret_key_for_development"
 );
 
+function getPHISOTimestamp(): string {
+  const now = new Date();
+  const dtf = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  return dtf.format(now).replace(" ", "T") + "+08:00";
+}
+
 function getDirectusHeaders(): Record<string, string> {
   const h: Record<string, string> = {
     "Content-Type": "application/json",
@@ -462,10 +477,12 @@ export async function POST(req: NextRequest) {
       verifStatus = "IN_REVIEW";
     }
 
+    const nowPH = getPHISOTimestamp();
+
     const patchPayload: Record<string, unknown> = {
       rejection_reason: rejectionReason || null,
       updated_by_user_id: adminId,
-      updated_at: new Date().toISOString(),
+      updated_at: nowPH,
     };
 
     if (companyStatus) {
@@ -474,7 +491,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "approve") {
       patchPayload.is_public = isPublic;
-      patchPayload.verified_at = new Date().toISOString();
+      patchPayload.verified_at = nowPH;
       patchPayload.verified_by_user_id = adminId;
     }
 
@@ -518,70 +535,53 @@ export async function POST(req: NextRequest) {
           if (creatorId) uids.push(creatorId);
         }
 
-        const uniqueUids = Array.from(new Set(uids));
+        const uniqueUids = Array.from(new Set(uids.filter((id) => id > 0)));
+        if (uniqueUids.length > 0) {
+          await Promise.all(
+            uniqueUids.map(async (uid) => {
+              try {
+                await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
+                  method: "PATCH",
+                  headers: getDirectusHeaders(),
+                  body: JSON.stringify({
+                    verification_status: "VERIFIED",
+                    verified_at: nowPH,
+                    verified_by_user_id: adminId,
+                    updated_at: nowPH,
+                  }),
+                });
 
-        await Promise.all(
-          uniqueUids.map(async (uid) => {
-            // Update vs_user status to VERIFIED & active
-            await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
-              method: "PATCH",
-              headers: getDirectusHeaders(),
-              body: JSON.stringify({
-                status: "VERIFIED",
-                is_blocked: 0,
-                is_active: 1,
-              }),
-            });
-
-            // Update vs_identity_verifications to approved
-            const idVerFetch = await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_eq]=${uid}`, { headers: getDirectusHeaders(), cache: "no-store" });
-            if (idVerFetch.ok) {
-              const idVerJson = await idVerFetch.json();
-              const verifs = (idVerJson.data || []) as Record<string, unknown>[];
-              if (verifs.length > 0) {
-                for (const verif of verifs) {
-                  await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications/${verif.id}`, {
-                    method: "PATCH",
-                    headers: getDirectusHeaders(),
-                    body: JSON.stringify({
-                      status: "approved",
-                      reviewed_at: new Date().toISOString(),
-                      reviewed_by: adminId,
-                    }),
-                  });
+                const idVerFindUrl = `${DIRECTUS_BASE}/items/identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
+                const idVerFindRes = await fetch(idVerFindUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+                if (idVerFindRes.ok) {
+                  const idVerFindJson = await idVerFindRes.json();
+                  const latestIdVer = idVerFindJson.data?.[0];
+                  if (latestIdVer && latestIdVer.id) {
+                    await fetch(`${DIRECTUS_BASE}/items/identity_verifications/${latestIdVer.id}`, {
+                      method: "PATCH",
+                      headers: getDirectusHeaders(),
+                      body: JSON.stringify({
+                        status: "approved",
+                        verified_at: nowPH,
+                        verified_by: adminId,
+                        updated_at: nowPH,
+                      }),
+                    });
+                  }
                 }
-              } else {
-                // If user has no vs_identity_verifications entry, create an approved record
-                const uRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}?fields=gov_id_type,gov_id_front_image_uuid,gov_id_back_image_uuid`, { headers: getDirectusHeaders(), cache: "no-store" });
-                const uInfo = uRes.ok ? (await uRes.json()).data || {} : {};
-                if (uInfo.gov_id_front_image_uuid || uInfo.gov_id_back_image_uuid) {
-                  await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications`, {
-                    method: "POST",
-                    headers: getDirectusHeaders(),
-                    body: JSON.stringify({
-                      user_id: uid,
-                      type: "GOVERNMENT_ID",
-                      status: "approved",
-                      gov_id_type: uInfo.gov_id_type || "Government ID",
-                      gov_id_front_image_uuid: uInfo.gov_id_front_image_uuid || null,
-                      gov_id_back_image_uuid: uInfo.gov_id_back_image_uuid || null,
-                      reviewed_at: new Date().toISOString(),
-                      reviewed_by: adminId,
-                      submitted_at: new Date().toISOString(),
-                    }),
-                  });
-                }
+              } catch (uErr) {
+                console.warn(`Failed to auto-approve user #${uid}:`, uErr);
               }
-            }
-          })
-        );
-      } catch (userApproveErr) {
-        console.warn("Could not auto-approve company users:", userApproveErr);
+            })
+          );
+        }
+      } catch (autoApproveErr) {
+        console.warn("Failed during auto-approval of associated company users:", autoApproveErr);
       }
     }
 
-    // 1c. Flag/blacklist associated users when company is rejected
-    if (action === "reject") {
+    // 1c. Automatically reject/suspend associated users and identity verifications when company is rejected or suspended
+    if (action === "reject" || action === "suspend") {
       try {
         const [cuRes, compRes] = await Promise.all([
           fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
@@ -604,28 +604,55 @@ export async function POST(req: NextRequest) {
           if (creatorId) uids.push(creatorId);
         }
 
-        const uniqueUids = Array.from(new Set(uids));
+        const targetUserStatus = action === "reject" ? "REJECTED" : "SUSPENDED";
+        const targetIdVerStatus = action === "reject" ? "rejected" : "suspended";
+        const uniqueUids = Array.from(new Set(uids.filter((id) => id > 0)));
 
-        await Promise.all(
-          uniqueUids.map(async (uid) => {
-            await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
-              method: "PATCH",
-              headers: getDirectusHeaders(),
-              body: JSON.stringify({
-                status: "REJECTED",
-                is_blocked: 1,
-              }),
-            });
-          })
-        );
-      } catch (userRejectErr) {
-        console.warn("Could not flag/blacklist company users on rejection:", userRejectErr);
+        if (uniqueUids.length > 0) {
+          await Promise.all(
+            uniqueUids.map(async (uid) => {
+              try {
+                await fetch(`${DIRECTUS_BASE}/items/vs_user/${uid}`, {
+                  method: "PATCH",
+                  headers: getDirectusHeaders(),
+                  body: JSON.stringify({
+                    verification_status: targetUserStatus,
+                    rejection_reason: rejectionReason || null,
+                    updated_at: nowPH,
+                  }),
+                });
+
+                const idVerFindUrl = `${DIRECTUS_BASE}/items/identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
+                const idVerFindRes = await fetch(idVerFindUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+                if (idVerFindRes.ok) {
+                  const idVerFindJson = await idVerFindRes.json();
+                  const latestIdVer = idVerFindJson.data?.[0];
+                  if (latestIdVer && latestIdVer.id) {
+                    await fetch(`${DIRECTUS_BASE}/items/identity_verifications/${latestIdVer.id}`, {
+                      method: "PATCH",
+                      headers: getDirectusHeaders(),
+                      body: JSON.stringify({
+                        status: targetIdVerStatus,
+                        rejection_reason: rejectionReason || null,
+                        reviewed_by: adminId,
+                        updated_at: nowPH,
+                      }),
+                    });
+                  }
+                }
+              } catch (uErr) {
+                console.warn(`Failed to auto-update user #${uid} status to ${targetUserStatus}:`, uErr);
+              }
+            })
+          );
+        }
+      } catch (autoErr) {
+        console.warn("Failed during auto-update of associated company users:", autoErr);
       }
     }
 
     // 2. Log verification entry into vs_company_verifications
     try {
-      // Resolve the company's original submitter (created_by_user_id on vs_company)
       let submittedByUserId: number | null = null;
       try {
         const compInfoRes = await fetch(
@@ -638,7 +665,7 @@ export async function POST(req: NextRequest) {
           if (creatorId) submittedByUserId = creatorId;
         }
       } catch {
-        // non-fatal — submittedByUserId stays null
+        // non-fatal
       }
 
       const verifLogUrl = `${DIRECTUS_BASE}/items/vs_company_verifications`;
@@ -650,8 +677,8 @@ export async function POST(req: NextRequest) {
           submitted_by_user_id: submittedByUserId,
           verification_type: "INITIAL_REGISTRATION",
           status: verifStatus,
-          submitted_at: new Date().toISOString(),
-          reviewed_at: new Date().toISOString(),
+          submitted_at: nowPH,
+          reviewed_at: nowPH,
           reviewed_by: adminId,
           public_rejection_reason: rejectionReason || null,
           internal_notes: internalNotes || null,
@@ -663,6 +690,13 @@ export async function POST(req: NextRequest) {
 
     // 3. Log event into vs_audit_trail
     try {
+      const clientIp =
+        req.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+        req.headers.get("x-real-ip") ||
+        "127.0.0.1";
+      const userAgent = req.headers.get("user-agent") || null;
+      const correlationId = req.headers.get("x-correlation-id") || `verif-${companyId}-${Date.now()}`;
+
       const auditUrl = `${DIRECTUS_BASE}/items/vs_audit_trail`;
       await fetch(auditUrl, {
         method: "POST",
@@ -676,8 +710,11 @@ export async function POST(req: NextRequest) {
           actor_user_id: adminId,
           resource_type: "COMPANY",
           resource_id: String(companyId),
+          ip_address: clientIp,
+          user_agent: userAgent,
+          correlation_id: correlationId,
           reason: rejectionReason || `Company verification state updated to ${companyStatus}`,
-          created_at: new Date().toISOString(),
+          created_at: nowPH,
         }),
       });
     } catch (auditErr) {

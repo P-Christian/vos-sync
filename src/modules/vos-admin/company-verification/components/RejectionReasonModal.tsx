@@ -82,14 +82,14 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4 py-2">
           {/* Preset Reason Selector */}
           <div className="space-y-1.5">
-            <Label htmlFor="preset-reason" className="text-xs font-semibold">
+            <Label htmlFor="preset-reason" className="text-xs font-semibold text-foreground">
               Standard Reason Preset
             </Label>
             <NativeSelect
               id="preset-reason"
               value={selectedPreset}
               onChange={(e) => setSelectedPreset(e.target.value)}
-              className="w-full text-xs"
+              className="w-full text-xs h-9 rounded-lg border-border bg-background"
             >
               {REASON_PRESETS.map((preset, i) => (
                 <option key={i} value={preset}>
@@ -101,7 +101,7 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
 
           {/* Public Reason Textarea */}
           <div className="space-y-1.5">
-            <Label htmlFor="public-reason" className="text-xs font-semibold">
+            <Label htmlFor="public-reason" className="text-xs font-semibold text-foreground">
               Public Reason / Action Items <span className="text-destructive">*</span>
             </Label>
             <Textarea
@@ -110,14 +110,14 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               rows={3}
-              className="text-xs"
+              className="text-xs rounded-lg border-border resize-none"
               required
             />
           </div>
 
           {/* Internal Admin Notes */}
           <div className="space-y-1.5">
-            <Label htmlFor="internal-notes" className="text-xs font-semibold">
+            <Label htmlFor="internal-notes" className="text-xs font-semibold text-foreground">
               Internal Admin Notes <span className="text-muted-foreground font-normal">(Private)</span>
             </Label>
             <Textarea
@@ -126,12 +126,19 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}
               rows={2}
-              className="text-xs"
+              className="text-xs rounded-lg border-border resize-none"
             />
           </div>
 
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="rounded-lg text-xs"
+            >
               Cancel
             </Button>
             <Button
@@ -139,6 +146,7 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
               variant={isReject ? "destructive" : "default"}
               size="sm"
               disabled={isSubmitting || (!selectedPreset && !customReason.trim())}
+              className="rounded-lg text-xs shadow-2xs font-semibold"
             >
               {isSubmitting
                 ? "Submitting..."

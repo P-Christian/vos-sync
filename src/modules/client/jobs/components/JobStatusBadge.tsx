@@ -4,6 +4,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { JobStatus } from "../types";
+import { motion } from "framer-motion";
 
 const STATUS_STYLES: Record<JobStatus, string> = {
   ACTIVE:
@@ -20,12 +21,20 @@ interface JobStatusBadgeProps {
 
 export default function JobStatusBadge({ status }: JobStatusBadgeProps) {
   return (
-    <Badge
-      variant="outline"
-      className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[status] ?? STATUS_STYLES.CLOSED}`}
+    <motion.div
+      key={status}
+      initial={{ scale: 0.92, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 450, damping: 26 }}
     >
-      {status === "ACTIVE" ? "Active" : status === "DRAFT" ? "Draft" : "Closed"}
-    </Badge>
+      <Badge
+        variant="outline"
+        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+          STATUS_STYLES[status] ?? STATUS_STYLES.CLOSED
+        }`}
+      >
+        {status === "ACTIVE" ? "Active" : status === "DRAFT" ? "Draft" : "Closed"}
+      </Badge>
+    </motion.div>
   );
 }
-

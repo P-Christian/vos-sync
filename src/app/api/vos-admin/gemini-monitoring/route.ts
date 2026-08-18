@@ -2,11 +2,12 @@
 // Aggregates Gemini telemetry from Directus gemini_requests.
 // All cost/billing computed dynamically from GEMINI_MODELS_CONFIG — nothing stored in DB.
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
-  fetchTodayRequests,
+  fetchTelemetryRequests,
   fetchRecentRequests,
   computeKPIs,
+  computePeakUsageTrends,
   computeFeatureBreakdown,
   computeErrorBreakdown,
   computeFreeTierStatus,
@@ -16,7 +17,19 @@ import {
 
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const timeRange = url.searchParams.get("time_range") || null;
+  const provider = url.searchParams.get("provider") || null;
+  const datePreset = url.searchParams.get("date_preset") || null;
+  const dateFrom = url.searchParams.get("date_from") || null;
+  const dateTo = url.searchParams.get("date_to") || null;
+  const feature = url.searchParams.get("feature") || null;
+
+  const isAllTime = datePreset === "ALL_TIME" || timeRange === "ALL_TIME" || (dateFrom === "" && dateTo === "" && datePreset !== "TODAY" && !timeRange);
+
+  const filterOptions = { timeRange, provider, dateFrom, dateTo, feature, isAllTime };
+
   const configuredModel =
     process.env.GEMINI_MODEL || process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.0-flash";
   const apiKeyConfigured = Boolean(
@@ -29,11 +42,12 @@ export async function GET() {
 
   // Fetch from Directus in parallel
   const [todayRows, recentRows] = await Promise.all([
-    fetchTodayRequests(),
-    fetchRecentRequests(20),
+    fetchTelemetryRequests(filterOptions),
+    fetchRecentRequests(100, filterOptions),
   ]);
 
   const kpis = computeKPIs(todayRows, recentRows);
+  const peakUsageTrends = computePeakUsageTrends(todayRows);
   const featureBreakdown = computeFeatureBreakdown(todayRows);
   const errorBreakdown = computeErrorBreakdown(todayRows);
   const freeTierStatus = computeFreeTierStatus(todayRows, configuredModel);
@@ -139,6 +153,7 @@ export async function GET() {
     recentSuccessRate: kpis.recentSuccessRate,
     recentAvgLatencyMs: kpis.recentAvgLatencyMs,
     kpis,
+    peakUsageTrends,
     freeTierStatus,
     rateLimitStatus,
     featureBreakdown,

@@ -53,7 +53,9 @@ export const FREELANCER_NOTIFICATION_CATEGORIES: FreelancerNotificationCategoryG
     title: "Job Applications",
     description: "Notifications regarding your submitted job applications and status changes.",
     categories: [
-      { category: "Application Updates", label: "Job application updates", defaultEmail: true, defaultInApp: true },
+      { category: "APPLICATION_SUBMITTED", label: "Application submission confirmation", defaultEmail: true, defaultInApp: true },
+      { category: "APPLICATION_STATUS_UPDATED", label: "Application status updates (Under Review, Shortlisted, Hired, Rejected)", defaultEmail: true, defaultInApp: true },
+      { category: "Application Updates", label: "General application updates", defaultEmail: true, defaultInApp: true },
     ],
   },
   {

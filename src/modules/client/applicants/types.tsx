@@ -9,6 +9,8 @@ export type ApplicationStatus =
   | "REJECTED"
   | "WITHDRAWN";
 
+export type ApplicantFilterStatus = ApplicationStatus | "ALL" | "ACTIVE_PIPELINE";
+
 export interface Applicant {
   application_id: number;
 

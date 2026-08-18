@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Loader2 } from "lucide-react";
 import { EditableCompanyFields } from "../types";
+import InlineAITrigger from "./InlineAITrigger";
 
 interface CompanyClassificationProps {
   data: Partial<EditableCompanyFields & { custom_industry_name?: string }>;
@@ -226,9 +227,11 @@ export default function CompanyClassification({
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-year-established" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Year Established
-          </Label>
+          <div className="flex items-center justify-between h-7">
+            <Label htmlFor="cp-year-established" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              Year Established
+            </Label>
+          </div>
           <Input
             id="cp-year-established"
             type="number"
@@ -239,15 +242,23 @@ export default function CompanyClassification({
           />
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="cp-tags" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Tags
-          </Label>
+        <div className="space-y-1.5 md:col-span-2">
+          <div className="flex items-center justify-between h-7">
+            <Label htmlFor="cp-tags" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              Tags
+            </Label>
+            <InlineAITrigger
+              currentText={data.company_tags ?? ""}
+              fieldType="company_tags"
+              companyName="Company"
+              onRefined={(val) => onChange("company_tags", val)}
+            />
+          </div>
           <Input
             id="cp-tags"
             value={data.company_tags ?? ""}
             onChange={(e) => onChange("company_tags", e.target.value)}
-            placeholder="e.g. Software, Outsourcing"
+            placeholder="e.g. Software Development, Cloud Computing, Artificial Intelligence, SaaS"
             className="h-9 text-sm"
           />
         </div>

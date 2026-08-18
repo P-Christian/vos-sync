@@ -99,7 +99,7 @@ export async function fetchAuditLogsRepo(
   const rawRecords: AuditRecord[] = json.data || [];
   const total = json.meta?.filter_count ?? rawRecords.length;
 
-  // Resolve actor names via batch fetch on vs_user
+  // Resolve actor and resource user IDs via batch fetch on vs_user
   const actorUserIds = Array.from(
     new Set(
       rawRecords
@@ -108,45 +108,158 @@ export async function fetchAuditLogsRepo(
     )
   );
 
-  const userMap: Record<number, { name: string; email: string }> = {};
+  const resourceUserIds = rawRecords
+    .filter((r) => r.resource_type?.toUpperCase() === "USER" && r.resource_id)
+    .map((r) => parseInt(String(r.resource_id), 10))
+    .filter((id) => !isNaN(id) && id > 0);
 
-  if (actorUserIds.length > 0) {
-    try {
-      const userUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${actorUserIds.join(',')}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
-      const userRes = await fetch(userUrl, { headers: getHeaders(), cache: "no-store" });
-      if (userRes.ok) {
-        const userJson = await userRes.json();
-        const users = userJson.data || [];
-        users.forEach((u: { user_id: number; user_fname: string; user_lname: string; user_email: string }) => {
-          userMap[u.user_id] = {
-            name: `${u.user_fname ?? ''} ${u.user_lname ?? ''}`.trim() || u.user_email || `User #${u.user_id}`,
-            email: u.user_email || '',
-          };
-        });
-      }
-    } catch (err) {
-      console.warn("Failed to batch resolve actor names for audit records:", err);
+  const allUserIds = Array.from(new Set([...actorUserIds, ...resourceUserIds]));
+
+  // Resolve company IDs from actor_company_id, resource_id, and organization_id
+  const companyIds = Array.from(
+    new Set(
+      rawRecords
+        .flatMap((r) => {
+          const ids: number[] = [];
+          if (r.actor_company_id) ids.push(Number(r.actor_company_id));
+          const isCompanyRelated =
+            r.resource_type?.toUpperCase() === "COMPANY" ||
+            r.event_category?.toUpperCase() === "COMPANY" ||
+            r.event_category?.toUpperCase() === "VERIFICATION" ||
+            (r.event_type || "").toUpperCase().includes("COMPANY") ||
+            r.organization_type?.toUpperCase() === "EMPLOYER";
+
+          if (isCompanyRelated && r.resource_id) {
+            const num = parseInt(String(r.resource_id), 10);
+            if (!isNaN(num) && num > 0) ids.push(num);
+          }
+          if (r.organization_id && (isCompanyRelated || r.organization_type === "EMPLOYER")) {
+            const orgNum = parseInt(String(r.organization_id), 10);
+            if (!isNaN(orgNum) && orgNum > 0) ids.push(orgNum);
+          }
+          return ids;
+        })
+        .filter((id) => !isNaN(id) && id > 0)
+    )
+  );
+
+  // Resolve job IDs
+  const jobIds = Array.from(
+    new Set(
+      rawRecords
+        .filter((r) => r.resource_type?.toUpperCase() === "JOB" && r.resource_id)
+        .map((r) => parseInt(String(r.resource_id), 10))
+        .filter((id) => !isNaN(id) && id > 0)
+    )
+  );
+
+  const userMap: Record<number, { name: string; email: string }> = {};
+  const companyMap: Record<number, string> = {};
+  const jobMap: Record<number, string> = {};
+
+  try {
+    const promises: Promise<void>[] = [];
+
+    if (allUserIds.length > 0) {
+      promises.push(
+        (async () => {
+          const userUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${allUserIds.join(",")}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
+          const userRes = await fetch(userUrl, { headers: getHeaders(), cache: "no-store" });
+          if (userRes.ok) {
+            const userJson = await userRes.json();
+            const users = userJson.data || [];
+            users.forEach((u: { user_id?: number; user_fname?: string; user_lname?: string; user_email?: string }) => {
+              if (u.user_id) {
+                const name = `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() || u.user_email || `User #${u.user_id}`;
+                userMap[u.user_id] = { name, email: u.user_email || "" };
+              }
+            });
+          }
+        })()
+      );
     }
+
+    if (companyIds.length > 0) {
+      promises.push(
+        (async () => {
+          const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_name&limit=-1`;
+          const compRes = await fetch(compUrl, { headers: getHeaders(), cache: "no-store" });
+          if (compRes.ok) {
+            const compJson = await compRes.json();
+            const companies = compJson.data || [];
+            companies.forEach((c: { company_id?: number; company_name?: string }) => {
+              if (c.company_id && c.company_name) {
+                companyMap[c.company_id] = c.company_name;
+              }
+            });
+          }
+        })()
+      );
+    }
+
+    if (jobIds.length > 0) {
+      promises.push(
+        (async () => {
+          const jobUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title&limit=-1`;
+          const jobRes = await fetch(jobUrl, { headers: getHeaders(), cache: "no-store" });
+          if (jobRes.ok) {
+            const jobJson = await jobRes.json();
+            const jobs = jobJson.data || [];
+            jobs.forEach((j: { job_id?: number; job_title?: string }) => {
+              if (j.job_id) {
+                jobMap[j.job_id] = j.job_title || `Job #${j.job_id}`;
+              }
+            });
+          }
+        })()
+      );
+    }
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+    }
+  } catch (err) {
+    console.warn("Failed to batch resolve actor & resource names for audit records:", err);
   }
 
   const recordsWithActorInfo = rawRecords.map((record) => {
     let oldVals = record.old_values;
     let newVals = record.new_values;
-    if (typeof oldVals === 'string') {
+    if (typeof oldVals === "string") {
       try { oldVals = JSON.parse(oldVals); } catch { /* ignore */ }
     }
-    if (typeof newVals === 'string') {
+    if (typeof newVals === "string") {
       try { newVals = JSON.parse(newVals); } catch { /* ignore */ }
     }
 
     const resolvedUser = record.actor_user_id ? userMap[record.actor_user_id] : null;
 
+    // Resolve resource friendly name
+    let resourceName: string | null = null;
+    const rType = (record.resource_type || "").toUpperCase();
+    const rCat = (record.event_category || "").toUpperCase();
+    const rId = record.resource_id ? parseInt(String(record.resource_id), 10) : null;
+    const orgId = record.organization_id ? parseInt(String(record.organization_id), 10) : null;
+
+    if (rId && companyMap[rId]) {
+      resourceName = companyMap[rId];
+    } else if (orgId && companyMap[orgId]) {
+      resourceName = companyMap[orgId];
+    } else if (record.actor_company_id && companyMap[Number(record.actor_company_id)]) {
+      resourceName = companyMap[Number(record.actor_company_id)];
+    } else if (rId && userMap[rId] && (rType === "USER" || rCat === "USER")) {
+      resourceName = userMap[rId].name;
+    } else if (rId && jobMap[rId] && (rType === "JOB" || rCat === "JOB")) {
+      resourceName = jobMap[rId];
+    }
+
     return {
       ...record,
       old_values: oldVals,
       new_values: newVals,
-      actor_name: resolvedUser ? resolvedUser.name : (record.actor_type === 'SYSTEM' ? 'System' : null),
+      actor_name: resolvedUser ? resolvedUser.name : (record.actor_type === "SYSTEM" ? "System" : null),
       actor_email: resolvedUser ? resolvedUser.email : null,
+      resource_name: resourceName,
     };
   });
 
@@ -157,14 +270,21 @@ export async function fetchAuditLogsRepo(
 }
 
 export async function fetchAuditKPIsRepo(): Promise<AuditKPIData> {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const phDateParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  const todayStr = phDateParts;
 
   try {
     const [todayRes, failedRes, deniedRes, adminRes] = await Promise.all([
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&limit=0&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=FAILED&limit=0&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=DENIED&limit=0&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[actor_type][_eq]=ADMIN&limit=0&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=FAILED&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=DENIED&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[actor_type][_eq]=ADMIN&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
     ]);
 
     const todayJson = todayRes.ok ? await todayRes.json() : {};
@@ -332,6 +452,21 @@ export async function updateAuditConfigRepo(
   return cachedAuditConfig;
 }
 
+export function getPHISOTimestamp(): string {
+  const now = new Date();
+  const dtf = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  return dtf.format(now).replace(" ", "T") + "+08:00";
+}
+
 export async function createAuditRecordRepo(payload: Partial<AuditRecord>): Promise<void> {
   try {
     if (!DIRECTUS_BASE) return;
@@ -353,11 +488,16 @@ export async function createAuditRecordRepo(payload: Partial<AuditRecord>): Prom
       }
     }
 
+    const recordPayload = {
+      ...payload,
+      created_at: payload.created_at || getPHISOTimestamp(),
+    };
+
     const url = `${DIRECTUS_BASE}/items/vs_audit_trail`;
     const res = await fetch(url, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify(recordPayload),
     });
     if (!res.ok) {
       const errText = await res.text();

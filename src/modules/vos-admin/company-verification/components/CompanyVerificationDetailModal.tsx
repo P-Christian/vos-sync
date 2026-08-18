@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -204,13 +206,14 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                   >
                     {coverUrl ? (
                       <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={coverUrl}
                           alt="Company Cover"
+                          fill
+                          unoptimized
                           className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5 z-10">
                           <Maximize2 className="h-4 w-4" /> Click to Expand Cover
                         </div>
                       </>
@@ -233,10 +236,12 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                       >
                         {logoUrl ? (
                           <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <Image
                               src={logoUrl}
                               alt={company.company_name}
+                              width={80}
+                              height={80}
+                              unoptimized
                               className="h-full w-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px]">
@@ -272,9 +277,11 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                         <span className="text-sm font-bold text-foreground font-mono">{company.profile_completion_percent}%</span>
                       </div>
                       <div className="w-20 bg-secondary rounded-full h-2 overflow-hidden">
-                        <div
-                          className="bg-primary h-full rounded-full transition-all"
-                          style={{ width: `${Math.min(100, company.profile_completion_percent)}%` }}
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(100, company.profile_completion_percent)}%` }}
+                          transition={{ duration: 0.5, ease: "easeOut" }}
+                          className="bg-primary h-full rounded-full"
                         />
                       </div>
                     </div>
@@ -674,10 +681,12 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                                   }
                                   className="h-40 w-full rounded-lg border bg-background overflow-hidden relative group cursor-pointer flex items-center justify-center"
                                 >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
+                                  <Image
                                     src={primaryFrontUrl}
                                     alt="Government ID Front"
+                                    width={320}
+                                    height={160}
+                                    unoptimized
                                     className="h-full w-full object-contain group-hover:scale-102 transition-transform"
                                   />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
@@ -716,10 +725,12 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                                   }
                                   className="h-40 w-full rounded-lg border bg-background overflow-hidden relative group cursor-pointer flex items-center justify-center"
                                 >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
+                                  <Image
                                     src={primaryBackUrl}
                                     alt="Government ID Back"
+                                    width={320}
+                                    height={160}
+                                    unoptimized
                                     className="h-full w-full object-contain group-hover:scale-102 transition-transform"
                                   />
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1.5">
@@ -934,12 +945,15 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
           </div>
           <div className="p-4 flex items-center justify-center bg-muted/10 overflow-hidden">
             {currentImg && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={currentImg.url}
                 alt={currentImg.title}
-                className={`object-contain rounded-xl shadow-md border bg-background ${currentImg.type === "logo" ? "max-h-[320px] max-w-[320px]" : "max-h-[60vh] max-w-full"
-                  }`}
+                width={800}
+                height={600}
+                unoptimized
+                className={`object-contain rounded-xl shadow-md border bg-background ${
+                  currentImg.type === "logo" ? "max-h-[320px] max-w-[320px]" : "max-h-[60vh] max-w-full"
+                }`}
               />
             )}
           </div>

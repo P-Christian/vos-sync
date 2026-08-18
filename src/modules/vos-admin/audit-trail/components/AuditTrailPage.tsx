@@ -11,6 +11,26 @@ import { AuditDetailModal } from './AuditDetailModal';
 import { AuditSettingsModal } from './AuditSettingsModal';
 import { Card } from '@/components/ui/card';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
 
 const DEFAULT_FILTERS: AuditFiltersType = {
   search: '',
@@ -23,7 +43,7 @@ const DEFAULT_FILTERS: AuditFiltersType = {
   date_from: '',
   date_to: '',
   page: 1,
-  limit: 25,
+  limit: 10,
 };
 
 export function AuditTrailPage() {
@@ -66,55 +86,65 @@ export function AuditTrailPage() {
   };
 
   return (
-    <div className="h-full flex-1 overflow-y-auto p-4 sm:p-8 bg-secondary/10">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="h-full flex-1 overflow-y-auto p-4 sm:p-8 bg-secondary/10 space-y-6"
+    >
       {/* Page Header */}
-      <div className="mb-8 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+      <motion.div
+        variants={itemVariants}
+        className="flex flex-col sm:flex-row justify-between sm:items-center gap-4"
+      >
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">Admin Audit Trail</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Admin Audit Trail</h1>
             <ShieldCheck className="h-7 w-7 text-primary" />
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
             Centralized immutable security and operational event record store for governance and forensic analysis.
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* KPI Cards */}
       <AuditKPICards kpis={kpis} loading={loading} />
 
       {/* Main Content Card */}
-      <Card className="p-6 shadow-sm gap-0 rounded-xl">
-        {/* Filter Bar */}
-        <AuditFilters
-          filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={handleReset}
-          onExportCSV={handleExportCSV}
-          onOpenSettings={() => setSettingsOpen(true)}
-          isExporting={isExporting}
-        />
+      <motion.div variants={itemVariants}>
+        <Card className="p-6 shadow-xs gap-0 rounded-xl border border-border bg-card">
+          {/* Filter Bar */}
+          <AuditFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleReset}
+            onExportCSV={handleExportCSV}
+            onOpenSettings={() => setSettingsOpen(true)}
+            isExporting={isExporting}
+          />
 
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        {/* Audit Table */}
-        <AuditTable
-          records={records}
-          total={total}
-          loading={loading}
-          page={filters.page}
-          limit={filters.limit}
-          onPageChange={(newPage) => handleFilterChange({ page: newPage })}
-          onLimitChange={(newLimit) => handleFilterChange({ limit: newLimit, page: 1 })}
-          onViewRecord={handleViewRecord}
-        />
-      </Card>
+          {/* Audit Table */}
+          <AuditTable
+            records={records}
+            total={total}
+            loading={loading}
+            page={filters.page}
+            limit={filters.limit}
+            onPageChange={(newPage) => handleFilterChange({ page: newPage })}
+            onLimitChange={(newLimit) => handleFilterChange({ limit: newLimit, page: 1 })}
+            onViewRecord={handleViewRecord}
+          />
+        </Card>
+      </motion.div>
 
       {/* Audit Detail Modal */}
       <AuditDetailModal
@@ -133,7 +163,7 @@ export function AuditTrailPage() {
         config={config}
         onSaveConfig={saveAuditConfig}
       />
-    </div>
+    </motion.div>
   );
 }
 

@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const filters: AuditFilters = {
       page: Number(searchParams.get("page") || 1),
-      limit: isExport ? -1 : Number(searchParams.get("limit") || 25),
+      limit: isExport ? -1 : Number(searchParams.get("limit") || 10),
       search: searchParams.get("search") || undefined,
       event_category: searchParams.get("event_category") || undefined,
       action: searchParams.get("action") || undefined,

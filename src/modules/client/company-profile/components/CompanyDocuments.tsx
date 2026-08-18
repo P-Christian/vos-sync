@@ -4,8 +4,10 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, X, CheckCircle2, Eye, RefreshCw, Lock, Trash2, FileText, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type DocumentTypeKey = "DTI_SEC_REGISTRATION" | "BUSINESS_PERMIT" | "TIN_DOCUMENT" | "OTHER_DOCUMENT";
+
 
 interface DocSlotConfig {
   type: DocumentTypeKey;
@@ -349,12 +351,20 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               </div>
 
               {/* Slot Error Message */}
-              {errorMsg && (
-                <p className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-2">
-                  <X className="h-3.5 w-3.5 shrink-0" />
-                  {errorMsg}
-                </p>
-              )}
+              <AnimatePresence>
+                {errorMsg && (
+                  <motion.p
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.18 }}
+                    className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-2 overflow-hidden"
+                  >
+                    <X className="h-3.5 w-3.5 shrink-0" />
+                    {errorMsg}
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
               {/* Hidden file input */}
               <input
@@ -379,11 +389,6 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               Other Supporting Documents
-              {/* {otherDocs.length > 0 && (
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40">
-                  {otherDocs.length} file{otherDocs.length !== 1 ? "s" : ""}
-                </span>
-              )} */}
             </h4>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               Upload optional supplementary files such as BIR 2303, General Information Sheet (GIS), Secretary&apos;s Certificate, or Special Permits.
@@ -426,76 +431,90 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         </div>
 
         {/* Error banner for Other Documents */}
-        {otherError && (
-          <p className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/40">
-            <X className="h-3.5 w-3.5 shrink-0" />
-            {otherError}
-          </p>
-        )}
+        <AnimatePresence>
+          {otherError && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/40 overflow-hidden"
+            >
+              <X className="h-3.5 w-3.5 shrink-0" />
+              {otherError}
+            </motion.p>
+          )}
+        </AnimatePresence>
 
         {/* List of uploaded other documents */}
         {otherDocs.length > 0 ? (
           <div className="space-y-2 pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
-            {otherDocs.map((doc) => {
-              const isDeleting = deletingDocId === doc.id;
+            <AnimatePresence initial={false}>
+              {otherDocs.map((doc) => {
+                const isDeleting = deletingDocId === doc.id;
 
-              return (
-                <div
-                  key={doc.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 text-xs"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                    <div className="min-w-0">
-                      <a
-                        href={`/api/client/assets/${doc.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-zinc-800 dark:text-zinc-200 hover:underline truncate block max-w-xs sm:max-w-md"
-                        title={doc.name}
-                      >
-                        {doc.name}
-                      </a>
-                      <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                        {formatFileSize(doc.size)}
-                        {doc.uploaded_at ? ` · Uploaded ${formatDate(doc.uploaded_at)}` : ""}
-                      </span>
+                return (
+                  <motion.div
+                    key={doc.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 text-xs"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
+                      <div className="min-w-0">
+                        <a
+                          href={`/api/client/assets/${doc.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-zinc-800 dark:text-zinc-200 hover:underline truncate block max-w-xs sm:max-w-md"
+                          title={doc.name}
+                        >
+                          {doc.name}
+                        </a>
+                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                          {formatFileSize(doc.size)}
+                          {doc.uploaded_at ? ` · Uploaded ${formatDate(doc.uploaded_at)}` : ""}
+                        </span>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="h-7 px-2 text-xs gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-                    >
-                      <a href={`/api/client/assets/${doc.id}`} target="_blank" rel="noopener noreferrer">
-                        <Eye className="h-3.5 w-3.5" />
-                        View
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="h-7 px-2 text-xs gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                      >
+                        <a href={`/api/client/assets/${doc.id}`} target="_blank" rel="noopener noreferrer">
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </a>
+                      </Button>
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={isDeleting}
-                      onClick={() => handleDeleteDoc(doc.id)}
-                      className="h-7 px-2 text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                    >
-                      {isDeleting ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isDeleting}
+                        onClick={() => handleDeleteDoc(doc.id)}
+                        className="h-7 px-2 text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         ) : (
           <div className="text-center py-5 border border-dashed rounded-lg border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs">

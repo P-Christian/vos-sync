@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendInterviewScheduledEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createFreelancerNotification } from "@/lib/notifications/services/freelancer-notifications";
+import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -528,6 +529,29 @@ export async function POST(req: NextRequest) {
                   message: `You have an interview scheduled with ${companyName} for ${formatInterviewDateTime(scheduledAt)}.`,
                   action_url: "/vos-sync/freelancer/applications",
                 }).catch((e) => console.error("Error sending notification:", e));
+
+                // Dispatch TEAM_ACTIVITY to other recruiters/team members (actor suppressed)
+                if (companyId) {
+                  const teamUsersRes = await fetch(
+                    `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&filter[user_id][_neq]=${userId}&fields=user_id`,
+                    { headers: getHeaders(), cache: "no-store" }
+                  );
+                  if (teamUsersRes.ok) {
+                    const teamMembers: { user_id: number }[] = (await teamUsersRes.json()).data ?? [];
+                    for (const member of teamMembers) {
+                      await createEmployerNotification({
+                        event_type: "TEAM_ACTIVITY",
+                        recipient_user_id: member.user_id,
+                        entity_type: "vs_interview",
+                        entity_id: newInterviewId,
+                        category: "TEAM_ACTIVITY",
+                        title: "Team Activity: Interview Scheduled",
+                        message: `A team member scheduled an interview for "${jobTitle}" on ${formatInterviewDateTime(scheduledAt)}.`,
+                        action_url: `/vos-sync/client/interviews`,
+                      }).catch((e) => console.error("Error sending team activity notification:", e));
+                    }
+                  }
+                }
               }
             }
           }

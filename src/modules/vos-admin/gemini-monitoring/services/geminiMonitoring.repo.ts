@@ -131,24 +131,283 @@ async function fetchDirectusRequests(queryParams: URLSearchParams): Promise<Gemi
   }
 }
 
-/** Fetch today's raw request rows from Directus */
-export async function fetchTodayRequests(): Promise<GeminiRequestRow[]> {
-  const today = getTodayPhDate();
+export interface HourlyBucket {
+  hourLabel: string;
+  requests: number;
+  tokens: number;
+  errors: number;
+  avgLatencyMs: number;
+}
+
+export interface PeakUsageTrends {
+  peakRpm: number;
+  peakTpm: number;
+  peakHourLabel: string | null;
+  peakHourRequests: number;
+  hourlyBuckets: HourlyBucket[];
+}
+
+/** Compute time range date boundaries in Asia/Manila (UTC+8) */
+export function getTimeRangeBounds(timeRange?: string | null): { dateFrom: string; dateTo: string } | null {
+  if (!timeRange || timeRange === "ALL_TIME" || timeRange === "CUSTOM") return null;
+
+  const now = new Date(Date.now() + 8 * 3600 * 1000);
+  const todayStr = now.toISOString().slice(0, 10);
+
+  if (timeRange === "LAST_HOUR") {
+    const lastHour = new Date(Date.now() + 8 * 3600 * 1000 - 60 * 60 * 1000);
+    return {
+      dateFrom: lastHour.toISOString().slice(0, 19),
+      dateTo: now.toISOString().slice(0, 19),
+    };
+  }
+  if (timeRange === "1_DAY" || timeRange === "TODAY") {
+    return {
+      dateFrom: `${todayStr}T00:00:00`,
+      dateTo: `${todayStr}T23:59:59`,
+    };
+  }
+  if (timeRange === "7_DAYS") {
+    const d = new Date(Date.now() + 8 * 3600 * 1000 - 6 * 86400 * 1000);
+    return {
+      dateFrom: `${d.toISOString().slice(0, 10)}T00:00:00`,
+      dateTo: `${todayStr}T23:59:59`,
+    };
+  }
+  if (timeRange === "28_DAYS") {
+    const d = new Date(Date.now() + 8 * 3600 * 1000 - 27 * 86400 * 1000);
+    return {
+      dateFrom: `${d.toISOString().slice(0, 10)}T00:00:00`,
+      dateTo: `${todayStr}T23:59:59`,
+    };
+  }
+  if (timeRange === "THIS_MONTH") {
+    const firstOfMonth = `${todayStr.slice(0, 7)}-01`;
+    return {
+      dateFrom: `${firstOfMonth}T00:00:00`,
+      dateTo: `${todayStr}T23:59:59`,
+    };
+  }
+  if (timeRange === "90_DAYS") {
+    const d = new Date(Date.now() + 8 * 3600 * 1000 - 89 * 86400 * 1000);
+    return {
+      dateFrom: `${d.toISOString().slice(0, 10)}T00:00:00`,
+      dateTo: `${todayStr}T23:59:59`,
+    };
+  }
+
+  return null;
+}
+
+/** Fetch today's raw request rows from Directus or filtered by time range / provider */
+export async function fetchTelemetryRequests(options?: {
+  timeRange?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  feature?: string | null;
+  provider?: string | null;
+  isAllTime?: boolean;
+}): Promise<GeminiRequestRow[]> {
   const params = new URLSearchParams({
     limit: "-1",
     sort: "-created_at",
-    "filter[created_at][_gte]": `${today}T00:00:00`,
   });
+
+  const rangeBounds = getTimeRangeBounds(options?.timeRange);
+
+  if (options?.isAllTime || options?.timeRange === "ALL_TIME") {
+    // No date boundary filtering for All Time
+  } else if (rangeBounds) {
+    params.set("filter[created_at][_gte]", rangeBounds.dateFrom);
+    params.set("filter[created_at][_lte]", rangeBounds.dateTo);
+  } else if (options?.dateFrom && options?.dateTo) {
+    params.set("filter[created_at][_gte]", `${options.dateFrom}T00:00:00`);
+    params.set("filter[created_at][_lte]", `${options.dateTo}T23:59:59`);
+  } else if (options?.dateFrom) {
+    params.set("filter[created_at][_gte]", `${options.dateFrom}T00:00:00`);
+  } else if (options?.dateTo) {
+    params.set("filter[created_at][_lte]", `${options.dateTo}T23:59:59`);
+  } else {
+    const today = getTodayPhDate();
+    params.set("filter[created_at][_gte]", `${today}T00:00:00`);
+  }
+
+  if (options?.feature && options.feature !== "ALL") {
+    params.set("filter[feature][_eq]", options.feature);
+  }
+
+  if (options?.provider && options.provider !== "ALL") {
+    if (options.provider === "LOCAL_AI") {
+      params.set("filter[provider][_in]", "LOCAL_AI,OLLAMA,LOCAL,VLLM");
+    } else if (options.provider === "GOOGLE_GEMINI") {
+      params.set("filter[provider][_in]", "GOOGLE_GEMINI,GEMINI");
+    } else {
+      params.set("filter[provider][_eq]", options.provider);
+    }
+  }
+
   return fetchDirectusRequests(params);
 }
 
+export async function fetchTodayRequests(): Promise<GeminiRequestRow[]> {
+  return fetchTelemetryRequests();
+}
+
 /** Fetch recent N rows regardless of date (for audit log and health indicator) */
-export async function fetchRecentRequests(limit = 20): Promise<GeminiRequestRow[]> {
+export async function fetchRecentRequests(
+  limit = 25,
+  options?: {
+    timeRange?: string | null;
+    dateFrom?: string | null;
+    dateTo?: string | null;
+    feature?: string | null;
+    provider?: string | null;
+    isAllTime?: boolean;
+  }
+): Promise<GeminiRequestRow[]> {
   const params = new URLSearchParams({
     limit: String(limit),
     sort: "-created_at",
   });
+
+  const rangeBounds = getTimeRangeBounds(options?.timeRange);
+
+  if (!options?.isAllTime && options?.timeRange !== "ALL_TIME") {
+    if (rangeBounds) {
+      params.set("filter[created_at][_gte]", rangeBounds.dateFrom);
+      params.set("filter[created_at][_lte]", rangeBounds.dateTo);
+    } else {
+      if (options?.dateFrom) {
+        params.set("filter[created_at][_gte]", `${options.dateFrom}T00:00:00`);
+      }
+      if (options?.dateTo) {
+        params.set("filter[created_at][_lte]", `${options.dateTo}T23:59:59`);
+      }
+    }
+  }
+
+  if (options?.feature && options.feature !== "ALL") {
+    params.set("filter[feature][_eq]", options.feature);
+  }
+
+  if (options?.provider && options.provider !== "ALL") {
+    if (options.provider === "LOCAL_AI") {
+      params.set("filter[provider][_in]", "LOCAL_AI,OLLAMA,LOCAL,VLLM");
+    } else if (options.provider === "GOOGLE_GEMINI") {
+      params.set("filter[provider][_in]", "GOOGLE_GEMINI,GEMINI");
+    } else {
+      params.set("filter[provider][_eq]", options.provider);
+    }
+  }
+
   return fetchDirectusRequests(params);
+}
+
+/** Compute peak usage trends (Peak RPM, Peak TPM, Peak Busy Window & Hourly distribution) */
+export function computePeakUsageTrends(rows: GeminiRequestRow[]): PeakUsageTrends {
+  if (rows.length === 0) {
+    const emptyBuckets: HourlyBucket[] = Array.from({ length: 24 }, (_, i) => {
+      const hStr = i.toString().padStart(2, "0");
+      return {
+        hourLabel: `${hStr}:00`,
+        requests: 0,
+        tokens: 0,
+        errors: 0,
+        avgLatencyMs: 0,
+      };
+    });
+    return {
+      peakRpm: 0,
+      peakTpm: 0,
+      peakHourLabel: null,
+      peakHourRequests: 0,
+      hourlyBuckets: emptyBuckets,
+    };
+  }
+
+  // 1. Group by 1-minute bucket to calculate Peak RPM and Peak TPM
+  const minuteMap = new Map<string, { requests: number; tokens: number }>();
+  for (const r of rows) {
+    if (!r.created_at) continue;
+    const minuteKey = r.created_at.slice(0, 16);
+    const curr = minuteMap.get(minuteKey) || { requests: 0, tokens: 0 };
+    curr.requests += 1;
+    curr.tokens += (r.total_tokens ?? 0);
+    minuteMap.set(minuteKey, curr);
+  }
+
+  let peakRpm = 0;
+  let peakTpm = 0;
+  for (const stat of minuteMap.values()) {
+    if (stat.requests > peakRpm) peakRpm = stat.requests;
+    if (stat.tokens > peakTpm) peakTpm = stat.tokens;
+  }
+
+  // 2. Group into 24-hour buckets (00:00 to 23:00)
+  const hourMap = new Map<number, { requests: number; tokens: number; errors: number; latencyTotal: number }>();
+  for (let i = 0; i < 24; i++) {
+    hourMap.set(i, { requests: 0, tokens: 0, errors: 0, latencyTotal: 0 });
+  }
+
+  for (const r of rows) {
+    if (!r.created_at) continue;
+    const date = new Date(r.created_at);
+    let hour = date.getHours();
+    if (isNaN(hour)) {
+      const match = r.created_at.match(/(\d{2}):\d{2}/);
+      if (match) hour = parseInt(match[1], 10);
+      else hour = 0;
+    }
+    const stat = hourMap.get(hour);
+    if (stat) {
+      stat.requests += 1;
+      stat.tokens += (r.total_tokens ?? 0);
+      if (r.response_status === "ERROR" || (r.status && r.status >= 400)) {
+        stat.errors += 1;
+      }
+      stat.latencyTotal += (r.latency_ms ?? 0);
+    }
+  }
+
+  let peakHour = -1;
+  let peakHourRequests = 0;
+
+  const hourlyBuckets: HourlyBucket[] = [];
+  for (let i = 0; i < 24; i++) {
+    const stat = hourMap.get(i)!;
+    const hStr = i.toString().padStart(2, "0");
+    const avgLatencyMs = stat.requests > 0 ? Math.round(stat.latencyTotal / stat.requests) : 0;
+    hourlyBuckets.push({
+      hourLabel: `${hStr}:00`,
+      requests: stat.requests,
+      tokens: stat.tokens,
+      errors: stat.errors,
+      avgLatencyMs,
+    });
+
+    if (stat.requests > peakHourRequests) {
+      peakHourRequests = stat.requests;
+      peakHour = i;
+    }
+  }
+
+  let peakHourLabel: string | null = null;
+  if (peakHour >= 0 && peakHourRequests > 0) {
+    const startHour12 = peakHour % 12 === 0 ? 12 : peakHour % 12;
+    const startAmPm = peakHour < 12 ? "AM" : "PM";
+    const endHour = (peakHour + 1) % 24;
+    const endHour12 = endHour % 12 === 0 ? 12 : endHour % 12;
+    const endAmPm = endHour < 12 ? "AM" : "PM";
+    peakHourLabel = `${startHour12}:00 ${startAmPm} - ${endHour12}:00 ${endAmPm}`;
+  }
+
+  return {
+    peakRpm,
+    peakTpm,
+    peakHourLabel,
+    peakHourRequests,
+    hourlyBuckets,
+  };
 }
 
 /** Compute KPI summary from today's rows + health from recent rows */

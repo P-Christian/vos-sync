@@ -17,7 +17,9 @@ VOS Sync is a multi-role employment and talent management platform connecting **
   * Best Match AI
   * Query Enrichment
   * AI Reranker
-* Real-time request audit stream with Philippine local-time formatting.
+* Real-time request audit stream with Philippine local-time formatting and client-side pagination.
+* **Structured Two-Tier Filter Toolbar & Live Audit Search**: Filter telemetry by AI Engine (Cloud vs Local), Time Period presets (anchored to PH Time UTC+8), Feature type, and smooth slide-in Custom Date Range with active filter badges and live keyword search across audit logs.
+* **Peak Usage Surge Analytics & Motion Transitions**: Deep analytics page with interactive metric card hover lifts, animated spring-driven 24-hour surge bar chart transitions, and popLayout animated table rows.
 * Per-user and per-company attribution for cost allocation and anomaly detection.
 * Fire-and-forget telemetry persistence to prevent monitoring from affecting AI response latency.
 
@@ -42,6 +44,22 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Originating Job Linkage**: Category suggestions link to originating `job_id`; approving via *Create New* or *Map Existing* automatically synchronizes `category_id` and canonical `job_category` onto the linked `vs_job_posting` record.
 * Generalized `IntelligenceEntityType`, `IntelligenceRequestStatus`, `ResolutionType`, and `IntelligenceRequest` types designed to extend to Job Roles, Skills, Keywords, and other matching entities without redesigning the module.
 * Approval transaction is atomic: category resolution must succeed before the suggestion is marked `APPROVED`; failures leave the suggestion `PENDING`.
+
+#### Company Verification Management
+
+* **Corporate Registration & Tax Verification Pipeline**: Review and audit employer registration submissions, legal tax identifiers (TIN, SEC/DTI registration number), uploaded regulatory documents, and corporate ownership profiles.
+* **Instant 0ms Optimistic UI & Automatic Rollback**: Real-time optimistic status mutations (`VERIFIED`, `REJECTED`, `PENDING_VERIFICATION`, `SUSPENDED`) with automatic snapshot rollback and Sonner toast confirmations.
+* **Fluid Framer Motion Transitions**: Staggered KPI metric cards with interactive hover lifts (`whileHover={{ y: -3 }}`), active filter ring indicators, animated table row entries and exits (`AnimatePresence` + `layout="position"`), and spring-animated status badges (`stiffness: 450, damping: 26`).
+* **Multi-Tab Review Modal & Document Inspector**: Comprehensive audit drawer with expandable cover/logo media, dual-sided government ID previews, full regulatory document downloads, and preset rejection/correction workflows.
+
+#### Admin Audit Trail
+
+* **Immutable Forensic Audit Ledger**: Real-time logging of administrative interventions, authentication lifecycle events, user management changes, and platform data mutations persisted in device Philippine local time (UTC+8).
+* **Context-Aware Dynamic Detail Modal**: Context-sensitive inspection modal adapting metadata attributes, icons, and labels dynamically based on Actor (`ADMIN`, `USER`, `SYSTEM`, `SERVICE`) and Target Entity (`COMPANY`, `JOB`, `USER`, `APPLICATION`), with State Diff inspection and dedicated security telemetry.
+* **Timezone-Aligned Live KPI Metrics**: Live counting for Today's Audit Events, Failed Events, Denied Access attempts, and Admin Actions anchored on Asia/Manila day bounds.
+* **7-Axis Multi-Parameter Filter Toolbar**: Filter and slice security logs by Category, Action, Status, Actor Type, Organization Type, Date From, and Date To with debounced keyword search and search clear (`X`).
+* **Server-Side Pagination & Configurable Page Size**: Dynamic server-side pagination with standard page sizes (`10`, `20`, `30`, `40`, `50`), multi-page navigation controls, and total record counts.
+* **Motion Transitions & Micro-Interactions**: Staggered container animations, card hover lift effects (`whileHover={{ y: -3 }}`), and spring-animated status badges (`AuditActionBadge`, `AuditStatusBadge`).
 
 ---
 
@@ -77,10 +95,38 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 ---
 
+### Client Notification Center
+
+#### Streamlined Alert Center, Real-Time Search & Multi-Category Filtering
+* **Interactive Search & Multi-Category Toolbar**: Real-time search across candidate names, job titles, and alert messages paired with scrollable category filter pills (**All**, **Applications**, **Interviews**, **Messages**, **Team Activity**) with dynamic live count badges.
+* **Unread State Filter**: Combinable "Unread only" toggle pill allowing recruiters to filter by unread status independently or across any category.
+* **Actor Suppression & Team Activity**: Strict `actor_user_id !== recipient_user_id` governance suppressing self-notifications on recruiter actions (shortlisting, rejecting, hiring, scheduling) while dispatching `TEAM_ACTIVITY` exclusively to other hiring team members.
+* **Chronological Date Grouping**: Organizes notifications dynamically into clear time sections (**Today**, **Yesterday**, **This Week**, **Earlier**).
+* **Contextual Event Badges**: Category-specific color-coded icons (Applications, Shortlisting, Withdrawals, Interviews, Messages, Job Approvals) for rapid visual scanning.
+* **Full-Card Click Target & Quick Actions**: Entire card functions as an interactive navigation target with subtle unread background tints, trailing chevron indicators, and an on-hover quick mark-as-read trigger.
+* **Granular Preference Management**: Dual-channel control (Email & In-App) per notification category group with master toggles and real-time persistence.
+
+---
+
+### Client Company Profile
+
+#### Comprehensive Employer Organization, AI Assistant & Verification Management
+
+* **Dynamic Organization Profile Management**: Full editing suite for company basic info, classification, addresses, public visibility toggles, and real-time public profile preview slide-over.
+* **AI Company Profile Assistant & 3-Tier Ownership Model**: Strict architectural separation of Authoritative data (manual/verification-gated identity, contact, registration) vs. AI-Assisted editorial content (Description, Mission, Vision, Culture, Benefits, Tags, and suggested Industry/Org Type). Propose $\rightarrow$ Review $\rightarrow$ Accept workflow with side-by-side diffs and confidence-scored taxonomy suggestions.
+* **In-Editor Inline AI Field Polish**: Contextual AI assistant dropdowns on Description, Mission, Vision, Culture, Benefits, and Tags (`✨ AI Assist` — Polish, Make Candidate-Focused, More Professional, Shorten, Regenerate, Custom Prompt) powered by `/api/client/company-profile/refine-text`.
+* **Fast & Snappy Motion Animations**: Powered by `framer-motion` and `AnimatePresence` with non-disruptive, lightweight transitions (150ms–250ms), staggered card entrances, and smooth edit-to-view mode morphing.
+* **Animated Profile Completion Meter**: Real-time animated progress bar reflecting profile completeness towards verification readiness.
+* **Interactive Document Verification Pipeline**: Multi-slot verification upload zone (DTI/SEC, Business Permit, TIN, and optional supporting documents) with animated item additions, removals, and contextual status banners.
+
+---
+
 ### Jobs Posting
 
 #### Database-Backed Role Taxonomy Integration & Canonical Categories
 * **Single Source of Truth (`vs_role_category`)**: Decoupled 3-tier taxonomy (`Category` $\rightarrow$ `Role` $\rightarrow$ `Skills`) sourcing canonical role families directly from Directus database table `vs_role_category` via dedicated client endpoints and cached custom hook (`useRoleCategories`).
+* **Auto Create Job with AI**: Natural-language prompt-driven job generation (`AutoCreateJobModal`) leveraging company profiles, addresses, industries, and taxonomy matching to structure rich-text descriptions, responsibilities, qualifications, and extracted skills. Enforces strict salary guardrails (zero fabricated salaries) and unifies review in the standard 5-step job creation wizard.
+* **In-Editor AI Text Refinements**: Integrated AI action bar in `RichTextEditor` (`✨ Improve`, `✂ Make Concise`, `⚙ More Technical`, `🔄 Regenerate`, and custom instructions) powered by `/api/client/jobs/refine-text` for real-time section-level polish.
 * **Searchable Category Combobox & Controlled Suggestions**: In-form searchable combobox with real-time text matching, candidate descriptions, and an integrated category suggestion modal (`SuggestCategoryModal`) featuring AI semantic deduplication pre-checks to protect taxonomy integrity while preventing employer posting friction.
 * **Referential Integrity**: Jobs maintain explicit foreign key mapping `category_id` $\rightarrow$ `vs_role_category(category_id)` alongside backwards-compatible legacy fallback resolution.
 * **Unified Search, Multi-Filter Toolbar & ATS Workflow**: Real-time client-side search across Job Title, Department, and Location, paired with a searchable Category combobox, Employment Type selector, Work Arrangement filter, and Status filter.
@@ -93,11 +139,20 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Exact, alias, technology-relation, hierarchy, and category-based matching.
 ### Applicant Management & Candidate Review
 
+* **Optimistic UI & Fluid Motion Quick Actions**: Instantaneous 0ms candidate status updates across quick action dropdowns (*Move to Under Review*, *Shortlist Candidate*, *Reject Candidate*, *Reopen Application*) with automatic rollback resilience on server error, toast notifications, spring-animated status badges, and smooth layout reordering powered by `framer-motion` `<AnimatePresence mode="popLayout">`.
+* **AI Candidate-Job Evaluation & Company Cross-Role Opportunity Match**: Structured candidate profile evaluations matching against job qualifications with cross-role recommendations across other active company openings; persistent append-only evaluation records in `vs_application_ai_analysis` with immutable history and 3-state semantic CTAs (`Generate AI Analysis`, `View AI Analysis`, `Regenerate`).
 * **Comprehensive Candidate Review Modal**: Responsive dual-column layout separating high-level profile overview, contact information, metrics, screening Q&A, and compensation from deep candidate history (experience timeline, education, certifications, and document attachments).
 * **Screening Questions & Responses**: Complete question-by-question candidate response display with individual unanswered indicators and a dedicated `"No screening answers submitted"` fallback state.
 * **Dynamic Candidate Avatars**: High-fidelity candidate profile pictures with Directus asset proxying, safe URL fallbacks, smooth `<Image />` loading, and initials badges.
 * **Inline Document Previews**: Interactive single-click document preview modal for Cover Letters and Resumes with full PDF/document viewer support and direct download links.
 * **Portfolio Website Integration**: Direct link display for candidate portfolio websites across Contact Information, Compensation & Portfolio, and Social Links with automatic profile fallback resolution.
+
+---
+
+### Client Talent Search
+
+* **Direct Talent Discovery & Outreach**: Searchable freelancer profile database with multi-dimensional filtering, profile inspection slide-over drawers, and direct talent bookmarking (`useSavedTalent`).
+* **Interactive Send Invitation Dialog**: Modal outreach flow with personalized message drafts and dynamic, scrollable company job linking allowing employers to invite candidate to specific active openings or send general interest invitations.
 * **Strict Contextual ATS Action Workflow**: Contextual status transitions (`APPLIED` $\rightarrow$ `UNDER_REVIEW` [automatic upon candidate profile view or manual], `UNDER_REVIEW` $\rightarrow$ `SHORTLISTED`/`REJECTED`, `SHORTLISTED` $\rightarrow$ `INTERVIEWING` [system-driven on interview creation], `INTERVIEWING` $\rightarrow$ `HIRED`/`REJECTED` [system-driven on final evaluation]), contextual action gates (`Schedule Interview`, `View Interview`), and decoupled recruitment vs session lifecycle management.
 
 ### Best Match AI
@@ -266,6 +321,16 @@ Supported experiences include:
 ---
 
 ## Applicant & Talent Management
+
+### Review Candidates (Applicant Management)
+
+* **AI Candidate-Job Evaluation & Cross-Role Matching**: On-demand AI evaluation modal in Candidate Details powered by Google Gemini analyzing candidate skills, work history, education, certifications, and screening answers against target job requirements with match scores, key strengths, probing questions, recruiter recommendations, and cross-role opportunity scans across all active company job openings.
+* **Instant Client-Side Cache & Regenerate**: Stores AI evaluations in `localStorage` for instant reopening with a dynamic CTA ("Check AI Analysis" / "View AI Analysis") and an on-demand "Regenerate" trigger.
+* **Two-Row Metadata Stacking**: Structured card information with primary identifiers (Name, Email, Job Title) on the top row and softer muted secondary stats (experience, jobs, resumes, profile %, applied date) beneath.
+* **Uniform Status Badge Column**: Status badges anchored to a dedicated vertical column immediately before the action button group.
+* **Explicit Action Controls**: Visual hierarchy with ghost "View Candidate", outline "Message", and solid primary "Schedule Interview" buttons.
+* **Cleaned 3-Dots Quick Actions**: Reserved exclusively for secondary administrative transitions (*Move to Under Review*, *Shortlist*, *Mark as Hired*, *Reject*, *Reopen*) and *Custom Status & Notes...* without action duplication.
+* **Interactive Status Filter Badges with Popovers**: Positioned directly on top of the candidate search bar with hover popover tooltips explaining each stage, real-time candidate counts, and defaulting to **"Active Pipeline"** (in-progress applicants: `Applied`, `Under Review`, `Shortlisted`, `Interviewing`, excluding `Hired`, `Rejected`, and `Withdrawn`).
 
 ### Saved Candidates
 

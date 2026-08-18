@@ -38,37 +38,57 @@ interface Props {
 
 function parseDate(dateStr: string): Date {
   if (!dateStr) return new Date(0);
-  const [datePart = "", timePart = "00:00:00"] = dateStr.replace("T", " ").split(" ");
-  const [year = 1970, month = 1, day = 1] = datePart.split("-").map(Number);
-  const [hour = 0, minute = 0, second = 0] = timePart.split(":").map(Number);
-  return new Date(year, month - 1, day, hour, minute, second);
+  const cleanStr = String(dateStr).replace("T", " ").replace("Z", "").trim();
+  const [datePart = "", timePart = "00:00:00"] = cleanStr.split(" ");
+  const [year = 1970, month = 1, day = 1] = datePart
+    .split("-")
+    .map((n) => parseInt(n, 10) || 0);
+  const timeClean = timePart.split(".")[0] || "00:00:00";
+  const [hour = 0, minute = 0, second = 0] = timeClean
+    .split(":")
+    .map((n) => parseInt(n, 10) || 0);
+  return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
 }
 
 function getDateLabel(dateStr: string): string {
-  const date = parseDate(dateStr);
-  if (isNaN(date.getTime())) return "";
+  const messageDate = parseDate(dateStr);
+  if (isNaN(messageDate.getTime())) {
+    console.warn("[getDateLabel] Invalid date for:", dateStr);
+    return "";
+  }
 
   const now = new Date();
-  const dStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const nStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const diffDays = Math.round(
-    (nStart.getTime() - dStart.getTime()) / (1000 * 60 * 60 * 24)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDate = new Date(
+    messageDate.getFullYear(),
+    messageDate.getMonth(),
+    messageDate.getDate()
   );
 
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
+  const diffDays = Math.round(
+    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  let label = "";
+  if (diffDays === 0) label = "Today";
+  else if (diffDays === 1) label = "Yesterday";
+  else {
+    label = messageDate.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  console.log(`[getDateLabel] dateStr="${dateStr}" => diffDays=${diffDays} => label="${label}"`);
+  return label;
 }
 
 function isSameDayStr(a: string, b: string): boolean {
+  if (!a || !b) return false;
   const dateA = parseDate(a);
   const dateB = parseDate(b);
+  if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return false;
   return (
     dateA.getFullYear() === dateB.getFullYear() &&
     dateA.getMonth() === dateB.getMonth() &&
@@ -345,13 +365,17 @@ export default function ChatPanel({
               const showDateDivider =
                 !prevMsg ||
                 !isSameDayStr(prevMsg.created_at, msg.created_at);
+              const dateLabel = showDateDivider ? getDateLabel(msg.created_at) : undefined;
+              if (showDateDivider) {
+                console.log(`[ChatPanel] Message #${msg.message_id} created_at="${msg.created_at}" showDateDivider=true dateLabel="${dateLabel}"`);
+              }
               return (
                 <MessageBubble
                   key={msg.message_id}
                   message={msg}
                   isOwn={isOwn}
                   showDateDivider={showDateDivider}
-                  dateLabel={showDateDivider ? getDateLabel(msg.created_at) : undefined}
+                  dateLabel={dateLabel}
                   onToggleReaction={onToggleReaction}
                 />
               );

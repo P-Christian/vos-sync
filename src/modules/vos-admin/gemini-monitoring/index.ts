@@ -1,3 +1,2 @@
-// src/modules/vos-admin/gemini-monitoring/index.ts
-
 export { default as GeminiMonitoringDashboard } from "./GeminiMonitoringDashboard";
+export { PeakUsageAnalyticsPage } from "./pages/PeakUsageAnalyticsPage";

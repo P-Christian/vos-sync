@@ -4,7 +4,6 @@ import { sendShortlistedEmail, sendHiringEmail, sendRejectionEmail, isEmailEnabl
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
-import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -399,16 +398,23 @@ export async function GET(
     const latestResumes = resumes.slice(0, 1);
 
     const formattedResumes = latestResumes.map((r) => {
-      let file_url = r.file_path || r.file_url || r.url || "";
-      if (r.file_id || r.file) {
-        file_url = `/api/assets/${r.file_id || r.file}`;
-      } else if (file_url.includes("/assets/")) {
-        const match = file_url.match(/\/assets\/([a-zA-Z0-9-]+)/);
-        if (match?.[1]) file_url = `/api/assets/${match[1]}`;
-      } else if (r.id) {
-        file_url = `/api/assets/${r.id}`;
+      const rawAsset = r.file_url || r.file_id || r.file || r.file_path || r.url || "";
+      let file_url = "";
+
+      if (typeof rawAsset === "string" && rawAsset.trim()) {
+        const trimmed = rawAsset.trim();
+        if (trimmed.includes("/assets/")) {
+          const match = trimmed.match(/\/assets\/([a-zA-Z0-9-]+)/);
+          file_url = match?.[1] ? `/api/assets/${match[1]}` : trimmed;
+        } else if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/api/")) {
+          file_url = trimmed;
+        } else {
+          file_url = `/api/assets/${trimmed}`;
+        }
       }
+
       return {
+        id: r.id,
         file_name: r.file_name || r.name || "Resume.pdf",
         file_url,
       };
@@ -710,41 +716,109 @@ export async function PATCH(
       );
     }
 
-    // Trigger freelancer notification
-    const jobseekerId = json.data?.user_id;
-    if (jobseekerId) {
-      await createNotification({
-        event_type: "application_status_changed",
-        recipient_user_id: jobseekerId,
-        entity_type: "job_application",
-        entity_id: Number(id),
-        category: "Application Updates",
-        title: "Application Status Updated",
-        message: `Your application status has been updated to: ${body.application_status}.`,
-        action_url: "/vos-sync/freelancer/applications",
+    // Fetch application details to resolve candidate, job, and company for notifications
+    try {
+      const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,user_id,job_id`, {
+        headers: getHeaders(),
+        cache: "no-store",
       });
-    }
 
-    // Trigger employer in-app notification for status changes
-    const requestingEmployerId = token ? getUserIdFromToken(token) : null;
-    if (requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED"].includes(body.application_status)) {
-      const employerInAppEnabled = await isInAppEnabledForUser(requestingEmployerId, "APPLICATION_STATUS_UPDATED");
-      if (employerInAppEnabled) {
-        const statusLabel =
-          body.application_status === "SHORTLISTED" ? "shortlisted" :
-          body.application_status === "HIRED" ? "hired" :
-          "rejected";
-        await createEmployerNotification({
-          event_type: `APPLICATION_${body.application_status}`,
-          recipient_user_id: requestingEmployerId,
-          entity_type: "job_application",
-          entity_id: Number(id),
-          category: "APPLICATION_STATUS_UPDATED",
-          title: `Applicant ${body.application_status === "HIRED" ? "Hired" : body.application_status.charAt(0) + body.application_status.slice(1).toLowerCase()}`,
-          message: `You have ${statusLabel} an applicant for this position.`,
-          action_url: `/vos-sync/client/applicants/${id}`,
-        }).catch((err: unknown) => console.error("[Employer notification] Status update error:", err));
+      if (appRes.ok) {
+        const appData = (await appRes.json()).data;
+        const jobseekerId = appData?.user_id || json.data?.user_id;
+
+        let jobTitle = "the position";
+        let companyName = "the company";
+        let companyId: number | null = null;
+
+        if (appData?.job_id) {
+          const jobRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${appData.job_id}?fields=job_title,company_id`, {
+            headers: getHeaders(),
+            cache: "no-store",
+          });
+          if (jobRes.ok) {
+            const jData = (await jobRes.json()).data;
+            if (jData?.job_title) jobTitle = jData.job_title;
+            if (jData?.company_id) {
+              companyId = Number(jData.company_id);
+              const compRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${jData.company_id}?fields=company_name`, {
+                headers: getHeaders(),
+                cache: "no-store",
+              });
+              if (compRes.ok) {
+                companyName = (await compRes.json()).data?.company_name || companyName;
+              }
+            }
+          }
+        }
+
+        // 1. Single dynamic notification for the candidate (Jobseeker)
+        if (jobseekerId) {
+          let candidateTitle = "Application Status Updated";
+          let candidateMessage = `Your application status for "${jobTitle}" has been updated.`;
+
+          if (body.application_status === "UNDER_REVIEW") {
+            candidateTitle = "Application Under Review";
+            candidateMessage = `Your application for "${jobTitle}" at ${companyName} is now under review.`;
+          } else if (body.application_status === "SHORTLISTED") {
+            candidateTitle = "Application Shortlisted";
+            candidateMessage = `You have been shortlisted for "${jobTitle}" at ${companyName}!`;
+          } else if (body.application_status === "HIRED") {
+            candidateTitle = "Application Selected";
+            candidateMessage = `Congratulations! You have been selected for "${jobTitle}" at ${companyName}.`;
+          } else if (body.application_status === "REJECTED") {
+            candidateTitle = "Application Status Update";
+            candidateMessage = `Your application for "${jobTitle}" at ${companyName} was not selected.`;
+          } else if (body.application_status === "INTERVIEWING") {
+            candidateTitle = "Application in Interview Stage";
+            candidateMessage = `Your application for "${jobTitle}" at ${companyName} has moved to the interview stage.`;
+          }
+
+          await createNotification({
+            event_type: "application_status_changed",
+            recipient_user_id: jobseekerId,
+            entity_type: "job_application",
+            entity_id: Number(id),
+            category: "APPLICATION_STATUS_UPDATED",
+            title: candidateTitle,
+            message: candidateMessage,
+            action_url: "/vos-sync/freelancer/applications",
+          }).catch((err) => console.error("[Candidate Notification] Error:", err));
+        }
+
+        // 2. Team Activity: Notify OTHER team members in the company (suppress for the acting recruiter)
+        const requestingEmployerId = token ? getUserIdFromToken(token) : null;
+        if (companyId && requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED", "UNDER_REVIEW"].includes(body.application_status)) {
+          const teamUsersRes = await fetch(
+            `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&filter[user_id][_neq]=${requestingEmployerId}&fields=user_id`,
+            { headers: getHeaders(), cache: "no-store" }
+          );
+
+          if (teamUsersRes.ok) {
+            const teamMembers: { user_id: number }[] = (await teamUsersRes.json()).data ?? [];
+            const statusLabel =
+              body.application_status === "SHORTLISTED" ? "shortlisted a candidate" :
+              body.application_status === "HIRED" ? "hired a candidate" :
+              body.application_status === "REJECTED" ? "rejected a candidate" :
+              "moved a candidate to review";
+
+            for (const member of teamMembers) {
+              await createEmployerNotification({
+                event_type: "TEAM_ACTIVITY",
+                recipient_user_id: member.user_id,
+                entity_type: "job_application",
+                entity_id: Number(id),
+                category: "TEAM_ACTIVITY",
+                title: "Team Activity",
+                message: `A team member ${statusLabel} for "${jobTitle}".`,
+                action_url: `/vos-sync/client/applicants/${id}`,
+              }).catch((err) => console.error("[Team Activity Notification] Error:", err));
+            }
+          }
+        }
       }
+    } catch (notifyErr) {
+      console.error("[Applicant Status Notification] Error:", notifyErr);
     }
 
     // Fetch application details to resolve candidate & job for email notification
