@@ -69,6 +69,7 @@ export interface AuditRecord {
   actor_email?: string | null;
   resource_type: string | null;
   resource_id: string | null;
+  resource_name?: string | null;
   organization_type: OrgType | null;
   organization_id: number | null;
   reason: string | null;

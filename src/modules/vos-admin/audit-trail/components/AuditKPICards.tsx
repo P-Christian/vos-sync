@@ -1,13 +1,35 @@
 // src/modules/vos-admin/audit-trail/components/AuditKPICards.tsx
+"use client";
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { AuditKPIData } from '../types/audit.types';
 import { Activity, AlertOctagon, ShieldAlert, UserCheck } from 'lucide-react';
+import { motion, Variants } from 'framer-motion';
 
 interface AuditKPICardsProps {
   kpis: AuditKPIData;
   loading?: boolean;
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+};
 
 export function AuditKPICards({ kpis, loading }: AuditKPICardsProps) {
   const cards = [
@@ -22,7 +44,7 @@ export function AuditKPICards({ kpis, loading }: AuditKPICardsProps) {
       title: "Failed Events",
       value: kpis.failedEvents,
       icon: AlertOctagon,
-      iconBg: "bg-red-500/10 text-red-600 dark:text-red-400",
+      iconBg: "bg-destructive/10 text-destructive",
       description: "System or action execution errors",
     },
     {
@@ -42,34 +64,46 @@ export function AuditKPICards({ kpis, loading }: AuditKPICardsProps) {
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6"
+    >
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
-          <Card key={idx} className="shadow-2xs">
-            <CardContent className="p-5 flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
-                  {card.title}
-                </p>
-                <div className="text-2xl font-bold mt-1 tracking-tight">
-                  {loading ? (
-                    <span className="animate-pulse text-muted-foreground">---</span>
-                  ) : (
-                    card.value.toLocaleString()
-                  )}
+          <motion.div
+            key={idx}
+            variants={itemVariants}
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Card className="shadow-xs border border-border bg-card rounded-xl hover:shadow-md transition-shadow">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
+                    {card.title}
+                  </p>
+                  <div className="text-2xl font-bold mt-1 tracking-tight text-foreground font-mono">
+                    {loading ? (
+                      <span className="animate-pulse text-muted-foreground">---</span>
+                    ) : (
+                      card.value.toLocaleString()
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {card.description}
+                  </p>
                 </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {card.description}
-                </p>
-              </div>
-              <div className={`p-3 rounded-xl ${card.iconBg} shrink-0`}>
-                <Icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
+                <div className={`p-3 rounded-xl ${card.iconBg} shrink-0`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 }

@@ -1,8 +1,11 @@
 // src/modules/vos-admin/audit-trail/components/AuditActionBadge.tsx
+"use client";
+
 import React from 'react';
 import { AuditAction } from '../types/audit.types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface AuditActionBadgeProps {
   action: AuditAction | string;
@@ -24,17 +27,17 @@ export function AuditActionBadge({ action }: AuditActionBadgeProps) {
       break;
     case 'DELETE':
     case 'DOC_DELETE':
-      styles = "bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-300 border-red-200 dark:border-red-800";
+      styles = "bg-destructive/10 text-destructive border-destructive/20";
       break;
     case 'LOGIN':
       styles = "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800";
       break;
     case 'LOGOUT':
-      styles = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+      styles = "bg-muted text-muted-foreground border-border";
       break;
     case 'FAILED_LOGIN':
     case 'LOCKOUT':
-      styles = "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200 dark:border-rose-800";
+      styles = "bg-destructive/10 text-destructive border-destructive/20";
       break;
     case 'VERIFY':
     case 'OTP_VERIFY':
@@ -73,8 +76,15 @@ export function AuditActionBadge({ action }: AuditActionBadgeProps) {
   }
 
   return (
-    <Badge variant="outline" className={cn("font-medium px-2 py-0.5 text-xs rounded-md shadow-2xs", styles)}>
-      {normalized}
-    </Badge>
+    <motion.div
+      initial={{ scale: 0.92, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 450, damping: 26 }}
+      className="inline-flex"
+    >
+      <Badge variant="outline" className={cn("font-medium px-2 py-0.5 text-xs rounded-md shadow-2xs", styles)}>
+        {normalized}
+      </Badge>
+    </motion.div>
   );
 }

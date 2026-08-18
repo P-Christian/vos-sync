@@ -6,7 +6,8 @@ import { AuditFilters as AuditFiltersType } from '../types/audit.types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RotateCcw, Download, SlidersHorizontal } from 'lucide-react';
+import { Search, RotateCcw, Download, SlidersHorizontal, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface AuditFiltersProps {
   filters: AuditFiltersType;
@@ -98,8 +99,13 @@ export function AuditFilters({
   isExporting,
 }: AuditFiltersProps) {
   return (
-    <div className="space-y-4 b p-4 rounded-xl border">
-      {/* Top Row: Search & Export */}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-3.5 p-4 rounded-xl border border-border bg-card shadow-2xs mb-4"
+    >
+      {/* Top Row: Search & Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -107,17 +113,28 @@ export function AuditFilters({
             placeholder="Search event type, reason, resource ID, correlation ID..."
             value={filters.search || ""}
             onChange={(e) => onFilterChange({ search: e.target.value, page: 1 })}
-            className="pl-9 "
+            className="pl-9 pr-8 h-9 text-xs rounded-lg border-border bg-background"
           />
+          {filters.search && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onFilterChange({ search: "", page: 1 })}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {onOpenSettings && (
             <Button
               variant="outline"
               size="sm"
               onClick={onOpenSettings}
-              className="flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+              className="h-9 text-xs rounded-lg flex items-center gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               Audit Settings
@@ -127,7 +144,7 @@ export function AuditFilters({
             variant="outline"
             size="sm"
             onClick={onReset}
-            className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400"
+            className="h-9 text-xs rounded-lg flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Reset
@@ -137,7 +154,7 @@ export function AuditFilters({
             size="sm"
             onClick={onExportCSV}
             disabled={isExporting}
-            className="flex items-center gap-1.5 bg-primary text-primary-foreground"
+            className="h-9 text-xs rounded-lg flex items-center gap-1.5 shadow-2xs font-semibold"
           >
             <Download className="h-3.5 w-3.5" />
             {isExporting ? "Exporting..." : "Export CSV"}
@@ -145,14 +162,14 @@ export function AuditFilters({
         </div>
       </div>
 
-      {/* Bottom Grid: Filter Selectors */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+      {/* Bottom Row: Filter Selectors & Date Range */}
+      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/40">
         {/* Category */}
         <Select
           value={filters.event_category || "ALL"}
           onValueChange={(val) => onFilterChange({ event_category: val, page: 1 })}
         >
-          <SelectTrigger className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[145px]">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
           <SelectContent>
@@ -169,7 +186,7 @@ export function AuditFilters({
           value={filters.action || "ALL"}
           onValueChange={(val) => onFilterChange({ action: val, page: 1 })}
         >
-          <SelectTrigger className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[140px]">
             <SelectValue placeholder="Action" />
           </SelectTrigger>
           <SelectContent>
@@ -186,7 +203,7 @@ export function AuditFilters({
           value={filters.status || "ALL"}
           onValueChange={(val) => onFilterChange({ status: val, page: 1 })}
         >
-          <SelectTrigger className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -203,7 +220,7 @@ export function AuditFilters({
           value={filters.actor_type || "ALL"}
           onValueChange={(val) => onFilterChange({ actor_type: val, page: 1 })}
         >
-          <SelectTrigger className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]">
             <SelectValue placeholder="Actor Type" />
           </SelectTrigger>
           <SelectContent>
@@ -220,7 +237,7 @@ export function AuditFilters({
           value={filters.organization_type || "ALL"}
           onValueChange={(val) => onFilterChange({ organization_type: val, page: 1 })}
         >
-          <SelectTrigger className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[135px]">
             <SelectValue placeholder="Org Type" />
           </SelectTrigger>
           <SelectContent>
@@ -237,10 +254,19 @@ export function AuditFilters({
           type="date"
           value={filters.date_from || ""}
           onChange={(e) => onFilterChange({ date_from: e.target.value, page: 1 })}
-          className="h-9 text-xs bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+          className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[135px]"
           placeholder="Date From"
         />
+
+        {/* Date To */}
+        <Input
+          type="date"
+          value={filters.date_to || ""}
+          onChange={(e) => onFilterChange({ date_to: e.target.value, page: 1 })}
+          className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[135px]"
+          placeholder="Date To"
+        />
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -33,15 +33,19 @@ export function AuditTable({
   onViewRecord,
 }: AuditTableProps) {
   const formatDate = (isoStr: string) => {
+    if (!isoStr) return "---";
     try {
-      const d = new Date(isoStr);
-      return d.toLocaleString("en-US", {
+      const cleaned = isoStr.replace(" ", "T");
+      const d = new Date(cleaned);
+      if (isNaN(d.getTime())) return isoStr;
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Manila",
         month: "short",
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
         hour12: true,
-      });
+      }).format(d);
     } catch {
       return isoStr;
     }
@@ -106,14 +110,19 @@ export function AuditTable({
       header: "Resource",
       cell: ({ row }) => {
         const rec = row.original;
-        if (!rec.resource_type && !rec.resource_id) {
+        if (!rec.resource_type && !rec.resource_id && !rec.resource_name) {
           return <span className="text-xs text-muted-foreground">---</span>;
         }
         return (
-          <span className="text-xs font-mono text-zinc-700 dark:text-zinc-300">
-            {rec.resource_type ? `${rec.resource_type}` : ''}
-            {rec.resource_id ? ` #${rec.resource_id}` : ''}
-          </span>
+          <div className="flex flex-col max-w-[200px]">
+            <span className="text-xs font-semibold text-foreground truncate" title={rec.resource_name || (rec.resource_id ? `${rec.resource_type || "Resource"} #${rec.resource_id}` : rec.resource_type || "")}>
+              {rec.resource_name || (rec.resource_id ? `${rec.resource_type || "Resource"} #${rec.resource_id}` : rec.resource_type || "Resource")}
+            </span>
+            <span className="text-[10px] text-muted-foreground font-mono">
+              {rec.resource_type ? `${rec.resource_type}` : ""}
+              {rec.resource_id ? ` #${rec.resource_id}` : ""}
+            </span>
+          </div>
         );
       },
     },
@@ -146,14 +155,17 @@ export function AuditTable({
       data={records}
       isLoading={loading}
       manualPagination={true}
-      pageCount={Math.ceil(total / limit) || 1}
+      pageCount={Math.max(1, Math.ceil(total / limit))}
       pagination={{
         pageIndex: page - 1,
         pageSize: limit,
       }}
       onPaginationChange={(newPagination) => {
-        onPageChange(newPagination.pageIndex + 1);
-        onLimitChange(newPagination.pageSize);
+        if (newPagination.pageSize !== limit) {
+          onLimitChange(newPagination.pageSize);
+        } else if (newPagination.pageIndex + 1 !== page) {
+          onPageChange(newPagination.pageIndex + 1);
+        }
       }}
     />
   );
