@@ -23,6 +23,10 @@ import {
   Users,
   Briefcase,
   CalendarDays,
+  Target,
+  Compass,
+  HeartHandshake,
+  Gift,
 } from "lucide-react";
 import { CompanyProfile } from "../types";
 
@@ -234,6 +238,60 @@ export default function CompanyPreviewModal({
               </p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
                 {company.company_description}
+              </p>
+            </div>
+          )}
+
+          {/* Mission & Vision */}
+          {(company.company_mission || company.company_vision) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+              {company.company_mission && (
+                <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Target className="h-3 w-3 text-blue-600" />
+                    Mission
+                  </p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    {company.company_mission}
+                  </p>
+                </div>
+              )}
+              {company.company_vision && (
+                <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Compass className="h-3 w-3 text-purple-600" />
+                    Vision
+                  </p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    {company.company_vision}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Culture & Work Environment */}
+          {company.company_culture && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <HeartHandshake className="h-3.5 w-3.5 text-rose-500" />
+                Culture & Values
+              </p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
+                {company.company_culture}
+              </p>
+            </div>
+          )}
+
+          {/* Perks & Benefits */}
+          {company.company_benefits && (
+            <div className="space-y-1.5 pt-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Gift className="h-3.5 w-3.5 text-amber-500" />
+                Perks & Benefits
+              </p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
+                {company.company_benefits}
               </p>
             </div>
           )}

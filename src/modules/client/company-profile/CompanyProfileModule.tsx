@@ -30,7 +30,9 @@ import {
   Send,
   RefreshCw,
   FileText,
+ 
 } from "lucide-react";
+import AIProfileAssistantModal from "./components/AIProfileAssistantModal";
 import { EditableCompanyFields } from "./types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -79,6 +81,7 @@ export default function CompanyProfileModule() {
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [draft, setDraft] = useState<Partial<EditableCompanyFields & { custom_industry_name?: string }>>({});
   const [showPreview, setShowPreview] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const [setupForm, setSetupForm] = useState({
     company_name: "",
@@ -127,6 +130,18 @@ export default function CompanyProfileModule() {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleApplyAISuggestions = async (acceptedFields: Partial<EditableCompanyFields>) => {
+    clearMessages();
+    // If currently editing, merge into draft state so user can review/edit further
+    if (isEditingInfo || isEditingClassification) {
+      setDraft((prev) => ({ ...prev, ...acceptedFields }));
+    } else {
+      // Direct save and reload
+      await updateProfile(acceptedFields);
+      await fetchProfile();
+    }
+  };
+
   // ── Company Information Handlers ──────────────────────────────────────
   const handleEditInfo = () => {
     if (company) {
@@ -137,6 +152,10 @@ export default function CompanyProfileModule() {
         company_contact: company.company_contact ?? "",
         company_website: company.company_website ?? "",
         company_description: company.company_description ?? "",
+        company_mission: company.company_mission ?? "",
+        company_vision: company.company_vision ?? "",
+        company_culture: company.company_culture ?? "",
+        company_benefits: company.company_benefits ?? "",
         company_logo: company.company_logo ?? "",
         company_cover: company.company_cover ?? "",
         company_facebook: company.company_facebook ?? "",
@@ -161,6 +180,10 @@ export default function CompanyProfileModule() {
       company_contact: draft.company_contact,
       company_website: draft.company_website,
       company_description: draft.company_description,
+      company_mission: draft.company_mission,
+      company_vision: draft.company_vision,
+      company_culture: draft.company_culture,
+      company_benefits: draft.company_benefits,
       company_logo: draft.company_logo,
       company_cover: draft.company_cover,
       company_facebook: draft.company_facebook,
@@ -532,11 +555,24 @@ export default function CompanyProfileModule() {
                     Company Information
                   </CardTitle>
                 </div>
-                {isOwnerOrAdmin && !isEditingInfo && (
-                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditInfo}>
-                    <Pencil />
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {isOwnerOrAdmin && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
+                      onClick={() => setShowAIAssistant(true)}
+                    >
+                     
+                      <span>AI Assistant</span>
+                    </Button>
+                  )}
+                  {isOwnerOrAdmin && !isEditingInfo && (
+                    <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditInfo}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="p-6">
                 <AnimatePresence mode="wait">
@@ -903,6 +939,16 @@ export default function CompanyProfileModule() {
           open={showPreview}
           onClose={() => setShowPreview(false)}
           company={company}
+        />
+      )}
+
+      {/* AI Profile Assistant Modal */}
+      {company && (
+        <AIProfileAssistantModal
+          open={showAIAssistant}
+          onOpenChange={setShowAIAssistant}
+          currentCompany={company}
+          onApplySuggestions={handleApplyAISuggestions}
         />
       )}
     </motion.div>

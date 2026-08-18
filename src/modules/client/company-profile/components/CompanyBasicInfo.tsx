@@ -10,6 +10,7 @@ import { EditableCompanyFields } from "../types";
 import { Facebook, Linkedin, Instagram, Youtube, Upload, Image as ImageIcon, Loader2, Building2 } from "lucide-react";
 
 import ImageCropModal from "./ImageCropModal";
+import InlineAITrigger from "./InlineAITrigger";
 
 interface CompanyBasicInfoProps {
   data: Partial<EditableCompanyFields>;
@@ -229,6 +230,37 @@ export default function CompanyBasicInfo({
           <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Description</span>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_description || "No description provided."}</p>
         </div>
+
+        {(data.company_mission || data.company_vision) && (
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.company_mission && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Mission</span>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_mission}</p>
+              </div>
+            )}
+            {data.company_vision && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Vision</span>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_vision}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {data.company_culture && (
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Culture</span>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_culture}</p>
+          </div>
+        )}
+
+        {data.company_benefits && (
+          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Perks & Benefits</span>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_benefits}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -412,16 +444,117 @@ export default function CompanyBasicInfo({
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="cp-company-description" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-          Company Description <span className="text-rose-500">*</span>
-        </Label>
+        <div className="flex items-center justify-between h-7">
+          <Label htmlFor="cp-company-description" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            Company Description <span className="text-rose-500">*</span>
+          </Label>
+          <InlineAITrigger
+            currentText={data.company_description ?? ""}
+            fieldType="company_description"
+            companyName={data.company_name ?? "Company"}
+            onRefined={(val) => onChange("company_description", val)}
+          />
+        </div>
         <Textarea
           id="cp-company-description"
           value={data.company_description ?? ""}
           onChange={(e) => onChange("company_description", e.target.value)}
           rows={4}
-          placeholder="Tell job seekers about your company, culture, and mission..."
-          className="resize-none text-sm leading-relaxed"
+          placeholder="Tell job seekers about your company, core focus, and value proposition..."
+          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+        />
+      </div>
+
+      {/* Mission & Vision */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between h-7">
+            <Label htmlFor="cp-company-mission" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              Mission Statement
+            </Label>
+            <InlineAITrigger
+              currentText={data.company_mission ?? ""}
+              fieldType="company_mission"
+              companyName={data.company_name ?? "Company"}
+              onRefined={(val) => onChange("company_mission", val)}
+            />
+          </div>
+          <Textarea
+            id="cp-company-mission"
+            value={data.company_mission ?? ""}
+            onChange={(e) => onChange("company_mission", e.target.value)}
+            rows={4}
+            placeholder="e.g. To empower businesses worldwide through transformative intelligent software..."
+            className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between h-7">
+            <Label htmlFor="cp-company-vision" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              Vision Statement
+            </Label>
+            <InlineAITrigger
+              currentText={data.company_vision ?? ""}
+              fieldType="company_vision"
+              companyName={data.company_name ?? "Company"}
+              onRefined={(val) => onChange("company_vision", val)}
+            />
+          </div>
+          <Textarea
+            id="cp-company-vision"
+            value={data.company_vision ?? ""}
+            onChange={(e) => onChange("company_vision", e.target.value)}
+            rows={4}
+            placeholder="e.g. To be the premier talent and technology innovation partner in Southeast Asia..."
+            className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+          />
+        </div>
+      </div>
+
+      {/* Culture & Values */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between h-7">
+          <Label htmlFor="cp-company-culture" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            Company Culture & Environment
+          </Label>
+          <InlineAITrigger
+            currentText={data.company_culture ?? ""}
+            fieldType="company_culture"
+            companyName={data.company_name ?? "Company"}
+            onRefined={(val) => onChange("company_culture", val)}
+          />
+        </div>
+        <Textarea
+          id="cp-company-culture"
+          value={data.company_culture ?? ""}
+          onChange={(e) => onChange("company_culture", e.target.value)}
+          rows={4}
+          placeholder="Describe your work atmosphere, collaboration values, and professional growth environment..."
+          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+        />
+      </div>
+
+      {/* Perks & Benefits */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between h-7">
+          <Label htmlFor="cp-company-benefits" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            Perks & Benefits
+          </Label>
+          <InlineAITrigger
+            currentText={data.company_benefits ?? ""}
+            fieldType="company_benefits"
+            companyName={data.company_name ?? "Company"}
+            onRefined={(val) => onChange("company_benefits", val)}
+          />
+        </div>
+        <Textarea
+          id="cp-company-benefits"
+          value={data.company_benefits ?? ""}
+          onChange={(e) => onChange("company_benefits", e.target.value)}
+          rows={4}
+          placeholder="List verified company benefits (HMO, remote allowances, learning budgets, performance bonuses)..."
+          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
         />
       </div>
 
