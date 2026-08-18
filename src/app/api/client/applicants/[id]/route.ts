@@ -399,16 +399,23 @@ export async function GET(
     const latestResumes = resumes.slice(0, 1);
 
     const formattedResumes = latestResumes.map((r) => {
-      let file_url = r.file_path || r.file_url || r.url || "";
-      if (r.file_id || r.file) {
-        file_url = `/api/assets/${r.file_id || r.file}`;
-      } else if (file_url.includes("/assets/")) {
-        const match = file_url.match(/\/assets\/([a-zA-Z0-9-]+)/);
-        if (match?.[1]) file_url = `/api/assets/${match[1]}`;
-      } else if (r.id) {
-        file_url = `/api/assets/${r.id}`;
+      const rawAsset = r.file_url || r.file_id || r.file || r.file_path || r.url || "";
+      let file_url = "";
+
+      if (typeof rawAsset === "string" && rawAsset.trim()) {
+        const trimmed = rawAsset.trim();
+        if (trimmed.includes("/assets/")) {
+          const match = trimmed.match(/\/assets\/([a-zA-Z0-9-]+)/);
+          file_url = match?.[1] ? `/api/assets/${match[1]}` : trimmed;
+        } else if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/api/")) {
+          file_url = trimmed;
+        } else {
+          file_url = `/api/assets/${trimmed}`;
+        }
       }
+
       return {
+        id: r.id,
         file_name: r.file_name || r.name || "Resume.pdf",
         file_url,
       };

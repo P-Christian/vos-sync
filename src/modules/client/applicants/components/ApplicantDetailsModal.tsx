@@ -1,7 +1,7 @@
 // src/modules/client/applicants/components/ApplicantDetailsModal.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
@@ -35,14 +35,21 @@ import {
   User2,
   Contact,
   LandPlot,
-  MessageSquare,
-  FileText,
   Eye,
   DownloadIcon,
   Globe,
+  Sparkles,
+  MessageSquare,
+  FileText,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ApplicantAiAnalysisModal } from "./ApplicantAiAnalysisModal";
+import {
+  getCachedApplicantAnalysis,
+  setCachedApplicantAnalysis,
+  CandidateAiAnalysis,
+} from "../utils/applicantAiCache";
 import {
   faFacebook,
   faLinkedin,
@@ -202,6 +209,8 @@ export default function ApplicantDetailsModal({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<{ fileName: string; fileUrl: string } | null>(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [cachedAnalysis, setCachedAnalysis] = useState<CandidateAiAnalysis | null>(null);
 
   const activeApplicant: Applicant | null = applicant || (detail ? {
     application_id: detail.application_id,
@@ -218,6 +227,42 @@ export default function ApplicantDetailsModal({
     resume_count: detail.resume_count,
     skills: detail.skills,
   } as Applicant : null);
+
+  useEffect(() => {
+    const appId = activeApplicant?.application_id || detail?.application_id;
+    if (!appId || !open) {
+      setCachedAnalysis(null);
+      return;
+    }
+
+    // 1. Instant check from local cache
+    const cached = getCachedApplicantAnalysis(appId);
+    if (cached) {
+      setCachedAnalysis(cached);
+    } else {
+      setCachedAnalysis(null);
+    }
+
+    // 2. Query DB to verify if evaluation exists for this exact application_id
+    let isMounted = true;
+    fetch(`/api/client/applicants/${appId}/ai-analysis`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted) {
+          if (data?.success && data.analysis) {
+            setCachedAnalysis(data.analysis);
+            setCachedApplicantAnalysis(appId, data.analysis);
+          } else if (!cached) {
+            setCachedAnalysis(null);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeApplicant?.application_id, detail?.application_id, aiModalOpen, open]);
 
   if (!activeApplicant && !loading) return null;
 
@@ -697,6 +742,16 @@ export default function ApplicantDetailsModal({
             Close
           </Button>
 
+          {/* AI Analysis Button */}
+          <Button
+            variant="outline"
+            onClick={() => setAiModalOpen(true)}
+            className="border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-foreground font-semibold gap-1.5 shadow-2xs cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500/20" />
+            {cachedAnalysis ? "View AI Analysis" : "Generate AI Analysis"}
+          </Button>
+
           <Link href={`/vos-sync/client/messaging?freelancer_id=${activeApplicant?.user_id ?? ''}&job_id=${activeApplicant?.job_id ?? ''}`}>
             <Button variant="outline" className="border-border hover:bg-muted font-medium gap-1.5">
               <MessageSquare className="h-4 w-4 text-primary" />
@@ -743,6 +798,13 @@ export default function ApplicantDetailsModal({
           )}
         </DialogFooter>
       </DialogContent>
+
+      {/* AI Candidate Evaluation Modal */}
+      <ApplicantAiAnalysisModal
+        open={aiModalOpen}
+        onOpenChange={setAiModalOpen}
+        applicant={detail}
+      />
 
       {/* Nested Document Preview Modal */}
       <Dialog open={!!previewDoc} onOpenChange={(openState) => !openState && setPreviewDoc(null)}>
