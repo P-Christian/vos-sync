@@ -4,6 +4,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { VerificationStatus } from "../types";
 import { formatDualStatusLabel } from "../utils/companyVerification.utils";
+import { motion } from "framer-motion";
 
 interface VerificationStatusBadgeProps {
   status: VerificationStatus | string;
@@ -22,14 +23,22 @@ export const VerificationStatusBadge: React.FC<VerificationStatusBadgeProps> = (
     warning: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
     destructive: "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
     secondary: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-    outline: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20",
+    outline: "bg-muted text-muted-foreground border-border",
   };
 
   const extraClass = styleMap[variant] || styleMap.outline;
 
   return (
-    <Badge variant="outline" className={`font-medium px-2.5  py-0.5 rounded-full border text-xs ${extraClass}`}>
-      {label}
-    </Badge>
+    <motion.div
+      key={`${status}-${workflowStatus || ""}`}
+      initial={{ scale: 0.92, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 450, damping: 26 }}
+      className="inline-flex"
+    >
+      <Badge variant="outline" className={`font-medium px-2.5 py-0.5 rounded-full border text-xs ${extraClass}`}>
+        {label}
+      </Badge>
+    </motion.div>
   );
 };

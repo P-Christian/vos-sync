@@ -1,11 +1,33 @@
 import { CompanyVerificationRecord, CompanyVerificationKPIs, VerificationStatus } from "../types";
 
 export function calculateCompanyKPIs(records: CompanyVerificationRecord[]): CompanyVerificationKPIs {
+  let pendingCount = 0;
+  let verifiedCount = 0;
+  let rejectedCount = 0;
+
+  for (const r of records) {
+    const c = (r.verification_status || "").toUpperCase();
+    const w = (r.latest_verification?.status || "").toUpperCase();
+
+    if (c === "VERIFIED" || w === "APPROVED") {
+      verifiedCount++;
+    } else if (c === "REJECTED" || c === "SUSPENDED" || w === "REJECTED" || w === "SUSPENDED") {
+      rejectedCount++;
+    } else if (
+      c === "PENDING_VERIFICATION" ||
+      w === "PENDING_VERIFICATION" ||
+      w === "IN_REVIEW" ||
+      w === "CORRECTION_REQUIRED"
+    ) {
+      pendingCount++;
+    }
+  }
+
   return {
     totalCount: records.length,
-    pendingCount: records.filter(r => r.verification_status === "PENDING_VERIFICATION").length,
-    verifiedCount: records.filter(r => r.verification_status === "VERIFIED").length,
-    rejectedCount: records.filter(r => r.verification_status === "REJECTED").length,
+    pendingCount,
+    verifiedCount,
+    rejectedCount,
   };
 }
 
@@ -14,12 +36,36 @@ export function filterCompanyRecords(
   status: string,
   search: string
 ): CompanyVerificationRecord[] {
-  return records.filter(record => {
+  return records.filter((record) => {
     // Status filter
     if (status && status !== "ALL") {
-      const matchCompStatus = record.verification_status === status;
-      const matchVerifStatus = record.latest_verification?.status === status;
-      if (!matchCompStatus && !matchVerifStatus) return false;
+      const c = (record.verification_status || "").toUpperCase();
+      const w = (record.latest_verification?.status || "").toUpperCase();
+
+      if (status === "PENDING_VERIFICATION") {
+        const isPending =
+          c === "PENDING_VERIFICATION" ||
+          w === "PENDING_VERIFICATION" ||
+          w === "IN_REVIEW" ||
+          w === "CORRECTION_REQUIRED";
+        if (!isPending) return false;
+      } else if (status === "IN_REVIEW") {
+        if (w !== "IN_REVIEW") return false;
+      } else if (status === "CORRECTION_REQUIRED") {
+        if (w !== "CORRECTION_REQUIRED") return false;
+      } else if (status === "VERIFIED") {
+        if (c !== "VERIFIED" && w !== "APPROVED") return false;
+      } else if (status === "REJECTED") {
+        if (c !== "REJECTED" && w !== "REJECTED") return false;
+      } else if (status === "SUSPENDED") {
+        if (c !== "SUSPENDED" && w !== "SUSPENDED") return false;
+      } else if (status === "DRAFT") {
+        if (c !== "DRAFT") return false;
+      } else {
+        const matchCompStatus = c === status.toUpperCase();
+        const matchVerifStatus = w === status.toUpperCase();
+        if (!matchCompStatus && !matchVerifStatus) return false;
+      }
     }
 
     // Search query filter (company name, legal name, code, TIN, registration no, email)

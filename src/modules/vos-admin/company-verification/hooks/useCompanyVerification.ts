@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { CompanyVerificationRecord, CompanyVerificationKPIs, VerificationDecisionPayload, VerificationStatus } from "../types";
 import { fetchCompanyVerifications, submitVerificationDecision } from "../services/companyVerification.service";
 import { calculateCompanyKPIs, filterCompanyRecords } from "../utils/companyVerification.utils";
+import { toast } from "sonner";
 
 export function useCompanyVerification() {
   const [records, setRecords] = useState<CompanyVerificationRecord[]>([]);
@@ -24,7 +25,7 @@ export function useCompanyVerification() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchCompanyVerifications(statusFilter, searchQuery);
+      const data = await fetchCompanyVerifications();
       setRecords(data);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load company verifications";
@@ -32,14 +33,14 @@ export function useCompanyVerification() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchQuery]);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
 
     async function load() {
       try {
-        const data = await fetchCompanyVerifications(statusFilter, searchQuery);
+        const data = await fetchCompanyVerifications();
         if (isMounted) {
           setRecords(data);
           setError(null);
@@ -58,7 +59,7 @@ export function useCompanyVerification() {
     return () => {
       isMounted = false;
     };
-  }, [statusFilter, searchQuery]);
+  }, []);
 
   // Pure filtered dataset
   const filteredRecords = useMemo(() => {
@@ -97,62 +98,83 @@ export function useCompanyVerification() {
   ) => {
     if (!selectedCompany) return;
 
+    const companyToUpdate = selectedCompany;
+    const previousRecords = records;
+
+    const newStatus: VerificationStatus =
+      action === "approve"
+        ? "VERIFIED"
+        : action === "reject"
+        ? "REJECTED"
+        : action === "request_correction"
+        ? "PENDING_VERIFICATION"
+        : "SUSPENDED";
+
+    const newVerifStatus =
+      action === "approve"
+        ? "APPROVED"
+        : action === "reject"
+        ? "REJECTED"
+        : action === "request_correction"
+        ? "CORRECTION_REQUIRED"
+        : "SUSPENDED";
+
+    const actionDescription =
+      action === "approve"
+        ? "approved and marked verified"
+        : action === "reject"
+        ? "rejected"
+        : action === "request_correction"
+        ? "marked for correction"
+        : "suspended";
+
+    // 1. Instant 0ms Optimistic State Update
+    setRecords((prev) =>
+      prev.map((item) =>
+        item.company_id === companyToUpdate.company_id
+          ? {
+              ...item,
+              verification_status: newStatus,
+              rejection_reason: rejectionReason || item.rejection_reason,
+              verified_at: action === "approve" ? new Date().toISOString() : item.verified_at,
+              latest_verification: {
+                id: Date.now(),
+                company_id: item.company_id,
+                verification_type: "INITIAL_REGISTRATION",
+                status: newVerifStatus,
+                public_rejection_reason: rejectionReason || null,
+                internal_notes: internalNotes || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
+            }
+          : item
+      )
+    );
+
+    // Close modals immediately
+    closeRejectionModal();
+    closeDetailModal();
+
+    toast.success(`${companyToUpdate.company_name} was ${actionDescription}.`);
+
     setIsSubmitting(true);
     const payload: VerificationDecisionPayload = {
-      companyId: selectedCompany.company_id,
+      companyId: companyToUpdate.company_id,
       action,
       rejectionReason,
       internalNotes,
     };
 
-    const res = await submitVerificationDecision(payload);
-    setIsSubmitting(false);
-
-    if (res.success) {
-      // Optimistically update record state in local list
-      const newStatus: VerificationStatus =
-        action === "approve"
-          ? "VERIFIED"
-          : action === "reject"
-          ? "REJECTED"
-          : action === "request_correction"
-          ? "PENDING_VERIFICATION"
-          : "SUSPENDED";
-
-      const newVerifStatus =
-        action === "approve"
-          ? "APPROVED"
-          : action === "reject"
-          ? "REJECTED"
-          : action === "request_correction"
-          ? "CORRECTION_REQUIRED"
-          : "SUSPENDED";
-
-      setRecords((prev) =>
-        prev.map((item) =>
-          item.company_id === selectedCompany.company_id
-            ? {
-                ...item,
-                verification_status: newStatus,
-                rejection_reason: rejectionReason || item.rejection_reason,
-                verified_at: action === "approve" ? new Date().toISOString() : item.verified_at,
-                latest_verification: {
-                  id: Date.now(),
-                  company_id: item.company_id,
-                  verification_type: "INITIAL_REGISTRATION",
-                  status: newVerifStatus,
-                  public_rejection_reason: rejectionReason || null,
-                  internal_notes: internalNotes || null,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                },
-              }
-            : item
-        )
-      );
-
-      closeRejectionModal();
-      closeDetailModal();
+    try {
+      await submitVerificationDecision(payload);
+    } catch (err) {
+      // 2. Automatic Rollback on failure
+      setRecords(previousRecords);
+      const msg = err instanceof Error ? err.message : "Failed to update verification status";
+      toast.error(`Rollback: ${msg}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
