@@ -251,9 +251,9 @@ export function PeakUsageAnalyticsPage() {
 
       {/* ── Filter Toolbar ────────────────────────────────────────────────── */}
       <motion.div variants={itemVariants}>
-        <Card className="border border-border bg-card rounded-2xl shadow-xs p-4 sm:p-5 space-y-4">
+        <Card className="border border-border bg-card rounded-2xl shadow-xs p-4 sm:p-5 gap-2 ">
           {/* Top Row: Info & Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between ">
             {/* Filter Badge & Active Count */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-xl text-xs font-semibold shrink-0">
