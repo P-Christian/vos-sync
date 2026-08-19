@@ -519,7 +519,7 @@ export default function GeminiMonitoringDashboard() {
     >
       {/* ── Filter Toolbar ────────────────────────────────────────────────── */}
       <motion.div variants={itemVariants}>
-        <Card className="border border-border bg-card rounded-2xl shadow-xs p-4 sm:p-5 space-y-4">
+        <Card className="border border-border bg-card rounded-2xl shadow-xs p-4 sm:p-5 gap-4">
           {/* Top Row: Search & Actions */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             {/* Search Input + Active Counter */}
@@ -707,89 +707,6 @@ export default function GeminiMonitoringDashboard() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Active Filter Chips */}
-          {activeFilterCount > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
-              <span className="text-[11px] text-muted-foreground font-medium mr-1">Active:</span>
-
-              {selectedProvider !== "ALL" && (
-                <Badge
-                  variant="secondary"
-                  className="text-[11px] gap-1 px-2.5 py-0.5 rounded-lg bg-secondary text-secondary-foreground border border-border font-medium"
-                >
-                  <span>Engine: {PROVIDER_FILTER_OPTIONS.find((o) => o.value === selectedProvider)?.label}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedProvider("ALL");
-                      setAuditPage(1);
-                    }}
-                    className="hover:text-foreground ml-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-
-              {timeRange !== "1_DAY" && (
-                <Badge
-                  variant="secondary"
-                  className="text-[11px] gap-1 px-2.5 py-0.5 rounded-lg bg-secondary text-secondary-foreground border border-border font-medium"
-                >
-                  <span>Period: {TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label}</span>
-                  <button
-                    onClick={() => handleTimeRangeChange("1_DAY")}
-                    className="hover:text-foreground ml-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-
-              {selectedFeature !== "ALL" && (
-                <Badge
-                  variant="secondary"
-                  className="text-[11px] gap-1 px-2.5 py-0.5 rounded-lg bg-secondary text-secondary-foreground border border-border font-medium"
-                >
-                  <span>Feature: {featureLabel(selectedFeature)}</span>
-                  <button
-                    onClick={() => {
-                      setSelectedFeature("ALL");
-                      setAuditPage(1);
-                    }}
-                    className="hover:text-foreground ml-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-
-              {searchQuery.trim() && (
-                <Badge
-                  variant="secondary"
-                  className="text-[11px] gap-1 px-2.5 py-0.5 rounded-lg bg-secondary text-secondary-foreground border border-border font-medium"
-                >
-                  <span>Search: &quot;{searchQuery}&quot;</span>
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setAuditPage(1);
-                    }}
-                    className="hover:text-foreground ml-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-
-              <button
-                onClick={handleResetFilters}
-                className="text-[11px] text-primary hover:underline font-medium ml-1.5"
-              >
-                Clear all
-              </button>
-            </div>
-          )}
         </Card>
       </motion.div>
 
@@ -814,7 +731,7 @@ export default function GeminiMonitoringDashboard() {
             Waiting for Telemetry Data
           </div>
           <p className="text-xs text-muted-foreground">
-            Live telemetry will appear here automatically when Gemini AI calls are made (e.g. Talent Search, AI Profile Generation, Job Auto-Creation).
+            Live telemetry will appear here automatically when AI requests are made (e.g. Talent Search, AI Profile Generation, Job Auto-Creation).
           </p>
         </motion.div>
       )}

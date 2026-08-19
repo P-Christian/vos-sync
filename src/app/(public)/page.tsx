@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 import { LandingCTA } from "@/components/public/LandingCTA";
 
+export const dynamic = "force-dynamic";
+
 // ==========================================
 // MOCK DATA
 // ==========================================
