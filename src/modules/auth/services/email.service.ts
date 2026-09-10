@@ -9,7 +9,33 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+export function assertOtpMailConfiguration(): void {
+    // Keep the development Ethereal fallback for the legacy/local flow, but
+    // never let a production registration silently use an implicit transport.
+    if (process.env.NODE_ENV !== 'production') return;
+
+    const host = process.env.SMTP_HOST?.trim();
+    const user = process.env.SMTP_USER?.trim();
+    const pass = process.env.SMTP_PASS;
+    const configuredPort = process.env.SMTP_PORT?.trim();
+    const port = configuredPort ? Number(configuredPort) : 587;
+
+    if (!host || !user || !pass || !Number.isInteger(port) || port <= 0 || port > 65535) {
+        throw new Error('SMTP configuration is not available for registration mail.');
+    }
+}
+
+function logMailFailure(operation: string, error: unknown): void {
+    // Do not serialize Nodemailer errors: they can contain recipient/message
+    // details. Registration logs only a stable diagnostic category.
+    console.error(`[auth.mail] ${operation} failed`, {
+        error: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
+    });
+}
+
 export async function sendOTP(email: string, otpCode: string) {
+    assertOtpMailConfiguration();
+
     try {
         const info = await transporter.sendMail({
             from: '"Vos Sync" <noreply@vossync.com>',
@@ -26,14 +52,9 @@ export async function sendOTP(email: string, otpCode: string) {
             `
         });
 
-        // Useful for Ethereal email testing during development
-        if (process.env.SMTP_HOST?.includes('ethereal')) {
-            console.log("Ethereal Preview URL: %s", nodemailer.getTestMessageUrl(info));
-        }
-
         return info;
     } catch (error) {
-        console.error("Failed to send OTP email:", error);
+        logMailFailure('OTP email delivery', error);
         throw new Error("Failed to send verification email.");
     }
 }
@@ -56,13 +77,9 @@ export async function sendSchoolInvite(email: string, schoolName: string, invite
             `
         });
 
-        if (process.env.SMTP_HOST?.includes('ethereal')) {
-            console.log("Ethereal Preview URL: %s", nodemailer.getTestMessageUrl(info));
-        }
-
         return info;
     } catch (error) {
-        console.error("Failed to send invite email:", error);
+        logMailFailure('school invite email delivery', error);
         throw new Error("Failed to send invite email.");
     }
 }
@@ -84,13 +101,9 @@ export async function sendPasswordResetOTP(email: string, otpCode: string) {
             `
         });
 
-        if (process.env.SMTP_HOST?.includes('ethereal')) {
-            console.log("Ethereal Preview URL: %s", nodemailer.getTestMessageUrl(info));
-        }
-
         return info;
     } catch (error) {
-        console.error("Failed to send reset OTP email:", error);
+        logMailFailure('password reset email delivery', error);
         throw new Error("Failed to send reset email.");
     }
 }

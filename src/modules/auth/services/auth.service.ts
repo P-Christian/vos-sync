@@ -1,14 +1,13 @@
 // src/modules/auth/services/auth.service.ts
 import bcrypt from "bcrypt";
-import * as jose from "jose";
-import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken, getRoleById } from "./auth.repo";
+import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken } from "./auth.repo";
 import { sendOTP, sendPasswordResetOTP } from "./email.service";
 import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 import { validatePasswordStrict } from "@/lib/password-validation";
 import { sendEmployerAccountCreationEmail } from "@/lib/mail";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { issueAuthSession } from "../registration/registration.session";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 // ⚠️ TESTING: 1 min — CHANGE TO 15 * 60 * 1000 (15 min) FOR PRODUCTION
 const LOCK_DURATION_MS = 1 * 60 * 1000;
 // ⚠️ TESTING: 2 min — CHANGE TO 10 * 60 * 1000 (10 min) FOR PRODUCTION
@@ -118,35 +117,22 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         reason: "User logged in successfully",
     });
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const alg = 'HS256';
-
-    // Fetch clean role string from vs_roles table
-    let cleanRoleName = user.role;
-    try {
-        const roleData = await getRoleById(user.role_id);
-        if (roleData && roleData.role_name) {
-            cleanRoleName = roleData.role_name;
-        }
-    } catch (e) {
-        console.warn("Failed to fetch role details during login:", e);
-    }
-
-    const token = await new jose.SignJWT({ 
-        sub: String(user.user_id),
-        email: user.user_email,
+    const session = await issueAuthSession({
+        user_id: user.user_id,
+        user_email: user.user_email,
         role: user.role,
-        role_name: cleanRoleName,
-        role_id: user.role_id
-    })
-        .setProtectedHeader({ alg })
-        .setIssuedAt()
-        .setExpirationTime('7d')
-        .sign(secret);
+        role_id: user.role_id,
+    });
 
-    console.log(`[auth.service] User logged in: email=${user.user_email}, user_id=${user.user_id}, role=${user.role}, role_id=${user.role_id}, cleanRoleName=${cleanRoleName}`);
+    console.log(`[auth.service] User logged in: user_id=${user.user_id}, role_id=${user.role_id}`);
 
-    return { token, role_id: user.role_id, role: user.role, role_name: cleanRoleName };
+    return {
+        token: session.token,
+        role_id: session.role_id,
+        role: session.role,
+        role_name: session.role_name,
+        destination: session.destination,
+    };
 }
 
 export async function registerUser(body: unknown) {
@@ -391,35 +377,20 @@ export async function confirmOTP(userId: string | number, code: string) {
         reason: "OTP verification completed successfully",
     });
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const alg = 'HS256';
-
-    // Fetch clean role string from vs_roles table
-    let cleanRoleName = user.role;
-    try {
-        const roleData = await getRoleById(user.role_id);
-        if (roleData && roleData.role_name) {
-            cleanRoleName = roleData.role_name;
-        }
-    } catch (e) {
-        console.warn("Failed to fetch role details during OTP confirmation:", e);
-    }
-
-    const token = await new jose.SignJWT({ 
-        sub: String(user.user_id),
-        email: user.user_email,
+    const session = await issueAuthSession({
+        user_id: user.user_id,
+        user_email: user.user_email,
         user_fname: user.user_fname,
         user_lname: user.user_lname,
         role: user.role,
-        role_name: cleanRoleName,
-        role_id: user.role_id
-    })
-        .setProtectedHeader({ alg })
-        .setIssuedAt()
-        .setExpirationTime('7d')
-        .sign(secret);
+        role_id: user.role_id,
+    });
 
-    return { token, role_id: user.role_id };
+    return {
+        token: session.token,
+        role_id: session.role_id,
+        destination: session.destination,
+    };
 }
 
 export async function requestPasswordReset(email: string) {
