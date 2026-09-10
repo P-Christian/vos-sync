@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSchoolAdmin } from "@/modules/school-admin/hooks/useSchoolAdmin";
-import { SchoolAdminCourses } from "@/modules/school-admin/components/SchoolAdminCourses";
+import { SchoolCoursesPage } from "@/modules/school-admin/school-courses/SchoolCoursesPage";
 import { SchoolAdminSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
 
 export function SchoolAdminCoursesClient() {
@@ -18,10 +18,10 @@ export function SchoolAdminCoursesClient() {
 
   return (
     <div className="flex flex-col min-h-full pb-10">
-      <SchoolAdminCourses 
+      <SchoolCoursesPage 
         courses={courses} 
-        onAddCourse={addCourse}
-        onToggleStatus={toggleCourseStatus}
+        onAddCourse={addCourse} 
+        onToggleStatus={toggleCourseStatus} 
       />
     </div>
   );

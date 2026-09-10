@@ -30,8 +30,9 @@ export async function fetchSchoolByUserIdRepo(userId: number): Promise<SchoolWit
   
   if (!schoolJson.data) return null;
   
-  // Calculate course count accurately
+  // Calculate course & student count accurately
   let course_count = 0;
+  let student_count = 0;
   try {
     const courses = await fetchCoursesBySchoolIdRepo(adminRecord.school_id);
     course_count = courses.length;
@@ -39,11 +40,28 @@ export async function fetchSchoolByUserIdRepo(userId: number): Promise<SchoolWit
     console.error("Failed to fetch course count", err);
   }
 
+  try {
+    student_count = await fetchStudentCountBySchoolIdRepo(adminRecord.school_id);
+  } catch (err) {
+    console.error("Failed to fetch student count", err);
+  }
+
   return {
     ...schoolJson.data,
     course_count: course_count,
-    student_count: 0
+    student_count: student_count
   };
+}
+
+export async function fetchStudentCountBySchoolIdRepo(schoolId: number): Promise<number> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_student?filter[school_id][_eq]=${schoolId}&aggregate[count]=*`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return 0;
+  const json = await res.json();
+  const countVal = json.data?.[0]?.count;
+  if (typeof countVal === 'number') return countVal;
+  if (typeof countVal === 'string') return parseInt(countVal, 10) || 0;
+  return 0;
 }
 
 export async function fetchCoursesBySchoolIdRepo(schoolId: number): Promise<VsSchoolCourse[]> {

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSchoolAdmin } from "@/modules/school-admin/hooks/useSchoolAdmin";
-import { SchoolAdminProfile } from "@/modules/school-admin/components/SchoolAdminProfile";
+import { SchoolProfilePage } from "@/modules/school-admin/school-profile/SchoolProfilePage";
 import { SchoolAdminSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
 
 export function SchoolAdminProfileClient() {
@@ -18,7 +18,7 @@ export function SchoolAdminProfileClient() {
 
   return (
     <div className="flex flex-col min-h-full pb-10">
-      <SchoolAdminProfile school={school} onUpdate={updateSchool} />
+      <SchoolProfilePage school={school} onUpdate={updateSchool} />
     </div>
   );
 }
