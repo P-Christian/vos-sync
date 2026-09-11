@@ -24,6 +24,7 @@ export interface VerifyRegistrationResponse {
   ok: true;
   role: RegistrationRole;
   destination: string;
+  attachmentToken: string;
 }
 
 export interface CancelRegistrationResponse {
@@ -266,7 +267,8 @@ function isVerifyResponse(value: unknown): value is VerifyRegistrationResponse {
     isRecord(value) &&
     value.ok === true &&
     isRole(value.role) &&
-    hasString(value, "destination")
+    hasString(value, "destination") &&
+    hasString(value, "attachmentToken")
   );
 }
 

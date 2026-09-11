@@ -48,6 +48,25 @@ export const FREELANCER_ADDRESS_UPLOAD_POLICY: FileUploadPolicy = {
   extensions: ["pdf", "jpg", "jpeg", "png", "webp"],
 };
 
+// Signup keeps these files in browser memory until email verification has
+// completed. These policies mirror the limits shown by the signup form.
+export const REGISTRATION_ID_DOCUMENT_UPLOAD_POLICY: FileUploadPolicy = {
+  label: "government ID document",
+  maxBytes: 5 * 1024 * 1024,
+  mimeTypes: ["application/pdf", "image/jpeg", "image/png"],
+  extensions: ["pdf", "jpg", "jpeg", "png"],
+};
+
+export const REGISTRATION_RESUME_UPLOAD_POLICY: FileUploadPolicy = {
+  label: "resume",
+  maxBytes: 10 * 1024 * 1024,
+  mimeTypes: [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
+  extensions: ["pdf", "docx"],
+};
+
 export function getUploadedFile(formData: FormData): File {
   const value = formData.get("file");
   if (!(value instanceof Blob) || typeof (value as Blob & { name?: unknown }).name !== "string") {
@@ -124,4 +143,3 @@ export function safeFileName(name: string | null | undefined, fallback = "docume
   const cleaned = lastPathPart.replace(/[\u0000-\u001f\u007f]/gu, "").trim();
   return (cleaned || fallback).slice(0, 255);
 }
-

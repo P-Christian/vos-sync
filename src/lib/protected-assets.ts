@@ -87,6 +87,7 @@ function protectedFolderIds(): Set<string> {
   const configured = [
     process.env.DIRECTUS_PROTECTED_CLIENT_DOCUMENTS_FOLDER_ID,
     process.env.DIRECTUS_CLIENT_DOCUMENTS_FOLDER_ID,
+    process.env.DIRECTUS_PROTECTED_IDENTITY_FOLDER_ID,
     process.env.DIRECTUS_PROTECTED_FREELANCER_IDENTITY_FOLDER_ID,
     process.env.DIRECTUS_FREELANCER_IDENTITY_FOLDER_ID,
     process.env.DIRECTUS_PROTECTED_FREELANCER_RESUMES_FOLDER_ID,
@@ -210,6 +211,7 @@ async function findIdentityRecords(
 ): Promise<{ records: IdentityRecord[]; lookupFailed: boolean }> {
   const filters = [
     "gov_id_front_image_uuid",
+    "gov_id_back_image_uuid",
     "gov_id_selfie_image_uuid",
     "address_doc_image_uuid",
   ];
@@ -367,7 +369,10 @@ export async function authorizeAssetAccess(
     return { allowed: owned, protected: true, notFound: false, kind };
   }
 
-  if (kind === "FREELANCER_IDENTITY" && isFreelancerSession(session)) {
+  if (
+    kind === "FREELANCER_IDENTITY" &&
+    (isFreelancerSession(session) || isClientSession(session))
+  ) {
     const owned = identities.records.some((record) =>
       sameId(nestedId(record.user_id, "user_id"), session.userId),
     );

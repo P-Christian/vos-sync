@@ -411,6 +411,10 @@ function SignupPageContent() {
   const expiredChallengeRef = useRef<string | null>(null);
   const registration = useRegistrationChallenge();
   const clearRegistration = registration.clear;
+  const [verifiedDestination, setVerifiedDestination] = useState<string | null>(null);
+  const [verifiedRole, setVerifiedRole] = useState<RegistrationRole | null>(null);
+  const [attachmentUploadToken, setAttachmentUploadToken] = useState<string | null>(null);
+  const [attachmentUploadError, setAttachmentUploadError] = useState<string | null>(null);
 
   const resetRegistrationState = useCallback((resetView = false) => {
     clearRegistration();
@@ -418,6 +422,10 @@ function SignupPageContent() {
     setOtpCorrectionEmail('');
     setShowEmailCorrection(false);
     setShowCancelConfirmation(false);
+    setVerifiedDestination(null);
+    setVerifiedRole(null);
+    setAttachmentUploadToken(null);
+    setAttachmentUploadError(null);
     if (resetView) {
       setStep('selection');
       setUserType(null);
@@ -1744,6 +1752,41 @@ function SignupPageContent() {
     const resendIn = formatCountdown(registration.resendAvailableAt, otpNow);
     const email = otpEmail || registration.emailMasked || 'your email address';
 
+    if (verifiedDestination && verifiedRole && attachmentUploadToken) {
+      return (
+        <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
+          {verifiedRole === 'CLIENT' && <StepIndicator currentStep={5} />}
+          {verifiedRole === 'FREELANCER' && <StepIndicator currentStep={3} steps={FREELANCER_STEPS} />}
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Shield className="h-7 w-7" />
+          </div>
+          <h1 className="text-3xl font-medium text-primary mb-3">Account verified</h1>
+          <p className="text-sm text-muted-foreground">
+            {loading
+              ? 'Your selected files are being uploaded securely.'
+              : attachmentUploadError
+                ? 'Upload the required files before continuing.'
+                : 'Finishing your registration...'}
+          </p>
+
+          {attachmentUploadError && !loading && (
+            <div className="mt-6 space-y-3">
+              <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-left text-sm text-destructive">
+                {attachmentUploadError}
+              </p>
+              <Button
+                type="button"
+                onClick={() => void completeVerifiedRegistration(verifiedRole, verifiedDestination, attachmentUploadToken)}
+                className="w-full rounded-full py-6"
+              >
+                Retry file upload
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
         {role === 'CLIENT' && <StepIndicator currentStep={5} />}
@@ -2367,6 +2410,73 @@ function SignupPageContent() {
 
   // ─── Render: School Form ──────────────────────────────────────────────────
 
+  const hasRegistrationAttachments = (role: RegistrationRole): boolean => {
+    if (role === 'CLIENT') return Boolean(govIdFrontFile || govIdBackFile);
+    if (role === 'FREELANCER') {
+      return Boolean(freelancerGovIdFrontFile || freelancerGovIdBackFile || freelancerResumeFile);
+    }
+    return false;
+  };
+
+  const uploadRegistrationAttachments = async (
+    role: RegistrationRole,
+    uploadToken: string,
+  ): Promise<void> => {
+    if (!hasRegistrationAttachments(role)) return;
+
+    const body = new FormData();
+    if (role === 'CLIENT') {
+      body.append('govIdType', govIdType);
+      if (govIdFrontFile) body.append('govIdFront', govIdFrontFile, govIdFrontFile.name);
+      if (govIdBackFile) body.append('govIdSecondary', govIdBackFile, govIdBackFile.name);
+    } else if (role === 'FREELANCER') {
+      if (freelancerGovIdFrontFile || freelancerGovIdBackFile) {
+        body.append('govIdType', freelancerGovIdType);
+        if (freelancerGovIdFrontFile) {
+          body.append('govIdFront', freelancerGovIdFrontFile, freelancerGovIdFrontFile.name);
+        }
+        if (freelancerGovIdBackFile) {
+          body.append('govIdSecondary', freelancerGovIdBackFile, freelancerGovIdBackFile.name);
+        }
+      }
+      if (freelancerResumeFile) {
+        body.append('resume', freelancerResumeFile, freelancerResumeFile.name);
+      }
+    }
+
+    const response = await fetch('/api/auth/registration/attachments', {
+      method: 'POST',
+      body,
+      credentials: 'same-origin',
+      headers: { 'X-Registration-Attachment-Token': uploadToken },
+    });
+    const result = await response.json().catch(() => null) as { error?: string } | null;
+    if (!response.ok) {
+      throw new Error(result?.error || 'The selected files could not be uploaded.');
+    }
+  };
+
+  const completeVerifiedRegistration = async (
+    role: RegistrationRole,
+    destination: string,
+    uploadToken: string,
+  ): Promise<void> => {
+    setLoading(true);
+    setAttachmentUploadError(null);
+    try {
+      await uploadRegistrationAttachments(role, uploadToken);
+      if (hasRegistrationAttachments(role)) {
+        toast.success('Files uploaded', { description: 'Your registration documents were saved.' });
+      }
+      window.location.assign(destination);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The selected files could not be uploaded.';
+      setAttachmentUploadError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!registration.sealedPayload || !registration.role) {
@@ -2376,18 +2486,12 @@ function SignupPageContent() {
     }
 
     setLoading(true);
+    let data: Awaited<ReturnType<typeof registration.verify>>;
     try {
-      const data = await registration.verify(otp);
-      setOtp('');
-      toast.success('Email verified!', { description: 'Welcome to VOS Sync.' });
-
-      // The server chooses the destination after graph provisioning and
-      // activation; the browser does not duplicate role routing rules.
-      const destination = data.destination;
-      if (!destination || !destination.startsWith('/')) {
+      data = await registration.verify(otp);
+      if (!data.destination || !data.destination.startsWith('/')) {
         throw new Error('Registration service returned an invalid destination.');
       }
-      window.location.assign(destination);
     } catch (error) {
       if (error instanceof RegistrationApiError) {
         if (['CHALLENGE_NOT_FOUND', 'CHALLENGE_EXPIRED', 'CHALLENGE_CANCELLED', 'CHALLENGE_CONSUMED', 'CHALLENGE_LOCKED', 'PAYLOAD_INVALID', 'COMPANY_EMAIL_CONFLICT', 'COMPANY_TIN_CONFLICT'].includes(error.code)) {
@@ -2397,9 +2501,16 @@ function SignupPageContent() {
       toast.error('Verification failed', {
         description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
       });
-    } finally {
       setLoading(false);
+      return;
     }
+
+    setOtp('');
+    setVerifiedDestination(data.destination);
+    setVerifiedRole(data.role);
+    setAttachmentUploadToken(data.attachmentToken);
+    toast.success('Email verified!', { description: 'Welcome to VOS Sync.' });
+    await completeVerifiedRegistration(data.role, data.destination, data.attachmentToken);
   };
 
   const handleResendOtp = async () => {

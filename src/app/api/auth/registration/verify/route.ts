@@ -15,6 +15,7 @@ import {
 } from "@/modules/auth/registration";
 import {
   getJwtVerificationSecret,
+  issueRegistrationAttachmentToken,
   issueRegistrationSession,
 } from "@/modules/auth/registration/registration.session";
 
@@ -53,10 +54,12 @@ export async function POST(request: NextRequest) {
     );
 
     const session = await issueRegistrationSession(user);
+    const attachmentToken = await issueRegistrationAttachmentToken(user);
     let response = registrationJson({
       ok: true,
       role: lease.payload.role,
       destination: session.destination,
+      attachmentToken,
     });
     // Clear the narrow challenge cookie first and write the root auth cookie
     // last. This is robust to development proxies that incorrectly retain

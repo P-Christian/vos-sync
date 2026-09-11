@@ -35,6 +35,26 @@ export function getJwtVerificationSecret(): Uint8Array {
 }
 
 /**
+ * A short-lived capability used only for the upload that immediately follows
+ * successful OTP verification. This avoids depending on the new auth cookie
+ * being observable by a second request in the same browser turn.
+ */
+export async function issueRegistrationAttachmentToken(
+  user: AuthSessionUser
+): Promise<string> {
+  return new jose.SignJWT({
+    purpose: "registration-attachments",
+    role: user.role,
+    role_id: user.role_id,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(String(user.user_id))
+    .setIssuedAt()
+    .setExpirationTime("15m")
+    .sign(getJwtVerificationSecret());
+}
+
+/**
  * Resolves default dashboard destination based on user role
  */
 export function resolveRoleDestination(
