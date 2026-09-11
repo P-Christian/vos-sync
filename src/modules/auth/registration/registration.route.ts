@@ -110,9 +110,18 @@ export function handleRegistrationRouteError(error: unknown): NextResponse {
     return registrationJson(error.toJSON(), error.statusCode);
   }
 
-  console.error("[registration-route] Unexpected error", {
-    name: error instanceof Error ? error.name : "UnknownError",
-  });
+  console.error(
+    "[registration-route] Unexpected error",
+    process.env.NODE_ENV !== "production" && error instanceof Error
+      ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        }
+      : {
+          name: error instanceof Error ? error.name : "UnknownError",
+        }
+  );
   return registrationJson(
     {
       ok: false,

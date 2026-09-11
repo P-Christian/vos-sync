@@ -391,7 +391,7 @@ async function requestJson<T>(
   try {
     response = await fetch(path, {
       method,
-      credentials: "same-origin",
+      credentials: "include",
       cache: "no-store",
       headers: {
         Accept: "application/json",

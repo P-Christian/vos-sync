@@ -87,6 +87,22 @@ function parseUtcTimestamp(value: unknown, fieldName: string): number {
   return timestamp;
 }
 
+function logRegistrationOtpForTesting(
+  event: "initiate" | "resend" | "email-correction",
+  challengeId: string,
+  email: string,
+  otp: string
+): void {
+  if (process.env.NODE_ENV === "production") return;
+
+  console.log("[registration:test] OTP", {
+    event,
+    challengeId,
+    email: maskEmail(email),
+    otp,
+  });
+}
+
 function assertRegistrationMailConfiguration(): void {
   try {
     assertOtpMailConfiguration();
@@ -481,6 +497,7 @@ export class RegistrationService {
 
     // 11. Send OTP email (blocking)
     try {
+      logRegistrationOtpForTesting("initiate", challengeId, input.email, otp);
       await sendOTP(input.email, otp);
     } catch {
       // If email delivery fails, cancel challenge to release state
@@ -823,6 +840,12 @@ export class RegistrationService {
 
     // Send new OTP
     try {
+      logRegistrationOtpForTesting(
+        "resend",
+        challengeId,
+        challenge.email_normalized,
+        newOtp
+      );
       await sendOTP(challenge.email_normalized, newOtp);
     } catch {
       await this.cancelAfterMailFailure(
@@ -1028,6 +1051,12 @@ export class RegistrationService {
 
     // 8. Send OTP to new address
     try {
+      logRegistrationOtpForTesting(
+        "email-correction",
+        challengeId,
+        newEmail,
+        newOtp
+      );
       await sendOTP(newEmail, newOtp);
     } catch {
       await this.cancelAfterMailFailure(

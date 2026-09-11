@@ -644,7 +644,7 @@ async function findNaturalCompany(
       { company_email: email },
       COMPANY_FIELDS
     );
-    if (existingByEmail) {
+    if (existingByEmail !== null) {
       if (!companyNaturalOwner(existingByEmail, userId)) {
         throw new RegistrationError(
           "Company email address is already registered to another company.",
@@ -664,7 +664,7 @@ async function findNaturalCompany(
       { company_tin: tin },
       COMPANY_FIELDS
     );
-    if (existingByTin) {
+    if (existingByTin !== null) {
       if (!companyNaturalOwner(existingByTin, userId)) {
         throw new RegistrationError(
           "A company with this Tax Identification Number is already registered.",
@@ -675,7 +675,7 @@ async function findNaturalCompany(
     }
   }
 
-  if (existingByEmail && existingByTin) {
+  if (existingByEmail !== null && existingByTin !== null) {
     const emailId = recordId(existingByEmail, "company_id");
     const tinId = recordId(existingByTin, "company_id");
     if (emailId !== null && tinId !== null && !sameValue(emailId, tinId, "company_id")) {
@@ -698,13 +698,13 @@ async function ensureCompany(
 ): Promise<DirectusRecord> {
   const userId = user.user_id;
   const companyForUser = await findCompanyForUser(repo, userId);
-  if (companyForUser) {
+  if (companyForUser !== null) {
     assertCompanyCompatible(companyForUser, expected, userId);
     return companyForUser;
   }
 
   const naturalCompany = await findNaturalCompany(repo, expected, userId);
-  if (naturalCompany) {
+  if (naturalCompany !== null) {
     assertCompanyCompatible(naturalCompany, expected, userId);
     return naturalCompany;
   }
@@ -723,7 +723,7 @@ async function ensureCompany(
       { company_code: candidate },
       COMPANY_FIELDS
     );
-    if (occupied) {
+    if (occupied !== null) {
       if (companyNaturalOwner(occupied, userId)) {
         assertCompanyCompatible(occupied, expected, userId);
         return occupied;
@@ -743,7 +743,7 @@ async function ensureCompany(
       // A timeout can hide a successful write.  Reconcile by idempotency and
       // natural keys before deciding whether to try another code.
       const reconciled = await findCompanyForUser(repo, userId);
-      if (reconciled) {
+      if (reconciled !== null) {
         // The create response was ambiguous. Even though the row is now
         // visible, it cannot be attributed with certainty to this invocation.
         ledger.ambiguous = true;
@@ -751,7 +751,7 @@ async function ensureCompany(
         return reconciled;
       }
       const reconciledNatural = await findNaturalCompany(repo, expected, userId);
-      if (reconciledNatural) {
+      if (reconciledNatural !== null) {
         ledger.ambiguous = true;
         assertCompanyCompatible(reconciledNatural, expected, userId);
         return reconciledNatural;
@@ -763,7 +763,7 @@ async function ensureCompany(
         { company_code: candidate },
         COMPANY_FIELDS
       );
-      if (occupiedAfterError) {
+      if (occupiedAfterError !== null) {
         if (companyNaturalOwner(occupiedAfterError, userId)) {
           ledger.ambiguous = true;
           assertCompanyCompatible(occupiedAfterError, expected, userId);
@@ -839,7 +839,7 @@ async function ensureOwnerLink(
       { company_id: companyId, user_id: userId },
       COMPANY_USER_FIELDS
     );
-    if (reconciled) {
+    if (reconciled !== null) {
       // The failed create may have committed. Preserve it for a retry rather
       // than treating a visible row as definitely created by this invocation.
       ledger.ambiguous = true;
@@ -939,7 +939,7 @@ async function ensureMarketingPreference(
       { user_id: userId, category: "MARKETING_UPDATES" },
       PREFERENCE_FIELDS
     );
-    if (reconciled) {
+    if (reconciled !== null) {
       // The create response was ambiguous, so any earlier definite writes
       // must remain for idempotent reconciliation.
       ledger.ambiguous = true;

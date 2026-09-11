@@ -52,17 +52,21 @@ export async function POST(request: NextRequest) {
     );
 
     const session = await issueRegistrationSession(user);
-    const response = registrationJson({
+    let response = registrationJson({
       ok: true,
       role: lease.payload.role,
       destination: session.destination,
     });
+    // Clear the narrow challenge cookie first and write the root auth cookie
+    // last. This is robust to development proxies that incorrectly retain
+    // only the final Set-Cookie header from a multi-cookie response.
+    response = clearRegistrationChallengeCookie(response);
     response.cookies.set({
       name: COOKIE_NAME,
       value: session.token,
       ...getCookieOptions(true),
     });
-    return clearRegistrationChallengeCookie(response);
+    return response;
   } catch (error) {
     if (lease) {
       try {

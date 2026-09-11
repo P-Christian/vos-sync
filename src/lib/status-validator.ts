@@ -90,7 +90,6 @@ export async function getAccountAuthenticationState(
       "user_fname",
       "user_lname",
       "status",
-      "user_status",
       "otp_verified",
       "is_blocked",
       "lock_until",

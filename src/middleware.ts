@@ -108,7 +108,7 @@ export async function middleware(req: NextRequest) {
             if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
 
             try {
-                const fields = "user_id,status,user_status,otp_verified,is_blocked,lock_until,session_epoch";
+                const fields = "user_id,status,otp_verified,is_blocked,lock_until,session_epoch";
                 const statusRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}?fields=${fields}`, {
                     headers,
                     cache: "no-store",

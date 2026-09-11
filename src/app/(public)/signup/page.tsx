@@ -285,7 +285,10 @@ function SearchableLocationSelect({
   }, []);
 
   const filtered = options.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
-  const selected = options.find(o => o.code === value);
+  // Location controls store option codes, while the industry field retains
+  // its display name for the provisioning payload. Resolve either shape so a
+  // valid selected industry remains visible in the trigger.
+  const selected = options.find(o => o.code === value || o.name === value);
 
   return (
     <div className="relative" ref={ref}>
@@ -298,7 +301,7 @@ function SearchableLocationSelect({
           (disabled || isLoading) && 'opacity-50 cursor-not-allowed'
         )}
       >
-        <span className={selected ? 'text-foreground' : 'text-muted-foreground/60'}>
+        <span className={cn('truncate text-left', selected ? 'text-foreground' : 'text-muted-foreground/60')}>
           {isLoading ? 'Loading...' : (selected?.name ?? placeholder)}
         </span>
         <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
@@ -318,7 +321,7 @@ function SearchableLocationSelect({
                   onClick={() => { onChange(o.code, o.name); setOpen(false); setSearch(''); }}
                   className={cn(
                     'w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-muted/80 transition-colors',
-                    value === o.code && 'bg-primary/10 text-primary font-semibold'
+                    selected?.code === o.code && 'bg-primary/10 text-primary font-semibold'
                   )}
                 >
                   {o.name}
