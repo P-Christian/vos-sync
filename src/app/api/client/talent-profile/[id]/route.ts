@@ -18,6 +18,14 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
+function toProtectedAssetUrl(fileReference: string): string {
+  const raw = String(fileReference || "");
+  const fileId = raw.includes("/assets/")
+    ? raw.split("/assets/").pop()?.split(/[?#]/u)[0]
+    : raw.split(/[?#]/u)[0];
+  return fileId ? `/api/assets/${encodeURIComponent(fileId)}` : "";
+}
+
 function getUserIdFromToken(token: string): number | null {
   try {
     const parts = token.split(".");
@@ -277,7 +285,7 @@ export async function GET(
       // Resumes only visible to VERIFIED companies (isVerified already confirmed)
       resumes: resumeData.map((r) => ({
         id: r.id,
-        file_url: r.file_url,
+        file_url: toProtectedAssetUrl(r.file_url),
         file_name: r.file_name ?? null,
         is_primary: r.is_primary,
         uploaded_at: r.uploaded_at ?? null,

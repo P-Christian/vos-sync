@@ -1,176 +1,188 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-function getHeaders(): Record<string, string> {
-  const h: Record<string, string> = {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-  if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
-  return h;
-}
-
 interface CompanyDoc {
   company_document_id?: number | string;
-  company_id: number;
+  company_id: number | string | { company_id?: number | string };
   document_type: string;
   document_name: string;
   directus_file_id: string;
   uploaded_by_user_id?: number | null;
   uploaded_at?: string;
 }
-
 interface DirectusFile {
   id: string;
   filesize?: number | string;
 }
 
+function getDirectusConfig(): { baseUrl: string; token: string } | null {
+  const baseUrl = (
+    process.env.DIRECTUS_URL?.trim() || process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || ""
+  ).replace(/\/$/u, "");
+  const token = process.env.DIRECTUS_STATIC_TOKEN?.trim() || "";
+  return baseUrl && token ? { baseUrl, token } : null;
+}
+
+function getHeaders(token: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function companyIdOf(value: CompanyDoc["company_id"]): string | number | null {
+  if (typeof value === "object" && value !== null) return value.company_id ?? null;
+  return value ?? null;
+}
+
+async function resolveClientCompany(
+  baseUrl: string,
+  token: string,
+  userId: string | number,
+): Promise<string | number | null> {
+  const params = new URLSearchParams({
+    "filter[user_id][_eq]": String(userId),
+    fields: "company_id",
+    limit: "10",
+  });
+  const response = await fetch(`${baseUrl}/items/vs_company_user?${params.toString()}`, {
+    headers: getHeaders(token),
+    cache: "no-store",
+  });
+  if (!response.ok) return null;
+  const json = (await response.json()) as { data?: Array<{ company_id?: CompanyDoc["company_id"] }> };
+  for (const link of json.data ?? []) {
+    const id = companyIdOf(link.company_id as CompanyDoc["company_id"]);
+    if (id !== null) return id;
+  }
+  return null;
+}
+
+function sameId(left: unknown, right: unknown): boolean {
+  return left !== null && left !== undefined && right !== null && right !== undefined && String(left) === String(right);
+}
+
+function errorResponse(message: string, status: number): NextResponse {
+  return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
 export async function GET(req: NextRequest) {
+  const session = await authenticateRequest(req);
+  if (!session) return errorResponse("Unauthorized.", 401);
+  if (!isClientSession(session)) return errorResponse("Client account required.", 403);
+
+  const config = getDirectusConfig();
+  if (!config) return errorResponse("Directus base URL not configured.", 503);
+
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
-
-    if (!DIRECTUS_BASE) {
-      return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
-    }
+    // The query-string companyId is a legacy UI hint only. Authorization is
+    // always resolved from the signed session's current company link.
+    const companyId = await resolveClientCompany(config.baseUrl, config.token, session.userId);
+    if (companyId === null) return errorResponse("No company is associated with this account.", 403);
 
     const { searchParams } = new URL(req.url);
-    const companyId = searchParams.get("companyId");
-
-    if (!companyId) {
-      return NextResponse.json({ error: "Missing companyId parameter." }, { status: 400 });
-    }
-
     const documentType = searchParams.get("documentType");
+    const params = new URLSearchParams({
+      "filter[company_id][_eq]": String(companyId),
+      fields: "*",
+      limit: "100",
+    });
+    if (documentType) params.set("filter[document_type][_eq]", documentType);
 
-    // 1. Fetch records from vs_company_document
-    let docsUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&fields=*`;
-    if (documentType) {
-      docsUrl += `&filter[document_type][_eq]=${encodeURIComponent(documentType)}`;
-    }
-    const docsRes = await fetch(docsUrl, {
-      headers: getHeaders(),
+    const docsRes = await fetch(`${config.baseUrl}/items/vs_company_document?${params.toString()}`, {
+      headers: getHeaders(config.token),
       cache: "no-store",
     });
+    if (!docsRes.ok) return errorResponse("Failed to fetch documents.", 502);
 
-    if (!docsRes.ok) {
-      const errText = await docsRes.text();
-      return NextResponse.json(
-        { error: `Failed to fetch documents: ${errText}` },
-        { status: docsRes.status }
-      );
-    }
-
-    const docsJson = await docsRes.json();
-    const docs: CompanyDoc[] = docsJson.data || [];
-
-    // 2. Fetch filesizes from directus_files
-    const fileIds = docs.map((d) => d.directus_file_id).filter(Boolean);
+    const docsJson = (await docsRes.json()) as { data?: CompanyDoc[] };
+    const docs = Array.isArray(docsJson.data) ? docsJson.data : [];
+    const fileIds = docs.map((doc) => doc.directus_file_id).filter(Boolean);
     const fileSizes: Record<string, number> = {};
 
     if (fileIds.length > 0) {
-      try {
-        const filesUrl = `${DIRECTUS_BASE}/files?filter[id][_in]=${fileIds.join(",")}&fields=id,filesize`;
-        const filesRes = await fetch(filesUrl, {
-          headers: getHeaders(),
-          cache: "no-store",
-        });
-        if (filesRes.ok) {
-          const filesJson = await filesRes.json();
-          const filesData: DirectusFile[] = filesJson.data || [];
-          filesData.forEach((f) => {
-            fileSizes[f.id] = f.filesize ? Number(f.filesize) : 0;
-          });
-        }
-      } catch (err) {
-        console.error("Failed to fetch filesizes:", err);
+      const filesParams = new URLSearchParams({
+        "filter[id][_in]": fileIds.join(","),
+        fields: "id,filesize",
+        limit: "100",
+      });
+      const filesRes = await fetch(`${config.baseUrl}/files?${filesParams.toString()}`, {
+        headers: getHeaders(config.token),
+        cache: "no-store",
+      });
+      if (filesRes.ok) {
+        const filesJson = (await filesRes.json()) as { data?: DirectusFile[] };
+        for (const file of filesJson.data ?? []) fileSizes[file.id] = Number(file.filesize ?? 0);
       }
     }
 
-    // 3. Format response
-    const result = docs.map((d) => ({
-      id: d.directus_file_id,
-      document_type: d.document_type,
-      name: d.document_name,
-      size: fileSizes[d.directus_file_id] || 0,
-      uploaded_at: d.uploaded_at || null,
-    }));
-
-    return NextResponse.json(result);
-  } catch (error: unknown) {
+    return NextResponse.json(
+      docs.map((doc) => ({
+        id: doc.directus_file_id,
+        document_type: doc.document_type,
+        name: doc.document_name,
+        size: fileSizes[doc.directus_file_id] || 0,
+        uploaded_at: doc.uploaded_at || null,
+      })),
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch (error) {
     console.error("GET /api/client/company-profile/documents error:", error);
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return errorResponse("Failed to fetch documents.", 502);
   }
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = await authenticateRequest(req);
+  if (!session) return errorResponse("Unauthorized.", 401);
+  if (!isClientSession(session)) return errorResponse("Client account required.", 403);
+
+  const config = getDirectusConfig();
+  if (!config) return errorResponse("Directus base URL not configured.", 503);
+
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+    const companyId = await resolveClientCompany(config.baseUrl, config.token, session.userId);
+    if (companyId === null) return errorResponse("No company is associated with this account.", 403);
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
+    const fileId = new URL(req.url).searchParams.get("id")?.trim();
+    if (!fileId) return errorResponse("Missing document/file ID.", 400);
 
-    if (!DIRECTUS_BASE) {
-      return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const fileId = searchParams.get("id");
-
-    if (!fileId) {
-      return NextResponse.json({ error: "Missing document/file ID." }, { status: 400 });
-    }
-
-    // 1. Find the vs_company_document record matching directus_file_id
-    const findUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[directus_file_id][_eq]=${fileId}&fields=company_document_id`;
-    const findRes = await fetch(findUrl, {
-      headers: getHeaders(),
+    const params = new URLSearchParams({
+      "filter[directus_file_id][_eq]": fileId,
+      fields: "company_document_id,company_id,directus_file_id",
+      limit: "100",
+    });
+    const findRes = await fetch(`${config.baseUrl}/items/vs_company_document?${params.toString()}`, {
+      headers: getHeaders(config.token),
       cache: "no-store",
     });
+    if (!findRes.ok) return errorResponse("Failed to find document.", 502);
+    const findJson = (await findRes.json()) as { data?: CompanyDoc[] };
+    const records = (findJson.data ?? []).filter((record) => sameId(companyIdOf(record.company_id), companyId));
+    if (records.length === 0) return errorResponse("Document not found.", 404);
 
-    if (findRes.ok) {
-      const findJson = await findRes.json();
-      const records: CompanyDoc[] = findJson.data || [];
-      
-      // Delete metadata records
-      for (const record of records) {
-        const delRecordUrl = `${DIRECTUS_BASE}/items/vs_company_document/${record.company_document_id}`;
-        await fetch(delRecordUrl, {
-          method: "DELETE",
-          headers: getHeaders(),
-        });
+    for (const record of records) {
+      if (record.company_document_id !== null && record.company_document_id !== undefined) {
+        await fetch(
+          `${config.baseUrl}/items/vs_company_document/${encodeURIComponent(String(record.company_document_id))}`,
+          { method: "DELETE", headers: getHeaders(config.token), cache: "no-store" },
+        );
       }
     }
 
-    // 2. Delete the actual file asset in Directus files
-    const delFileUrl = `${DIRECTUS_BASE}/files/${fileId}`;
-    const delFileRes = await fetch(delFileUrl, {
+    const deleteFileRes = await fetch(`${config.baseUrl}/files/${encodeURIComponent(fileId)}`, {
       method: "DELETE",
-      headers: getHeaders(),
+      headers: getHeaders(config.token),
+      cache: "no-store",
     });
-
-    if (!delFileRes.ok && delFileRes.status !== 404) {
-      console.warn(`Failed to delete asset file ${fileId} in Directus: ${delFileRes.status}`);
-    }
-
-    return NextResponse.json({ success: true, message: "Document deleted successfully." });
-  } catch (error: unknown) {
+    if (!deleteFileRes.ok && deleteFileRes.status !== 404) return errorResponse("Failed to delete document.", 502);
+    return NextResponse.json({ success: true, message: "Document deleted successfully." }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
     console.error("DELETE /api/client/company-profile/documents error:", error);
-    const msg = error instanceof Error ? error.message : "Internal server error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return errorResponse("Failed to delete document.", 502);
   }
 }

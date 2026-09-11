@@ -343,8 +343,11 @@ export function ResumeSidebar() {
 }
 
 function ResumeItem({ resume, onDelete, onMakePrimary, isPrimary }: { resume: VsJobSeekerResume, onDelete: () => void, onMakePrimary?: () => void, isPrimary: boolean }) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8056";
-    const downloadUrl = `${NEXT_PUBLIC_API_BASE_URL}/assets/${resume.file_url}?download`;
+    const rawFileReference = String(resume.file_url || "");
+    const fileId = rawFileReference.includes("/assets/")
+        ? rawFileReference.split("/assets/").pop()?.split(/[?#]/u)[0]
+        : rawFileReference.split(/[?#]/u)[0];
+    const downloadUrl = fileId ? `/api/freelancer/assets/${encodeURIComponent(fileId)}?download` : "#";
 
     return (
         <div className="space-y-4">

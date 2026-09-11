@@ -30,6 +30,19 @@ export function requireRegistrationV2(): NextResponse | null {
   );
 }
 
+/** Disable legacy registration surfaces atomically when v2 is enabled. */
+export function legacyRegistrationRetiredResponse(): NextResponse | null {
+  if (!isRegistrationV2Enabled()) return null;
+  return registrationJson(
+    {
+      ok: false,
+      code: "LEGACY_REGISTRATION_RETIRED",
+      message: "This registration endpoint has been retired.",
+    },
+    410
+  );
+}
+
 export function getChallengeId(request: NextRequest): string {
   const challengeId = request.cookies.get(
     REGISTRATION_CHALLENGE_COOKIE_NAME

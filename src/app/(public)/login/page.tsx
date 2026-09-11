@@ -133,15 +133,24 @@ function LoginForm() {
             const roleId = Number(data?.role_id);
             const roleStr = String(data?.role || data?.role_name || "").toUpperCase();
 
-            let defaultPath = "/main-dashboard"
-            if (roleId === 1 || roleStr === "FREELANCER") {
-                defaultPath = "/vos-sync/freelancer/dashboard"
-            } else if (roleId === 2 || roleStr === "CLIENT" || roleStr === "EMPLOYER") {
-                defaultPath = "/vos-sync/client/dashboard"
-            } else if (roleId === 3 || roleStr === "ADMIN") {
-                defaultPath = "/vos-sync/vos-admin"
-            } else if (roleId === 4 || roleStr === "SCHOOL_ADMIN") {
-                defaultPath = "/vos-sync/school-admin"
+            const serverDestination =
+                typeof data?.destination === "string" &&
+                data.destination.startsWith("/") &&
+                !data.destination.startsWith("//")
+                    ? data.destination
+                    : null
+
+            let defaultPath = serverDestination || "/main-dashboard"
+            if (!serverDestination) {
+                if (roleId === 1 || roleStr === "FREELANCER") {
+                    defaultPath = "/vos-sync/freelancer/dashboard"
+                } else if (roleId === 2 || roleStr === "CLIENT" || roleStr === "EMPLOYER") {
+                    defaultPath = "/vos-sync/client/dashboard"
+                } else if (roleId === 3 || roleStr === "ADMIN") {
+                    defaultPath = "/vos-sync/vos-admin"
+                } else if (roleId === 4 || roleStr === "SCHOOL_ADMIN" || roleStr === "SCH_ADMIN") {
+                    defaultPath = "/vos-sync/school-admin"
+                }
             }
 
             const nextParam = searchParams.get("next")
@@ -152,7 +161,7 @@ function LoginForm() {
                 let isAllowed = true
                 const isFreelancer = roleId === 1 || roleStr === "FREELANCER"
                 const isClient = roleId === 2 || roleStr === "CLIENT" || roleStr === "EMPLOYER"
-                const isSchoolAdmin = roleId === 4 || roleStr === "SCHOOL_ADMIN"
+                const isSchoolAdmin = roleId === 4 || roleStr === "SCHOOL_ADMIN" || roleStr === "SCH_ADMIN"
 
                 if (isFreelancer && (p.startsWith("/vos-sync/vos-admin") || p.startsWith("/vos-sync/client") || p.startsWith("/vos-sync/school-admin"))) {
                     isAllowed = false

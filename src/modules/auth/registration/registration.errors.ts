@@ -22,7 +22,8 @@ export type RegistrationErrorCode =
   | "PROVISIONING_IN_PROGRESS"
   | "PROVISIONING_CONFLICT"
   | "PROVISIONING_FAILED"
-  | "MAIL_DELIVERY_FAILED";
+  | "MAIL_DELIVERY_FAILED"
+  | "LEGACY_REGISTRATION_RETIRED";
 
 export interface RegistrationErrorOptions {
   remainingAttempts?: number;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { confirmOTP } from "@/modules/auth/services/auth.service";
+import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,8 @@ const COOKIE_NAME = "vos_access_token";
 const COOKIE_MAX_AGE_CAP = 60 * 60 * 24 * 7;
 
 export async function POST(req: NextRequest) {
+    const retired = legacyRegistrationRetiredResponse();
+    if (retired) return retired;
     const body = await req.json().catch(() => null);
 
     const userId = body?.userId;

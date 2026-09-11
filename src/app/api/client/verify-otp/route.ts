@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 import bcrypt from "bcrypt";
 import { getPHTimeString } from "@/lib/utils";
 
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+  const retired = legacyRegistrationRetiredResponse();
+  if (retired) return retired;
   try {
     const body = await req.json().catch(() => null);
     const email = String(body?.email ?? "").trim();

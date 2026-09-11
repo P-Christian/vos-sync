@@ -36,6 +36,7 @@ import {
 } from "../services/email.service";
 import { userExistsByEmail } from "../services/auth.repo";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { parseDirectusUtcDateTime } from "./registration.timestamps";
 
 const CHALLENGE_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -75,7 +76,7 @@ function assertOtp(value: unknown): asserts value is string {
 }
 
 function parseUtcTimestamp(value: unknown, fieldName: string): number {
-  const timestamp = typeof value === "string" ? Date.parse(value) : Number.NaN;
+  const timestamp = parseDirectusUtcDateTime(value);
   if (!Number.isFinite(timestamp)) {
     throw new RegistrationError(
       `Registration challenge has an invalid ${fieldName}.`,
@@ -525,6 +526,7 @@ export class RegistrationService {
 
     const nowMs = Date.now();
     const expiresAtMs = parseUtcTimestamp(challenge.expires_at, "expiry");
+    const expiresAtIso = new Date(expiresAtMs).toISOString();
     // The challenge schema requires this timestamp. Validate it before
     // calculating cooldown metadata or returning a terminal response.
     const lastSentAtMs = parseUtcTimestamp(
@@ -554,7 +556,7 @@ export class RegistrationService {
         stage: "TERMINAL",
         status: "EXPIRED",
         emailMasked: maskEmail(challenge.email_normalized),
-        expiresAt: challenge.expires_at,
+        expiresAt: expiresAtIso,
         resendAvailableAt: new Date(lastSentAtMs).toISOString(),
         attemptsRemaining: 0,
         terminalReason: "Verification code has expired.",
@@ -568,7 +570,7 @@ export class RegistrationService {
         stage: "TERMINAL",
         status: "LOCKED",
         emailMasked: maskEmail(challenge.email_normalized),
-        expiresAt: challenge.expires_at,
+        expiresAt: expiresAtIso,
         resendAvailableAt: new Date(lastSentAtMs).toISOString(),
         attemptsRemaining: 0,
         terminalReason: "Too many failed attempts. Challenge is locked.",
@@ -586,7 +588,7 @@ export class RegistrationService {
         stage: "TERMINAL",
         status: challenge.status,
         emailMasked: maskEmail(challenge.email_normalized),
-        expiresAt: challenge.expires_at,
+        expiresAt: expiresAtIso,
         resendAvailableAt: new Date(lastSentAtMs).toISOString(),
         attemptsRemaining: 0,
         terminalReason:
@@ -605,7 +607,7 @@ export class RegistrationService {
         stage: "VERIFYING",
         status: "VERIFYING",
         emailMasked: maskEmail(challenge.email_normalized),
-        expiresAt: challenge.expires_at,
+        expiresAt: expiresAtIso,
         resendAvailableAt: new Date(lastSentAtMs).toISOString(),
         attemptsRemaining: Math.max(
           0,
@@ -637,7 +639,7 @@ export class RegistrationService {
       stage: "ACTIVE",
       status: "ACTIVE",
       emailMasked: maskEmail(challenge.email_normalized),
-      expiresAt: challenge.expires_at,
+      expiresAt: expiresAtIso,
       resendAvailableAt,
       attemptsRemaining,
     };
@@ -781,7 +783,7 @@ export class RegistrationService {
     const newOtpHmac = computeOtpHmac(challengeId, newOtp, config.otpHmacSecret);
     const newExpiresAtMs = this.nextOtpExpiryMs(
       now,
-      new Date(challenge.created_at).getTime(),
+      parseUtcTimestamp(challenge.created_at, "creation timestamp"),
       config
     );
     if (newExpiresAtMs <= now) {
@@ -987,7 +989,7 @@ export class RegistrationService {
     const newOtpHmac = computeOtpHmac(challengeId, newOtp, config.otpHmacSecret);
     const newExpiresAtMs = this.nextOtpExpiryMs(
       now,
-      new Date(challenge.created_at).getTime(),
+      parseUtcTimestamp(challenge.created_at, "creation timestamp"),
       config
     );
     if (newExpiresAtMs <= now) {

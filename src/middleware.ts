@@ -1,11 +1,12 @@
 // src/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import * as jose from "jose";
+import { canAuthenticate } from "@/lib/status-validator";
+import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
 const COOKIE_NAME = "vos_access_token";
 const PROTECTED_PREFIXES = ["/dashboard", "/scm", "/fm", "/hrm", "/bia", "/arf", "/cafeteria", "/vos-sync", "/main-dashboard"];
 const PUBLIC_FILE = /\.(.*)$/;
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
 function isProtectedPath(pathname: string) {
     const pathLower = pathname.toLowerCase();
@@ -39,7 +40,7 @@ export async function middleware(req: NextRequest) {
         const token = req.cookies.get(COOKIE_NAME)?.value;
         if (token) {
             try {
-                const secret = new TextEncoder().encode(JWT_SECRET);
+                const secret = getJwtVerificationSecret();
                 const { payload } = await jose.jwtVerify(token, secret);
                 const userRoleId = Number(payload.role_id);
                 const userRoleName = typeof payload.role_name === "string" ? payload.role_name : (typeof payload.role === "string" ? payload.role : "");
@@ -50,7 +51,7 @@ export async function middleware(req: NextRequest) {
                     roleDashboard = "/vos-sync/client/dashboard";
                 } else if (userRoleId === 3 || roleUpper === "ADMIN") {
                     roleDashboard = "/vos-sync/vos-admin";
-                } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN") {
+                } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN" || roleUpper === "SCH_ADMIN") {
                     roleDashboard = "/vos-sync/school-admin";
                 }
 
@@ -86,7 +87,7 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
+        const secret = getJwtVerificationSecret();
         const { payload } = await jose.jwtVerify(token, secret);
 
         const userRoleName = typeof payload.role_name === 'string' ? payload.role_name.toUpperCase() : "";
@@ -99,35 +100,36 @@ export async function middleware(req: NextRequest) {
             pathLower !== "/logout"
         ) {
             const userId = Number(payload.sub || payload.user_id || payload.id);
-            const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+            const DIRECTUS_BASE = (
+                process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+            ).replace(/\/$/, "");
             const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
             const headers: Record<string, string> = { "Accept": "application/json" };
             if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
 
             try {
-                const statusRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
+                const fields = "user_id,status,user_status,otp_verified,is_blocked,lock_until,session_epoch";
+                const statusRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}?fields=${fields}`, {
                     headers,
-                    next: { revalidate: 15 }
-                } as RequestInit & { next?: { revalidate: number } });
+                    cache: "no-store",
+                });
 
-                if (statusRes.ok) {
-                    const statusJson = await statusRes.json();
-                    const dbUser = statusJson.data;
-                    if (dbUser) {
-                        const status = dbUser.status || 'ACTIVE';
-                        const sessionEpoch = dbUser.session_epoch ? new Date(dbUser.session_epoch).getTime() : 0;
-                        const tokenIat = payload.iat ? payload.iat * 1000 : 0;
-
-                        if (status === 'SUSPENDED' || status === 'BLOCKED' || sessionEpoch > tokenIat) {
-                            console.warn(`[Middleware] Account containment active for user #${userId}. Redirecting to suspended page.`);
-                            const url = req.nextUrl.clone();
-                            url.pathname = "/vos-sync/suspended";
-                            return NextResponse.redirect(url);
-                        }
-                    }
+                if (!statusRes.ok) return redirectToLogin(req);
+                const statusJson = await statusRes.json();
+                const dbUser = statusJson.data;
+                if (!canAuthenticate(dbUser)) {
+                    const url = req.nextUrl.clone();
+                    url.pathname = "/vos-sync/suspended";
+                    return NextResponse.redirect(url);
                 }
-            } catch (fetchErr) {
-                console.error("[Middleware] Failed to fetch account status details:", fetchErr);
+
+                const sessionEpoch = dbUser.session_epoch ? new Date(dbUser.session_epoch).getTime() : 0;
+                const tokenIat = payload.iat ? payload.iat * 1000 : 0;
+                if (!Number.isFinite(sessionEpoch) || sessionEpoch > tokenIat) {
+                    return redirectToLogin(req);
+                }
+            } catch {
+                return redirectToLogin(req);
             }
         }
 
@@ -140,7 +142,7 @@ export async function middleware(req: NextRequest) {
             isAuthorized = false;
         } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT" && userRoleId !== 2) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleId !== 4) {
+        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleName !== "SCH_ADMIN" && userRoleId !== 4) {
             isAuthorized = false;
         }
 
@@ -150,7 +152,7 @@ export async function middleware(req: NextRequest) {
                 roleDashboard = "/vos-sync/client/dashboard";
             } else if (userRoleId === 3 || userRoleName === "ADMIN") {
                 roleDashboard = "/vos-sync/vos-admin";
-            } else if (userRoleId === 4 || userRoleName === "SCHOOL_ADMIN") {
+            } else if (userRoleId === 4 || userRoleName === "SCHOOL_ADMIN" || userRoleName === "SCH_ADMIN") {
                 roleDashboard = "/vos-sync/school-admin";
             }
             const url = req.nextUrl.clone();

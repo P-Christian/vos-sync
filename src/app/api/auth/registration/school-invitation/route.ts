@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import {
   getSchoolInvitation,
   handleRegistrationRouteError,
+  parseDirectusUtcDateTime,
   registrationJson,
 } from "@/modules/auth/registration";
 
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       return registrationJson({ ok: true, valid: false, reason: "used" });
     }
 
-    const expiresAt = Date.parse(invitation.expires_at);
+    const expiresAt = parseDirectusUtcDateTime(invitation.expires_at);
     if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
       return registrationJson({ ok: true, valid: false, reason: "expired" });
     }
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
       invitedEmail: invitation.invited_email,
       schoolId: typeof school === "object" ? school.school_id : school,
       schoolName: typeof school === "object" ? school.school_name : undefined,
-      expiresAt: invitation.expires_at,
+      expiresAt: new Date(expiresAt).toISOString(),
     });
   } catch (error) {
     return handleRegistrationRouteError(error);

@@ -20,6 +20,13 @@ import { validatePasswordStrict } from '@/lib/password-validation';
 import PasswordRequirementsChecklist from '@/components/auth/PasswordRequirementsChecklist';
 import TurnstileWidget from '@/components/auth/TurnstileWidget';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import type { RegistrationRole } from '@/modules/auth/registration/registration.types';
+import {
+  RegistrationApiError,
+  getRegistrationMetadata,
+  getRegistrationSchoolInvitation,
+} from '@/modules/auth/registration/client/registration.api';
+import { useRegistrationChallenge } from '@/modules/auth/registration/client/useRegistrationChallenge';
 
 // ─── Types & Country Data ─────────────────────────────────────────────────────
 
@@ -83,6 +90,22 @@ const FREELANCER_STEPS = [
   { step: 2, label: 'Profile Details' },
   { step: 3, label: 'Verification' },
 ];
+
+function userTypeForRole(role: RegistrationRole): 'client' | 'freelancer' | 'school' {
+  if (role === 'CLIENT') return 'client';
+  if (role === 'FREELANCER') return 'freelancer';
+  return 'school';
+}
+
+function formatCountdown(timestamp: string | null, now: number): string | null {
+  if (!timestamp) return null;
+  const remaining = Date.parse(timestamp) - now;
+  if (!Number.isFinite(remaining) || remaining <= 0) return null;
+  const totalSeconds = Math.ceil(remaining / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
 
 
 // ─── Location Option ──────────────────────────────────────────────────────────
@@ -310,7 +333,7 @@ function SearchableLocationSelect({
 
 // ─── Main SignupPage ──────────────────────────────────────────────────────────
 
-type MainStep = 'selection' | 'client' | 'client-otp' | 'freelancer' | 'freelancer-otp' | 'school' | 'school-otp';
+type MainStep = 'selection' | 'client' | 'freelancer' | 'school' | 'otp';
 
 function SignupPageContent() {
   const router = useRouter();
@@ -341,14 +364,12 @@ function SignupPageContent() {
 
   // Front ID
   const [govIdFrontFile, setGovIdFrontFile] = useState<File | null>(null);
-  const [govIdFrontFileId, setGovIdFrontFileId] = useState<string | null>(null);
   const [govIdFrontPreview, setGovIdFrontPreview] = useState<string | null>(null);
   const [dragOverFront, setDragOverFront] = useState(false);
   const govIdFrontInputRef = useRef<HTMLInputElement>(null);
 
   // Back ID
   const [govIdBackFile, setGovIdBackFile] = useState<File | null>(null);
-  const [govIdBackFileId, setGovIdBackFileId] = useState<string | null>(null);
   const [govIdBackPreview, setGovIdBackPreview] = useState<string | null>(null);
   const [dragOverBack, setDragOverBack] = useState(false);
   const govIdBackInputRef = useRef<HTMLInputElement>(null);
@@ -375,8 +396,39 @@ function SignupPageContent() {
 
   // ── Shared OTP ────────────────────────────────────────────────────────────
   const [otp, setOtp] = useState('');
-  const [otpUserId, setOtpUserId] = useState<number | null>(null);
   const [otpEmail, setOtpEmail] = useState('');
+  const [otpCorrectionEmail, setOtpCorrectionEmail] = useState('');
+  const [showEmailCorrection, setShowEmailCorrection] = useState(false);
+  const [otpNow, setOtpNow] = useState(() => Date.now());
+  const registration = useRegistrationChallenge();
+  const clearRegistration = registration.clear;
+
+  const resetRegistrationState = useCallback((resetView = false) => {
+    clearRegistration();
+    setOtp('');
+    setOtpCorrectionEmail('');
+    setShowEmailCorrection(false);
+    if (resetView) {
+      setStep('selection');
+      setUserType(null);
+    }
+  }, [clearRegistration]);
+
+  useEffect(() => {
+    if (!registration.role || (registration.phase !== 'active' && registration.phase !== 'verifying')) return;
+    const role = registration.role;
+    const email = registration.draft?.email || registration.emailMasked || '';
+    const correctionEmail = registration.draft?.email || '';
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setUserType(userTypeForRole(role));
+      setOtpEmail(email);
+      setOtpCorrectionEmail(correctionEmail);
+      setStep('otp');
+    });
+    return () => { cancelled = true; };
+  }, [registration.role, registration.phase, registration.draft?.email, registration.emailMasked]);
 
   // ── Freelancer (state preserved from existing impl) ───────────────────────
   const [freelancerStep, setFreelancerStep] = useState(1);
@@ -394,20 +446,16 @@ function SignupPageContent() {
   const [freelancerTermsAgreed, setFreelancerTermsAgreed] = useState(false);
   const [freelancerMarketingConsent, setFreelancerMarketingConsent] = useState(true);
   const [freelancerErrors, setFreelancerErrors] = useState<Record<string, string>>({});
-  const [freelancerUserId, setFreelancerUserId] = useState<number | null>(null);
 
   // Resume file state
   const [freelancerResumeFile, setFreelancerResumeFile] = useState<File | null>(null);
   const [freelancerResumeFileName, setFreelancerResumeFileName] = useState<string | null>(null);
-  const [freelancerResumeFileId, setFreelancerResumeFileId] = useState<string | null>(null);
 
   // Gov ID state
   const [freelancerGovIdType, setFreelancerGovIdType] = useState('');
   const [freelancerGovIdFrontFile, setFreelancerGovIdFrontFile] = useState<File | null>(null);
-  const [freelancerGovIdFrontFileId, setFreelancerGovIdFrontFileId] = useState<string | null>(null);
   const [freelancerGovIdFrontPreview, setFreelancerGovIdFrontPreview] = useState<string | null>(null);
   const [freelancerGovIdBackFile, setFreelancerGovIdBackFile] = useState<File | null>(null);
-  const [freelancerGovIdBackFileId, setFreelancerGovIdBackFileId] = useState<string | null>(null);
   const [freelancerGovIdBackPreview, setFreelancerGovIdBackPreview] = useState<string | null>(null);
 
   // ── School Signup State ───────────────────────────────────────────────────
@@ -429,36 +477,34 @@ function SignupPageContent() {
   const [schoolShowPassword, setSchoolShowPassword] = useState(false);
   const [schoolTermsAgreed, setSchoolTermsAgreed] = useState(false);
   const [schoolErrors, setSchoolErrors] = useState<Record<string, string>>({});
-  const [schoolUserId, setSchoolUserId] = useState<number | null>(null);
 
 
   // ── Master Data Fetching (vs_company_size & vs_industry) ─────────────────
-  const [fetchedCompanySizes, setFetchedCompanySizes] = useState<{ company_size_id: number; company_size_name: string }[]>([]);
-  const [fetchedIndustries, setFetchedIndustries] = useState<{ industry_id: number; industry_name: string }[]>([]);
+  const [fetchedCompanySizes, setFetchedCompanySizes] = useState<{ id: string | number; name: string }[]>([]);
+  const [fetchedIndustries, setFetchedIndustries] = useState<{ id: string | number; name: string }[]>([]);
+
+  useEffect(() => {
+    if (step !== 'otp') return;
+    const timer = window.setInterval(() => setOtpNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [step]);
 
   useEffect(() => {
     async function loadMasterCollections() {
       try {
-        const [sizeRes, indRes] = await Promise.all([
-          fetch('/api/client/registration?directusCollection=vs_company_size&limit=-1'),
-          fetch('/api/client/registration?directusCollection=vs_industry&limit=-1'),
-        ]);
-
-        if (sizeRes.ok) {
-          const sizeJson = await sizeRes.json();
-          const items = sizeJson.data;
-          if (Array.isArray(items) && items.length > 0) {
-            setFetchedCompanySizes(items);
-          }
-        }
-
-        if (indRes.ok) {
-          const indJson = await indRes.json();
-          const items = indJson.data;
-          if (Array.isArray(items) && items.length > 0) {
-            setFetchedIndustries(items);
-          }
-        }
+        const metadata = await getRegistrationMetadata();
+        const toOptions = (items: Array<Record<string, unknown>> | undefined) =>
+          (items ?? []).flatMap(item => {
+            const id = item.id ?? item.company_size_id ?? item.industry_id;
+            const name = item.name ?? item.company_size_name ?? item.industry_name;
+            return (typeof id === 'string' || typeof id === 'number') && typeof name === 'string'
+              ? [{ id, name }]
+              : [];
+          });
+        const companySizes = toOptions(metadata.companySizes);
+        const industries = toOptions(metadata.industries);
+        if (companySizes.length > 0) setFetchedCompanySizes(companySizes);
+        if (industries.length > 0) setFetchedIndustries(industries);
       } catch (err) {
         console.error("Failed to load dynamic master data for signup options:", err);
       }
@@ -569,8 +615,7 @@ function SignupPageContent() {
   };
 
   const handleBackToSelection = () => {
-    setStep('selection');
-    setUserType(null);
+    resetRegistrationState(true);
     router.replace('/signup', { scroll: false });
     setClientStep(1);
     setFreelancerStep(1);
@@ -589,10 +634,8 @@ function SignupPageContent() {
     setBarangays([]);
     setGovIdType('');
     setGovIdFrontFile(null);
-    setGovIdFrontFileId(null);
     setGovIdFrontPreview(null);
     setGovIdBackFile(null);
-    setGovIdBackFileId(null);
     setGovIdBackPreview(null);
     setTermsAgreed(false);
     setMarketingConsent(false);
@@ -607,13 +650,10 @@ function SignupPageContent() {
     setFreelancerEmploymentTypes([]);
     setFreelancerResumeFile(null);
     setFreelancerResumeFileName(null);
-    setFreelancerResumeFileId(null);
     setFreelancerGovIdType('');
     setFreelancerGovIdFrontFile(null);
-    setFreelancerGovIdFrontFileId(null);
     setFreelancerGovIdFrontPreview(null);
     setFreelancerGovIdBackFile(null);
-    setFreelancerGovIdBackFileId(null);
     setFreelancerGovIdBackPreview(null);
     setFreelancerTermsAgreed(false);
     setFreelancerMarketingConsent(true);
@@ -644,14 +684,13 @@ function SignupPageContent() {
       if (roleParam === 'school' || inviteToken) {
         if (inviteToken) {
           setLoading(true);
-          fetch(`/api/auth/school-register?token=${inviteToken}`)
-            .then(res => res.json())
+          getRegistrationSchoolInvitation(inviteToken)
             .then(data => {
               if (data.valid) {
                 setSchoolFormData(prev => ({
                   ...prev,
-                  schoolName: data.school_name || '',
-                  email: data.invited_email || '',
+                  schoolName: data.schoolName || '',
+                  email: data.invitedEmail || '',
                 }));
               } else {
                 toast.error('Invitation link is invalid or expired.');
@@ -718,7 +757,6 @@ function SignupPageContent() {
 
     if (side === 'front') {
       setGovIdFrontFile(file);
-      setGovIdFrontFileId(null);
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = e => setGovIdFrontPreview(e.target?.result as string);
@@ -729,7 +767,6 @@ function SignupPageContent() {
       setErrors(prev => ({ ...prev, govIdFrontFile: '' }));
     } else {
       setGovIdBackFile(file);
-      setGovIdBackFileId(null);
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = e => setGovIdBackPreview(e.target?.result as string);
@@ -741,49 +778,16 @@ function SignupPageContent() {
     }
   };
 
-  const handleStep2Next = async () => {
+  const handleStep2Next = () => {
     const e: Record<string, string> = {};
     if (!govIdType) e.govIdType = 'Please select a government ID type.';
     if (!govIdFrontFile) e.govIdFrontFile = 'Please upload the front side of your ID.';
     setErrors(e);
     if (Object.keys(e).length > 0) { toast.error('Please select an ID type and upload the front side of your ID.'); return; }
 
-    setLoading(true);
-    try {
-      let frontId = govIdFrontFileId;
-      let backId = govIdBackFileId;
-
-      if (!frontId && govIdFrontFile) {
-        const fdFront = new FormData();
-        fdFront.append('file', govIdFrontFile);
-        fdFront.append('govIdType', `${govIdType} (Front)`);
-        const resFront = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdFront });
-        const dataFront = await resFront.json();
-        if (!resFront.ok) { toast.error('Front ID upload failed', { description: dataFront.error || 'Could not upload front ID.' }); return; }
-        frontId = dataFront.fileId;
-        setGovIdFrontFileId(frontId);
-      }
-
-      if (!backId && govIdBackFile) {
-        const fdBack = new FormData();
-        fdBack.append('file', govIdBackFile);
-        fdBack.append('govIdType', `${govIdType} (Back)`);
-        const resBack = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdBack });
-        const dataBack = await resBack.json();
-        if (!resBack.ok) { toast.error('Back ID upload failed', { description: dataBack.error || 'Could not upload back ID.' }); return; }
-        backId = dataBack.fileId;
-        setGovIdBackFileId(backId);
-      }
-
-      toast.success('ID documents uploaded successfully!');
-      setErrors({});
-      setClientStep(3);
-      window.scrollTo(0, 0);
-    } catch {
-      toast.error('Upload failed', { description: 'Network error. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
+    setErrors({});
+    setClientStep(3);
+    window.scrollTo(0, 0);
   };
 
   // ── Client Step 3: Company Info ───────────────────────────────────────────
@@ -828,94 +832,62 @@ function SignupPageContent() {
       const rawContact = step1.contact.replace(/\D/g, '').replace(/^0/, '');
       const fullContact = `${dialCode}${rawContact}`;
 
-      const payload = {
-        account: {
-          user_email: step1.email.trim().toLowerCase(),
-          user_fname: step1.firstName.trim(),
-          user_lname: step1.lastName.trim(),
-          user_contact: fullContact,
-          user_job_title: step1.jobTitle.trim(),
-          password: step1.password,
-          confirmPassword: step1.confirmPassword,
-        },
-        company: {
-          company_name: company.companyName.trim(),
-          industry: company.industry,
-          company_size: company.companySize,
-          company_website: company.websiteUrl.trim() || null,
-          company_contact: company.landline.trim() || null,
-          company_email: step1.email.trim().toLowerCase(),
-        },
-        address: {
-          company_country: company.companyCountryName,
-          company_province: company.companyProvince,
-          company_city: company.companyCity,
-          company_brgy: company.companyBarangay.trim() || null,
-          company_address: company.companyStreet.trim() || null,
-        },
-        gov_id_front_file_id: govIdFrontFileId ?? null,
-        gov_id_back_file_id: govIdBackFileId ?? null,
-        gov_id_file_id: govIdFrontFileId ?? null,
-        gov_id_type: govIdType || null,
-        tin: company.tin.trim() || null,
+      const email = step1.email.trim().toLowerCase();
+      await registration.initiate({
+        role: 'CLIENT',
+        email,
+        user_fname: step1.firstName.trim(),
+        user_lname: step1.lastName.trim(),
+        user_contact: fullContact,
+        user_position: step1.jobTitle.trim(),
+        password: step1.password,
+        confirmPassword: step1.confirmPassword,
+        company_name: company.companyName.trim(),
+        industry: company.industry,
+        company_province: company.companyProvince,
+        company_city: company.companyCity,
+        company_brgy: company.companyBarangay.trim() || null,
+        company_size: company.companySize || null,
+        company_email: email,
+        company_tin: company.tin.trim() || null,
+        company_website: company.websiteUrl.trim() || null,
+        company_phone: company.landline.trim() || null,
         terms_accepted: true,
         privacy_accepted: true,
         marketing_consent: marketingConsent,
         turnstileToken,
-      };
-
-      const res = await fetch('/api/client/registration', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      }, {
+        role: 'CLIENT',
+        step: 'client-otp',
+        displayStep: 'client-otp',
+        firstName: step1.firstName,
+        lastName: step1.lastName,
+        email,
+        companyName: company.companyName,
+        needsFileReselection: { clientGovernmentId: true },
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error('Registration failed', { description: data.error || 'An error occurred.' });
-        return;
-      }
 
       toast.success('Account created!', {
         description: 'Please check your email for the verification code.',
       });
 
-      setOtpUserId(data.userId ?? null);
-      setOtpEmail(step1.email.trim().toLowerCase());
-      setStep('client-otp');
+      setStep1(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      setOtpEmail(email);
+      setOtpCorrectionEmail(email);
+      setOtp('');
+      setTurnstileToken('');
+      setStep('otp');
       window.scrollTo(0, 0);
-    } catch {
-      toast.error('Registration failed', { description: 'Network error. Please try again.' });
+    } catch (error) {
+      toast.error('Registration failed', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
   };
 
   // ── Client OTP ────────────────────────────────────────────────────────────
-
-  const handleClientOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: otpUserId, code: otp }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error('Verification failed', { description: data.message || 'Invalid code.' });
-        return;
-      }
-      toast.success('Email verified!', { description: 'Welcome to VOS Sync.' });
-      window.location.href = '/vos-sync/client/company-profile';
-    } catch {
-      toast.error('Verification failed', { description: 'Network error.' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ── Freelancer Handlers ───────────────────────────────────────────────────
 
@@ -1008,7 +980,7 @@ function SignupPageContent() {
     return e;
   };
 
-  const handleFreelancerStep2Next = async () => {
+  const handleFreelancerStep2Next = () => {
     const errs = validateFreelancerStep2();
     if (Object.keys(errs).length > 0) {
       const errorDetails = Object.values(errs).join(', ');
@@ -1016,29 +988,8 @@ function SignupPageContent() {
       return;
     }
 
-    setLoading(true);
-    try {
-      if (freelancerResumeFile && !freelancerResumeFileId) {
-        const fd = new FormData();
-        fd.append('file', freelancerResumeFile);
-        fd.append('govIdType', 'Resume/CV');
-        fd.append('folder', 'c380f14b-75d1-4b61-b2b4-9a6e596f3162');
-        const res = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) {
-          toast.error('Resume upload failed', { description: data.error || 'Could not upload resume.' });
-          setLoading(false);
-          return;
-        }
-        setFreelancerResumeFileId(data.fileId);
-      }
-      setFreelancerStep(3);
-      window.scrollTo(0, 0);
-    } catch {
-      toast.error('Upload failed', { description: 'Network error. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
+    setFreelancerStep(3);
+    window.scrollTo(0, 0);
   };
 
   const validateFreelancerStep3 = (): Record<string, string> => {
@@ -1062,65 +1013,53 @@ function SignupPageContent() {
     }
     setLoading(true);
     try {
-      let frontId = freelancerGovIdFrontFileId;
-      let backId = freelancerGovIdBackFileId;
-
-      if (freelancerGovIdFrontFile && !frontId) {
-        const fdFront = new FormData();
-        fdFront.append('file', freelancerGovIdFrontFile);
-        fdFront.append('govIdType', `${freelancerGovIdType} (Front)`);
-        fdFront.append('folder', 'e81cc874-8036-4655-8bbb-1524a194866b');
-        const resFront = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdFront });
-        const dataFront = await resFront.json();
-        if (!resFront.ok) {
-          toast.error('Front ID upload failed', { description: dataFront.error || 'Could not upload front ID.' });
-          setLoading(false);
-          return;
-        }
-        frontId = dataFront.fileId;
-        setFreelancerGovIdFrontFileId(frontId);
-      }
-
-      if (freelancerGovIdBackFile && !backId) {
-        const fdBack = new FormData();
-        fdBack.append('file', freelancerGovIdBackFile);
-        fdBack.append('govIdType', `${freelancerGovIdType} (Back)`);
-        fdBack.append('folder', 'e81cc874-8036-4655-8bbb-1524a194866b');
-        const resBack = await fetch('/api/auth/signup/upload-gov-id', { method: 'POST', body: fdBack });
-        const dataBack = await resBack.json();
-        if (!resBack.ok) {
-          toast.error('Back ID upload failed', { description: dataBack.error || 'Could not upload back ID.' });
-          setLoading(false);
-          return;
-        }
-        backId = dataBack.fileId;
-        setFreelancerGovIdBackFileId(backId);
-      }
-
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          role: 'FREELANCER',
-          turnstileToken,
-          employmentTypes: freelancerEmploymentTypes,
-          resumeFileId: freelancerResumeFileId,
-          resumeFileName: freelancerResumeFileName,
-          govIdType: freelancerGovIdType,
-          govIdFrontFileId: frontId,
-          govIdBackFileId: backId,
-          marketingConsent: freelancerMarketingConsent,
-        }),
+      const email = formData.email.trim().toLowerCase();
+      const rawContact = formData.contact.replace(/\D/g, '').replace(/^0/, '');
+      const fullContact = `${freelancerSelectedCountry.dialCode}${rawContact}`;
+      await registration.initiate({
+        role: 'FREELANCER',
+        email,
+        user_fname: formData.firstName.trim(),
+        user_lname: formData.lastName.trim(),
+        user_contact: fullContact,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        jobTitle: formData.jobTitle.trim(),
+        country: formData.country,
+        province: formData.province || undefined,
+        city: formData.city || undefined,
+        barangay: formData.barangay || undefined,
+        street: formData.street || undefined,
+        employmentTypes: freelancerEmploymentTypes,
+        skills: formData.skills.split(',').map(skill => skill.trim()).filter(Boolean),
+        terms_accepted: true,
+        privacy_accepted: true,
+        marketing_consent: freelancerMarketingConsent,
+        turnstileToken,
+      }, {
+        role: 'FREELANCER',
+        step: 'freelancer-otp',
+        displayStep: 'freelancer-otp',
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email,
+        needsFileReselection: {
+          freelancerResume: Boolean(freelancerResumeFile),
+          freelancerGovernmentId: Boolean(freelancerGovIdFrontFile || freelancerGovIdBackFile),
+        },
       });
-      const data = await res.json();
-      if (!res.ok) { toast.error('Signup failed', { description: data.message || 'An error occurred' }); return; }
       toast.success('Account created!', { description: 'Please check your email for the verification code.' });
-      setFreelancerUserId(data.userId);
-      setOtpEmail(formData.email);
-      setStep('freelancer-otp');
-    } catch {
-      toast.error('Signup failed', { description: 'Network error.' });
+      setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      setOtpEmail(email);
+      setOtpCorrectionEmail(email);
+      setOtp('');
+      setTurnstileToken('');
+      setStep('otp');
+      window.scrollTo(0, 0);
+    } catch (error) {
+      toast.error('Signup failed', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
     } finally {
       setLoading(false);
     }
@@ -1132,30 +1071,6 @@ function SignupPageContent() {
     } else {
       setFreelancerStep(prev => prev - 1);
       window.scrollTo(0, 0);
-    }
-  };
-
-  const handleFreelancerOtpSubmit = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: freelancerUserId, code: otp }),
-      });
-      const data = await res.json();
-      if (!res.ok) { toast.error('Verification failed', { description: data.message || 'Invalid code.' }); return; }
-      toast.success('Verified!', { description: 'Welcome to VOS Sync.' });
-      if (data?.role_id === 1) {
-        window.location.href = '/vos-sync/freelancer/dashboard';
-      } else {
-        window.location.href = '/main-dashboard';
-      }
-    } catch {
-      toast.error('Verification failed', { description: 'Network error.' });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -1419,7 +1334,7 @@ function SignupPageContent() {
                 <p className="text-[11px] text-muted-foreground">{(govIdFrontFile.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <button type="button"
-                onClick={() => { setGovIdFrontFile(null); setGovIdFrontFileId(null); setGovIdFrontPreview(null); }}
+                onClick={() => { setGovIdFrontFile(null); setGovIdFrontPreview(null); }}
                 className="text-muted-foreground hover:text-destructive transition-colors p-1">
                 <X size={18} />
               </button>
@@ -1470,7 +1385,7 @@ function SignupPageContent() {
                 <p className="text-[11px] text-muted-foreground">{(govIdBackFile.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <button type="button"
-                onClick={() => { setGovIdBackFile(null); setGovIdBackFileId(null); setGovIdBackPreview(null); }}
+                onClick={() => { setGovIdBackFile(null); setGovIdBackPreview(null); }}
                 className="text-muted-foreground hover:text-destructive transition-colors p-1">
                 <X size={18} />
               </button>
@@ -1536,7 +1451,7 @@ function SignupPageContent() {
                 Industry / Sector <span className="text-destructive">*</span>
               </label>
               <SearchableLocationSelect
-                options={fetchedIndustries.map(i => ({ code: i.industry_name, name: i.industry_name }))}
+                options={fetchedIndustries.map(i => ({ code: String(i.id), name: i.name }))}
                 value={company.industry}
                 onChange={(_code, name) => cSet('industry', name)}
                 placeholder="Select industry..."
@@ -1556,7 +1471,7 @@ function SignupPageContent() {
                 </SelectTrigger>
                 <SelectContent>
                   {fetchedCompanySizes.map(s => (
-                    <SelectItem key={s.company_size_id} value={s.company_size_name}>{s.company_size_name}</SelectItem>
+                    <SelectItem key={String(s.id)} value={String(s.id)}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1788,27 +1703,76 @@ function SignupPageContent() {
 
   // ─── Render: Client OTP ───────────────────────────────────────────────────
 
-  const renderClientOtpScreen = () => (
-    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
-      <StepIndicator currentStep={5} />
-      <div className="mb-8">
-        <h1 className="text-3xl font-medium text-primary mb-4">Verify your email</h1>
-        <p className="text-muted-foreground text-sm">
-          We&apos;ve sent a 6-digit verification code to{' '}
-          <strong>{otpEmail}</strong>. Please enter it below.
-        </p>
+  const renderRegistrationOtpScreen = () => {
+    const role = registration.role;
+    const expiresIn = formatCountdown(registration.expiresAt, otpNow);
+    const resendIn = formatCountdown(registration.resendAvailableAt, otpNow);
+    const email = otpEmail || registration.emailMasked || 'your email address';
+
+    return (
+      <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
+        {role === 'CLIENT' && <StepIndicator currentStep={5} />}
+        {role === 'FREELANCER' && <StepIndicator currentStep={3} steps={FREELANCER_STEPS} />}
+        <div className="mb-8">
+          <h1 className="text-3xl font-medium text-primary mb-4">
+            {role === 'SCH_ADMIN' ? 'Verify your school email' : 'Verify your email'}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            We&apos;ve sent a 6-digit verification code to <strong>{email}</strong>. Please enter it below.
+          </p>
+        </div>
+
+        <form onSubmit={handleOtpSubmit} className="space-y-6" id="registration-otp">
+          <Input id="otp" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp}
+            onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
+            className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+          <Button type="submit" disabled={loading || otp.length !== 6 || !registration.isActive}
+            className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
+            {loading ? 'Verifying...' : 'Verify Email'}
+          </Button>
+        </form>
+
+        <div className="mt-5 space-y-1 text-xs text-muted-foreground">
+          {registration.attemptsRemaining !== null && <p>Attempts remaining: {registration.attemptsRemaining}</p>}
+          {expiresIn && <p>Code expires in {expiresIn}</p>}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          <Button type="button" variant="outline" onClick={handleResendOtp}
+            disabled={loading || !registration.isActive || Boolean(resendIn)}
+            className="w-full py-5 rounded-full">
+            {resendIn ? `Resend available in ${resendIn}` : 'Resend code'}
+          </Button>
+
+          <button type="button" onClick={() => setShowEmailCorrection(prev => !prev)} disabled={loading}
+            className="text-sm text-primary hover:underline font-medium">
+            {showEmailCorrection ? 'Keep this email' : 'Use a different email'}
+          </button>
+
+          {showEmailCorrection && (
+            <form onSubmit={handleEmailCorrection} className="mt-3 rounded-xl border border-border bg-muted/20 p-4 text-left space-y-3">
+              <label htmlFor="otp-correction-email" className="block text-sm font-medium text-foreground">New email address</label>
+              <Input id="otp-correction-email" type="email" value={otpCorrectionEmail}
+                onChange={e => setOtpCorrectionEmail(e.target.value)} disabled={loading}
+                className="h-11 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+              <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+              <div className="flex gap-2">
+                <Button type="submit" disabled={loading || !otpCorrectionEmail.trim() || !turnstileToken}
+                  className="flex-1 rounded-full">Save email</Button>
+                <Button type="button" variant="ghost" onClick={() => setShowEmailCorrection(false)} disabled={loading}
+                  className="rounded-full">Cancel</Button>
+              </div>
+            </form>
+          )}
+
+          <button type="button" onClick={handleCancelRegistration} disabled={loading}
+            className="text-sm text-muted-foreground hover:text-destructive hover:underline">
+            Cancel registration
+          </button>
+        </div>
       </div>
-      <form onSubmit={handleClientOtpSubmit} className="space-y-6">
-        <Input id="client-otp" type="text" maxLength={6} value={otp}
-          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
-          className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
-        <Button type="submit" disabled={loading || otp.length !== 6}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
-          {loading ? 'Verifying...' : 'Verify Email'}
-        </Button>
-      </form>
-    </div>
-  );
+    );
+  };
 
   // ─── Render: Freelancer Form ──────────────────────────────────────────────
 
@@ -2032,7 +1996,7 @@ function SignupPageContent() {
           {freelancerResumeFileName && (
             <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-lg text-sm border border-border/80">
               <span className="font-medium truncate max-w-[80%]">{freelancerResumeFileName}</span>
-              <button type="button" onClick={() => { setFreelancerResumeFile(null); setFreelancerResumeFileName(null); setFreelancerResumeFileId(null); }}
+              <button type="button" onClick={() => { setFreelancerResumeFile(null); setFreelancerResumeFileName(null); }}
                 className="text-destructive hover:underline font-semibold cursor-pointer">Remove</button>
             </div>
           )}
@@ -2097,7 +2061,7 @@ function SignupPageContent() {
               )}
             </div>
             {freelancerGovIdFrontFile && (
-              <button type="button" onClick={() => { setFreelancerGovIdFrontFile(null); setFreelancerGovIdFrontPreview(null); setFreelancerGovIdFrontFileId(null); }}
+              <button type="button" onClick={() => { setFreelancerGovIdFrontFile(null); setFreelancerGovIdFrontPreview(null); }}
                 className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Front ID</button>
             )}
           </div>
@@ -2130,7 +2094,7 @@ function SignupPageContent() {
               )}
             </div>
             {freelancerGovIdBackFile && (
-              <button type="button" onClick={() => { setFreelancerGovIdBackFile(null); setFreelancerGovIdBackPreview(null); setFreelancerGovIdBackFileId(null); }}
+              <button type="button" onClick={() => { setFreelancerGovIdBackFile(null); setFreelancerGovIdBackPreview(null); }}
                 className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Back ID</button>
             )}
           </div>
@@ -2218,26 +2182,6 @@ function SignupPageContent() {
 
   // ─── Render: Freelancer OTP ───────────────────────────────────────────────
 
-  const renderFreelancerOtpScreen = () => (
-    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
-      <div className="mb-8">
-        <h1 className="text-3xl font-medium text-primary mb-4">Verify your email</h1>
-        <p className="text-muted-foreground">
-          We&apos;ve sent a 6-digit verification code to <strong>{otpEmail}</strong>. Please enter it below to verify your account.
-        </p>
-      </div>
-      <form onSubmit={handleFreelancerOtpSubmit} className="space-y-6">
-        <Input id="otp" type="text" maxLength={6} value={otp}
-          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
-          className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
-        <Button type="submit" disabled={loading || otp.length !== 6}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
-          {loading ? 'Verifying...' : 'Verify Email'}
-        </Button>
-      </form>
-    </div>
-  );
-
   // ─── School Signup Submit Handlers ────────────────────────────────────────
 
   const validateSchoolForm = () => {
@@ -2290,65 +2234,167 @@ function SignupPageContent() {
       const rawContact = schoolFormData.contact.trim().replace(/^0/, '');
       const fullContact = `${dialCode}${rawContact}`;
 
-      const res = await fetch('/api/auth/school-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: inviteToken || undefined,
-          user_fname: schoolFormData.firstName.trim(),
-          user_lname: schoolFormData.lastName.trim(),
-          user_contact: fullContact,
-          user_email: schoolFormData.email.trim().toLowerCase(),
-          password: schoolFormData.password,
-          school_name: schoolFormData.schoolName.trim(),
-          school_type: schoolFormData.schoolType,
-          city_municipality: schoolFormData.city,
-          province: schoolFormData.province,
-          turnstileToken
-        })
+      const email = schoolFormData.email.trim().toLowerCase();
+      await registration.initiate({
+        role: 'SCH_ADMIN',
+        email,
+        user_fname: schoolFormData.firstName.trim(),
+        user_lname: schoolFormData.lastName.trim(),
+        user_contact: fullContact,
+        password: schoolFormData.password,
+        confirmPassword: schoolFormData.confirmPassword,
+        school_name: schoolFormData.schoolName.trim(),
+        school_type: schoolFormData.schoolType,
+        city_municipality: schoolFormData.city,
+        province: schoolFormData.province,
+        token: inviteToken || undefined,
+        terms_accepted: true,
+        privacy_accepted: true,
+        turnstileToken,
+      }, {
+        role: 'SCH_ADMIN',
+        step: 'school-otp',
+        displayStep: 'school-otp',
+        firstName: schoolFormData.firstName,
+        lastName: schoolFormData.lastName,
+        email,
+        schoolName: schoolFormData.schoolName,
       });
-
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error('Signup failed', { description: data.error || 'Could not register school.' });
-        return;
-      }
 
       toast.success('Registration successful!', { description: 'Please check your email for the verification code.' });
-      setSchoolUserId(data.userId);
-      setOtpEmail(schoolFormData.email.trim());
-      setStep('school-otp');
-    } catch {
-      toast.error('Signup failed', { description: 'Network error.' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSchoolOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: schoolUserId, code: otp }),
+      setSchoolFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      setOtpEmail(email);
+      setOtpCorrectionEmail(email);
+      setOtp('');
+      setTurnstileToken('');
+      setStep('otp');
+      window.scrollTo(0, 0);
+    } catch (error) {
+      toast.error('Signup failed', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
       });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error('Verification failed', { description: data.message || 'Invalid code.' });
-        return;
-      }
-      toast.success('Account verified!', { description: 'Welcome to VOS Sync. You can now log in.' });
-      window.location.href = '/login';
-    } catch {
-      toast.error('Verification failed', { description: 'Network error.' });
     } finally {
       setLoading(false);
     }
   };
 
   // ─── Render: School Form ──────────────────────────────────────────────────
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!registration.sealedPayload || !registration.role) {
+      toast.error('Verification session unavailable', { description: 'Please start registration again.' });
+      resetRegistrationState(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await registration.verify(otp);
+      setOtp('');
+      toast.success('Email verified!', { description: 'Welcome to VOS Sync.' });
+
+      // The server chooses the destination after graph provisioning and
+      // activation; the browser does not duplicate role routing rules.
+      const destination = data.destination;
+      if (!destination || !destination.startsWith('/')) {
+        throw new Error('Registration service returned an invalid destination.');
+      }
+      window.location.assign(destination);
+    } catch (error) {
+      if (error instanceof RegistrationApiError) {
+        if (['CHALLENGE_NOT_FOUND', 'CHALLENGE_EXPIRED', 'CHALLENGE_CANCELLED', 'CHALLENGE_CONSUMED', 'CHALLENGE_LOCKED', 'PAYLOAD_INVALID'].includes(error.code)) {
+          resetRegistrationState(true);
+        }
+      }
+      toast.error('Verification failed', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!registration.sealedPayload || !registration.isActive) return;
+    setLoading(true);
+    try {
+      await registration.resend();
+      setOtp('');
+      toast.success('New code sent', { description: 'Check your email for the latest verification code.' });
+    } catch (error) {
+      toast.error('Could not resend code', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailCorrection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newEmail = otpCorrectionEmail.trim().toLowerCase();
+    if (!registration.sealedPayload || !registration.role) {
+      toast.error('Verification session unavailable', { description: 'Please start registration again.' });
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(newEmail)) {
+      toast.error('Enter a valid email address.');
+      return;
+    }
+    if (!turnstileToken) {
+      toast.error('Please complete the security check before changing your email.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await registration.correctEmail(newEmail, turnstileToken);
+      registration.setDraft({
+        ...registration.draft,
+        role: registration.role,
+        step: 'client-otp',
+        displayStep: 'client-otp',
+        email: newEmail,
+      });
+      if (registration.role === 'CLIENT') setStep1(prev => ({ ...prev, email: newEmail }));
+      if (registration.role === 'FREELANCER') setFormData(prev => ({ ...prev, email: newEmail }));
+      if (registration.role === 'SCH_ADMIN') setSchoolFormData(prev => ({ ...prev, email: newEmail }));
+      setOtpEmail(newEmail);
+      setOtpCorrectionEmail(newEmail);
+      setOtp('');
+      setTurnstileToken('');
+      setShowEmailCorrection(false);
+      toast.success('Email updated', { description: 'A new verification code was sent to your updated email.' });
+    } catch (error) {
+      toast.error('Could not update email', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRegistration = async () => {
+    setLoading(true);
+    try {
+      await registration.cancel();
+      toast.success('Registration cancelled.');
+      resetRegistrationState(true);
+      router.replace('/signup', { scroll: false });
+    } catch (error) {
+      if (error instanceof RegistrationApiError && ['CHALLENGE_NOT_FOUND', 'CHALLENGE_EXPIRED', 'CHALLENGE_CANCELLED'].includes(error.code)) {
+        resetRegistrationState(true);
+        router.replace('/signup', { scroll: false });
+        return;
+      }
+      toast.error('Could not cancel registration', {
+        description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderSchoolForm = () => (
     <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
@@ -2519,26 +2565,6 @@ function SignupPageContent() {
 
   // ─── Render: School OTP ───────────────────────────────────────────────────
 
-  const renderSchoolOtpScreen = () => (
-    <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
-      <div className="mb-8">
-        <h1 className="text-3xl font-medium text-primary mb-4">Verify your school email</h1>
-        <p className="text-muted-foreground text-sm">
-          We&apos;ve sent a 6-digit verification code to <strong>{otpEmail}</strong>. Please enter it below to verify your account.
-        </p>
-      </div>
-      <form onSubmit={handleSchoolOtpSubmit} className="space-y-6">
-        <Input id="s-otp" type="text" maxLength={6} value={otp}
-          onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
-          className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
-        <Button type="submit" disabled={loading || otp.length !== 6}
-          className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
-          {loading ? 'Verify & Finish' : 'Verify Email'}
-        </Button>
-      </form>
-    </div>
-  );
-
   // ─── Root Render ──────────────────────────────────────────────────────────
 
   return (
@@ -2554,11 +2580,9 @@ function SignupPageContent() {
         </>
       )}
 
-      {step === 'client-otp' && renderClientOtpScreen()}
+      {step === 'otp' && renderRegistrationOtpScreen()}
       {step === 'freelancer' && renderFreelancerForm()}
-      {step === 'freelancer-otp' && renderFreelancerOtpScreen()}
       {step === 'school' && renderSchoolForm()}
-      {step === 'school-otp' && renderSchoolOtpScreen()}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { validatePasswordStrict } from "@/lib/password-validation";
 import { sendEmployerAccountCreationEmail } from "@/lib/mail";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { issueAuthSession } from "../registration/registration.session";
+import { canAuthenticate } from "@/lib/status-validator";
 
 // ⚠️ TESTING: 1 min — CHANGE TO 15 * 60 * 1000 (15 min) FOR PRODUCTION
 const LOCK_DURATION_MS = 1 * 60 * 1000;
@@ -103,6 +104,10 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         }
     }
 
+    if (!canAuthenticate(user)) {
+        throw new Error("Account is not active or verified.");
+    }
+
     // Login successful
     await resetFailedAttempts(user.user_id);
 
@@ -122,6 +127,11 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         user_email: user.user_email,
         role: user.role,
         role_id: user.role_id,
+        status: user.status,
+        user_status: user.user_status,
+        otp_verified: user.otp_verified,
+        is_blocked: user.is_blocked,
+        lock_until: user.lock_until,
     });
 
     console.log(`[auth.service] User logged in: user_id=${user.user_id}, role_id=${user.role_id}`);
@@ -377,13 +387,19 @@ export async function confirmOTP(userId: string | number, code: string) {
         reason: "OTP verification completed successfully",
     });
 
+    const verifiedUser = await getUserById(userId);
     const session = await issueAuthSession({
-        user_id: user.user_id,
-        user_email: user.user_email,
-        user_fname: user.user_fname,
-        user_lname: user.user_lname,
-        role: user.role,
-        role_id: user.role_id,
+        user_id: verifiedUser.user_id,
+        user_email: verifiedUser.user_email,
+        user_fname: verifiedUser.user_fname,
+        user_lname: verifiedUser.user_lname,
+        role: verifiedUser.role,
+        role_id: verifiedUser.role_id,
+        status: verifiedUser.status,
+        user_status: verifiedUser.user_status,
+        otp_verified: verifiedUser.otp_verified,
+        is_blocked: verifiedUser.is_blocked,
+        lock_until: verifiedUser.lock_until,
     });
 
     return {

@@ -30,12 +30,14 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
             
             const frontFormData = new FormData();
             frontFormData.append("file", frontId);
+            frontFormData.append("documentClass", "identity_image");
             const frontRes = await uploadVerificationDocumentAction(0 /* placeholder */, frontFormData);
             
             if (!frontRes.success) throw new Error(frontRes.error);
 
             const selfieFormData = new FormData();
             selfieFormData.append("file", selfieId);
+            selfieFormData.append("documentClass", "identity_image");
             const selfieRes = await uploadVerificationDocumentAction(0 /* placeholder */, selfieFormData);
 
             if (!selfieRes.success) throw new Error(selfieRes.error);

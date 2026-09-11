@@ -1,6 +1,8 @@
 // src/lib/status-validator.ts
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_BASE = (
+  process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+).replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
 function getHeaders(): Record<string, string> {
@@ -10,6 +12,100 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+export interface AccountAuthenticationState {
+  user_id: string | number;
+  user_email?: string;
+  role?: string;
+  role_id?: number;
+  role_name?: string;
+  user_fname?: string;
+  user_lname?: string;
+  status?: string | null;
+  user_status?: string | null;
+  otp_verified?: boolean | number | string | null;
+  is_blocked?: boolean | number | string | null;
+  lock_until?: string | null;
+  session_epoch?: string | null;
+}
+
+function isTruthyDatabaseFlag(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
+function isMissingDatabaseFlag(value: unknown): boolean {
+  return value === undefined || value === null || value === "";
+}
+
+/** One shared, fail-closed predicate for every JWT issuance/request gate. */
+export function canAuthenticate(
+  user: AccountAuthenticationState | null | undefined,
+  nowMs = Date.now()
+): boolean {
+  if (!user) {
+    return false;
+  }
+
+  // Challenge-backed registration writes `status`; accounts created by the
+  // legacy registration/admin flows use `user_status`. Prefer the canonical
+  // field when present, but retain the legacy field as a compatibility source.
+  const canonicalStatus = String(user.status ?? "").trim();
+  const legacyStatus = String(user.user_status ?? "").trim();
+  const accountStatus = (canonicalStatus || legacyStatus).toUpperCase();
+  if (accountStatus !== "ACTIVE") {
+    return false;
+  }
+  // Legacy admin-created accounts predate OTP enforcement and have no value
+  // for otp_verified. Old self-registration still wrote an explicit 0 while
+  // verification was pending, so only an absent legacy flag is compatible;
+  // explicit false/0 remains denied. Refactor-era `status` rows always require
+  // an affirmative OTP flag.
+  const otpVerified = isTruthyDatabaseFlag(user.otp_verified);
+  const legacyOtpNotApplicable =
+    !canonicalStatus && isMissingDatabaseFlag(user.otp_verified);
+  if (
+    (!otpVerified && !legacyOtpNotApplicable) ||
+    isTruthyDatabaseFlag(user.is_blocked)
+  ) {
+    return false;
+  }
+  if (user.lock_until) {
+    const lockUntilMs = Date.parse(user.lock_until);
+    if (!Number.isFinite(lockUntilMs) || lockUntilMs > nowMs) return false;
+  }
+  return true;
+}
+
+export async function getAccountAuthenticationState(
+  userId: string | number
+): Promise<AccountAuthenticationState | null> {
+  if (!DIRECTUS_BASE || !DIRECTUS_TOKEN) return null;
+  try {
+    const fields = [
+      "user_id",
+      "user_email",
+      "role",
+      "role_id",
+      "user_fname",
+      "user_lname",
+      "status",
+      "user_status",
+      "otp_verified",
+      "is_blocked",
+      "lock_until",
+      "session_epoch",
+    ].join(",");
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_user/${encodeURIComponent(String(userId))}?fields=${fields}`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: AccountAuthenticationState };
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

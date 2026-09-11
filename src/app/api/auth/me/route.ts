@@ -1,9 +1,13 @@
 // src/app/api/auth/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import * as jose from "jose";
+import {
+  canAuthenticate,
+  getAccountAuthenticationState,
+} from "@/lib/status-validator";
+import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
 const COOKIE_NAME = "vos_access_token";
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,15 +16,26 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ authenticated: false });
     }
 
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtVerificationSecret();
     const { payload } = await jose.jwtVerify(token, secret);
 
-    const userRoleId = Number(payload.role_id);
+    const userId = payload.user_id || payload.sub;
+    if (typeof userId !== "string" && typeof userId !== "number") {
+      return NextResponse.json({ authenticated: false });
+    }
+    const currentUser = await getAccountAuthenticationState(userId);
+    if (!canAuthenticate(currentUser)) {
+      const response = NextResponse.json({ authenticated: false });
+      response.cookies.delete(COOKIE_NAME);
+      return response;
+    }
+
+    const userRoleId = Number(currentUser?.role_id);
     const userRoleName =
-      typeof payload.role_name === "string"
-        ? payload.role_name
-        : typeof payload.role === "string"
-        ? payload.role
+      typeof currentUser?.role_name === "string"
+        ? currentUser.role_name
+        : typeof currentUser?.role === "string"
+        ? currentUser.role
         : "";
     const roleUpper = userRoleName.toUpperCase();
 
@@ -33,7 +48,7 @@ export async function GET(req: NextRequest) {
     } else if (userRoleId === 3 || roleUpper === "ADMIN") {
       role = "admin";
       dashboard = "/vos-sync/vos-admin";
-    } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN" || roleUpper === "SCHOOL") {
+    } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN" || roleUpper === "SCH_ADMIN" || roleUpper === "SCHOOL") {
       role = "school";
       dashboard = "/vos-sync/school-admin";
     }
@@ -42,7 +57,7 @@ export async function GET(req: NextRequest) {
       authenticated: true,
       role,
       dashboard,
-      userId: payload.user_id || payload.sub || null,
+      userId,
     });
   } catch {
     return NextResponse.json({ authenticated: false });

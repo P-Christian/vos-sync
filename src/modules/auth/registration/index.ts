@@ -9,3 +9,6 @@ export * from "./registration.session";
 export * from "./registration.cookie";
 export * from "./registration.route";
 export * from "./registration.reference.repo";
+export * from "./registration.timestamps";
+export * from "./registration.provisioning.repo";
+export * from "./registration.provisioning.service";

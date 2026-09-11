@@ -2,6 +2,7 @@ import * as jose from "jose";
 import { SessionTokenResult } from "./registration.types";
 import { getRoleById } from "../services/auth.repo";
 import { RegistrationError } from "./registration.errors";
+import { canAuthenticate } from "@/lib/status-validator";
 
 interface AuthSessionUser {
   user_id: string | number;
@@ -11,9 +12,14 @@ interface AuthSessionUser {
   role_name?: string;
   user_fname?: string;
   user_lname?: string;
+  status?: string | null;
+  user_status?: string | null;
+  otp_verified?: boolean | number | string | null;
+  is_blocked?: boolean | number | string | null;
+  lock_until?: string | null;
 }
 
-function getJwtSecret(): Uint8Array {
+export function getJwtVerificationSecret(): Uint8Array {
   const configuredSecret = process.env.JWT_SECRET?.trim();
   if (!configuredSecret && process.env.NODE_ENV === "production") {
     throw new RegistrationError(
@@ -64,6 +70,14 @@ export function resolveRoleDestination(
 export async function issueAuthSession(
   user: AuthSessionUser
 ): Promise<SessionTokenResult> {
+  if (!canAuthenticate(user)) {
+    throw new RegistrationError(
+      "Account is not active or verified.",
+      "REGISTRATION_RESTRICTED",
+      403
+    );
+  }
+
   let cleanRoleName = user.role_name || user.role || "";
 
   try {
@@ -77,7 +91,7 @@ export async function issueAuthSession(
     // Non-blocking fallback to user.role
   }
 
-  const secret = getJwtSecret();
+  const secret = getJwtVerificationSecret();
   const alg = "HS256";
 
   const claims: Record<string, unknown> = {

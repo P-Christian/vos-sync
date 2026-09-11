@@ -6,6 +6,7 @@ import {
 } from "./registration.types";
 import { RegistrationError } from "./registration.errors";
 import { getRegistrationConfig } from "./registration.config";
+import { parseDirectusUtcDateTime } from "./registration.timestamps";
 
 const CHALLENGE_COLLECTION = "vs_registration_challenge";
 const MAX_CLEANUP_BATCH = 20;
@@ -84,7 +85,10 @@ function isSafeInteger(value: unknown): value is number {
 }
 
 function isValidDateString(value: unknown): value is string {
-  return typeof value === "string" && Number.isFinite(new Date(value).getTime());
+  return (
+    typeof value === "string" &&
+    Number.isFinite(parseDirectusUtcDateTime(value))
+  );
 }
 
 function isRegistrationRole(value: unknown): value is RegistrationRole {
@@ -990,7 +994,8 @@ export class RegistrationChallengeRepository {
           !isSafeInteger(stateVersion) ||
           stateVersion < 0 ||
           !isValidDateString(expiresAt) ||
-          new Date(expiresAt).getTime() >= new Date(cleanupNow).getTime()
+          parseDirectusUtcDateTime(expiresAt) >=
+            parseDirectusUtcDateTime(cleanupNow)
         ) {
           continue;
         }

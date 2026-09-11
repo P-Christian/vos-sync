@@ -1,14 +1,17 @@
 // src/modules/auth/services/auth.repo.ts
 
 export async function getUserByEmail(email: string) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_BASE_URL = (
+        process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+    ).replace(/\/$/, "");
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
-    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+    if (!DIRECTUS_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}`;
+    const normalizedEmail = email.trim().toLowerCase();
+    const url = `${DIRECTUS_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(normalizedEmail)}`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -101,10 +104,16 @@ export async function createUser(userData: Record<string, unknown>) {
 }
 
 export async function getUserById(userId: string | number) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_BASE_URL = (
+        process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+    ).replace(/\/$/, "");
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+    if (!DIRECTUS_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${DIRECTUS_BASE_URL}/items/vs_user/${encodeURIComponent(String(userId))}`;
 
     const res = await fetch(url, {
         method: "GET",
