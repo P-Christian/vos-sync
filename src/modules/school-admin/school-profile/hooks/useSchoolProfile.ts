@@ -39,8 +39,7 @@ export function useSchoolProfile(
     setUploading(true);
     try {
       const url = await executeUploadSchoolLogo(file);
-      await handleUpdate({ school_logo_url: url });
-      toast.success('Logo updated successfully');
+      toast.success('Logo file uploaded. Click "Save Changes" to save profile.');
       return url;
     } catch (err: any) {
       toast.error(err.message || 'Failed to upload logo');

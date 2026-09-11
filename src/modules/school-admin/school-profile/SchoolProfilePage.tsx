@@ -86,7 +86,10 @@ export function SchoolProfilePage({
   const onLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      await handleUploadLogo(file);
+      const url = await handleUploadLogo(file);
+      if (url) {
+        setFormData(prev => ({ ...prev, school_logo_url: url }));
+      }
     }
   };
 

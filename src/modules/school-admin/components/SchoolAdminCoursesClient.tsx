@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useSchoolAdmin } from "@/modules/school-admin/hooks/useSchoolAdmin";
 import { SchoolCoursesPage } from "@/modules/school-admin/school-courses/SchoolCoursesPage";
-import { SchoolAdminSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
+import { CoursesSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
 
 export function SchoolAdminCoursesClient() {
   const { courses, loading, fetchMyCourses, addCourse, toggleCourseStatus } = useSchoolAdmin();
@@ -13,7 +13,7 @@ export function SchoolAdminCoursesClient() {
   }, [fetchMyCourses]);
 
   if (loading) {
-    return <SchoolAdminSkeleton />;
+    return <CoursesSkeleton />;
   }
 
   return (

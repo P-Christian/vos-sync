@@ -11,6 +11,8 @@ import { BulkUploadModal } from './components/BulkUploadModal';
 import { VsSchoolStudent } from './types/student-roster.types';
 import { SchoolAdminModuleHeader } from '@/modules/school-admin/components/SchoolAdminModuleHeader';
 
+import { StudentRosterSkeleton } from '@/modules/school-admin/components/SchoolAdminSkeleton';
+
 export const StudentRosterPage: React.FC = () => {
   const {
     students,
@@ -36,6 +38,10 @@ export const StudentRosterPage: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<VsSchoolStudent | null>(null);
+
+  if (isLoading && students.length === 0) {
+    return <StudentRosterSkeleton />;
+  }
 
   return (
     <div className="w-[90%] max-w-[2000px] mx-auto space-y-6">

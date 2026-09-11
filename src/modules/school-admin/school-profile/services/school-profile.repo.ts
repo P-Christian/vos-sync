@@ -19,5 +19,11 @@ export async function uploadSchoolLogoRepo(file: File): Promise<string> {
     throw new Error(json.error || "Failed to upload image.");
   }
 
-  return json.url;
+  const fileId = json.id || json.data?.id;
+  if (!fileId) {
+    throw new Error("Invalid file upload response from server.");
+  }
+
+  const directusBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+  return `${directusBase}/assets/${fileId}`;
 }

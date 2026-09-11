@@ -116,7 +116,7 @@ export function SchoolCoursesPage({
                     {isActive ? "Deactivate" : "Activate"}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => {
                       if (confirm(`Are you sure you want to delete "${course.course_name}"?`)) {
@@ -139,7 +139,7 @@ export function SchoolCoursesPage({
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="w-[90%] max-w-[2000px] mx-auto space-y-6">
       <SchoolAdminModuleHeader
         title="Course Management"
         description="Manage your institution's course directory, status availability, and offerings."
