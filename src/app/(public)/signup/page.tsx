@@ -1719,7 +1719,7 @@ function SignupPageContent() {
     const email = otpEmail || registration.emailMasked || 'your email address';
 
     return (
-      <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-12 text-center">
+      <div className="w-full max-w-sm mx-auto px-4 sm:px-6 py-8 sm:py-12 text-center">
         {role === 'CLIENT' && <StepIndicator currentStep={5} />}
         {role === 'FREELANCER' && <StepIndicator currentStep={3} steps={FREELANCER_STEPS} />}
         <div className="mb-8">
@@ -1734,7 +1734,8 @@ function SignupPageContent() {
         <form onSubmit={handleOtpSubmit} className="space-y-6" id="registration-otp">
           <Input id="otp" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp}
             onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} disabled={loading} placeholder="000000"
-            className="h-16 text-center text-3xl tracking-[1em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+            aria-label="6-digit verification code"
+            className="h-16 px-3 text-center text-2xl sm:text-3xl tracking-[0.55em] sm:tracking-[0.75em] font-mono border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
           <Button type="submit" disabled={loading || otp.length !== 6 || !registration.isActive}
             className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg">
             {loading ? 'Verifying...' : 'Verify Email'}
@@ -1746,21 +1747,23 @@ function SignupPageContent() {
           {expiresIn && <p>Code expires in {expiresIn}</p>}
         </div>
 
-        <div className="mt-6 space-y-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-sm">
           <Button type="button" variant="outline" onClick={handleResendOtp}
             disabled={loading || !registration.isActive || Boolean(resendIn)}
-            className="w-full py-5 rounded-full">
-            {resendIn ? `Resend available in ${resendIn}` : 'Resend code'}
+            className="h-auto border-0 bg-transparent px-2 py-1.5 font-medium text-primary shadow-none hover:bg-primary/5 hover:text-primary disabled:bg-transparent">
+            {resendIn ? `Resend in ${resendIn}` : 'Resend code'}
           </Button>
 
-          <div className="flex justify-center">
+          <span aria-hidden="true" className="text-border">&bull;</span>
+
+          <div>
             <Dialog open={showEmailCorrection} onOpenChange={(open) => {
               if (!loading) setShowEmailCorrection(open);
             }}>
               <DialogTrigger asChild>
                 <Button type="button" variant="ghost" disabled={loading}
-                  className="h-auto px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 hover:text-primary">
-                  Use a different email
+                  className="h-auto px-2 py-1.5 text-sm font-medium text-primary hover:bg-primary/5 hover:text-primary">
+                  Change email
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
@@ -1797,17 +1800,16 @@ function SignupPageContent() {
             </Dialog>
           </div>
 
-          <div className="border-t border-border pt-4">
-            <p className="mb-2 text-xs text-muted-foreground">
-              Want to discard this verification and start again?
-            </p>
+          <span aria-hidden="true" className="text-border">&bull;</span>
+
+          <div>
             <Dialog open={showCancelConfirmation} onOpenChange={(open) => {
               if (!loading) setShowCancelConfirmation(open);
             }}>
               <DialogTrigger asChild>
                 <Button type="button" variant="ghost" disabled={loading}
-                  className="h-auto w-full py-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive">
-                  Cancel registration
+                  className="h-auto px-2 py-1.5 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                  Cancel
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
