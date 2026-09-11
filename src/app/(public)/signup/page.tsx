@@ -13,6 +13,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader,
+  DialogTitle, DialogTrigger,
+} from '@/components/ui/dialog';
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -402,6 +406,7 @@ function SignupPageContent() {
   const [otpEmail, setOtpEmail] = useState('');
   const [otpCorrectionEmail, setOtpCorrectionEmail] = useState('');
   const [showEmailCorrection, setShowEmailCorrection] = useState(false);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [otpNow, setOtpNow] = useState(() => Date.now());
   const registration = useRegistrationChallenge();
   const clearRegistration = registration.clear;
@@ -411,6 +416,7 @@ function SignupPageContent() {
     setOtp('');
     setOtpCorrectionEmail('');
     setShowEmailCorrection(false);
+    setShowCancelConfirmation(false);
     if (resetView) {
       setStep('selection');
       setUserType(null);
@@ -1747,31 +1753,81 @@ function SignupPageContent() {
             {resendIn ? `Resend available in ${resendIn}` : 'Resend code'}
           </Button>
 
-          <button type="button" onClick={() => setShowEmailCorrection(prev => !prev)} disabled={loading}
-            className="text-sm text-primary hover:underline font-medium">
-            {showEmailCorrection ? 'Keep this email' : 'Use a different email'}
-          </button>
+          <div className="flex justify-center">
+            <Dialog open={showEmailCorrection} onOpenChange={(open) => {
+              if (!loading) setShowEmailCorrection(open);
+            }}>
+              <DialogTrigger asChild>
+                <Button type="button" variant="ghost" disabled={loading}
+                  className="h-auto px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 hover:text-primary">
+                  Use a different email
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <form onSubmit={handleEmailCorrection} className="space-y-5">
+                  <DialogHeader>
+                    <DialogTitle>Change verification email</DialogTitle>
+                    <DialogDescription>
+                      Enter the new email address where you want to receive your verification code.
+                    </DialogDescription>
+                  </DialogHeader>
 
-          {showEmailCorrection && (
-            <form onSubmit={handleEmailCorrection} className="mt-3 rounded-xl border border-border bg-muted/20 p-4 text-left space-y-3">
-              <label htmlFor="otp-correction-email" className="block text-sm font-medium text-foreground">New email address</label>
-              <Input id="otp-correction-email" type="email" value={otpCorrectionEmail}
-                onChange={e => setOtpCorrectionEmail(e.target.value)} disabled={loading}
-                className="h-11 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
-              <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
-              <div className="flex gap-2">
-                <Button type="submit" disabled={loading || !otpCorrectionEmail.trim() || !turnstileToken}
-                  className="flex-1 rounded-full">Save email</Button>
-                <Button type="button" variant="ghost" onClick={() => setShowEmailCorrection(false)} disabled={loading}
-                  className="rounded-full">Cancel</Button>
-              </div>
-            </form>
-          )}
+                  <div className="space-y-2 text-left">
+                    <label htmlFor="otp-correction-email" className="block text-sm font-medium text-foreground">
+                      New email address
+                    </label>
+                    <Input id="otp-correction-email" type="email" value={otpCorrectionEmail}
+                      onChange={e => setOtpCorrectionEmail(e.target.value)} disabled={loading}
+                      autoFocus
+                      className="h-11 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+                  </div>
 
-          <button type="button" onClick={handleCancelRegistration} disabled={loading}
-            className="text-sm text-muted-foreground hover:text-destructive hover:underline">
-            Cancel registration
-          </button>
+                  <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setShowEmailCorrection(false)} disabled={loading}>
+                      Keep current email
+                    </Button>
+                    <Button type="submit" disabled={loading || !otpCorrectionEmail.trim() || !turnstileToken}>
+                      {loading ? 'Saving...' : 'Save email'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="mb-2 text-xs text-muted-foreground">
+              Want to discard this verification and start again?
+            </p>
+            <Dialog open={showCancelConfirmation} onOpenChange={(open) => {
+              if (!loading) setShowCancelConfirmation(open);
+            }}>
+              <DialogTrigger asChild>
+                <Button type="button" variant="ghost" disabled={loading}
+                  className="h-auto w-full py-2 text-sm text-destructive hover:bg-destructive/10 hover:text-destructive">
+                  Cancel registration
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Cancel registration?</DialogTitle>
+                  <DialogDescription>
+                    Your current verification code will be discarded and you will return to the account type selection.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setShowCancelConfirmation(false)} disabled={loading}>
+                    Keep registration
+                  </Button>
+                  <Button type="button" variant="destructive" onClick={handleCancelRegistration} disabled={loading}>
+                    {loading ? 'Cancelling...' : 'Cancel registration'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
     );
@@ -2306,7 +2362,7 @@ function SignupPageContent() {
       window.location.assign(destination);
     } catch (error) {
       if (error instanceof RegistrationApiError) {
-        if (['CHALLENGE_NOT_FOUND', 'CHALLENGE_EXPIRED', 'CHALLENGE_CANCELLED', 'CHALLENGE_CONSUMED', 'CHALLENGE_LOCKED', 'PAYLOAD_INVALID'].includes(error.code)) {
+        if (['CHALLENGE_NOT_FOUND', 'CHALLENGE_EXPIRED', 'CHALLENGE_CANCELLED', 'CHALLENGE_CONSUMED', 'CHALLENGE_LOCKED', 'PAYLOAD_INVALID', 'COMPANY_EMAIL_CONFLICT', 'COMPANY_TIN_CONFLICT'].includes(error.code)) {
           resetRegistrationState(true);
         }
       }

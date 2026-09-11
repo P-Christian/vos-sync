@@ -108,6 +108,8 @@ const TERMINAL_ERROR_CODES = new Set([
   "CHALLENGE_CANCELLED",
   "PAYLOAD_INVALID",
   "MAIL_DELIVERY_FAILED",
+  "COMPANY_EMAIL_CONFLICT",
+  "COMPANY_TIN_CONFLICT",
 ]);
 
 function asApiError(error: unknown): RegistrationApiError {

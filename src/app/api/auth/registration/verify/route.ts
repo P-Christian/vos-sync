@@ -6,6 +6,7 @@ import {
   handleRegistrationRouteError,
   parseRegistrationJson,
   RegistrationChallengeRepository,
+  RegistrationError,
   RegistrationProvisioningService,
   registrationJson,
   RegistrationService,
@@ -68,9 +69,16 @@ export async function POST(request: NextRequest) {
     });
     return response;
   } catch (error) {
+    const terminalCompanyConflict =
+      error instanceof RegistrationError &&
+      (error.code === "COMPANY_EMAIL_CONFLICT" ||
+        error.code === "COMPANY_TIN_CONFLICT");
+    let releasedChallenge:
+      | Awaited<ReturnType<RegistrationChallengeRepository["releaseVerificationLease"]>>
+      | undefined;
     if (lease) {
       try {
-        await challengeRepo.releaseVerificationLease(
+        releasedChallenge = await challengeRepo.releaseVerificationLease(
           lease.challenge.challenge_id,
           lease.challenge.state_version,
           true,
@@ -81,6 +89,28 @@ export async function POST(request: NextRequest) {
         // later retry reconciles by registration_key before creating records.
       }
     }
+
+    if (terminalCompanyConflict && lease && releasedChallenge) {
+      try {
+        await challengeRepo.cancelChallenge(
+          lease.challenge.challenge_id,
+          releasedChallenge.state_version,
+          "ACTIVE"
+        );
+        return clearRegistrationChallengeCookie(
+          handleRegistrationRouteError(error)
+        );
+      } catch {
+        return handleRegistrationRouteError(
+          new RegistrationError(
+            "Registration cleanup could not be completed. Please try again.",
+            "PROVISIONING_FAILED",
+            503
+          )
+        );
+      }
+    }
+
     return handleRegistrationRouteError(error);
   }
 }

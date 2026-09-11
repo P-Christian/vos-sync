@@ -58,6 +58,14 @@ function conflict(message: string): RegistrationError {
   return new RegistrationError(message, "PROVISIONING_CONFLICT", 409);
 }
 
+function isTerminalClientConflict(error: unknown): error is RegistrationError {
+  return (
+    error instanceof RegistrationError &&
+    (error.code === "COMPANY_EMAIL_CONFLICT" ||
+      error.code === "COMPANY_TIN_CONFLICT")
+  );
+}
+
 function assertCompatibleUser(
   user: ProvisionedRegistrationUser,
   challenge: RegistrationChallengeRecord,
@@ -134,19 +142,42 @@ export class RegistrationProvisioningService {
 
     assertCompatibleUser(user, challenge, payload);
 
-    if (payload.role === "CLIENT") {
-      if (!payload.clientData) throw conflict("Client registration data is missing.");
-      await provisionClientGraph(this.repo, user, payload.clientData);
-    } else if (payload.role === "FREELANCER") {
-      if (!payload.freelancerData) {
-        throw conflict("Freelancer registration data is missing.");
+    try {
+      if (payload.role === "CLIENT") {
+        if (!payload.clientData) throw conflict("Client registration data is missing.");
+        await provisionClientGraph(this.repo, user, payload.clientData);
+      } else if (payload.role === "FREELANCER") {
+        if (!payload.freelancerData) {
+          throw conflict("Freelancer registration data is missing.");
+        }
+        await provisionFreelancerGraph(this.repo, user, payload.freelancerData);
+      } else {
+        if (!payload.schoolData) {
+          throw conflict("School registration data is missing.");
+        }
+        await provisionSchoolGraph(this.repo, user, payload.schoolData);
       }
-      await provisionFreelancerGraph(this.repo, user, payload.freelancerData);
-    } else {
-      if (!payload.schoolData) {
-        throw conflict("School registration data is missing.");
+    } catch (error: unknown) {
+      if (
+        payload.role === "CLIENT" &&
+        isTerminalClientConflict(error) &&
+        String(user.status).toUpperCase() === "PROVISIONING"
+      ) {
+        try {
+          // Client email/TIN conflicts are raised before this registration can
+          // own a company. The client provisioner has already compensated any
+          // definite writes, so this provisional user is safe to remove and
+          // the same email can be used in a corrected restart.
+          await this.repo.delete("vs_user", user.user_id);
+        } catch {
+          throw new RegistrationError(
+            "Registration cleanup could not be completed. Please try again.",
+            "PROVISIONING_FAILED",
+            503
+          );
+        }
       }
-      await provisionSchoolGraph(this.repo, user, payload.schoolData);
+      throw error;
     }
 
     const wasAlreadyActive = String(user.status).toUpperCase() === "ACTIVE";
