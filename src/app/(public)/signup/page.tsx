@@ -408,6 +408,7 @@ function SignupPageContent() {
   const [showEmailCorrection, setShowEmailCorrection] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [otpNow, setOtpNow] = useState(() => Date.now());
+  const expiredChallengeRef = useRef<string | null>(null);
   const registration = useRegistrationChallenge();
   const clearRegistration = registration.clear;
 
@@ -497,6 +498,31 @@ function SignupPageContent() {
     const timer = window.setInterval(() => setOtpNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [step]);
+
+  useEffect(() => {
+    if (step !== 'otp' || !registration.isActive || !registration.expiresAt) return;
+
+    const expiry = Date.parse(registration.expiresAt);
+    if (!Number.isFinite(expiry)) return;
+
+    const expireChallenge = () => {
+      if (expiredChallengeRef.current === registration.expiresAt) return;
+      expiredChallengeRef.current = registration.expiresAt;
+      toast.error('Verification code expired', {
+        description: 'Your verification session has ended. Please start registration again.',
+      });
+      resetRegistrationState(true);
+    };
+
+    const remaining = expiry - Date.now();
+    if (remaining <= 0) {
+      expireChallenge();
+      return;
+    }
+
+    const timer = window.setTimeout(expireChallenge, remaining);
+    return () => window.clearTimeout(timer);
+  }, [registration.expiresAt, registration.isActive, resetRegistrationState, step]);
 
   useEffect(() => {
     async function loadMasterCollections() {
