@@ -47,6 +47,8 @@ next-env.d.ts
 /AGENTS.md
 /backup/
 /scm-vault/
+/.postman/
+/postman/
 
 
 zmine/
