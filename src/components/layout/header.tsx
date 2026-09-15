@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
 import { Menu, X, Briefcase, ChevronDown, LayoutDashboard, FileText, LogOut } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -23,11 +24,16 @@ type AuthUser = {
   role: "client" | "freelancer" | "other"
 }
 
+const PUBLIC_MOBILE_MENU_ID = "public-mobile-navigation"
+
 export function Header() {
+  const pathname = usePathname()
   const [isScrolled, setIsScrolled] = React.useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [mobileMenuPath, setMobileMenuPath] = React.useState<string | null>(null)
   const [user, setUser] = React.useState<AuthUser | null>(null)
   const [checkingAuth, setCheckingAuth] = React.useState(true)
+  const mobileMenuButtonRef = React.useRef<HTMLButtonElement>(null)
+  const mobileMenuOpen = mobileMenuPath === pathname
 
   // Handle navbar styling on scroll
   React.useEffect(() => {
@@ -37,6 +43,20 @@ export function Header() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  React.useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileMenuPath(null)
+        mobileMenuButtonRef.current?.focus()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [mobileMenuOpen])
 
   // Check logged-in user session
   React.useEffect(() => {
@@ -118,13 +138,13 @@ export function Header() {
 
   return (
     <motion.header
-      initial={{ y: -80, opacity: 0 }}
+      initial={false}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${isScrolled ? 'bg-background/90 backdrop-blur-md border-border shadow-sm py-3' : 'bg-transparent border-transparent py-5'}`}
+      className={`fixed top-0 w-full z-50 transition-all duration-300 motion-reduce:transition-none border-b ${isScrolled ? 'bg-background/90 backdrop-blur-md border-border shadow-sm py-3' : 'bg-transparent border-transparent py-5'}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2 cursor-pointer">
+        <Link href="/" className="flex min-h-11 items-center gap-2 cursor-pointer">
           <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
             <Briefcase className="w-5 h-5 text-background" />
           </div>
@@ -132,22 +152,22 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8 font-medium text-sm text-muted-foreground">
-          <Link href="/find-jobs" className="hover:text-foreground transition-colors">Find Jobs</Link>
-          <Link href="/how-it-works" className="hover:text-foreground transition-colors">How It Works</Link>
-          <Link href="/companies" className="hover:text-foreground transition-colors">Companies</Link>
-          <Link href="/career-advice" className="hover:text-foreground transition-colors">Career Advice</Link>
-          <Link href="/about-us" className="hover:text-foreground transition-colors">About Us</Link>
-          <Link href="/contact-us" className="hover:text-foreground transition-colors">Contact</Link>
+        <nav className="hidden lg:flex items-center gap-8 font-medium text-sm text-muted-foreground">
+          <Link href="/find-jobs" className="flex min-h-11 items-center hover:text-foreground transition-colors">Find Jobs</Link>
+          <Link href="/how-it-works" className="flex min-h-11 items-center hover:text-foreground transition-colors">How It Works</Link>
+          <Link href="/companies" className="flex min-h-11 items-center hover:text-foreground transition-colors">Companies</Link>
+          <Link href="/career-advice" className="flex min-h-11 items-center hover:text-foreground transition-colors">Career Advice</Link>
+          <Link href="/about-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">About Us</Link>
+          <Link href="/contact-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">Contact</Link>
         </nav>
  
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-4">
           <ThemeSelector />
 
           {!checkingAuth && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center gap-2.5 px-3 py-2 rounded-full  hover:bg-muted cursor-pointer transition-all">
+                <Button variant="ghost" className="flex min-h-11 items-center gap-2.5 px-3 py-2 rounded-full hover:bg-muted cursor-pointer transition-all">
                   <div className="h-7 w-7 rounded-full border border-border/40 overflow-hidden relative shrink-0 bg-muted flex items-center justify-center font-bold text-xs">
                     {user.avatar ? (
                       <Image
@@ -177,13 +197,13 @@ export function Header() {
                 {user.role === "client" ? (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href="/vos-sync/client/dashboard" className="flex items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <Link href="/vos-sync/client/dashboard" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
                         <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/vos-sync/client/jobs" className="flex items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <Link href="/vos-sync/client/jobs" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
                         <Briefcase className="w-4 h-4 text-muted-foreground" />
                         Manage Jobs
                       </Link>
@@ -192,13 +212,13 @@ export function Header() {
                 ) : (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href="/vos-sync/freelancer/dashboard" className="flex items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <Link href="/vos-sync/freelancer/dashboard" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
                         <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
                         Dashboard
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/vos-sync/freelancer/applications" className="flex items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <Link href="/vos-sync/freelancer/applications" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
                         <FileText className="w-4 h-4 text-muted-foreground" />
                         My Applications
                       </Link>
@@ -209,7 +229,7 @@ export function Header() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="flex items-center gap-2.5 cursor-pointer rounded-lg py-2 text-rose-600 dark:text-rose-400 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 font-medium"
+                  className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 text-rose-600 dark:text-rose-400 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 font-medium"
                 >
                   <LogOut className="w-4 h-4" />
                   Logout
@@ -218,10 +238,10 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button asChild variant="ghost" className="font-medium cursor-pointer text-foreground hover:bg-muted">
+              <Button asChild variant="ghost" className="min-h-11 font-medium cursor-pointer text-foreground hover:bg-muted">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button asChild className="rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button asChild className="min-h-11 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90">
                 <Link href="/signup">Sign Up</Link>
               </Button>
             </>
@@ -229,23 +249,37 @@ export function Header() {
         </div>
  
         {/* Mobile Menu Toggle */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <ThemeSelector />
-          <button className="p-2 cursor-pointer text-foreground" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <Button
+            ref={mobileMenuButtonRef}
+            type="button"
+            variant="ghost"
+            className="size-11 p-0 cursor-pointer text-foreground"
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls={PUBLIC_MOBILE_MENU_ID}
+            onClick={() => setMobileMenuPath(mobileMenuOpen ? null : pathname)}
+          >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          </Button>
         </div>
       </div>
  
       {/* Mobile Nav Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-background border-b border-border shadow-lg py-4 px-4 flex flex-col gap-4">
-          <Link href="/find-jobs" className="text-muted-foreground hover:text-foreground font-medium py-2">Find Jobs</Link>
-          <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground font-medium py-2">How It Works</Link>
-          <Link href="/companies" className="text-muted-foreground hover:text-foreground font-medium py-2">Companies</Link>
-          <Link href="/career-advice" className="text-muted-foreground hover:text-foreground font-medium py-2">Career Advice</Link>
-          <Link href="/about-us" className="text-muted-foreground hover:text-foreground font-medium py-2">About Us</Link>
-          <Link href="/contact-us" className="text-muted-foreground hover:text-foreground font-medium py-2">Contact</Link>
+        <nav
+          id={PUBLIC_MOBILE_MENU_ID}
+          aria-label="Mobile navigation"
+          onClick={() => setMobileMenuPath(null)}
+          className="lg:hidden absolute top-full left-0 flex max-h-[calc(100dvh-6rem)] w-full flex-col gap-4 overflow-y-auto overscroll-contain border-b border-border bg-background px-4 py-4 shadow-lg"
+        >
+          <Link href="/find-jobs" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Find Jobs</Link>
+          <Link href="/how-it-works" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">How It Works</Link>
+          <Link href="/companies" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Companies</Link>
+          <Link href="/career-advice" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Career Advice</Link>
+          <Link href="/about-us" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">About Us</Link>
+          <Link href="/contact-us" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Contact</Link>
           <hr className="border-border" />
           {user ? (
             <>
@@ -271,12 +305,12 @@ export function Header() {
               </div>
               {user.role === "client" ? (
                 <>
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
                     <Link href="/vos-sync/client/dashboard">
                       <LayoutDashboard className="w-4 h-4" /> Dashboard
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
                     <Link href="/vos-sync/client/jobs">
                       <Briefcase className="w-4 h-4" /> Manage Jobs
                     </Link>
@@ -284,33 +318,33 @@ export function Header() {
                 </>
               ) : (
                 <>
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
                     <Link href="/vos-sync/freelancer/dashboard">
                       <LayoutDashboard className="w-4 h-4" /> Dashboard
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
                     <Link href="/vos-sync/freelancer/applications">
                       <FileText className="w-4 h-4" /> My Applications
                     </Link>
                   </Button>
                 </>
               )}
-              <Button onClick={handleLogout} variant="destructive" className="w-full justify-start gap-2 cursor-pointer">
+              <Button onClick={handleLogout} variant="destructive" className="min-h-11 w-full justify-start gap-2 cursor-pointer">
                 <LogOut className="w-4 h-4" /> Logout
               </Button>
             </>
           ) : (
             <>
-              <Button asChild variant="outline" className="w-full justify-center cursor-pointer border-border text-foreground hover:bg-muted">
+              <Button asChild variant="outline" className="min-h-11 w-full justify-center cursor-pointer border-border text-foreground hover:bg-muted">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button asChild className="w-full justify-center cursor-pointer bg-primary text-primary-foreground">
+              <Button asChild className="min-h-11 w-full justify-center cursor-pointer bg-primary text-primary-foreground">
                 <Link href="/signup">Sign Up</Link>
               </Button>
             </>
           )}
-        </div>
+        </nav>
       )}
     </motion.header>
   )

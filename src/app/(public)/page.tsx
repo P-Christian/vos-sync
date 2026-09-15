@@ -180,7 +180,7 @@ export default async function Page() {
   const jobs = await getFeaturedJobs();
 
   return (
-    <div className="bg-background pt-16 text-foreground font-sans selection:bg-muted">
+    <div className="bg-background text-foreground font-sans selection:bg-muted">
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32">
         {/* Subtle background decoration */}
