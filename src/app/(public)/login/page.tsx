@@ -56,6 +56,22 @@ type FieldErrors = {
     hashPassword?: string
 }
 
+// Open-redirect guard: same-origin relative paths only (single leading slash, no "//", no backslashes).
+function sanitizeNextPath(value: string | null): string | null {
+    if (!value) return null
+    if (!value.startsWith("/") || value.startsWith("//")) return null
+    if (value.includes("\\")) return null
+
+    try {
+        const baseUrl = "https://vos-sync.invalid"
+        const destination = new URL(value, baseUrl)
+        if (destination.origin !== baseUrl) return null
+        return `${destination.pathname}${destination.search}${destination.hash}`
+    } catch {
+        return null
+    }
+}
+
 export default function LoginPage() {
     return (
         <React.Suspense fallback={<div className="min-h-dvh flex items-center justify-center">Loading...</div>}>
@@ -79,7 +95,7 @@ function LoginForm() {
 
     React.useEffect(() => {
         if (typeof document !== "undefined" && document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/)) {
-            const nextParam = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
+            const nextParam = sanitizeNextPath(searchParams.get("next")) || "/vos-sync/freelancer/dashboard"
             router.replace(nextParam)
         }
     }, [router, searchParams])
@@ -103,7 +119,7 @@ function LoginForm() {
 
         if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
             toast.success("Signed in", { description: "Auth disabled mode." })
-            const next = searchParams.get("next") || "/vos-sync/freelancer/dashboard"
+            const next = sanitizeNextPath(searchParams.get("next")) || "/vos-sync/freelancer/dashboard"
             router.replace(next)
             router.refresh()
             setLoading(false)
@@ -133,12 +149,9 @@ function LoginForm() {
             const roleId = Number(data?.role_id);
             const roleStr = String(data?.role || data?.role_name || "").toUpperCase();
 
-            const serverDestination =
-                typeof data?.destination === "string" &&
-                data.destination.startsWith("/") &&
-                !data.destination.startsWith("//")
-                    ? data.destination
-                    : null
+            const serverDestination = sanitizeNextPath(
+                typeof data?.destination === "string" ? data.destination : null
+            )
 
             let defaultPath = serverDestination || "/main-dashboard"
             if (!serverDestination) {
@@ -153,10 +166,15 @@ function LoginForm() {
                 }
             }
 
-            const nextParam = searchParams.get("next")
+            const nextParam = sanitizeNextPath(searchParams.get("next"))
             let targetPath = defaultPath
 
-            if (nextParam && nextParam !== "/login" && !nextParam.startsWith("/login")) {
+            const returnsToLogin =
+                nextParam === "/login" ||
+                nextParam?.startsWith("/login?") ||
+                nextParam?.startsWith("/login#")
+
+            if (nextParam && !returnsToLogin) {
                 const p = nextParam.toLowerCase()
                 let isAllowed = true
                 const isFreelancer = roleId === 1 || roleStr === "FREELANCER"
@@ -180,8 +198,7 @@ function LoginForm() {
 
             window.location.href = targetPath
         } catch (err: unknown) {
-            const errorInfo = err as { message?: string };
-            const raw = errorInfo?.message ? String(errorInfo.message) : "Network error. Please try again."
+            const raw = err instanceof Error ? err.message : "Network error. Please try again."
             const msg = normalizeLoginErrorMessage(raw)
             toast.error("Sign in failed", { description: msg })
         } finally {
@@ -193,7 +210,7 @@ function LoginForm() {
     const pwHasError = Boolean(errors.hashPassword)
 
     return (
-        <main className="min-h-dvh flex-grow flex items-center justify-center py-8 px-4 md:px-6 bg-background text-foreground font-sans">
+        <div className="min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-8 px-4 md:px-6 bg-background text-foreground font-sans">
             <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
                 
                 {/* Left Side: Content / How it Works */}
@@ -284,13 +301,13 @@ function LoginForm() {
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
                                     <label className="text-sm font-medium text-foreground block" htmlFor="password">Password</label>
-                                    <Link className="text-sm text-primary hover:underline" href="/forgot-password">Forgot password?</Link>
+                                    <Link className="inline-flex min-h-11 items-center text-sm text-primary hover:underline" href="/forgot-password">Forgot password?</Link>
                                 </div>
                                 <div className="relative">
                                     <Input 
                                         id="password" 
                                         type={showPw ? "text" : "password"} 
-                                        placeholder="Choose a password" 
+                                        placeholder="Enter your password"
                                         value={hashPassword}
                                         onChange={(e) => {
                                             setHashPassword(e.target.value)
@@ -303,7 +320,8 @@ function LoginForm() {
                                         type="button" 
                                         onClick={() => setShowPw(s => !s)}
                                         disabled={loading}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                        aria-label={showPw ? "Hide password" : "Show password"}
+                                        className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                                     >
                                         {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
@@ -313,14 +331,14 @@ function LoginForm() {
                                 ) : null}
                             </div>
                             
-                            <div className="flex items-center">
+                            <div className="flex min-h-11 items-center">
                                 <Checkbox 
                                     id="remember" 
                                     checked={remember}
                                     onCheckedChange={(v) => setRemember(Boolean(v))}
                                     disabled={loading}
                                 />
-                                <label className="ml-2 text-sm text-muted-foreground cursor-pointer" htmlFor="remember">Remember me for 30 days</label>
+              <label className="ml-2 flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground" htmlFor="remember">Remember me for 30 days</label>
                             </div>
                             
                             <Button type="submit" className="w-full h-11 text-base font-medium" disabled={loading}>
@@ -330,11 +348,11 @@ function LoginForm() {
 
                         <p className="mt-8 text-center text-sm text-muted-foreground">
                             Don&apos;t have an account?{" "}
-                            <Link className="text-primary font-medium hover:underline" href="/signup">Sign up</Link>
+                            <Link className="inline-flex min-h-11 items-center text-primary font-medium hover:underline" href="/signup">Sign up</Link>
                         </p>
                     </div>
                 </div>
             </div>
-        </main>
+        </div>
     )
 }
