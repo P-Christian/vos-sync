@@ -50,6 +50,8 @@ next-env.d.ts
 /.postman/
 /postman/
 
+.omo/
+
 
 zmine/
 ztest/
