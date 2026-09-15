@@ -1,5 +1,6 @@
+// src/modules/school-admin/school-profile/hooks/useSchoolProfile.ts
 import { useState } from 'react';
-import { executeUpdateSchoolProfile, executeUploadSchoolLogo } from '../services/school-profile.service';
+import { executeUpdateSchoolProfile, executeUploadSchoolLogo, executeUploadSchoolCover } from '../services/school-profile.service';
 import { SchoolWithStats, VsSchool } from '@/modules/school-admin/types/school-admin.types';
 import { toast } from 'sonner';
 
@@ -7,42 +8,55 @@ export function useSchoolProfile(
   school: SchoolWithStats,
   onUpdateProp?: (data: Partial<VsSchool>) => Promise<boolean>
 ) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const handleUpdate = async (formData: Partial<VsSchool>): Promise<boolean> => {
+  const updateProfile = async (formData: Partial<VsSchool>): Promise<boolean> => {
     setSaving(true);
     try {
       if (onUpdateProp) {
         const success = await onUpdateProp(formData);
         if (success) {
           toast.success('School profile updated successfully');
-          setIsEditing(false);
         }
         return success;
       }
 
       await executeUpdateSchoolProfile(school.school_id, formData);
       toast.success('School profile updated successfully');
-      setIsEditing(false);
       return true;
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
+      toast.error(err.message || 'Failed to update school profile');
       return false;
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUploadLogo = async (file: File): Promise<string | null> => {
+  const uploadLogo = async (file: File): Promise<string | null> => {
     setUploading(true);
     try {
       const url = await executeUploadSchoolLogo(file);
-      toast.success('Logo file uploaded. Click "Save Changes" to save profile.');
+      toast.success('School logo uploaded successfully.');
       return url;
     } catch (err: any) {
-      toast.error(err.message || 'Failed to upload logo');
+      toast.error(err.message || 'Failed to upload school logo');
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadCover = async (file: File): Promise<string | null> => {
+    setUploading(true);
+    try {
+      const url = await executeUploadSchoolCover(file);
+      toast.success('Cover image uploaded successfully.');
+      return url;
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload cover photo');
       return null;
     } finally {
       setUploading(false);
@@ -50,11 +64,14 @@ export function useSchoolProfile(
   };
 
   return {
-    isEditing,
-    setIsEditing,
+    isEditingInfo,
+    setIsEditingInfo,
+    isEditingAddress,
+    setIsEditingAddress,
     saving,
     uploading,
-    handleUpdate,
-    handleUploadLogo,
+    updateProfile,
+    uploadLogo,
+    uploadCover,
   };
 }

@@ -1,5 +1,12 @@
 export type SchoolStatus = 'Active' | 'Inactive' | 'Draft' | 'Pending';
 export type SchoolType = 'University' | 'College' | 'Technical/Vocational' | 'Other';
+export type VerificationStatus =
+  | 'DRAFT'
+  | 'PENDING_VERIFICATION'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'INACTIVE'
+  | 'SUSPENDED';
 
 export interface VsSchoolAdmin {
   school_admin_id: number;
@@ -15,22 +22,32 @@ export interface VsSchool {
   school_name: string;
   school_type: SchoolType;
   school_logo_url: string | null;
+  school_cover: string | null;
   school_description: string | null;
+  school_mission: string | null;
+  school_values: string | null;
   school_email: string | null;
   school_contact_no: string | null;
   school_website: string | null;
+  school_facebook: string | null;
+  school_linkedin: string | null;
   address_line: string | null;
   barangay: string | null;
   city_municipality: string;
   province: string;
   postal_code: string | null;
   country: string;
-  school_status: SchoolStatus;
+  school_status: SchoolStatus | string;
+  verification_status: VerificationStatus;
   profile_completion_percent: number;
+  is_public: number | boolean;
+  is_active: number | boolean;
   created_by: number;
   created_at: string;
   updated_by: number | null;
   updated_at: string | null;
+  verified_by_user_id: number | null;
+  verified_at: string | null;
 }
 
 export interface SchoolWithStats extends VsSchool {

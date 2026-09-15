@@ -5,7 +5,7 @@ export async function updateSchoolProfileRepo(schoolId: number, payload: Partial
   return await updateSchoolRepo(schoolId, payload);
 }
 
-export async function uploadSchoolLogoRepo(file: File): Promise<string> {
+export async function uploadSchoolImageRepo(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
 
@@ -24,6 +24,13 @@ export async function uploadSchoolLogoRepo(file: File): Promise<string> {
     throw new Error("Invalid file upload response from server.");
   }
 
-  const directusBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-  return `${directusBase}/assets/${fileId}`;
+  return fileId;
+}
+
+export async function uploadSchoolLogoRepo(file: File): Promise<string> {
+  return uploadSchoolImageRepo(file);
+}
+
+export async function uploadSchoolCoverRepo(file: File): Promise<string> {
+  return uploadSchoolImageRepo(file);
 }

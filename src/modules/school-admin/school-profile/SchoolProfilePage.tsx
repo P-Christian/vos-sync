@@ -1,490 +1,564 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+// src/modules/school-admin/school-profile/SchoolProfilePage.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SchoolWithStats, VsSchool } from "@/modules/school-admin/types/school-admin.types";
 import { 
-  Loader2, 
   Building2, 
-  Mail, 
-  Phone, 
-  Globe, 
   MapPin, 
-  Camera, 
-  BookOpen, 
-  Users, 
-  CheckCircle2, 
-  FileText, 
-  Building,
-  Edit3,
+  Pencil, 
+  Globe, 
+  Eye, 
+  ShieldCheck, 
+  GraduationCap, 
+  Loader2,
+  Save,
   X,
-  Save
+  FileText
 } from "lucide-react";
-import { useSchoolProfile } from "./hooks/useSchoolProfile";
-import { SchoolAdminModuleHeader } from "@/modules/school-admin/components/SchoolAdminModuleHeader";
-import { Badge } from "@/components/ui/badge";
-import { formatSchoolAddress } from "./services/school-profile.helpers";
+import { SchoolWithStats, VsSchool } from "@/modules/school-admin/types/school-admin.types";
+import { EditableSchoolFields } from "./types/school-profile.types";
+import SchoolBasicInfo from "./components/SchoolBasicInfo";
+import SchoolAddress from "./components/SchoolAddress";
+import SchoolCompletionBar from "./components/SchoolCompletionBar";
+import SchoolStatusCard from "./components/SchoolStatusCard";
+import SchoolDocuments from "./components/SchoolDocuments";
+import SchoolMetricsWidget from "./components/SchoolMetricsWidget";
+import SchoolPreviewModal from "./components/SchoolPreviewModal";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
-export function SchoolProfilePage({ 
-  school, 
-  onUpdate 
-}: { 
-  school: SchoolWithStats,
-  onUpdate: (data: Partial<VsSchool>) => Promise<boolean>
-}) {
-  const {
-    isEditing,
-    setIsEditing,
-    saving,
-    uploading,
-    handleUpdate,
-    handleUploadLogo,
-  } = useSchoolProfile(school, onUpdate);
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+    },
+  },
+};
 
-  const [formData, setFormData] = useState<Partial<VsSchool>>({
-    school_name: school.school_name || "",
-    school_type: school.school_type || "University",
-    school_email: school.school_email || "",
-    school_contact_no: school.school_contact_no || "",
-    school_website: school.school_website || "",
-    school_logo_url: school.school_logo_url || "",
-    school_description: school.school_description || "",
-    address_line: school.address_line || "",
-    barangay: school.barangay || "",
-    city_municipality: school.city_municipality || "",
-    province: school.province || "",
-    postal_code: school.postal_code || "",
-    country: school.country || "",
-  });
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.25,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
+};
 
-  useEffect(() => {
-    if (!isEditing) {
-      setFormData({
-        school_name: school.school_name || "",
-        school_type: school.school_type || "University",
-        school_email: school.school_email || "",
-        school_contact_no: school.school_contact_no || "",
-        school_website: school.school_website || "",
-        school_logo_url: school.school_logo_url || "",
-        school_description: school.school_description || "",
-        address_line: school.address_line || "",
-        barangay: school.barangay || "",
-        city_municipality: school.city_municipality || "",
-        province: school.province || "",
-        postal_code: school.postal_code || "",
-        country: school.country || "",
-      });
-    }
-  }, [school, isEditing]);
+interface SchoolProfilePageProps {
+  school: SchoolWithStats;
+  onUpdate: (data: Partial<VsSchool>) => Promise<boolean>;
+}
 
-  const onLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = await handleUploadLogo(file);
-      if (url) {
-        setFormData(prev => ({ ...prev, school_logo_url: url }));
-      }
-    }
+export function SchoolProfilePage({
+  school,
+  onUpdate,
+}: SchoolProfilePageProps) {
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<Partial<EditableSchoolFields>>({});
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Sync draft from school data
+  const populateDraftFromSchool = () => {
+    return {
+      school_name: school.school_name ?? "",
+      school_type: school.school_type ?? "University",
+      school_logo_url: school.school_logo_url ?? "",
+      school_cover: school.school_cover ?? "",
+      school_description: school.school_description ?? "",
+      school_mission: school.school_mission ?? "",
+      school_values: school.school_values ?? "",
+      school_email: school.school_email ?? "",
+      school_contact_no: school.school_contact_no ?? "",
+      school_website: school.school_website ?? "",
+      school_facebook: school.school_facebook ?? "",
+      school_linkedin: school.school_linkedin ?? "",
+      address_line: school.address_line ?? "",
+      barangay: school.barangay ?? "",
+      city_municipality: school.city_municipality ?? "",
+      province: school.province ?? "",
+      postal_code: school.postal_code ?? "",
+      country: school.country ?? "Philippines",
+      is_public: school.is_public ?? false,
+    };
   };
 
-  const onSubmit = async (e: React.FormEvent) => {
+  // Section edit handlers
+  const handleEditInfo = (e: React.MouseEvent) => {
     e.preventDefault();
-    await handleUpdate(formData);
+    e.stopPropagation();
+    setDraft((prev) => ({
+      ...populateDraftFromSchool(),
+      ...prev,
+    }));
+    setIsEditingInfo(true);
   };
 
-  const completion = school.profile_completion_percent || 0;
-  const formattedAddress = formatSchoolAddress(formData);
+  const handleSaveInfo = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSaving(true);
+    try {
+      const payload: Partial<VsSchool> = {
+        school_name: draft.school_name,
+        school_type: draft.school_type,
+        school_logo_url: draft.school_logo_url,
+        school_cover: draft.school_cover,
+        school_description: draft.school_description,
+        school_mission: draft.school_mission,
+        school_values: draft.school_values,
+        school_email: draft.school_email,
+        school_contact_no: draft.school_contact_no,
+        school_website: draft.school_website,
+        school_facebook: draft.school_facebook,
+        school_linkedin: draft.school_linkedin,
+      };
+      const success = await onUpdate(payload);
+      if (success) {
+        toast.success("School information saved successfully.");
+        setIsEditingInfo(false);
+        if (!isEditingAddress) setDraft({});
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update school information.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelInfo = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsEditingInfo(false);
+    if (!isEditingAddress) setDraft({});
+  };
+
+  const handleEditAddress = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraft((prev) => ({
+      ...populateDraftFromSchool(),
+      ...prev,
+    }));
+    setIsEditingAddress(true);
+  };
+
+  const handleSaveAddress = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSaving(true);
+    try {
+      const payload: Partial<VsSchool> = {
+        address_line: draft.address_line,
+        barangay: draft.barangay,
+        city_municipality: draft.city_municipality,
+        province: draft.province,
+        postal_code: draft.postal_code,
+        country: draft.country || "Philippines",
+      };
+      const success = await onUpdate(payload);
+      if (success) {
+        toast.success("Campus address saved successfully.");
+        setIsEditingAddress(false);
+        if (!isEditingInfo) setDraft({});
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update campus address.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelAddress = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsEditingAddress(false);
+    if (!isEditingInfo) setDraft({});
+  };
+
+  const handleFieldChange = (
+    field: keyof EditableSchoolFields,
+    value: any
+  ) => {
+    setDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleToggleVisibility = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSaving(true);
+    try {
+      const nextVal = Number(school.is_public) === 1 ? 0 : 1;
+      await onUpdate({ is_public: nextVal });
+      toast.success(`Profile set to ${nextVal === 1 ? "Public" : "Private"}.`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update visibility.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayDataInfo = isEditingInfo
+    ? { ...school, ...draft }
+    : school;
+
+  const displayDataAddress = isEditingAddress
+    ? { ...school, ...draft }
+    : school;
+
+  const completionPercent = school.profile_completion_percent || 0;
+  const isPublic = Number(school.is_public) === 1 || school.is_public === true;
 
   return (
-    <div className="w-[90%] max-w-[2000px] mx-auto space-y-6">
-      {/* Module Header Banner */}
-      <SchoolAdminModuleHeader
-        title="School Profile Settings"
-        description="Manage your institution's profile, contact details, address, and public branding."
-        icon={Building2}
-        actions={
-          !isEditing ? (
-            <Button 
-              onClick={() => setIsEditing(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md flex items-center gap-2"
-            >
-              <Edit3 className="w-4 h-4" />
-              Edit Profile
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button 
-                type="button"
-                className="bg-white/10 text-white border border-white/20 hover:bg-white/20 hover:text-white flex items-center gap-1.5" 
-                onClick={() => setIsEditing(false)} 
-                disabled={saving}
-              >
-                <X className="w-4 h-4 text-white" />
-                <span className="text-white">Cancel</span>
-              </Button>
-              <Button 
-                onClick={onSubmit} 
-                disabled={saving}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md flex items-center gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save Changes
-              </Button>
-            </div>
-          )
-        }
-      />
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Identity Card */}
-        <div className="lg:col-span-4 space-y-6">
-          <Card className="border shadow-sm rounded-2xl overflow-hidden bg-card">
-            <CardContent className="p-6 space-y-6">
-              {/* Logo & Basic Info Header */}
-              <div className="flex items-start gap-4">
-                <div className="relative group shrink-0">
-                  <div className="w-20 h-20 rounded-2xl border bg-card shadow-sm flex items-center justify-center overflow-hidden">
-                    {formData.school_logo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img 
-                        src={formData.school_logo_url} 
-                        alt={formData.school_name || "School Logo"} 
-                        className="w-full h-full object-contain p-1"
-                      />
-                    ) : (
-                      <Building2 className="w-9 h-9 text-muted-foreground" />
-                    )}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="w-[92%] max-w-[2000px] mx-auto space-y-6 pb-12"
+    >
+      {/* ── Main 2-Column Grid (Starts directly without redundant gradient header) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* ── Left Column (Main Profile Details) ── */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Card 1: School Information */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-6 py-4 bg-muted/20 flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                    <Building2 className="h-5 w-5" />
                   </div>
-
-                  {isEditing && (
-                    <label 
-                      htmlFor="logo-upload-input" 
-                      className="absolute inset-0 bg-black/50 rounded-2xl flex flex-col items-center justify-center text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {uploading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Camera className="w-4 h-4 mb-0.5" />
-                          <span className="text-[9px] font-medium">Upload</span>
-                        </>
-                      )}
-                      <input 
-                        id="logo-upload-input" 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        onChange={onLogoChange}
-                        disabled={uploading}
-                      />
-                    </label>
-                  )}
+                  <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    School Information
+                  </CardTitle>
                 </div>
 
-                <div className="space-y-1.5 min-w-0 flex-1">
-                  <div className="flex flex-wrap gap-1.5 mb-1">
-                    <Badge variant={school.school_status === "Active" ? "default" : "secondary"} className="capitalize text-[10px] px-2 py-0">
-                      {school.school_status}
-                    </Badge>
-                    <Badge variant="outline" className="capitalize text-[10px] px-2 py-0">
-                      {school.school_type}
-                    </Badge>
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground tracking-tight leading-snug">
-                    {school.school_name || "Institution Name"}
-                  </h3>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 text-blue-500" />
-                    <span className="truncate">{formData.city_municipality ? `${formData.city_municipality}, ${formData.province}` : "Location not set"}</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Profile Completion Bar */}
-              <div className="space-y-2 pt-2 border-t">
-                <div className="flex justify-between items-center text-xs font-medium">
-                  <span className="text-muted-foreground">Profile Completion</span>
-                  <span className="font-bold text-foreground">{completion}%</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-500 rounded-full"
-                    style={{ width: `${completion}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Quick Metrics */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-                <div className="p-3 rounded-xl bg-muted/50 border flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">Courses</p>
-                    <p className="text-lg font-bold text-foreground">{school.course_count}</p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-muted/50 border flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">Students</p>
-                    <p className="text-lg font-bold text-foreground">{school.student_count}</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Contact Card Summary (Read-Only Preview) */}
-          <Card className="border shadow-sm rounded-2xl">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Globe className="w-4 h-4 text-blue-500" />
-                Quick Contact & Web
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center gap-2.5 text-muted-foreground">
-                <Mail className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="truncate text-foreground font-medium">{formData.school_email || "No email provided"}</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-muted-foreground">
-                <Phone className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-foreground font-medium">{formData.school_contact_no || "No phone provided"}</span>
-              </div>
-              <div className="flex items-center gap-2.5 text-muted-foreground">
-                <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-                {formData.school_website ? (
-                  <a 
-                    href={formData.school_website.startsWith('http') ? formData.school_website : `https://${formData.school_website}`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline truncate font-medium"
+                {!isEditingInfo && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-primary font-semibold hover:bg-primary/10 transition-colors gap-1.5"
+                    onClick={handleEditInfo}
                   >
-                    {formData.school_website}
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">No website provided</span>
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span>Edit Info</span>
+                  </Button>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {isEditingInfo ? (
+                    <motion.div
+                      key="editing-info"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-6"
+                    >
+                      <SchoolBasicInfo
+                        data={displayDataInfo}
+                        onChange={handleFieldChange}
+                        readOnly={false}
+                      />
+                      <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCancelInfo}
+                          disabled={saving}
+                          className="h-9 px-5 text-xs font-medium rounded-xl"
+                        >
+                          <X className="w-3.5 h-3.5 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSaveInfo}
+                          size="sm"
+                          disabled={saving}
+                          className="h-9 px-6 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-transform active:scale-[0.98] gap-1.5"
+                        >
+                          {saving ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-info"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <SchoolBasicInfo
+                        data={school}
+                        onChange={() => {}}
+                        readOnly={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Card 2: Campus Address & Location */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-6 py-4 bg-muted/20 flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    Campus Location & Address
+                  </CardTitle>
+                </div>
+
+                {!isEditingAddress && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-primary font-semibold hover:bg-primary/10 transition-colors gap-1.5"
+                    onClick={handleEditAddress}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span>Edit Address</span>
+                  </Button>
+                )}
+              </CardHeader>
+
+              <CardContent className="p-6">
+                <AnimatePresence mode="wait">
+                  {isEditingAddress ? (
+                    <motion.div
+                      key="editing-address"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-6"
+                    >
+                      <SchoolAddress
+                        data={displayDataAddress}
+                        onChange={handleFieldChange}
+                        readOnly={false}
+                      />
+                      <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCancelAddress}
+                          disabled={saving}
+                          className="h-9 px-5 text-xs font-medium rounded-xl"
+                        >
+                          <X className="w-3.5 h-3.5 mr-1" />
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSaveAddress}
+                          size="sm"
+                          disabled={saving}
+                          className="h-9 px-6 text-xs font-semibold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm transition-transform active:scale-[0.98] gap-1.5"
+                        >
+                          {saving ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5" />
+                              Save Changes
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="view-address"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <SchoolAddress
+                        data={school}
+                        onChange={() => {}}
+                        readOnly={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* Right Details / Edit Form Area */}
-        <div className="lg:col-span-8 space-y-6">
-          <form onSubmit={onSubmit} className="space-y-6">
-            {/* General Info Card */}
-            <Card className="border shadow-sm rounded-2xl">
-              <CardHeader className="border-b bg-muted/30 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
-                    <Building className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-bold">General Information</CardTitle>
-                    <CardDescription>Basic details about your educational institution.</CardDescription>
-                  </div>
-                </div>
+        {/* ── Right Column (Sidebar Widgets) ── */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Widget 1: Profile Completion Bar */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardContent className="p-5">
+                <SchoolCompletionBar percent={completionPercent} />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Widget 2: Verification Status */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-5 py-3.5 bg-muted/20 flex flex-row items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Verification Status
+                </CardTitle>
               </CardHeader>
+              <CardContent className="p-4 sm:p-5">
+                <SchoolStatusCard
+                  status={school.verification_status}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
 
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="school_name" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      School Name
-                    </Label>
-                    <Input 
-                      id="school_name" 
-                      value={formData.school_name || ""} 
-                      onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                      required
-                    />
+          {/* Widget 3: Verification Documents (Dedicated Component between Status and Metrics) */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-5 py-3.5 bg-muted/20 flex flex-row items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Verification Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5">
+                <SchoolDocuments schoolId={school.school_id} />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Widget 4: Academic Quick Metrics */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-5 py-3.5 bg-muted/20 flex flex-row items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Institutional Metrics
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5">
+                <SchoolMetricsWidget
+                  courseCount={school.course_count}
+                  studentCount={school.student_count}
+                  schoolType={school.school_type}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Widget 5: Public Profile Preview Button */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-5 py-3.5 bg-muted/20 flex flex-row items-center gap-2">
+                <Eye className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Public Profile Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 space-y-3">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Preview how prospective students, education partners, and organizations see your school profile.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPreview(true);
+                  }}
+                  className="w-full h-9 text-xs font-semibold rounded-xl hover:border-primary/50 gap-1.5 transition-colors"
+                >
+                  <Eye className="h-4 w-4 text-primary" />
+                  Preview Public Profile
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Widget 6: Public Visibility Settings */}
+          <motion.div variants={itemVariants}>
+            <Card className="shadow-sm border border-border bg-card rounded-2xl py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border px-5 py-3.5 bg-muted/20 flex flex-row items-center gap-2">
+                <Globe className="h-4 w-4 text-primary" />
+                <CardTitle className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Public Visibility
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">
+                      {isPublic ? "Public Profile" : "Private Profile"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                      {isPublic
+                        ? "Discoverable by partners and visible on school listings."
+                        : "Only visible to authorized school administrators."}
+                    </p>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="school_type" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Institution Type
-                    </Label>
-                    <Select 
-                      value={formData.school_type} 
-                      onValueChange={(val: any) => setFormData({ ...formData, school_type: val })}
-                      disabled={!isEditing}
-                    >
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="University">University</SelectItem>
-                        <SelectItem value="College">College</SelectItem>
-                        <SelectItem value="Technical/Vocational">Technical/Vocational</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="school_email" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Official Email
-                    </Label>
-                    <Input 
-                      id="school_email" 
-                      type="email"
-                      value={formData.school_email || ""} 
-                      onChange={(e) => setFormData({ ...formData, school_email: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="school_contact_no" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Contact Number
-                    </Label>
-                    <Input 
-                      id="school_contact_no" 
-                      value={formData.school_contact_no || ""} 
-                      onChange={(e) => setFormData({ ...formData, school_contact_no: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="school_website" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Website URL
-                    </Label>
-                    <Input 
-                      id="school_website" 
-                      value={formData.school_website || ""} 
-                      onChange={(e) => setFormData({ ...formData, school_website: e.target.value })}
-                      disabled={!isEditing}
-                      placeholder="https://example.edu.ph"
-                      className="rounded-xl"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="school_description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    About / Description
-                  </Label>
-                  <Textarea 
-                    id="school_description" 
-                    rows={4}
-                    value={formData.school_description || ""} 
-                    onChange={(e) => setFormData({ ...formData, school_description: e.target.value })}
-                    disabled={!isEditing}
-                    placeholder="Provide a summary of your school background, mission, and programs..."
-                    className="rounded-xl resize-none"
-                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={saving}
+                    onClick={handleToggleVisibility}
+                    className="h-8 px-3 text-[11px] font-semibold rounded-xl shrink-0 hover:border-primary/50 transition-colors"
+                  >
+                    {isPublic ? "Make Private" : "Make Public"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Address Information Card */}
-            <Card className="border shadow-sm rounded-2xl">
-              <CardHeader className="border-b bg-muted/30 pb-4">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-bold">Location & Address Details</CardTitle>
-                    <CardDescription>Address specification for campus location and correspondence.</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="address_line" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Street Address / Building
-                    </Label>
-                    <Input 
-                      id="address_line" 
-                      value={formData.address_line || ""} 
-                      onChange={(e) => setFormData({ ...formData, address_line: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="barangay" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Barangay
-                    </Label>
-                    <Input 
-                      id="barangay" 
-                      value={formData.barangay || ""} 
-                      onChange={(e) => setFormData({ ...formData, barangay: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="city_municipality" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      City / Municipality
-                    </Label>
-                    <Input 
-                      id="city_municipality" 
-                      value={formData.city_municipality || ""} 
-                      onChange={(e) => setFormData({ ...formData, city_municipality: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="province" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Province
-                    </Label>
-                    <Input 
-                      id="province" 
-                      value={formData.province || ""} 
-                      onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="postal_code" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Postal Code
-                    </Label>
-                    <Input 
-                      id="postal_code" 
-                      value={formData.postal_code || ""} 
-                      onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                      disabled={!isEditing}
-                      className="rounded-xl"
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </form>
+          </motion.div>
         </div>
       </div>
-    </div>
+
+      {/* Public Profile Preview Modal */}
+      <SchoolPreviewModal
+        open={showPreview}
+        onClose={() => setShowPreview(false)}
+        school={school}
+      />
+    </motion.div>
   );
 }
+export default SchoolProfilePage;

@@ -33,90 +33,184 @@ export function DashboardSkeleton() {
 
 export function SchoolProfileSkeleton() {
   return (
-    <div className="w-[90%] max-w-[2000px] mx-auto space-y-6 p-6">
-      {/* Header Banner Skeleton */}
-      <div className="h-24 w-full rounded-2xl bg-slate-900/90 p-6 flex items-center justify-between border border-white/10 shadow-xl animate-pulse">
-        <div className="flex items-center gap-4">
-          <Skeleton className="w-12 h-12 rounded-xl bg-white/20 shrink-0" />
-          <div className="space-y-2">
-            <Skeleton className="h-6 w-48 bg-white/20" />
-            <Skeleton className="h-4 w-80 bg-white/10" />
-          </div>
-        </div>
-        <Skeleton className="h-10 w-28 rounded-lg bg-white/20" />
-      </div>
-
-      {/* Grid Layout Skeleton */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Identity Card Skeleton */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="rounded-2xl border bg-card p-6 space-y-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
-              <div className="space-y-2 flex-1">
-                <div className="flex gap-2">
-                  <Skeleton className="h-4 w-12 rounded-full" />
-                  <Skeleton className="h-4 w-16 rounded-full" />
+    <div className="w-[92%] max-w-[2000px] mx-auto space-y-6">
+      {/* Main 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Left Column Skeleton */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* School Information Card */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-6 py-4 bg-muted/20 flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="w-6 h-6 rounded-md" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+              <Skeleton className="h-7 w-20 rounded-md" />
+            </div>
+            <div className="p-6 space-y-6">
+              {/* Cover Banner Skeleton */}
+              <div className="relative rounded-2xl overflow-hidden border bg-muted/30">
+                <Skeleton className="w-full aspect-[3/1] max-h-[260px] rounded-none" />
+                <div className="px-6 pb-6 pt-0 relative flex items-end gap-4 -mt-12 sm:-mt-14 z-10">
+                  <Skeleton className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-card shrink-0" />
+                  <div className="space-y-2 mb-1 flex-1">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-6 w-1/2" />
+                  </div>
                 </div>
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
               </div>
-            </div>
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex justify-between">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="h-3 w-8" />
+
+              {/* Contact Grid Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-44" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               </div>
-              <Skeleton className="h-2 w-full rounded-full" />
-            </div>
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t">
-              <Skeleton className="h-16 rounded-xl" />
-              <Skeleton className="h-16 rounded-xl" />
+
+              {/* Description Skeleton */}
+              <div className="pt-4 border-t space-y-2">
+                <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+
+              {/* Mission & Values Skeleton */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-12 w-full rounded-lg" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-card p-6 space-y-4 shadow-sm">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-2/3" />
+          {/* Campus Location & Address Card */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-6 py-4 bg-muted/20 flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <Skeleton className="w-6 h-6 rounded-md" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <Skeleton className="h-7 w-24 rounded-md" />
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-40" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+              <div className="pt-4 border-t space-y-2">
+                <Skeleton className="h-3 w-36" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Right Form Cards Skeleton */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="rounded-2xl border bg-card p-6 space-y-6 shadow-sm">
-            <div className="flex items-center gap-3 border-b pb-4">
-              <Skeleton className="w-9 h-9 rounded-lg" />
-              <div className="space-y-1">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-3 w-64" />
-              </div>
+        {/* Right Column Skeleton */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Completion Bar */}
+          <div className="rounded-2xl border bg-card p-5 space-y-3 shadow-sm">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-10" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Skeleton className="h-10 md:col-span-2 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-24 md:col-span-2 rounded-xl" />
+            <Skeleton className="h-2.5 w-full rounded-full" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+
+          {/* Verification Status */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-5 py-3.5 bg-muted/20 flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded-md" />
+              <Skeleton className="h-3.5 w-32" />
+            </div>
+            <div className="p-5 space-y-3">
+              <Skeleton className="h-20 w-full rounded-xl" />
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-card p-6 space-y-6 shadow-sm">
-            <div className="flex items-center gap-3 border-b pb-4">
-              <Skeleton className="w-9 h-9 rounded-lg" />
-              <div className="space-y-1">
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-3 w-72" />
+          {/* Verification Documents (Dedicated Skeleton) */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-5 py-3.5 bg-muted/20 flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded-md" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+            <div className="p-5 space-y-3">
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+              <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+          </div>
+
+          {/* Institutional Metrics */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-5 py-3.5 bg-muted/20 flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded-md" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+            <div className="p-5">
+              <div className="grid grid-cols-2 gap-3">
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Skeleton className="h-10 md:col-span-2 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
-              <Skeleton className="h-10 rounded-xl" />
+          </div>
+
+          {/* Preview Public Profile */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-5 py-3.5 bg-muted/20 flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded-md" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+            <div className="p-5 space-y-3">
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-9 w-full rounded-xl" />
+            </div>
+          </div>
+
+          {/* Public Visibility */}
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden py-0 gap-0">
+            <div className="border-b px-5 py-3.5 bg-muted/20 flex items-center gap-2">
+              <Skeleton className="w-4 h-4 rounded-md" />
+              <Skeleton className="h-3.5 w-32" />
+            </div>
+            <div className="p-5 flex justify-between items-center">
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-40" />
+              </div>
+              <Skeleton className="h-8 w-24 rounded-xl" />
             </div>
           </div>
         </div>

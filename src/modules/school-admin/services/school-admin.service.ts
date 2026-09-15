@@ -11,19 +11,21 @@ import { VsSchool, VsSchoolCourse, SchoolWithStats } from '../types/school-admin
 export function calculateSchoolCompletion(school: Partial<VsSchool>, courseCount: number): number {
   let percent = 0;
   if (school.school_name?.trim()) percent += 10;
-  if (school.school_type) percent += 10;
+  if (school.school_type) percent += 5;
   if (school.school_email?.trim()) percent += 10;
   if (school.school_contact_no?.trim()) percent += 10;
   if (school.school_description?.trim()) percent += 10;
   if (school.school_logo_url?.trim()) percent += 10;
+  if (school.school_cover?.trim()) percent += 5;
+  if (school.school_mission?.trim()) percent += 5;
+  if (school.school_values?.trim()) percent += 5;
   if (school.school_website?.trim()) percent += 5;
+  if (school.school_facebook?.trim() || school.school_linkedin?.trim()) percent += 5;
   if (school.address_line?.trim()) percent += 5;
-  if (school.barangay?.trim()) percent += 5;
   if (school.city_municipality?.trim()) percent += 5;
   if (school.province?.trim()) percent += 5;
-  if (school.postal_code?.trim()) percent += 5;
-  if (courseCount > 0) percent += 10;
-  return percent;
+  if (courseCount > 0) percent += 5;
+  return Math.min(100, percent);
 }
 
 export async function getMySchool(userId: number): Promise<SchoolWithStats | null> {
