@@ -650,7 +650,7 @@ export class RegistrationChallengeRepository {
     ) {
       throw this.invalidArgument("Invalid registration resend update.");
     }
-    return this.guardedUpdate(challengeId, "ACTIVE", expectedStateVersion, {
+    return this.guardedUpdate(challengeId, ["ACTIVE", "LOCKED"], expectedStateVersion, {
       otp_hmac: params.otpHmac,
       payload_digest: params.payloadDigest,
       expires_at: params.expiresAt,
