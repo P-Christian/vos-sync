@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { MAIL_FROM } from '@/lib/mail/transporter';
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.ethereal.email',
@@ -38,7 +39,7 @@ export async function sendOTP(email: string, otpCode: string) {
 
     try {
         const info = await transporter.sendMail({
-            from: '"Vos Sync" <noreply@vossync.com>',
+            from: MAIL_FROM,
             to: email,
             subject: "Your Vos Sync Verification Code",
             text: `Your Vos Sync Verification Code is: ${otpCode}. It will expire in 10 minutes.`,
@@ -62,7 +63,7 @@ export async function sendOTP(email: string, otpCode: string) {
 export async function sendSchoolInvite(email: string, schoolName: string, inviteUrl: string) {
     try {
         const info = await transporter.sendMail({
-            from: '"Vos Sync" <noreply@vossync.com>',
+            from: MAIL_FROM,
             to: email,
             subject: `Invitation to Manage ${schoolName} on Vos Sync`,
             text: `You have been invited to manage ${schoolName} on Vos Sync. Click the following link to register: ${inviteUrl}`,
@@ -87,7 +88,7 @@ export async function sendSchoolInvite(email: string, schoolName: string, invite
 export async function sendPasswordResetOTP(email: string, otpCode: string) {
     try {
         const info = await transporter.sendMail({
-            from: '"Vos Sync" <noreply@vossync.com>',
+            from: MAIL_FROM,
             to: email,
             subject: "Vos Sync Password Reset",
             text: `Your password reset code is: ${otpCode}. It will expire in 2 minutes.`,
