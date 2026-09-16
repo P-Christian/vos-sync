@@ -74,15 +74,27 @@ export function PreviewScreen({ preview, hasSession, loginHref, busy, onCreateAc
       <div className="mt-6 flex flex-col gap-3">
         {hasSession ? (
           <>
-              <Button type="button" onClick={onAccept} disabled={busy} className="min-h-11 w-full py-6 rounded-full text-base">
+            <Button type="button" onClick={onAccept} disabled={busy} className="min-h-11 w-full py-6 rounded-full text-base">
               {busy ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Checking your invitation...</> : "Accept invitation"}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">Not you? <Link href={loginHref} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">Sign in with a different account</Link></p>
+            <p className="text-center text-sm text-muted-foreground">
+              Accepting links this invitation to the account you&apos;re signed in with. Wrong account?{" "}
+              <Link href={loginHref} className="inline-flex min-h-11 items-center text-primary font-medium hover:underline">
+                Sign in with a different account
+              </Link>
+            </p>
           </>
         ) : (
           <>
-              <Button type="button" onClick={onCreateAccount} className="min-h-11 w-full py-6 rounded-full text-base">Create account</Button>
-              <Button asChild variant="outline" className="min-h-11 w-full py-6 rounded-full text-base border-2"><Link href={loginHref}>Sign in</Link></Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Already have a VOS Sync account? Sign in and we&apos;ll link this invitation to it.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button type="button" onClick={onCreateAccount} className="min-h-11 rounded-full">Create a new account</Button>
+              <Button asChild variant="outline" className="min-h-11 rounded-full border-2">
+                <Link href={loginHref}>Sign in to my existing account</Link>
+              </Button>
+            </div>
           </>
         )}
       </div>
