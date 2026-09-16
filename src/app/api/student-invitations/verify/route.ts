@@ -1,9 +1,11 @@
+import crypto from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import {
   authenticateCookieSession,
   isFreelancerSession,
 } from "@/lib/authenticated-session";
+import { sendNotificationEmail } from "@/lib/mail";
 import type { StudentInvitationErrorCode } from "@/modules/auth/student-invitation/errors";
 import {
   completeOwnedAcceptance,
@@ -16,13 +18,17 @@ import {
 import {
   findInvitationById,
   findInvitationByToken,
+  findSchoolById,
   findStudentById,
   linkStudentAccount,
 } from "@/modules/auth/student-invitation/invitation.repo";
 import {
+  canonicalizeEmail,
+  fingerprintCanonicalEmail,
   getInvitationState,
   isLinkedToSession,
 } from "@/modules/auth/student-invitation/invitation.service";
+import { readWelcomeDeferral } from "@/modules/auth/student-invitation/welcome-deferral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -121,8 +127,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const accountEmail = session.user.user_email?.trim().toLowerCase();
-    const rosterEmail = student.email?.trim().toLowerCase();
+    const rawAccountEmail = session.user.user_email ?? "";
+    const rawRosterEmail = student.email ?? "";
+    const accountEmail = canonicalizeEmail(rawAccountEmail);
+    const rosterEmail = canonicalizeEmail(rawRosterEmail);
     if (!accountEmail || !rosterEmail) {
       return verifyJson(
         {
@@ -132,7 +140,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         503
       );
     }
-    if (accountEmail !== rosterEmail) {
+    const sameEmail = accountEmail === rosterEmail;
+    console.info("[student-invitation.verify] Email comparison decision", {
+      correlationId: crypto.randomUUID(),
+      sameEmail,
+      accountRawLength: rawAccountEmail.length,
+      accountNormalizedLength: accountEmail.length,
+      rosterRawLength: rawRosterEmail.length,
+      rosterNormalizedLength: rosterEmail.length,
+      accountFingerprint: fingerprintCanonicalEmail(accountEmail),
+      rosterFingerprint: fingerprintCanonicalEmail(rosterEmail),
+      invitationState,
+    });
+    if (!sameEmail) {
       if (!input.data.otp) {
         return verifyJson(
           { error: "Invalid verification code.", code: "OTP_REQUIRED" },
@@ -183,7 +203,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return conflictJson("INVITATION_INVALID");
     }
     const latestEmail = latestStudent.email;
-    const latestRosterEmail = latestEmail?.trim().toLowerCase();
+    const latestRosterEmail = canonicalizeEmail(latestEmail ?? "");
     if (
       !latestEmail ||
       !latestRosterEmail ||
@@ -202,12 +222,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return conflictJson("INVITATION_OWNERSHIP_CONFLICT");
     }
 
+    const linkedResponse = verifyJson({ state: "linked" });
+    if (link.created) {
+      const pass = readWelcomeDeferral(
+        request.cookies.get("vs_welcome_pending")?.value
+      );
+      const recipient = session.user.user_email?.trim();
+      if (
+        pass &&
+        pass.userId === String(session.userId) &&
+        pass.invitationId === String(latestInvitation.invitation_id) &&
+        recipient
+      ) {
+        const school = await findSchoolById(latestInvitation.school_id);
+        const schoolName = school?.school_name.trim() || "your school";
+        // sendMail swallows SMTP errors, so delivery is not observable at this
+        // layer; the pass is single-use and release is at-most-once best effort.
+        void sendNotificationEmail(
+          recipient,
+          "Welcome to VOS Sync",
+          `Your VOS Sync account is now linked to ${schoolName}.`
+        );
+        linkedResponse.cookies.delete("vs_welcome_pending");
+      }
+    }
+
     await completeOwnedAcceptance({
       sessionUserId: session.userId,
       invitation: latestInvitation,
       student: link.student,
     });
-    return verifyJson({ state: "linked" });
+    return linkedResponse;
   } catch (error: unknown) {
     if (error instanceof InvitationChallengeError) {
       return verifyJson(

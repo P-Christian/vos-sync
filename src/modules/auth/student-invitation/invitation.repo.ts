@@ -111,7 +111,11 @@ export interface LinkStudentAccountInput {
 }
 
 export type LinkStudentAccountResult =
-  | { readonly kind: "linked"; readonly student: SchoolStudentRecord }
+  | {
+      readonly kind: "linked";
+      readonly student: SchoolStudentRecord;
+      readonly created: boolean;
+    }
   | { readonly kind: "conflict" };
 
 function isSameOwner(
@@ -128,7 +132,10 @@ function isSameOwner(
  * Link the account only while the roster row is still unowned and still
  * matches the school and roster email the caller validated. A zero-row update
  * is classified by read-back: the same owner is idempotent, another owner is
- * a conflict, and a still-unowned row is a dependency failure.
+ * a conflict, and a still-unowned row is a dependency failure. `created`
+ * reports the conditional-update winner (the first write) as `true` and the
+ * same-owner read-back as `false`, so the caller can release once-only
+ * effects on the request that actually wrote the link.
  */
 export async function linkStudentAccount(
   input: LinkStudentAccountInput
@@ -156,12 +163,12 @@ export async function linkStudentAccount(
     updated.student_id === input.studentId &&
     isSameOwner(updated, input.userId)
   ) {
-    return { kind: "linked", student: updated };
+    return { kind: "linked", student: updated, created: true };
   }
 
   const current = await findStudentById(input.studentId);
   if (current && isSameOwner(current, input.userId)) {
-    return { kind: "linked", student: current };
+    return { kind: "linked", student: current, created: false };
   }
   if (current && current.registered_user_id !== null) {
     return { kind: "conflict" };
