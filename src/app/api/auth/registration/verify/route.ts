@@ -18,9 +18,18 @@ import {
   issueRegistrationAttachmentToken,
   issueRegistrationSession,
 } from "@/modules/auth/registration/registration.session";
+import {
+  findInvitationByToken,
+  findStudentById,
+} from "@/modules/auth/student-invitation/invitation.repo";
+import { getInvitationState } from "@/modules/auth/student-invitation/invitation.service";
+import { issueWelcomeDeferral } from "@/modules/auth/student-invitation/welcome-deferral";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const WELCOME_DEFERRAL_COOKIE_NAME = "vs_welcome_pending";
+const WELCOME_DEFERRAL_COOKIE_MAX_AGE_SECONDS = 86_400;
 
 export async function POST(request: NextRequest) {
   const disabled = requireRegistrationV2();
@@ -35,6 +44,23 @@ export async function POST(request: NextRequest) {
     getJwtVerificationSecret();
     const challengeId = getChallengeId(request);
     const input = await parseRegistrationJson(request, verifyOtpInputSchema);
+    const invitationToken = request.headers
+      .get("x-student-invitation-token")
+      ?.trim();
+    let welcomeDeferralInvitationId: number | null = null;
+    if (invitationToken) {
+      try {
+        const invitation = await findInvitationByToken(invitationToken);
+        const student = invitation
+          ? await findStudentById(invitation.student_id)
+          : null;
+        if (getInvitationState(invitation, student, Date.now()) === "valid") {
+          welcomeDeferralInvitationId = invitation?.invitation_id ?? null;
+        }
+      } catch {
+        welcomeDeferralInvitationId = null;
+      }
+    }
     lease = await new RegistrationService(
       challengeRepo
     ).verifyOtpAndAcquireLease(
@@ -43,10 +69,20 @@ export async function POST(request: NextRequest) {
       input.sealedPayload
     );
 
-    const user = await new RegistrationProvisioningService().provision(
-      lease.challenge,
-      lease.payload
-    );
+    // Defer the welcome email ONLY for invitation-originated FREELANCER
+    // registrations. CLIENT, SCH_ADMIN, and non-invitation FREELANCER
+    // registrations keep the immediate welcome and never receive the
+    // vs_welcome_pending pass.
+    const deferWelcomeEmail =
+      welcomeDeferralInvitationId !== null &&
+      lease.payload.role === "FREELANCER";
+
+    const provisioningService = new RegistrationProvisioningService();
+    const user = deferWelcomeEmail
+      ? await provisioningService.provision(lease.challenge, lease.payload, {
+          deferWelcomeEmail: true,
+        })
+      : await provisioningService.provision(lease.challenge, lease.payload);
     await challengeRepo.consumeChallenge(
       challengeId,
       lease.challenge.state_version,
@@ -65,6 +101,20 @@ export async function POST(request: NextRequest) {
     // last. This is robust to development proxies that incorrectly retain
     // only the final Set-Cookie header from a multi-cookie response.
     response = clearRegistrationChallengeCookie(response);
+    if (deferWelcomeEmail && welcomeDeferralInvitationId !== null) {
+      response.cookies.set({
+        name: WELCOME_DEFERRAL_COOKIE_NAME,
+        value: issueWelcomeDeferral(
+          user.user_id,
+          welcomeDeferralInvitationId
+        ),
+        ...getCookieOptions(
+          true,
+          "/",
+          WELCOME_DEFERRAL_COOKIE_MAX_AGE_SECONDS
+        ),
+      });
+    }
     response.cookies.set({
       name: COOKIE_NAME,
       value: session.token,
