@@ -19,6 +19,8 @@ import {
   findStudentById,
 } from "@/modules/auth/student-invitation/invitation.repo";
 import {
+  canonicalizeEmail,
+  fingerprintCanonicalEmail,
   getInvitationState,
   isLinkedToSession,
 } from "@/modules/auth/student-invitation/invitation.service";
@@ -183,8 +185,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const accountEmail = session.user.user_email?.trim().toLowerCase();
-    const rosterEmail = student.email.trim().toLowerCase();
+    const rawAccountEmail = session.user.user_email ?? "";
+    const rawRosterEmail = student.email;
+    const accountEmail = canonicalizeEmail(rawAccountEmail);
+    const rosterEmail = canonicalizeEmail(rawRosterEmail);
     if (!accountEmail || !rosterEmail) {
       return claimJson(
         {
@@ -194,7 +198,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         503
       );
     }
-    if (accountEmail === rosterEmail) {
+    const sameEmail = accountEmail === rosterEmail;
+    console.info("[student-invitation.claim] Email comparison decision", {
+      correlationId: crypto.randomUUID(),
+      sameEmail,
+      accountRawLength: rawAccountEmail.length,
+      accountNormalizedLength: accountEmail.length,
+      rosterRawLength: rawRosterEmail.length,
+      rosterNormalizedLength: rosterEmail.length,
+      accountFingerprint: fingerprintCanonicalEmail(accountEmail),
+      rosterFingerprint: fingerprintCanonicalEmail(rosterEmail),
+      invitationState: state,
+    });
+    if (sameEmail) {
       return claimJson({
         mode: "same_email",
         notice: "No additional verification code is needed.",

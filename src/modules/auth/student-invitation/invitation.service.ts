@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import { getRegistrationConfig } from "@/modules/auth/registration/registration.config";
 import { maskEmail } from "@/modules/auth/registration/registration.crypto";
 import { parseDirectusUtcDateTime } from "@/modules/auth/registration/registration.timestamps";
 import type {
@@ -15,6 +17,30 @@ export interface BuildPreviewInput {
   readonly school: SchoolRecord | null;
   readonly course: SchoolCourseRecord | null;
   readonly now: number;
+}
+
+const EMAIL_FINGERPRINT_PREFIX = "student-invitation.email-fingerprint";
+const EMAIL_FINGERPRINT_LENGTH = 16;
+
+/**
+ * Canonicalize an email with the exact case-insensitive rule shared by the
+ * claim and verify acceptance routes; the two decisions must never drift.
+ */
+export function canonicalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Domain-separated, truncated HMAC-SHA256 fingerprint of a canonicalized
+ * address. The keyed digest is not reversible, never includes the secret, and
+ * lets a log line correlate two addresses without carrying either one.
+ */
+export function fingerprintCanonicalEmail(canonicalEmail: string): string {
+  return crypto
+    .createHmac("sha256", getRegistrationConfig().otpHmacSecret)
+    .update(`${EMAIL_FINGERPRINT_PREFIX}\u0000${canonicalEmail}`, "utf8")
+    .digest("hex")
+    .slice(0, EMAIL_FINGERPRINT_LENGTH);
 }
 
 /** Classify invitation and roster ownership without exposing display data. */
