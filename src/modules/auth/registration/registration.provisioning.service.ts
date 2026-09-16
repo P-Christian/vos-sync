@@ -26,6 +26,10 @@ export interface ProvisionedRegistrationUser extends Record<string, unknown> {
   lock_until?: string | null;
 }
 
+export interface RegistrationProvisioningOptions {
+  readonly deferWelcomeEmail?: boolean;
+}
+
 const USER_FIELDS = [
   "user_id",
   "user_email",
@@ -92,7 +96,8 @@ export class RegistrationProvisioningService {
 
   async provision(
     challenge: RegistrationChallengeRecord,
-    payload: SealedRegistrationPayloadV1
+    payload: SealedRegistrationPayloadV1,
+    options?: RegistrationProvisioningOptions
   ): Promise<ProvisionedRegistrationUser> {
     if (
       challenge.challenge_id !== payload.challengeId ||
@@ -216,15 +221,16 @@ export class RegistrationProvisioningService {
       );
     }
 
-    if (!wasAlreadyActive) await this.emitBestEffortEffects(activeUser);
+    if (!wasAlreadyActive) await this.emitBestEffortEffects(activeUser, options);
     return activeUser;
   }
 
   private async emitBestEffortEffects(
-    user: ProvisionedRegistrationUser
+    user: ProvisionedRegistrationUser,
+    options?: RegistrationProvisioningOptions
   ): Promise<void> {
     const numericUserId = Number(user.user_id);
-    await Promise.allSettled([
+    const effects: Array<Promise<unknown>> = [
       createAuditRecordRepo({
         event_type: "USER_REGISTRATION_COMPLETED",
         event_category: "AUTHENTICATION",
@@ -236,11 +242,16 @@ export class RegistrationProvisioningService {
           : null,
         reason: "Challenge-backed registration completed",
       }),
-      sendNotificationEmail(
-        user.user_email,
-        "Welcome to VOS Sync",
-        "Your verified VOS Sync account is ready."
-      ),
-    ]);
+    ];
+    if (!options?.deferWelcomeEmail) {
+      effects.push(
+        sendNotificationEmail(
+          user.user_email,
+          "Welcome to VOS Sync",
+          "Your verified VOS Sync account is ready."
+        )
+      );
+    }
+    await Promise.allSettled(effects);
   }
 }
