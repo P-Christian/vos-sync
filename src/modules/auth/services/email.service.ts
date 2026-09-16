@@ -34,18 +34,42 @@ function logMailFailure(operation: string, error: unknown): void {
     });
 }
 
-export async function sendOTP(email: string, otpCode: string) {
+export type OtpMailPurpose = "personal" | "school";
+
+const OTP_MAIL_COPY: Record<
+    OtpMailPurpose,
+    { readonly subject: string; readonly heading: string; readonly lead: string }
+> = {
+    personal: {
+        subject: "Verify your VOS Sync email",
+        heading: "Your VOS Sync verification code",
+        lead: "Your VOS Sync verification code is",
+    },
+    school: {
+        subject: "Verify your school email on VOS Sync",
+        heading: "Verify your school email",
+        lead: "Your VOS Sync school email verification code is",
+    },
+};
+
+export async function sendOTP(
+    email: string,
+    otpCode: string,
+    options?: { readonly purpose?: OtpMailPurpose }
+) {
     assertOtpMailConfiguration();
+
+    const copy = OTP_MAIL_COPY[options?.purpose ?? "personal"];
 
     try {
         const info = await transporter.sendMail({
             from: MAIL_FROM,
             to: email,
-            subject: "Your Vos Sync Verification Code",
-            text: `Your Vos Sync Verification Code is: ${otpCode}. It will expire in 10 minutes.`,
+            subject: copy.subject,
+            text: `${copy.lead}: ${otpCode}. It will expire in 10 minutes.`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2>Welcome to Vos Sync!</h2>
+                    <h2>${copy.heading}</h2>
                     <p>Your one-time verification code is:</p>
                     <h1 style="font-size: 32px; letter-spacing: 5px; color: #1e40af;">${otpCode}</h1>
                     <p>This code will expire in 10 minutes. Please do not share it with anyone.</p>

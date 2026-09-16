@@ -161,7 +161,7 @@ export async function startInvitationChallenge(
   }
 
   try {
-    await sendOTP(normalizeEmail(context.email), otp);
+    await sendOTP(normalizeEmail(context.email), otp, { purpose: "school" });
   } catch {
     await repo.cancelChallenge(challengeId, stateVersion);
     throw new InvitationChallengeError(503, "SERVICE_UNAVAILABLE");
