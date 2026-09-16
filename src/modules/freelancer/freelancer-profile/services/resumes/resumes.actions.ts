@@ -3,9 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { uploadResumeService, setPrimaryResumeService, deleteResumeService } from "./resumes.service";
 import { checkRestriction } from "@/lib/status-validator";
+import { authenticateCookieSession, isFreelancerSession } from "@/lib/authenticated-session";
 
-export async function uploadResumeAction(userId: number, formData: FormData, fileName: string | null) {
+async function requireFreelancerUserId(): Promise<number> {
+    const session = await authenticateCookieSession();
+    if (!session || !isFreelancerSession(session)) {
+        throw new Error("Unauthorized");
+    }
+    const userId = Number(session.userId);
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+        throw new Error("Unauthorized");
+    }
+    return userId;
+}
+
+export async function uploadResumeAction(_requestedUserId: number, formData: FormData, fileName: string | null) {
     try {
+        const userId = await requireFreelancerUserId();
         const isRestricted = await checkRestriction(userId, "UPLOAD_PROFILE_FILES");
         if (isRestricted) {
             throw new Error("Your profile file upload privileges are temporarily suspended.");
@@ -20,8 +34,9 @@ export async function uploadResumeAction(userId: number, formData: FormData, fil
     }
 }
 
-export async function setPrimaryResumeAction(userId: number, resumeId: number) {
+export async function setPrimaryResumeAction(_requestedUserId: number, resumeId: number) {
     try {
+        const userId = await requireFreelancerUserId();
         await setPrimaryResumeService(userId, resumeId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
@@ -33,7 +48,8 @@ export async function setPrimaryResumeAction(userId: number, resumeId: number) {
 
 export async function deleteResumeAction(resumeId: number) {
     try {
-        await deleteResumeService(resumeId);
+        const userId = await requireFreelancerUserId();
+        await deleteResumeService(userId, resumeId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
     } catch (err: unknown) {
@@ -42,8 +58,9 @@ export async function deleteResumeAction(resumeId: number) {
     }
 }
 
-export async function uploadAndAutofillResumeAction(userId: number, formData: FormData, fileName: string | null, currentProfileJson: string) {
+export async function uploadAndAutofillResumeAction(_requestedUserId: number, formData: FormData, fileName: string | null, currentProfileJson: string) {
     try {
+        const userId = await requireFreelancerUserId();
         const isRestricted = await checkRestriction(userId, "UPLOAD_PROFILE_FILES");
         if (isRestricted) {
             throw new Error("Your profile file upload privileges are temporarily suspended.");

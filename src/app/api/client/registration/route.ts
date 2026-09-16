@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 import bcrypt from "bcrypt";
 import { sendOtpEmail, sendEmployerSubmissionEmail } from "@/lib/mail";
 import { getPHTimeString } from "@/lib/utils";
@@ -46,6 +47,8 @@ function required(value: unknown): boolean {
 // ─────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  const retired = legacyRegistrationRetiredResponse();
+  if (retired) return retired;
   try {
     const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
     const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -101,6 +104,8 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const retired = legacyRegistrationRetiredResponse();
+  if (retired) return retired;
   let payload: {
     account?: {
       user_email?: string;

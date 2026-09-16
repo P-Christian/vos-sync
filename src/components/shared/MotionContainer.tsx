@@ -1,12 +1,16 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { MotionConfig, motion } from "framer-motion";
 
 interface MotionProps {
   children: React.ReactNode;
   delay?: number;
   className?: string;
+}
+
+export function PublicMotionProvider({ children }: { readonly children: React.ReactNode }) {
+  return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
 }
 
 export function FadeIn({ children, delay = 0, className = "" }: MotionProps) {

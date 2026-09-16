@@ -13,7 +13,10 @@ export async function uploadFileToDirectus(formData: FormData, apiUrl: string, t
     }
     
     const json = await res.json();
-    const fileId = json.data.id;
+    const fileId = json.data?.id;
+    if (!fileId) {
+        throw new Error("Directus returned no uploaded file ID.");
+    }
 
     if (folderId) {
         // Move the file into the specific folder using a reliable PATCH request
@@ -27,7 +30,10 @@ export async function uploadFileToDirectus(formData: FormData, apiUrl: string, t
         });
         
         if (!patchRes.ok) {
-            console.error(`Failed to assign folder to file ${fileId}`);
+            // A protected document must never remain in Directus' default
+            // public folder when folder assignment fails.
+            await deleteFileFromDirectus(fileId, apiUrl, token).catch(() => undefined);
+            throw new Error(`Failed to assign protected folder to uploaded file: HTTP ${patchRes.status}`);
         }
     }
 
@@ -135,7 +141,9 @@ export async function getResumeRecordById(id: number, apiUrl: string, token: str
 }
 
 export async function deleteFileFromDirectus(fileId: string, apiUrl: string, token: string) {
-    const url = `${apiUrl}/files/${fileId}`;
+    const normalizedId = String(fileId).trim().split("/").filter(Boolean).pop();
+    if (!normalizedId) return;
+    const url = `${apiUrl}/files/${encodeURIComponent(normalizedId)}`;
     const res = await fetch(url, {
         method: "DELETE",
         headers: {
