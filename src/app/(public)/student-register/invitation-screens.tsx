@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { CheckCircle2, GraduationCap, Loader2, MailCheck } from "lucide-react";
+import { CheckCircle2, GraduationCap, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { ValidStudentInvitationPreviewDto } from "@/modules/auth/student-invitation/types";
+
+import { StepIndicator } from "./otp-panel";
 
 function formatExpiryDate(iso: string): string {
   const parsed = Date.parse(iso);
@@ -88,18 +90,26 @@ export function PreviewScreen({ preview, hasSession, loginHref, busy, onCreateAc
   );
 }
 
-export function AcceptNoticeScreen({ notice, error, busy, onConfirm, onBack }: {
+type AcceptNoticeStep =
+  | { readonly index: 1; readonly total: 1 }
+  | { readonly index: 2; readonly total: 2 };
+
+export function AcceptNoticeScreen({ notice, error, busy, onConfirm, onBack, step = { index: 1, total: 1 } }: {
   readonly notice: string | null;
   readonly error: string | null;
   readonly busy: boolean;
   readonly onConfirm: () => void;
   readonly onBack: () => void;
+  readonly step?: AcceptNoticeStep;
 }) {
   return (
     <div className="w-full max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <MailCheck className="h-7 w-7" aria-hidden="true" />
-      </div>
+      <StepIndicator
+        index={step.index}
+        total={step.total}
+        label="Already verified"
+        variant="success"
+      />
       <h1 className="text-3xl font-medium text-primary mb-3">
         No extra code needed
       </h1>
