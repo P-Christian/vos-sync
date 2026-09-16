@@ -55,6 +55,10 @@ function StudentRegisterFlow({ token, initialHasSession }: {
     () => `/login?next=${encodeURIComponent(`/student-register?token=${token ?? ""}`)}`,
     [token]
   );
+  const beganWithAuthenticatedAccount = initialHasSession;
+  const finalVerificationStep = beganWithAuthenticatedAccount
+    ? ({ index: 1, total: 1 } as const)
+    : ({ index: 2, total: 2 } as const);
 
   useEffect(() => {
     mounted.current = true;
@@ -181,7 +185,7 @@ function StudentRegisterFlow({ token, initialHasSession }: {
   }
   if (view === "terminal") return <StudentInvitationTerminalScreen variant={terminal} />;
   if (view === "success") return <SuccessScreen preview={preview} />;
-  if (!preview) {
+  if (!preview || !token) {
     return (
       <LoadingScreen
         error="The invitation details are unavailable."
@@ -193,6 +197,7 @@ function StudentRegisterFlow({ token, initialHasSession }: {
     return (
       <StudentRegistration
         preview={preview}
+        token={token}
         loginHref={loginHref}
         onBack={() => setView("preview")}
         onVerified={async () => {
@@ -208,6 +213,7 @@ function StudentRegisterFlow({ token, initialHasSession }: {
         notice={notice}
         error={acceptError}
         busy={busy}
+        step={finalVerificationStep}
         onConfirm={() => void verify()}
         onBack={() => setView("preview")}
       />
@@ -227,8 +233,17 @@ function StudentRegisterFlow({ token, initialHasSession }: {
         submitLabel={otpChallenge.acceptanceRetry ? "Retry linking account" : "Link my account"}
         onSubmit={verify}
         onResend={() => claim(true)}
+        step={{
+          ...finalVerificationStep,
+          label: "School email",
+          variant: "school",
+        }}
         footer={
           <>
+            <p className="w-full text-sm leading-relaxed text-muted-foreground">
+              This code was sent to the school email on your invitation because it differs from your signed-in account
+              email.
+            </p>
             <span aria-hidden="true" className="text-border">
               &bull;
             </span>

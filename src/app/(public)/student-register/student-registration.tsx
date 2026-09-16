@@ -25,9 +25,16 @@ type StudentRegistrationProps = {
   readonly loginHref: string;
   readonly onBack: () => void;
   readonly onVerified: () => Promise<void>;
+  readonly token?: string;
 };
 
-export function StudentRegistration({ preview, loginHref, onBack, onVerified }: StudentRegistrationProps) {
+export function StudentRegistration({
+  preview,
+  loginHref,
+  onBack,
+  onVerified,
+  token = undefined,
+}: StudentRegistrationProps) {
   const registration = useRegistrationChallenge({ expectedRole: "FREELANCER" });
   const [showOtp, setShowOtp] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -89,7 +96,7 @@ export function StudentRegistration({ preview, loginHref, onBack, onVerified }: 
     setBusy(true);
     setOtpError(null);
     try {
-      await registration.verify(otp);
+      await registration.verify(otp, token ? { invitationToken: token } : undefined);
       toast.success("Email verified", { description: "Now linking your school invitation." });
       await onVerified();
     } catch (error) {
@@ -149,7 +156,41 @@ export function StudentRegistration({ preview, loginHref, onBack, onVerified }: 
   };
 
   if (showOtp) {
-    return <OtpPanel title="Verify your personal email" emailMasked={registration.emailMasked ?? "your email address"} expiresAt={registration.expiresAt} resendAvailableAt={registration.resendAvailableAt} attemptsRemaining={registration.attemptsRemaining} acceptanceRetry={false} loading={busy} error={otpError} onSubmit={verify} onResend={resend} footer={<><span aria-hidden="true" className="text-border">&bull;</span><Button type="button" variant="ghost" disabled={busy} onClick={cancel} className="min-h-11 px-2 py-1.5 text-sm text-muted-foreground hover:text-destructive">Cancel registration</Button></>} />;
+    return (
+      <OtpPanel
+        title="Verify your personal email"
+        emailMasked={registration.emailMasked ?? "your email address"}
+        expiresAt={registration.expiresAt}
+        resendAvailableAt={registration.resendAvailableAt}
+        attemptsRemaining={registration.attemptsRemaining}
+        acceptanceRetry={false}
+        loading={busy}
+        error={otpError}
+        onSubmit={verify}
+        onResend={resend}
+        step={{ index: 1, total: 2, label: "Personal email", variant: "personal" }}
+        footer={
+          <>
+            <p className="w-full text-sm leading-relaxed text-muted-foreground">
+              After you continue, the server checks your account email against the school email on this invitation. If
+              they differ, a second verification code will follow.
+            </p>
+            <span aria-hidden="true" className="text-border">
+              &bull;
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={cancel}
+              className="min-h-11 px-2 py-1.5 text-sm text-muted-foreground hover:text-destructive"
+            >
+              Cancel registration
+            </Button>
+          </>
+        }
+      />
+    );
   }
 
   return <RegistrationAccountForm schoolName={preview.schoolName} studentFirstName={preview.studentFirstName} studentLastName={preview.studentLastName} rosterEmailMasked={preview.emailMasked} loginHref={loginHref} busy={busy} submissionError={accountError} onBack={onBack} onSubmit={initiate} />;
