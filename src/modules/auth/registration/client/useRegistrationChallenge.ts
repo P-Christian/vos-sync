@@ -11,6 +11,7 @@ import {
   resendRegistrationOtp,
   verifyRegistrationOtp,
   type CancelRegistrationResponse,
+  type VerifyRegistrationOtpOptions,
   type VerifyRegistrationResponse,
 } from "./registration.api";
 import type {
@@ -80,7 +81,10 @@ export interface UseRegistrationChallengeResult
     newEmail: string,
     turnstileToken?: string
   ) => Promise<EmailCorrectionResponse>;
-  verify: (otp: string) => Promise<VerifyRegistrationResponse>;
+  verify: (
+    otp: string,
+    options?: VerifyRegistrationOtpOptions
+  ) => Promise<VerifyRegistrationResponse>;
   cancel: () => Promise<CancelRegistrationResponse>;
   setDraft: (draft: RegistrationDraftInput) => RegistrationDraft | null;
   clear: () => void;
@@ -492,7 +496,10 @@ export function useRegistrationChallenge(
   );
 
   const verify = useCallback(
-    async (otp: string): Promise<VerifyRegistrationResponse> => {
+    async (
+      otp: string,
+      options?: VerifyRegistrationOtpOptions
+    ): Promise<VerifyRegistrationResponse> => {
       const operationId = beginOperation();
       const currentPayload = payloadRef.current ?? loadRegistrationPayload();
       if (!currentPayload) {
@@ -511,7 +518,7 @@ export function useRegistrationChallenge(
 
       let response: VerifyRegistrationResponse;
       try {
-        response = await verifyRegistrationOtp(otp, currentPayload);
+        response = await verifyRegistrationOtp(otp, currentPayload, options);
       } catch (caughtError) {
         const error = asApiError(caughtError);
         if (shouldClearForError(error)) {

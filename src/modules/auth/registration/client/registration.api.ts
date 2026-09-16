@@ -378,7 +378,8 @@ async function requestJson<T>(
   path: string,
   method: "GET" | "POST" | "PATCH" | "DELETE",
   guard: ResponseGuard<T>,
-  body?: unknown
+  body?: unknown,
+  extraHeaders?: Record<string, string>
 ): Promise<T> {
   let serializedBody: string | undefined;
   if (body !== undefined) {
@@ -400,6 +401,7 @@ async function requestJson<T>(
         ...(serializedBody !== undefined
           ? { "Content-Type": "application/json" }
           : {}),
+        ...(extraHeaders ?? {}),
       },
       ...(serializedBody !== undefined ? { body: serializedBody } : {}),
     });
@@ -475,16 +477,32 @@ export function correctRegistrationEmail(
   );
 }
 
+export interface VerifyRegistrationOtpOptions {
+  /**
+   * Opaque student-invitation token. When a non-empty value is supplied the
+   * verify request carries the student-invitation header so the server can
+   * defer the welcome email until the invitation link completes.
+   */
+  invitationToken?: string;
+}
+
 /** Verify OTP and let the server issue the authenticated session cookie. */
 export function verifyRegistrationOtp(
   otp: string,
-  sealedPayload: string
+  sealedPayload: string,
+  options?: VerifyRegistrationOtpOptions
 ): Promise<VerifyRegistrationResponse> {
+  const invitationToken = options?.invitationToken;
+  const extraHeaders =
+    typeof invitationToken === "string" && invitationToken.length > 0
+      ? { "x-student-invitation-token": invitationToken }
+      : undefined;
   return requestJson(
     REGISTRATION_ENDPOINTS.verify,
     "POST",
     isVerifyResponse,
-    { otp, sealedPayload }
+    { otp, sealedPayload },
+    extraHeaders
   );
 }
 
