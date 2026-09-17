@@ -102,7 +102,7 @@ export function RegistrationAccountForm(props: RegistrationAccountFormProps) {
 
   const fieldClass = "h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary";
   return (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
+    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12">
       <Button type="button" variant="ghost" onClick={props.onBack} className="mb-6 min-h-11 px-0 text-muted-foreground hover:text-primary"><ArrowLeft aria-hidden="true" />Back to invitation</Button>
       <div className="text-center mb-8">
         <h1 className="text-3xl font-medium text-primary">Create your Job Seeker account</h1>

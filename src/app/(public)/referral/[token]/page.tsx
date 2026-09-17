@@ -17,7 +17,7 @@ export default async function ReferralLandingPage(props: Props) {
 
   if (!referral) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+      <div className="flex flex-col items-center justify-center max-md:justify-start min-h-[60vh] px-4 text-center">
         <div className="bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 p-4 rounded-full mb-4 text-4xl">
           ⚠️
         </div>
@@ -27,7 +27,7 @@ export default async function ReferralLandingPage(props: Props) {
         </p>
         <Link
           href="/"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          className="inline-flex h-10 max-md:min-h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
         >
           Browse Open Vacancies
         </Link>
@@ -39,7 +39,7 @@ export default async function ReferralLandingPage(props: Props) {
   const isExpired = new Date(referral.expires_at) < new Date();
   if (isExpired || referral.status === "REVOKED" || referral.status === "EXPIRED" || referral.status === "INVALIDATED") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+      <div className="flex flex-col items-center justify-center max-md:justify-start min-h-[60vh] px-4 text-center">
         <div className="bg-yellow-50 dark:bg-yellow-950/20 text-yellow-600 dark:text-yellow-400 p-4 rounded-full mb-4 text-4xl">
           ⏳
         </div>
@@ -49,7 +49,7 @@ export default async function ReferralLandingPage(props: Props) {
         </p>
         <Link
           href="/"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+          className="inline-flex h-10 max-md:min-h-11 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
         >
           Browse Open Vacancies
         </Link>
@@ -62,7 +62,7 @@ export default async function ReferralLandingPage(props: Props) {
   const isLoggedIn = !!tokenVal;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 md:py-20">
+    <div className="max-w-4xl mx-auto px-4 pt-2 pb-6 md:py-20">
       <ReferralLandingClient referral={referral} token={token} isLoggedIn={isLoggedIn} />
     </div>
   );

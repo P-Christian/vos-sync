@@ -13,9 +13,10 @@ import {
 } from "./components";
 
 import { PublicJobPosting } from "./types";
-import { Briefcase, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { Briefcase, AlertCircle, ArrowLeft, ArrowRight, ChevronDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -42,6 +43,7 @@ export default function FindJobsModule() {
   
   const [authModalJob, setAuthModalJob] = useState<PublicJobPosting | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -161,7 +163,7 @@ export default function FindJobsModule() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Left Column: Filter Sidebar (4 cols on lg) */}
-          <div className="lg:col-span-3">
+          <div className="hidden md:block lg:col-span-3">
             <JobFilterSidebar
               selectedJobType={selectedJobType}
               selectedWorkSetup={selectedWorkSetup}
@@ -180,8 +182,31 @@ export default function FindJobsModule() {
 
           {/* Right Column: Job Listings Grid (9 cols on lg) */}
           <div className="lg:col-span-9 space-y-6">
+            {/* Mobile filter trigger (below md only; the inline sidebar stays at >=768) */}
+            <div className="md:hidden">
+              <Button
+                onClick={() => setIsFilterSheetOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={isFilterSheetOpen}
+                className="w-full h-11 justify-between text-sm font-semibold shadow-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Filters
+                </span>
+                <span className="flex items-center gap-2">
+                  {activeFilterCount > 0 && (
+                    <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary-foreground/20 text-primary-foreground text-xs font-bold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                  <ChevronDown className="h-4 w-4" />
+                </span>
+              </Button>
+            </div>
+
             {/* Header Toolbar */}
-            <div className="flex items-center justify-between border-b pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4">
               <div>
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <span>Open Job Opportunities</span>
@@ -239,7 +264,7 @@ export default function FindJobsModule() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25 }}
-                  className="bg-card border rounded-2xl p-12 text-center space-y-4 shadow-2xs"
+                  className="bg-card border rounded-2xl p-8 md:p-12 text-center space-y-4 shadow-2xs"
                 >
                   <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/50 text-muted-foreground flex items-center justify-center">
                     <Briefcase className="h-7 w-7" />
@@ -309,6 +334,37 @@ export default function FindJobsModule() {
           </div>
         </div>
       </div>
+
+      {/* 3b. Mobile Filter Sheet (below md only; desktop keeps the inline sidebar) */}
+      <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[85dvh] overflow-y-auto overscroll-contain p-0 pb-4"
+        >
+          <SheetHeader className="border-b pb-3">
+            <SheetTitle className="text-base flex items-center gap-2">
+              <Filter className="h-4 w-4 text-primary" />
+              Filter Positions
+            </SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pt-4">
+            <JobFilterSidebar
+              selectedJobType={selectedJobType}
+              selectedWorkSetup={selectedWorkSetup}
+              onJobTypeChange={(type) => {
+                setSelectedJobType(type);
+                setPage(1);
+              }}
+              onWorkSetupChange={(setup) => {
+                setSelectedWorkSetup(setup);
+                setPage(1);
+              }}
+              onResetFilters={handleResetFilters}
+              activeFilterCount={activeFilterCount}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* 3. Job Detail Modal */}
       <PublicJobDetailModal

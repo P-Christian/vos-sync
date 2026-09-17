@@ -176,7 +176,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
               variant="outline"
               size="default"
               onClick={handleShare}
-              className="rounded-xl flex items-center gap-2 font-semibold cursor-pointer shrink-0"
+              className="rounded-xl flex items-center gap-2 font-semibold cursor-pointer shrink-0 h-11 md:h-9"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Share2 className="w-4 h-4" />}
               {copied ? "Copied" : "Share"}
@@ -187,7 +187,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
               <Button
                 variant="outline"
                 size="default"
-                className="rounded-xl font-semibold cursor-pointer shrink-0"
+                className="rounded-xl font-semibold cursor-pointer shrink-0 h-11 md:h-9"
                 asChild
               >
                 <a href={company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
             {activeJobsCount > 0 ? (
               <Button
                 size="default"
-                className="rounded-xl font-semibold shadow-sm cursor-pointer shrink-0"
+                className="rounded-xl font-semibold shadow-sm cursor-pointer h-11 md:h-9 w-full md:w-auto"
                 onClick={() => onTabChange?.("jobs")}
               >
                 View {activeJobsCount} Open Jobs
@@ -210,7 +210,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
               <Button
                 size="default"
                 variant="outline"
-                className="rounded-xl font-semibold opacity-60 cursor-not-allowed shrink-0"
+                className="rounded-xl font-semibold opacity-60 cursor-not-allowed h-11 md:h-9 w-full md:w-auto"
                 disabled
               >
                 No Open Positions

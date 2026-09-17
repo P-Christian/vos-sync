@@ -200,7 +200,7 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
             />
             <label
               htmlFor="consent"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              className="text-sm font-medium leading-none max-md:min-h-11 peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
               I accept and consent to these terms
             </label>
@@ -211,13 +211,13 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
       <CardFooter className="flex flex-col sm:flex-row gap-3 p-6 bg-muted/15 border-t">
         <Button
           onClick={handleAccept}
-          className="w-full sm:w-auto px-8 py-5 flex items-center justify-center gap-2 font-bold shadow-lg"
+          className="w-full sm:w-auto px-8 py-5 max-md:min-h-11 flex items-center justify-center gap-2 font-bold shadow-lg"
           disabled={loading}
         >
           {!isLoggedIn && <LogIn className="h-4 w-4" />}
           {isLoggedIn ? "Accept and Continue" : "Accept and Sign In"}
         </Button>
-        <Button onClick={handleDecline} variant="outline" className="w-full sm:w-auto px-8 py-5">
+        <Button onClick={handleDecline} variant="outline" className="w-full sm:w-auto px-8 py-5 max-md:min-h-11">
           Decline
         </Button>
       </CardFooter>

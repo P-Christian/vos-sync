@@ -22,17 +22,18 @@ export function CompanyTabNav({ activeTab, onTabChange, activeJobsCount }: TabNa
   ];
 
   return (
-    <div className="sticky top-16 z-20 bg-background/80 backdrop-blur-md border-b border-border shadow-sm font-sans w-full">
+    <div className="sticky top-[69px] z-20 bg-background/80 backdrop-blur-md border-b border-border shadow-sm font-sans w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav className="flex space-x-8 overflow-x-auto scrollbar-none py-1" aria-label="Tabs">
+        <nav className="flex space-x-2 md:space-x-8 overflow-x-auto scrollbar-none py-1" aria-label="Company sections">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "relative py-4 px-1 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer focus:outline-none",
+                  "relative py-4 px-1 text-sm font-semibold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-sm",
                   isActive
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-700"

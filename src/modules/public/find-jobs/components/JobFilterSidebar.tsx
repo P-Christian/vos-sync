@@ -28,7 +28,7 @@ export function JobFilterSidebar({
   activeFilterCount,
 }: Props) {
   return (
-    <div className="bg-card border rounded-2xl p-5 space-y-6 shadow-xs sticky top-20">
+    <div className="bg-card border rounded-2xl p-5 space-y-6 shadow-xs sticky top-20 max-md:static">
       <div className="flex items-center justify-between border-b pb-3">
         <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />

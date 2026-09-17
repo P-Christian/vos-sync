@@ -18,14 +18,14 @@ const SECTIONS = [
 
 export default function PrivacyPolicy() {
   return (
-    <div className="bg-background text-foreground font-sans pt-16">
+    <div className="bg-background text-foreground font-sans max-md:pt-2 md:pt-16">
       {/* HERO */}
-      <section className="relative overflow-hidden pt-20 pb-16 md:pt-24 md:pb-20 border-b border-zinc-100 dark:border-zinc-800">
+      <section className="relative overflow-hidden pt-8 pb-10 md:pt-24 md:pb-20 border-b border-zinc-100 dark:border-zinc-800">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StaggerContainer className="max-w-3xl">
             <StaggerChild>
-              <Button asChild variant="ghost" size="sm" className="mb-6 rounded-full -ml-3 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer">
+              <Button asChild variant="ghost" size="sm" className="mb-6 rounded-full -ml-3 max-md:min-h-11 text-zinc-500 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-50 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer">
                 <Link href="/" className="inline-flex items-center gap-2">
                   <ArrowLeft className="w-4 h-4" /> Back to Home
                 </Link>
@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
       </section>
 
       {/* CONTENT & SIDEBAR INDEX */}
-      <section className="py-16">
+      <section className="py-10 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             {/* Sidebar Table of Contents */}
