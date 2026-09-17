@@ -29,7 +29,7 @@ export function JobHeroBanner({
 }: Props) {
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/5 to-background border-b pt-22 pb-16 px-4  sm:px-6 lg:px-8">
+    <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/5 to-background border-b pt-4 pb-16 md:pt-22 px-4  sm:px-6 lg:px-8">
       {/* Decorative background glows */}
       <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-primary/20 via-blue-500/20 to-purple-500/20 blur-3xl opacity-50 pointer-events-none rounded-full" />
 
@@ -59,7 +59,7 @@ export function JobHeroBanner({
               placeholder="Job title, keyword, or company..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 h-12 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary text-sm font-medium"
+              className="pl-10 h-12 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary text-base md:text-sm font-medium"
             />
           </div>
 
@@ -71,7 +71,7 @@ export function JobHeroBanner({
               placeholder="City, province, or Remote..."
               value={locationQuery}
               onChange={(e) => onLocationChange(e.target.value)}
-              className="pl-10 h-12 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary text-sm font-medium"
+              className="pl-10 h-12 bg-background border-0 focus-visible:ring-1 focus-visible:ring-primary text-base md:text-sm font-medium"
             />
           </div>
 

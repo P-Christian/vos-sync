@@ -59,7 +59,10 @@ export function SearchableSelect({
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
-                    <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
+                    <CommandInput
+              className="text-base md:text-sm"
+              placeholder={`Search ${placeholder.toLowerCase()}...`}
+            />
                     <CommandList>
                         <CommandEmpty>No results found.</CommandEmpty>
                         <CommandGroup>
