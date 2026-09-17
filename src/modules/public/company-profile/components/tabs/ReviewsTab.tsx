@@ -227,7 +227,8 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
             type="button"
             key={star}
             onClick={() => setVal(star)}
-            className="focus:outline-none transition-transform hover:scale-110"
+            aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+            className="focus:outline-none transition-transform hover:scale-110 h-11 w-11 md:h-6 md:w-6 flex items-center justify-center rounded-md focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Star
               className={`w-6 h-6 ${
@@ -337,8 +338,8 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
       </div>
 
       {/* 2. Controls / Actions */}
-      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-        <div>
+      <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4 max-md:flex-col max-md:items-stretch max-md:gap-4 max-md:border-0 max-md:pb-0">
+        <div className="max-md:border-b max-md:border-border max-md:pb-4">
           <div className="flex items-center gap-2.5">
             <h3 className="text-lg font-bold text-foreground">Employee Insight Reviews</h3>
             <Badge variant="secondary" className="px-2.5 py-0.5 text-xs font-bold rounded-lg bg-primary/10 text-primary border border-primary/20">
@@ -349,7 +350,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
         </div>
         <Button
           onClick={() => setIsWriteModalOpen(true)}
-          className="rounded-xl font-bold text-sm bg-primary hover:bg-primary/95 text-primary-foreground flex items-center gap-2 cursor-pointer shadow-xs"
+          className="rounded-xl font-bold text-sm bg-primary hover:bg-primary/95 text-primary-foreground flex items-center gap-2 cursor-pointer shadow-xs max-md:w-full max-md:justify-center h-11 md:h-9"
         >
           <Plus className="w-4 h-4" />
           Write a Review
@@ -528,8 +529,9 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
               </DialogDescription>
             </div>
             <button
+              aria-label="Close"
               onClick={() => setIsWriteModalOpen(false)}
-              className="p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+              className="h-11 w-11 md:h-6 md:w-6 flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -586,7 +588,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                 <select
                   value={employmentStatus}
                   onChange={(e) => setEmploymentStatus(e.target.value as "CURRENT_EMPLOYEE" | "FORMER_EMPLOYEE")}
-                  className="w-full rounded-xl border border-border bg-background p-2.5 text-sm font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background p-2.5 text-base md:text-sm font-semibold text-foreground focus:ring-1 focus:ring-primary focus:outline-none"
                 >
                   <option value="CURRENT_EMPLOYEE">Current Employee</option>
                   <option value="FORMER_EMPLOYEE">Former Employee</option>
@@ -602,7 +604,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
                   placeholder="e.g. Software Engineer"
-                  className="rounded-xl border border-border bg-background p-2.5 text-sm text-foreground"
+                  className="rounded-xl border border-border bg-background p-2.5 text-base md:text-sm text-foreground"
                 />
               </div>
             </div>
@@ -616,7 +618,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                 value={reviewTitle}
                 onChange={(e) => setReviewTitle(e.target.value)}
                 placeholder="e.g. Great working environment and mentorship"
-                className="rounded-xl border border-border bg-background p-2.5 text-sm text-foreground"
+                className="rounded-xl border border-border bg-background p-2.5 text-base md:text-sm text-foreground"
                 required
               />
             </div>
@@ -633,7 +635,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                   value={pros}
                   onChange={(e) => setPros(e.target.value)}
                   placeholder="What do you like about this company?"
-                  className="rounded-xl border border-border bg-background p-2.5 text-sm text-foreground min-h-[90px]"
+                  className="rounded-xl border border-border bg-background p-2.5 text-base md:text-sm text-foreground min-h-[90px]"
                   required
                 />
               </div>
@@ -648,7 +650,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                   value={cons}
                   onChange={(e) => setCons(e.target.value)}
                   placeholder="What could be improved?"
-                  className="rounded-xl border border-border bg-background p-2.5 text-sm text-foreground min-h-[90px]"
+                  className="rounded-xl border border-border bg-background p-2.5 text-base md:text-sm text-foreground min-h-[90px]"
                   required
                 />
               </div>
@@ -663,7 +665,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
                 placeholder="Write your general thoughts about your workplace experience here..."
-                className="rounded-xl border border-border bg-background p-2.5 text-sm text-foreground min-h-[110px]"
+                className="rounded-xl border border-border bg-background p-2.5 text-base md:text-sm text-foreground min-h-[110px]"
                 required
               />
             </div>
@@ -684,7 +686,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
+            <div className="sticky bottom-0 -mx-6 -mb-6 px-6 py-4 bg-white dark:bg-zinc-900 flex items-center justify-end gap-3 border-t border-border/40">
               <Button
                 type="button"
                 variant="outline"
@@ -727,7 +729,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
               <select
                 value={reasonCode}
                 onChange={(e) => setReasonCode(e.target.value as "SPAM" | "FALSE_INFORMATION" | "HARASSMENT" | "HATE_SPEECH" | "PERSONAL_INFORMATION" | "CONFIDENTIAL_INFORMATION" | "OFF_TOPIC" | "DUPLICATE" | "FRAUDULENT_CONTENT" | "OTHER")}
-                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm font-semibold text-foreground focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-base md:text-sm font-semibold text-foreground focus:ring-1 focus:ring-rose-500 focus:outline-none"
               >
                 <option value="SPAM">Spam</option>
                 <option value="FALSE_INFORMATION">False or misleading information</option>
@@ -750,7 +752,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                 placeholder="Provide additional details or context (optional)..."
                 value={reportDetails}
                 onChange={(e) => setReportDetails(e.target.value)}
-                className="rounded-xl border border-border bg-background p-3 text-sm focus:ring-1 focus:ring-rose-500 min-h-[100px]"
+                className="rounded-xl border border-border bg-background p-3 text-base md:text-sm focus:ring-1 focus:ring-rose-500 min-h-[100px]"
               />
             </div>
 

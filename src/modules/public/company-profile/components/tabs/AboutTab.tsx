@@ -126,11 +126,11 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 font-sans">
       {/* Narrative Section (Left 2/3) */}
-      <div className="lg:col-span-2 space-y-8">
+      <div className="lg:col-span-2 space-y-8 max-md:contents max-md:space-y-0">
         
         {/* 1. About / Description */}
         {company_description && (
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-2xl p-6 max-md:order-1">
             <h2 className="text-xl font-bold text-foreground mb-4">About the Company</h2>
             <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
               {company_description}
@@ -140,7 +140,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
         {/* Mission & Vision */}
         {(company_mission || company_vision) && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:order-2 max-md:hidden">
             {company_mission && (
               <div className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-between">
                 <div>
@@ -166,7 +166,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         )}
 
         {/* 2. Life & Culture Summary */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-3 max-md:hidden">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
           
             Life & Culture
@@ -188,7 +188,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* 3. Featured Open Jobs Preview */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-5">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-500" />
@@ -260,7 +260,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => onTabChange("jobs")}
-                    className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer"
+                    className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer h-11 md:h-8"
                   >
                     View all {activeJobsCount} open positions
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -272,7 +272,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* 4. Recent Employee Reviews Preview */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-500" />
@@ -348,7 +348,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => onTabChange("reviews")}
-                  className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer"
+                  className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer h-11 md:h-8"
                 >
                   Read all employee insights & reviews
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -361,8 +361,8 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
       </div>
 
       {/* Corporate Metadata & Directory (Right 1/3) */}
-      <div className="space-y-6">
-        <div className="bg-card border border-border rounded-2xl p-6">
+      <div className="space-y-6 max-md:contents max-md:space-y-0">
+        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-4">
           <h2 className="text-lg font-bold text-foreground mb-6">Company Information</h2>
 
           <div className="space-y-5">
@@ -425,7 +425,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* Contacts & Social links */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-7">
           <h2 className="text-lg font-bold text-foreground mb-4">Contact & Media</h2>
 
           <div className="space-y-4 mb-6">
@@ -468,7 +468,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-xl bg-muted/60 text-muted-foreground hover:text-primary hover:bg-muted transition-all flex items-center justify-center border border-border"
+                  className="w-11 h-11 md:w-9 md:h-9 rounded-xl bg-muted/60 text-muted-foreground hover:text-primary hover:bg-muted transition-all flex items-center justify-center border border-border"
                   title={link.label}
                 >
                   {link.icon}
@@ -480,7 +480,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
         {/* Tags */}
         {tagsList.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-2xl p-6 max-md:order-8">
             <h2 className="text-lg font-bold text-foreground mb-4">Keywords</h2>
             <div className="flex flex-wrap gap-2">
               {tagsList.map((tag) => (
