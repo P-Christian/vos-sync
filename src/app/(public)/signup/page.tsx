@@ -189,7 +189,7 @@ function PhoneCountryPicker({
           <input
             type="tel" disabled={disabled} value={phoneValue}
             onChange={e => onPhoneChange(formatPhoneNumber(e.target.value))} placeholder="Enter number"
-            className="w-full h-full bg-transparent border-0 outline-none text-foreground text-sm font-medium placeholder:text-muted-foreground/60"
+            className="w-full h-full bg-transparent border-0 outline-none text-foreground text-base md:text-sm font-medium placeholder:text-muted-foreground/60"
           />
         </div>
       </div>
@@ -230,7 +230,7 @@ function PhoneCountryPicker({
 
 function StepIndicator({ currentStep, steps = CLIENT_STEPS }: { currentStep: number; steps?: Array<{ step: number; label: string }> }) {
   return (
-    <div className="flex items-start justify-center mb-8">
+        <div className="flex items-start justify-center mb-3 md:mb-8">
       {steps.map((s, i) => (
         <React.Fragment key={s.step}>
           <div className="flex flex-col items-center gap-1.5 w-14">
@@ -1120,7 +1120,7 @@ function SignupPageContent() {
   // ─── Render: Selection ────────────────────────────────────────────────────
 
   const renderSelectionScreen = () => (
-    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+                <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-6 md:py-12 text-center">
       <h1 className="text-3xl md:text-4xl font-medium text-primary mb-3">
         Join VOS Sync
       </h1>
@@ -1129,7 +1129,7 @@ function SignupPageContent() {
       </p>
       <div className="flex justify-center mb-10">
         <span className="text-muted-foreground mr-2">Already have an account?</span>
-        <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+        <Link href="/login" className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline">Log In</Link>
       </div>
 
       <div className="flex flex-col gap-4 max-w-xl mx-auto mb-10">
@@ -1175,9 +1175,9 @@ function SignupPageContent() {
 
 
   const renderClientStep1 = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-8">
+                <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-4 md:py-8">
       <div className="mb-6">
-        <button onClick={handleBackToSelection} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <button onClick={handleBackToSelection} className="max-md:min-h-11 flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft size={16} className="mr-2" />Back to selection
         </button>
       </div>
@@ -1214,7 +1214,7 @@ function SignupPageContent() {
                       onChange={e => s1Set('password', e.target.value)} disabled={loading} placeholder="8+ characters"
                       className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.password && 'border-destructive')} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                                        className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
@@ -1229,7 +1229,7 @@ function SignupPageContent() {
                       onChange={e => s1Set('confirmPassword', e.target.value)} disabled={loading} placeholder="Repeat password"
                       className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.confirmPassword && 'border-destructive')} />
                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                                        className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
@@ -1299,7 +1299,7 @@ function SignupPageContent() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+          <Link href="/login" className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline">Log In</Link>
         </p>
       </div>
     </div>
@@ -1308,7 +1308,7 @@ function SignupPageContent() {
   // ─── Render: Client Step 2 — Gov ID Upload ────────────────────────────────
 
   const renderClientStep2 = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-8">
+                <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-4 md:py-8">
       <div className="mb-6">
         <button onClick={() => { setClientStep(1); setErrors({}); }} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft size={16} className="mr-2" />Back
@@ -1461,7 +1461,7 @@ function SignupPageContent() {
   const renderClientStep3 = () => {
     const isPhilippines = company.companyCountryCode === 'PH';
     return (
-      <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-8">
+                  <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-4 md:py-8">
         <div className="mb-6">
           <button onClick={() => { setClientStep(2); setErrors({}); }} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
             <ArrowLeft size={16} className="mr-2" />Back
@@ -1659,7 +1659,7 @@ function SignupPageContent() {
   // ─── Render: Client Step 4 — Compliance ──────────────────────────────────
 
   const renderClientStep4 = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-8">
+                <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-4 md:py-8">
       <div className="mb-6">
         <button onClick={() => { setClientStep(3); setErrors({}); }} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft size={16} className="mr-2" />Back
@@ -1738,7 +1738,7 @@ function SignupPageContent() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+          <Link href="/login" className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline">Log In</Link>
         </p>
       </div>
     </div>
@@ -1819,7 +1819,7 @@ function SignupPageContent() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-x-1 gap-y-1 text-sm">
           <Button type="button" variant="outline" onClick={handleResendOtp}
             disabled={loading || !registration.isActive || Boolean(resendIn)}
-            className="h-auto border-0 bg-transparent px-2 py-1.5 font-medium text-primary shadow-none hover:bg-primary/5 hover:text-primary disabled:bg-transparent">
+            className="max-md:min-h-11 h-auto border-0 bg-transparent px-2 py-1.5 font-medium text-primary shadow-none hover:bg-primary/5 hover:text-primary disabled:bg-transparent">
             {resendIn ? `Resend in ${resendIn}` : 'Resend code'}
           </Button>
 
@@ -1831,7 +1831,7 @@ function SignupPageContent() {
             }}>
               <DialogTrigger asChild>
                 <Button type="button" variant="ghost" disabled={loading}
-                  className="h-auto px-2 py-1.5 text-sm font-medium text-primary hover:bg-primary/5 hover:text-primary">
+                  className="max-md:min-h-11 h-auto px-2 py-1.5 text-sm font-medium text-primary hover:bg-primary/5 hover:text-primary">
                   Change email
                 </Button>
               </DialogTrigger>
@@ -1857,10 +1857,10 @@ function SignupPageContent() {
                   <TurnstileWidget onVerify={setTurnstileToken} onExpire={() => setTurnstileToken('')} />
 
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setShowEmailCorrection(false)} disabled={loading}>
+                    <Button type="button" variant="outline" className="max-md:min-h-11" onClick={() => setShowEmailCorrection(false)} disabled={loading}>
                       Keep current email
                     </Button>
-                    <Button type="submit" disabled={loading || !otpCorrectionEmail.trim() || !turnstileToken}>
+                    <Button type="submit" className="max-md:min-h-11" disabled={loading || !otpCorrectionEmail.trim() || !turnstileToken}>
                       {loading ? 'Saving...' : 'Save email'}
                     </Button>
                   </DialogFooter>
@@ -1969,7 +1969,7 @@ function SignupPageContent() {
                 onChange={handleFreelancerChange} disabled={loading} placeholder="Password (8 or more characters)"
                 className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.password && 'border-destructive focus-visible:border-destructive text-destructive')} />
               <button type="button" onClick={() => setFreelancerShowPassword(!freelancerShowPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
                 {freelancerShowPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
@@ -1985,7 +1985,7 @@ function SignupPageContent() {
                 onChange={handleFreelancerChange} disabled={loading} placeholder="Confirm Password"
                 className={cn('h-12 pr-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.confirmPassword && 'border-destructive focus-visible:border-destructive text-destructive')} />
               <button type="button" onClick={() => setFreelancerShowConfirmPassword(!freelancerShowConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
                 {freelancerShowConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
@@ -2076,7 +2076,7 @@ function SignupPageContent() {
           </label>
           <div className="flex flex-wrap gap-4 mt-2">
             {['On-site', 'Hybrid', 'Remote'].map(type => (
-              <label key={type} className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <label key={type} className="flex items-center gap-2 cursor-pointer text-sm font-medium max-md:min-h-11">
                 <Checkbox checked={freelancerEmploymentTypes.includes(type)}
                   onCheckedChange={checked => {
                     if (checked) {
@@ -2127,7 +2127,7 @@ function SignupPageContent() {
             <div className="flex items-center justify-between bg-muted/30 p-2.5 rounded-lg text-sm border border-border/80">
               <span className="font-medium truncate max-w-[80%]">{freelancerResumeFileName}</span>
               <button type="button" onClick={() => { setFreelancerResumeFile(null); setFreelancerResumeFileName(null); }}
-                className="text-destructive hover:underline font-semibold cursor-pointer">Remove</button>
+                className="max-md:flex max-md:min-h-11 max-md:items-center text-destructive hover:underline font-semibold cursor-pointer">Remove</button>
             </div>
           )}
           {freelancerErrors.resume && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.resume}</p>}
@@ -2192,7 +2192,7 @@ function SignupPageContent() {
             </div>
             {freelancerGovIdFrontFile && (
               <button type="button" onClick={() => { setFreelancerGovIdFrontFile(null); setFreelancerGovIdFrontPreview(null); }}
-                className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Front ID</button>
+                className="max-md:flex max-md:min-h-11 max-md:items-center text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Front ID</button>
             )}
           </div>
 
@@ -2225,7 +2225,7 @@ function SignupPageContent() {
             </div>
             {freelancerGovIdBackFile && (
               <button type="button" onClick={() => { setFreelancerGovIdBackFile(null); setFreelancerGovIdBackPreview(null); }}
-                className="text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Back ID</button>
+                className="max-md:flex max-md:min-h-11 max-md:items-center text-xs text-destructive font-semibold hover:underline block cursor-pointer">Remove Back ID</button>
             )}
           </div>
         </div>
@@ -2235,8 +2235,8 @@ function SignupPageContent() {
 
       {/* Compliance Preferences */}
       <div className="space-y-4">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <Checkbox id="f-marketing-checkbox" checked={freelancerMarketingConsent}
+          <label className="flex items-start gap-3 cursor-pointer max-md:min-h-11">
+            <Checkbox id="f-marketing-checkbox" checked={freelancerMarketingConsent}
             onCheckedChange={val => setFreelancerMarketingConsent(Boolean(val))}
             className="mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white" />
           <span className="text-sm text-muted-foreground leading-tight select-none">
@@ -2278,9 +2278,9 @@ function SignupPageContent() {
   );
 
   const renderFreelancerForm = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
+                <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12">
       <div className="mb-6">
-        <button onClick={handleFreelancerBack} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+        <button onClick={handleFreelancerBack} className="max-md:min-h-11 flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft size={16} className="mr-2" />
           {freelancerStep === 1 ? 'Back to selection' : `Back to Step ${freelancerStep - 1}`}
         </button>
@@ -2304,7 +2304,7 @@ function SignupPageContent() {
       {freelancerStep === 1 && (
         <div className="mt-8 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary font-medium hover:underline">Log In</Link>
+          <Link href="/login" className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline">Log In</Link>
         </div>
       )}
     </div>
@@ -2595,9 +2595,9 @@ function SignupPageContent() {
   };
 
   const renderSchoolForm = () => (
-    <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 py-12">
+                <div className="w-full max-w-[600px] mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12">
       <div className="mb-6">
-        <button onClick={handleBackToSelection} className="flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                    <button onClick={handleBackToSelection} className="max-md:min-h-11 flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft size={16} className="mr-2" />Back to selection
         </button>
       </div>
@@ -2656,7 +2656,7 @@ function SignupPageContent() {
             <label className="block text-sm font-medium">School Type <span className="text-destructive">*</span></label>
             <Select value={schoolFormData.schoolType}
               onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as 'University' | 'College' | 'Technical/Vocational' | 'Other' }))} disabled={loading}>
-              <SelectTrigger className="h-12 border-2 text-base">
+              <SelectTrigger className="max-md:min-h-11 h-12 border-2 text-base">
                 <SelectValue placeholder="Select School Type" />
               </SelectTrigger>
               <SelectContent>
@@ -2707,7 +2707,7 @@ function SignupPageContent() {
                     onChange={e => setSchoolFormData(prev => ({ ...prev, password: e.target.value }))}
                     placeholder="8+ characters" className={cn('h-12 pr-12 border-2', schoolErrors.password && 'border-destructive')} />
                   <button type="button" onClick={() => setSchoolShowPassword(!schoolShowPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                        className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {schoolShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
@@ -2766,7 +2766,7 @@ function SignupPageContent() {
   // ─── Root Render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center py-12 font-sans selection:bg-primary/20">
+        <div className="max-md:items-start min-h-screen bg-background flex items-center justify-center py-4 md:py-12 font-sans selection:bg-primary/20">
       {step === 'selection' && renderSelectionScreen()}
 
       {step === 'client' && (

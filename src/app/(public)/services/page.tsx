@@ -22,7 +22,7 @@ export default function Page() {
                     </p>
                 </div>
 
-                <Button asChild className="cursor-pointer">
+                <Button asChild className="cursor-pointer h-11 md:h-9">
                     <Link href="contact-us">
                         Request a quote <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
@@ -68,7 +68,7 @@ export default function Page() {
                             </div>
                             <CardDescription>{s.desc}</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-2 text-sm text-muted-foreground">
+                        <CardContent className="space-y-2 text-base md:text-sm text-muted-foreground">
                             <ul className="list-disc space-y-1 pl-5">
                                 {s.bullets.map((b) => (
                                     <li key={b}>{b}</li>
@@ -87,14 +87,14 @@ export default function Page() {
                     <CardDescription>Tell us your target workflow and timeline.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-base md:text-sm text-muted-foreground">
                         We can tailor the services to your VOS modules (FM/SCM/HR/etc.).
                     </div>
                     <div className="flex gap-3">
-                        <Button asChild variant="outline" className="cursor-pointer">
+                        <Button asChild variant="outline" className="cursor-pointer h-11 md:h-9">
                             <Link href="/about">About us</Link>
                         </Button>
-                        <Button asChild className="cursor-pointer">
+                        <Button asChild className="cursor-pointer h-11 md:h-9">
                             <Link href="/contact-us">Contact</Link>
                         </Button>
                     </div>

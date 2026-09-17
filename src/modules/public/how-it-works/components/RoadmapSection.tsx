@@ -40,7 +40,7 @@ export function RoadmapSection({ guide }: Props) {
               key={s.stepNumber}
               href={`#step${s.stepNumber}`}
               onClick={(e) => scrollToStep(e, s.stepNumber)}
-              className="group flex flex-col items-center gap-1 cursor-pointer"
+              className="group flex flex-col items-center gap-1 cursor-pointer max-md:h-11 max-md:min-w-11 max-md:justify-center"
               title={`Jump to Step ${s.stepNumber}: ${s.title}`}
             >
               <div className="h-2.5 w-8 rounded-full bg-primary/20 group-hover:bg-primary transition-colors" />

@@ -70,9 +70,9 @@ export default function Contact() {
   const session = useAuthSession();
 
   return (
-    <div className="bg-background text-foreground font-sans pt-16">
+    <div className="bg-background text-foreground font-sans md:pt-16">
       {/* HERO */}
-      <section className="relative overflow-hidden pt-20 pb-20 md:pt-28 md:pb-28">
+      <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-28">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <StaggerContainer className="max-w-2xl">
@@ -89,7 +89,7 @@ export default function Contact() {
               </Badge>
             </StaggerChild>
             <StaggerChild>
-              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
+              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
                 Let&apos;s start a{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
                   conversation.
@@ -120,7 +120,7 @@ export default function Contact() {
                 <HoverScale className="h-full">
                   <a
                     href={item.href}
-                    className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 block h-full"
+                    className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6 bg-white dark:bg-zinc-900/60 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 block h-full"
                   >
                     <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4 group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 transition-colors">
                       <item.icon className="w-5 h-5 text-zinc-600 dark:text-zinc-400 group-hover:text-white dark:group-hover:text-zinc-900 transition-colors" />
@@ -139,13 +139,13 @@ export default function Contact() {
       {/* FORM + FAQ */}
       <section className="py-16 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 md:gap-12 items-start">
             {/* FORM */}
             <SlideUp className="lg:col-span-3">
               <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">Send us a message</h2>
               <p className="text-zinc-500 dark:text-zinc-400 mb-8 text-sm">We&apos;ll respond within one business day with next steps.</p>
 
-              <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 shadow-sm space-y-5">
+              <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-5 sm:p-8 shadow-sm space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <Label htmlFor="contact-name" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Full name</Label>
@@ -179,7 +179,7 @@ export default function Contact() {
 
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                   <p className="text-xs text-zinc-400">We respect your privacy. No spam, ever.</p>
-                  <Button className="rounded-full px-7 shadow-sm hover:shadow-md transition-all cursor-pointer bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200">
+                  <Button className="rounded-full px-7 shadow-sm hover:shadow-md transition-all cursor-pointer bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200 h-11 md:h-9">
                     Send message <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
@@ -192,7 +192,7 @@ export default function Contact() {
               <p className="text-zinc-500 dark:text-zinc-400 mb-8 text-sm">Quick answers to things we get asked often.</p>
               <div className="space-y-4">
                 {FAQS.map((faq, i) => (
-                  <div key={i} className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+                  <div key={i} className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-2">{faq.q}</h3>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{faq.a}</p>
                   </div>
@@ -204,9 +204,9 @@ export default function Contact() {
       </section>
 
       {/* DYNAMIC CTA STRIP */}
-      <section className="py-20">
+      <section className="py-14 md:py-20">
         <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
+          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-6 py-10 md:px-16 md:py-14 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
             
@@ -218,13 +218,13 @@ export default function Contact() {
                   Browse thousands of open listings and track your job applications directly.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Go to Job Seeker Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs" className="flex items-center gap-2">
                       <Briefcase className="h-4 w-4" />
                       Find Jobs
@@ -240,13 +240,13 @@ export default function Contact() {
                   Manage your active job postings, review applicants, and source verified candidates.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/talent-search" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Find Talent
@@ -262,13 +262,13 @@ export default function Contact() {
                   Access your management dashboard or reach out to our dedicated platform support team.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Go to Dashboard
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs</Link>
                   </Button>
                 </div>
@@ -281,10 +281,10 @@ export default function Contact() {
                   Explore thousands of jobs from top companies — no recruiter required.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/signup">Create Free Account</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs</Link>
                   </Button>
                 </div>

@@ -210,8 +210,8 @@ function LoginForm() {
     const pwHasError = Boolean(errors.hashPassword)
 
     return (
-        <div className="min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-8 px-4 md:px-6 bg-background text-foreground font-sans">
-            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
+        <div className="max-md:items-start min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-6 md:py-8 px-4 md:px-6 bg-background text-foreground font-sans">
+            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch md:min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
                 
                 {/* Left Side: Content / How it Works */}
                 <div className="hidden lg:flex flex-col justify-center p-10 lg:p-16 bg-muted/30 border-r relative overflow-hidden">
@@ -264,21 +264,21 @@ function LoginForm() {
                 </div>
 
                 {/* Right Side: Login Card */}
-                <div className="flex flex-col justify-center items-center p-8 lg:p-16 bg-card">
+                <div className="flex flex-col justify-center items-center p-5 md:p-8 lg:p-16 bg-card">
                     <div className="w-full max-w-[440px]">
-                        <div className="lg:hidden flex items-center gap-2 mb-8">
+                        <div className="lg:hidden flex items-center gap-2 mb-5 md:mb-8">
                             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                                 <Briefcase className="w-5 h-5 text-primary-foreground" />
                             </div>
                             <span className="text-xl font-bold text-foreground">Vos Sync</span>
                         </div>
                         
-                        <div className="mb-8">
+                        <div className="mb-5 md:mb-8">
                             <h2 className="text-3xl font-semibold text-foreground">Sign In</h2>
                             <p className="text-sm text-muted-foreground mt-1">Welcome back! Please enter your details.</p>
                         </div>
                         
-                        <form onSubmit={onSubmit} className="space-y-6">
+                        <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
                             <div>
                                 <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="email">Email ID</label>
                                 <Input 
@@ -346,7 +346,7 @@ function LoginForm() {
                             </Button>
                         </form>
 
-                        <p className="mt-8 text-center text-sm text-muted-foreground">
+                        <p className="mt-6 md:mt-8 text-center text-sm text-muted-foreground">
                             Don&apos;t have an account?{" "}
                             <Link className="inline-flex min-h-11 items-center text-primary font-medium hover:underline" href="/signup">Sign up</Link>
                         </p>

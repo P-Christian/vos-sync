@@ -17,7 +17,7 @@ export default async function StudentRegisterPage() {
   const cookieStore = await cookies();
   const initialHasSession = cookieStore.has("vos_access_token");
   return (
-    <div className="flex min-h-[calc(100dvh-6rem)] items-center justify-center py-8 sm:py-12">
+    <div className="max-md:items-start flex min-h-[calc(100dvh-6rem)] items-center justify-center py-4 sm:py-12">
       <Suspense
         fallback={
           <div className="flex items-center justify-center" role="status" aria-label="Loading invitation">

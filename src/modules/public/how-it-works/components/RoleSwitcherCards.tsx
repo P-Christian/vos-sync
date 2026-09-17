@@ -77,7 +77,7 @@ export function RoleSwitcherCards() {
               size="sm"
               disabled={loading}
               onClick={() => navigateSmart(r.route, r.targetRole)}
-              className="font-bold text-xs gap-1.5 w-full cursor-pointer"
+              className="font-bold text-xs gap-1.5 w-full cursor-pointer h-11 md:h-8"
             >
               {r.cta}
               <ArrowRight className="h-3.5 w-3.5" />

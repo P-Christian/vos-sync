@@ -126,8 +126,8 @@ function ForgotPasswordForm() {
     }
 
     return (
-        <main className="min-h-dvh flex-grow flex items-center justify-center py-8 px-4 md:px-6 bg-background text-foreground font-sans">
-            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
+        <main className="max-md:items-start min-h-dvh flex-grow flex items-center justify-center py-4 md:py-8 px-4 md:px-6 bg-background text-foreground font-sans">
+            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch md:min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
                 
                 {/* Left Side: Illustration */}
                 <div className="hidden lg:flex flex-col justify-center p-10 lg:p-16 bg-muted/30 border-r relative overflow-hidden">
@@ -245,7 +245,7 @@ function ForgotPasswordForm() {
                                     <button 
                                         type="button" 
                                         onClick={() => setStep("EMAIL")}
-                                        className="text-sm text-primary hover:underline"
+                                        className="max-md:py-3.5 max-md:-my-3.5 text-sm text-primary hover:underline"
                                     >
                                         Change email address
                                     </button>
@@ -278,7 +278,7 @@ function ForgotPasswordForm() {
                                                     type="button" 
                                                     onClick={() => setShowPw(s => !s)}
                                                     disabled={loading}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                    className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                                 >
                                                     {showPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
@@ -301,7 +301,7 @@ function ForgotPasswordForm() {
                                                     type="button" 
                                                     onClick={() => setShowConfirmPw(s => !s)}
                                                     disabled={loading}
-                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                    className="max-md:flex max-md:h-11 max-md:w-11 max-md:items-center max-md:justify-center absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                                 >
                                                     {showConfirmPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                                 </button>
@@ -320,7 +320,7 @@ function ForgotPasswordForm() {
 
                         <p className="mt-8 text-center text-sm text-muted-foreground">
                             Remember your password?{" "}
-                            <Link className="text-primary font-medium hover:underline" href="/login">Sign in</Link>
+                            <Link className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline" href="/login">Sign in</Link>
                         </p>
                     </div>
                 </div>

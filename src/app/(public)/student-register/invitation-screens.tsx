@@ -52,16 +52,16 @@ export function PreviewScreen({ preview, hasSession, loginHref, busy, onCreateAc
   ].filter((detail) => detail[1]);
 
   return (
-    <div className="w-full max-w-lg mx-auto px-4 sm:px-6 py-12">
-      <div className="text-center mb-8">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+    <div className="w-full max-w-lg mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12">
+      <div className="text-center mb-8 max-md:mb-5">
+        <div className="mx-auto mb-4 max-md:mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
           <GraduationCap className="h-7 w-7" aria-hidden="true" />
         </div>
         <h1 className="text-3xl font-medium text-primary">You&apos;re invited, {preview.studentFirstName}!</h1>
         <p className="mt-2 text-sm text-muted-foreground">{preview.schoolName} has invited you to link your student record to a VOS Sync account.</p>
       </div>
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <dl className="space-y-4 text-sm">
+      <div className="rounded-xl border border-border bg-card p-6 max-md:p-5 shadow-sm">
+        <dl className="space-y-4 max-md:space-y-3 text-sm">
           {details.map(([label, value]) => (
             <div key={label} className="flex items-start justify-between gap-4">
               <dt className="text-muted-foreground shrink-0">{label}</dt>
@@ -71,7 +71,7 @@ export function PreviewScreen({ preview, hasSession, loginHref, busy, onCreateAc
         </dl>
         <p className="mt-4 text-xs text-muted-foreground leading-relaxed">Invitation verification uses the school email shown above.</p>
       </div>
-      <div className="mt-6 flex flex-col gap-3">
+      <div className="mt-6 max-md:mt-4 flex flex-col gap-3">
         {hasSession ? (
           <>
             <Button type="button" onClick={onAccept} disabled={busy} className="min-h-11 w-full py-6 rounded-full text-base">
@@ -115,7 +115,7 @@ export function AcceptNoticeScreen({ notice, error, busy, onConfirm, onBack, ste
   readonly step?: AcceptNoticeStep;
 }) {
   return (
-    <div className="w-full max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12 text-center">
       <StepIndicator
         index={step.index}
         total={step.total}
@@ -166,8 +166,8 @@ export function AcceptNoticeScreen({ notice, error, busy, onConfirm, onBack, ste
 
 export function SuccessScreen({ preview }: { readonly preview: ValidStudentInvitationPreviewDto | null }) {
   return (
-    <div className="w-full max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-success-bg text-success">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-6 pt-2 pb-6 md:py-12 text-center">
+      <div className="mx-auto mb-5 max-md:mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-bg text-success">
         <CheckCircle2 className="h-7 w-7" aria-hidden="true" />
       </div>
       <h1 className="text-3xl font-medium text-primary mb-3">
