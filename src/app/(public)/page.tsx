@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 import { LandingCTA } from "@/components/public/LandingCTA";
+import { TrustedCompaniesMarquee } from "@/components/public/TrustedCompaniesMarquee";
 
 export const dynamic = "force-dynamic";
 
@@ -182,7 +183,7 @@ export default async function Page() {
   return (
     <div className="bg-background text-foreground font-sans selection:bg-muted">
       {/* HERO SECTION */}
-      <section className="relative overflow-hidden pt-16 pb-24 md:pt-24 md:pb-32">
+      <section className="relative overflow-hidden pt-4 pb-16 md:pt-24 md:pb-32">
         {/* Subtle background decoration */}
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 via-background to-background dark:from-zinc-900"></div>
         <div className="absolute top-0 right-0 -z-10 translate-x-1/3 -translate-y-1/4 opacity-40 dark:opacity-20">
@@ -192,20 +193,20 @@ export default async function Page() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <StaggerContainer>
             <StaggerChild>
-              <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-sm border-border">
+              <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-xs sm:text-sm border-border">
              
                 Over 10,000+ new jobs added this week
               </Badge>
             </StaggerChild>
 
             <StaggerChild>
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
+              <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
                 Find the job that fits your <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 to-zinc-900 dark:from-zinc-400 dark:to-zinc-100">life.</span>
               </h1>
             </StaggerChild>
 
             <StaggerChild>
-              <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
+              <p className="text-sm sm:text-base md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
                 Discover opportunities across the globe. Join the most exclusive network of top tier professionals and industry-leading companies.
               </p>
             </StaggerChild>
@@ -213,7 +214,7 @@ export default async function Page() {
             <StaggerChild>
               {/* Search Bar */}
               <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
-                <div className="flex-1 flex items-center px-4 py-2 border-b md:border-b-0 md:border-r border-border">
+                <div className="flex-1 flex items-center px-4 py-2 min-h-10 md:min-h-0 border-b md:border-b-0 md:border-r border-border">
                   <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
                   <Input
                     type="text"
@@ -221,7 +222,7 @@ export default async function Page() {
                     className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
                   />
                 </div>
-                <div className="flex-1 flex items-center px-4 py-2">
+                <div className="flex-1 flex items-center px-4 py-2 min-h-10 md:min-h-0">
                   <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
                   <Input
                     type="text"
@@ -251,66 +252,29 @@ export default async function Page() {
       {/* LOGO CLOUD */}
       <section className="border-y border-border bg-muted/30 py-10">
         <FadeIn delay={0.4} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm font-medium text-muted-foreground mb-6">Trusted by the world&apos;s most innovative companies</p>
-          <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            {TRUSTED_COMPANIES.map(company => (
-              <div key={company} className="text-xl md:text-2xl font-bold tracking-tighter text-zinc-400 dark:text-zinc-600">
-                {company}
-              </div>
-            ))}
-          </div>
+          <p className="text-center text-xs sm:text-sm font-medium text-muted-foreground mb-6">Trusted by the world&apos;s most innovative companies</p>
+          <TrustedCompaniesMarquee companies={TRUSTED_COMPANIES} />
         </FadeIn>
       </section>
 
-      {/* POPULAR CATEGORIES */}
-      <section className="py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-foreground">Popular Categories</h2>
-              <p className="text-muted-foreground mt-2">Explore jobs across various domains and industries</p>
-            </div>
-            <Button variant="ghost" className="hidden md:flex group cursor-pointer">
-              View all categories <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
 
-          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CATEGORIES.map((cat, idx) => (
-              <StaggerChild key={idx}>
-                <HoverScale className="h-full">
-                  <div className="group border border-border rounded-2xl p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card h-full">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${cat.color} dark:bg-opacity-20`}>
-                      {cat.icon}
-                    </div>
-                    <h3 className="text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
-                    <p className="text-muted-foreground mt-1 flex items-center text-sm">
-                      {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                    </p>
-                  </div>
-                </HoverScale>
-              </StaggerChild>
-            ))}
-          </StaggerContainer>
-          <Button variant="outline" className="w-full mt-8 md:hidden cursor-pointer">View all categories</Button>
-        </div>
-      </section>
-
+      {/* FEATURED + POPULAR — favourites lead on mobile, categories lead on md+ */}
+      <div className="flex flex-col">
       {/* FEATURED JOBS */}
-      <section className="py-24 bg-muted/30">
+      <section className="py-16 md:py-24 bg-muted/30 md:order-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Featured Opportunities</h2>
-            <p className="text-muted-foreground mt-4">Hand-picked roles from top companies actively hiring right now.</p>
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Featured Opportunities</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-4">Hand-picked roles from top companies actively hiring right now.</p>
           </div>
 
           <StaggerContainer className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {jobs.map((job) => (
               <StaggerChild key={job.id}>
                 <HoverScale className="h-full">
-                  <div className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 flex flex-col sm:flex-row gap-6 items-start h-full">
+                  <div className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-4 sm:gap-x-6 items-start content-start h-full">
                     {/* Company Logo Placeholder */}
-                    <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden">
+                    <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden col-start-1 row-start-1 sm:row-end-5">
                       {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={job.logo} alt={job.company} className="w-full h-full object-cover" />
@@ -319,34 +283,29 @@ export default async function Page() {
                       )}
                     </div>
 
-                    <div className="flex-1 w-full">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
-                        <div>
-                          <h3 className="text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
-                          <div className="flex items-center gap-2 text-muted-foreground text-sm mt-1">
-                            <span className="font-medium text-foreground">{job.company}</span>
-                            <span>•</span>
-                            <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="bg-muted shrink-0">{job.type}</Badge>
-                      </div>
+                    <div className="col-start-2 row-start-1 flex justify-between items-start gap-2">
+                      <h3 className="min-w-0 text-base sm:text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
+                      <Badge variant="outline" className="bg-muted shrink-0 text-[10px] sm:text-xs">{job.type}</Badge>
+                    </div>
 
-                      <div className="mt-4 flex flex-wrap gap-2 mb-6">
-                        {job.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="font-medium text-xs">{tag}</Badge>
-                        ))}
-                      </div>
+                    <div className="col-start-1 col-end-3 row-start-2 sm:col-start-2 sm:col-end-3 min-w-0 mt-1 mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground text-xs sm:text-sm">
+                      <span className="font-medium text-foreground">{job.company}</span>
+                      <span>•</span>
+                      <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" /> {job.location}</span>
+                    </div>
 
-                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-border">
-                        <div className="font-semibold text-foreground">{job.salary}</div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs text-muted-foreground">{job.posted}</span>
-                          <Button size="sm" variant="outline" className="rounded-full shadow-sm cursor-pointer" asChild>
-                            <Link href="/find-jobs">View Details</Link>
-                          </Button>
-                        </div>
-                      </div>
+                    <div className="col-start-1 col-end-3 row-start-3 sm:col-start-2 sm:col-end-3 min-w-0 mt-3 flex flex-wrap gap-2 mb-4 sm:mt-4 sm:mb-6">
+                      {job.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="font-medium text-xs max-w-full whitespace-normal break-words sm:whitespace-nowrap">{tag}</Badge>
+                      ))}
+                    </div>
+
+                    <div className="col-start-1 col-end-3 row-start-4 sm:col-start-2 sm:col-end-3 min-w-0 flex flex-wrap items-center gap-x-4 gap-y-3 sm:flex-nowrap sm:justify-between mt-auto pt-3 sm:pt-4 border-t border-border">
+                      <div className="text-sm sm:text-base font-semibold text-foreground">{job.salary}</div>
+                      <span className="text-xs text-muted-foreground sm:ml-auto">{job.posted}</span>
+                      <Button size="sm" variant="outline" className="text-xs sm:text-sm rounded-full shadow-sm cursor-pointer w-full sm:w-auto" asChild>
+                        <Link href="/find-jobs">View Details</Link>
+                      </Button>
                     </div>
                   </div>
                 </HoverScale>
@@ -355,22 +314,57 @@ export default async function Page() {
           </StaggerContainer>
 
           <div className="mt-12 text-center">
-            <Button size="lg" className="rounded-full px-8 cursor-pointer" asChild>
+            <Button size="lg" className="rounded-full px-8 text-sm sm:text-base cursor-pointer" asChild>
               <Link href="/find-jobs">Explore All Jobs</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS / VALUE PROP */}
-      <section className="py-24 overflow-hidden">
+      {/* POPULAR CATEGORIES */}
+      <section className="py-12 md:py-24 md:order-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
+          <div className="flex justify-between items-end mb-6 md:mb-12">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Popular Categories</h2>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">Explore jobs across various domains and industries</p>
+            </div>
+            <Button variant="ghost" className="hidden md:flex group cursor-pointer">
+              View all categories <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+
+          <StaggerContainer className="grid grid-cols-2 gap-3 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+            {CATEGORIES.map((cat, idx) => (
+              <StaggerChild key={idx}>
+                <HoverScale className="h-full">
+                  <div className="group flex flex-col md:block border border-border rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card h-full">
+                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4 ${cat.color} dark:bg-opacity-20`}>
+                      {cat.icon}
+                    </div>
+                    <h3 className="text-sm sm:text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
+                    <p className="text-muted-foreground mt-auto pt-1 md:mt-1 md:pt-0 flex items-center text-xs sm:text-sm">
+                      {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </p>
+                  </div>
+                </HoverScale>
+              </StaggerChild>
+            ))}
+          </StaggerContainer>
+          <Button variant="outline" className="w-full mt-6 md:hidden cursor-pointer">View all categories</Button>
+        </div>
+      </section>
+      </div>
+
+      {/* HOW IT WORKS / VALUE PROP */}
+      <section className="py-16 md:py-24 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-10 md:gap-16">
             <SlideUp className="lg:w-1/2">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-foreground mb-6">
                 Your next career move, <br /><span className="text-muted-foreground">simplified.</span>
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-sm sm:text-base md:text-lg text-muted-foreground mb-8">
                 We&apos;ve streamlined the job search process so you can focus on what matters most—preparing for your next big role.
               </p>
 
@@ -386,7 +380,7 @@ export default async function Page() {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-foreground">{step.title}</h4>
-                      <p className="text-muted-foreground mt-1">{step.desc}</p>
+                      <p className="text-sm sm:text-base text-muted-foreground mt-1">{step.desc}</p>
                     </div>
                   </div>
                 ))}

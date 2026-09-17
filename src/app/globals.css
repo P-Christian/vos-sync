@@ -364,7 +364,6 @@ html.theme-switching * {
   animation: marquee-rtl 50s linear infinite;
 }
 
-
 /* Reduced motion accessibility */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee-ltr,
