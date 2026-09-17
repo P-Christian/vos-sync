@@ -73,9 +73,9 @@ export default function AboutUs() {
   const session = useAuthSession();
 
   return (
-    <div className="bg-background text-foreground font-sans pt-16">
+    <div className="bg-background text-foreground font-sans md:pt-16">
       {/* HERO */}
-      <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32">
+      <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-32">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="absolute top-0 right-0 -z-10 translate-x-1/3 -translate-y-1/4 opacity-30">
           <div className="w-[500px] h-[500px] rounded-full bg-blue-50 dark:bg-blue-950/20 blur-3xl mix-blend-multiply" />
@@ -89,7 +89,7 @@ export default function AboutUs() {
               </Badge>
             </StaggerChild>
             <StaggerChild>
-              <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
+              <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
                 We believe everyone deserves{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
                   meaningful work.
@@ -97,7 +97,7 @@ export default function AboutUs() {
               </h1>
             </StaggerChild>
             <StaggerChild>
-              <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
                 VosSync was built to bridge the gap between ambitious professionals and the companies building tomorrow. We&apos;re not just a job board — we&apos;re a career partner.
               </p>
             </StaggerChild>
@@ -106,13 +106,13 @@ export default function AboutUs() {
       </section>
 
       {/* STATS */}
-      <section className="border-y border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/20 py-16">
+      <section className="border-y border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/20 py-10 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <StaggerContainer className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 text-center">
             {STATS.map((stat) => (
               <StaggerChild key={stat.label}>
-                <p className="text-4xl md:text-5xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight mb-1">{stat.value}</p>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{stat.label}</p>
+                <p className="text-2xl md:text-5xl font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight mb-1">{stat.value}</p>
+                <p className="text-xs md:text-sm font-medium text-zinc-500 dark:text-zinc-400">{stat.label}</p>
               </StaggerChild>
             ))}
           </StaggerContainer>
@@ -120,9 +120,9 @@ export default function AboutUs() {
       </section>
 
       {/* MISSION & VISION */}
-      <section className="py-24">
+      <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <SlideUp>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Mission</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
@@ -149,10 +149,10 @@ export default function AboutUs() {
             <SlideUp delay={0.2}>
               <div className="grid grid-cols-2 gap-4">
                 {TEAM_HIGHLIGHTS.map((th) => (
-                  <div key={th.title} className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 shadow-sm">
+                  <div key={th.title} className="border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6 bg-white dark:bg-zinc-900/60 shadow-sm">
                     <th.icon className="w-6 h-6 text-zinc-700 dark:text-zinc-300 mb-3" />
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">{th.title}</h3>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{th.desc}</p>
+                    <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">{th.desc}</p>
                   </div>
                 ))}
               </div>
@@ -162,14 +162,14 @@ export default function AboutUs() {
       </section>
 
       {/* CORE VALUES */}
-      <section className="py-24 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
+      <section className="py-16 md:py-24 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Values</p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">What guides our work</h2>
           </div>
 
-          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {VALUES.map((val) => (
               <StaggerChild key={val.title}>
                 <HoverScale className="h-full">
@@ -178,7 +178,7 @@ export default function AboutUs() {
                       <val.icon className="w-6 h-6" />
                     </div>
                     <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2">{val.title}</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{val.desc}</p>
+                    <p className="text-base md:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{val.desc}</p>
                   </div>
                 </HoverScale>
               </StaggerChild>
@@ -188,9 +188,9 @@ export default function AboutUs() {
       </section>
 
       {/* TIMELINE */}
-      <section className="py-24">
+      <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row gap-16">
+          <div className="flex flex-col lg:flex-row gap-10 md:gap-16">
             <SlideUp className="lg:w-1/3">
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Timeline</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">How we got here</h2>
@@ -226,7 +226,7 @@ export default function AboutUs() {
       </section>
 
       {/* DYNAMIC CTA STRIP */}
-      <section className="py-20">
+      <section className="py-14 md:py-20">
         <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
@@ -240,13 +240,13 @@ export default function AboutUs() {
                   Browse verified opportunities and connect directly with top companies.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Go to Job Seeker Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/contact-us">Contact Support <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>
@@ -259,13 +259,13 @@ export default function AboutUs() {
                   Scale your team with verified professionals and seamless hiring workflows.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>
@@ -278,13 +278,13 @@ export default function AboutUs() {
                   Access your management tools, student records, and platform controls.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Go to Dashboard
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>
@@ -297,10 +297,10 @@ export default function AboutUs() {
                   Whether you&apos;re hiring or being hired — VosSync is built for you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/signup">Get Started Free</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/contact-us">Contact Us <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>
