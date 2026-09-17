@@ -27,7 +27,7 @@ export default function Page() {
 
             <Separator className="my-10 md:my-12" />
 
-            <div className="grid gap-6 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
                 {[
                     { icon: Building2, title: "Who we are", desc: "Product-first builders for enterprise systems." },
                     { icon: Target, title: "Mission", desc: "Deliver consistent workflows and fast iterations." },
@@ -56,7 +56,7 @@ export default function Page() {
                         <CardTitle>Our approach</CardTitle>
                         <CardDescription>Structured delivery with UI consistency.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-sm text-muted-foreground">
+                    <CardContent className="space-y-3 text-base md:text-sm text-muted-foreground">
                         <p>
                             We design reusable components, keep spacing/typography consistent, and structure pages
                             for clarity. Public pages stay minimal, while authenticated areas can use a separate
@@ -80,7 +80,7 @@ export default function Page() {
                                 <AccordionTrigger className="cursor-pointer">
                                     Can this match our ERP UI?
                                 </AccordionTrigger>
-                                <AccordionContent className="text-sm text-muted-foreground">
+                                <AccordionContent className="text-base md:text-sm text-muted-foreground">
                                     Yes—same shadcn/ui design system, so it can align with your dashboard patterns.
                                 </AccordionContent>
                             </AccordionItem>
@@ -89,7 +89,7 @@ export default function Page() {
                                 <AccordionTrigger className="cursor-pointer">
                                     Is this optimized for Next.js App Router?
                                 </AccordionTrigger>
-                                <AccordionContent className="text-sm text-muted-foreground">
+                                <AccordionContent className="text-base md:text-sm text-muted-foreground">
                                     Yes—pages are server components by default; navigation and header are client where
                                     needed.
                                 </AccordionContent>
@@ -99,7 +99,7 @@ export default function Page() {
                                 <AccordionTrigger className="cursor-pointer">
                                     Can we add sections later (pricing, blog, careers)?
                                 </AccordionTrigger>
-                                <AccordionContent className="text-sm text-muted-foreground">
+                                <AccordionContent className="text-base md:text-sm text-muted-foreground">
                                     Absolutely—this layout is intentionally modular to expand without redesigning the
                                     whole site.
                                 </AccordionContent>
