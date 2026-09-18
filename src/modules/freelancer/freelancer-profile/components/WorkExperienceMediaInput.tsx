@@ -69,7 +69,7 @@ export function WorkExperienceMediaInput({ mediaUrls, onChange, disabled }: Work
                 <Button 
                     type="button" 
                     variant="outline" 
-                    className="rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary transition-colors"
+                    className="rounded-full border-primary text-primary hover:bg-primary/5 hover:text-primary transition-colors max-md:min-h-11"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={disabled || isUploading}
                 >
@@ -101,7 +101,7 @@ export function WorkExperienceMediaInput({ mediaUrls, onChange, disabled }: Work
                                         type="button"
                                         variant="destructive"
                                         size="icon"
-                                        className="h-7 w-7 rounded-full shadow-md hover:bg-destructive/90"
+                                        className="h-7 w-7 rounded-full shadow-md hover:bg-destructive/90 max-md:size-11"
                                         onClick={() => handleRemoveMedia(idx)}
                                         disabled={disabled}
                                     >

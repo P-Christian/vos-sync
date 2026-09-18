@@ -60,7 +60,7 @@ function getInitials(name?: string | null): string {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+      <h4 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
       {children}
     </div>
   );
@@ -81,7 +81,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0 z-[100]"
+        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0 z-[100] max-md:[&>button]:p-3.5 max-md:[&>button]:-m-3.5"
       >
         {/* Cover Banner */}
         <div className="h-32 w-full bg-gradient-to-r from-emerald-500/10 to-teal-500/10 relative overflow-hidden shrink-0 border-b">
@@ -99,7 +99,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
             variant="secondary"
             size="icon"
             onClick={onClose}
-            className="absolute top-4 right-4 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md border z-[110] flex items-center justify-center text-foreground"
+            className="absolute top-4 right-4 h-8 w-8 rounded-full bg-background/80 hover:bg-background shadow-md border z-[110] flex items-center justify-center text-foreground max-md:size-11"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -268,13 +268,13 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
 
             {/* Right Column: Client info */}
             <div className="md:col-span-1 space-y-5 border-t pt-5 md:border-l md:border-l-0 md:pl-5 border-border/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">About the client</h3>
+              <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">About the client</h3>
 
               <div className="space-y-4">
                 {/* Location */}
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
-                  <div className="flex items-start gap-1.5 text-xs text-foreground font-medium">
+                  <div className="flex items-start gap-1.5 text-sm md:text-xs text-foreground font-medium">
                     <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-zinc-500" />
                     <span>
                       {[job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") || job.job_location}
@@ -286,7 +286,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                 {job.company_email && (
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium truncate">
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium truncate">
                       <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span className="truncate" title={job.company_email}>{job.company_email}</span>
                     </div>
@@ -297,7 +297,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                 {job.company_contact && (
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium">
                       <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span>{job.company_contact}</span>
                     </div>
@@ -310,22 +310,22 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
                     <div className="flex flex-wrap gap-2">
                       {job.company_facebook && (
-                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Facebook className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_linkedin && (
-                        <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Linkedin className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_instagram && (
-                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Instagram className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_youtube && (
-                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Youtube className="h-4 w-4" />
                         </a>
                       )}
@@ -343,7 +343,7 @@ export function JobDetailSheet({ job, open, onClose }: Props) {
           <Button
             id="job-detail-apply-btn"
             disabled={true}
-            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600 max-md:min-h-11"
           >
             <Send className="h-4 w-4" />
             Already Applied

@@ -191,7 +191,7 @@ export default function ConversationItem({
           >
             {other_party_name}
           </span>
-          <span className="text-[10px] text-zinc-400 shrink-0">
+          <span className="text-sm md:text-xs md:text-[10px] text-zinc-400 shrink-0">
             {formatTime(last_message_at)}
           </span>
         </div>
@@ -199,7 +199,7 @@ export default function ConversationItem({
         {job_title && (
           <div className="flex items-center gap-1 mt-0.5">
             <Briefcase className="h-2.5 w-2.5 text-primary shrink-0" />
-            <span className="text-[10px] text-primary truncate font-medium">
+            <span className="text-sm md:text-xs md:text-[10px] text-primary truncate font-medium">
               {job_title}
             </span>
           </div>
@@ -207,7 +207,7 @@ export default function ConversationItem({
 
         <p
           className={cn(
-            "text-xs mt-0.5 truncate",
+            "text-sm md:text-xs mt-0.5 truncate",
             unread_count > 0
               ? "text-zinc-600 dark:text-zinc-300 font-medium"
               : "text-zinc-400 dark:text-zinc-500"
@@ -224,7 +224,7 @@ export default function ConversationItem({
           onArchive(conversation_id);
         }}
         title={archived_by_client ? "Unarchive" : "Archive"}
-        className="absolute right-3 top-3.5 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-400 transition-all"
+        className="absolute right-3 top-3.5 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-400 transition-all max-md:flex max-md:size-10"
       >
         {archived_by_client ? (
           <ArchiveRestore className="h-3.5 w-3.5" />

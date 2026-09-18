@@ -203,7 +203,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0"
+        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0 max-md:max-h-[90dvh]"
       >
         {/* Cover Banner */}
         <div className="h-32 w-full bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative overflow-hidden shrink-0 border-b">
@@ -246,13 +246,13 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                   value={job.status}
                   onValueChange={(v) => onStatusChange(job.job_id, v as JobStatus)}
                 >
-                  <SelectTrigger className="h-8 text-xs font-semibold rounded-lg w-28 border-border">
+                  <SelectTrigger className="h-8 md:text-xs font-semibold rounded-lg w-28 border-border max-md:min-h-10 max-md:text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ACTIVE" className="text-xs font-semibold text-primary">Active</SelectItem>
-                    <SelectItem value="DRAFT" className="text-xs font-semibold text-amber-600">Draft</SelectItem>
-                    <SelectItem value="CLOSED" className="text-xs font-semibold text-rose-600">Closed</SelectItem>
+                    <SelectItem value="ACTIVE" className="text-sm md:text-xs font-semibold text-primary">Active</SelectItem>
+                    <SelectItem value="DRAFT" className="text-sm md:text-xs font-semibold text-amber-600">Draft</SelectItem>
+                    <SelectItem value="CLOSED" className="text-sm md:text-xs font-semibold text-rose-600">Closed</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -265,7 +265,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                     onClose();
                     onEdit(job as unknown as JobPosting);
                   }}
-                  className="h-8 px-3 text-xs gap-1.5 rounded-lg border-border hover:border-primary hover:text-primary font-semibold"
+                  className="h-8 px-3 text-sm md:text-xs gap-1.5 rounded-lg border-border hover:border-primary hover:text-primary font-semibold max-md:min-h-10"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   Edit Job
@@ -275,7 +275,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
               <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}`}>
                 <Button
                   size="sm"
-                  className="h-8 px-3 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                  className="h-8 px-3 text-sm md:text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold max-md:min-h-10"
                 >
                   <Users className="h-3.5 w-3.5" />
                   View Applicants
@@ -312,15 +312,15 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
               {/* Salary & Requirements Summary */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-muted/40 border">
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                  <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                     <DollarSign className="h-3 w-3" /> Salary
                   </div>
                   <p className="text-sm font-semibold text-foreground">{formatSalary(job)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{salaryType}</p>
+                  <p className="text-xs md:text-[10px] text-muted-foreground mt-0.5">{salaryType}</p>
                 </div>
                 {job.experience_level && (
                   <div className="p-3 rounded-xl bg-muted/40 border">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                    <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                       <Layers className="h-3 w-3" /> Experience
                     </div>
                     <p className="text-sm font-semibold text-foreground">
@@ -330,7 +330,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                 )}
                 {education && (
                   <div className="p-3 rounded-xl bg-muted/40 border col-span-2">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                    <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                       <GraduationCap className="h-3 w-3" /> Education
                     </div>
                     <p className="text-sm text-foreground">{education}</p>
@@ -413,7 +413,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                         </div>
                       ))}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-2">
+                    <p className="text-xs md:text-[11px] text-muted-foreground mt-2">
                       You will answer these questions in the application form.
                     </p>
                   </Section>
@@ -428,8 +428,8 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
               <div className="space-y-4">
                 {/* Location */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
-                  <div className="flex items-start gap-1.5 text-xs text-foreground font-medium">
+                  <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
+                  <div className="flex items-start gap-1.5 text-sm md:text-xs text-foreground font-medium">
                     <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-zinc-500" />
                     <span>
                       {[job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") || job.job_location}
@@ -440,8 +440,8 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                 {/* Email */}
                 {job.company_email && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium truncate">
+                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium truncate">
                       <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span className="truncate" title={job.company_email}>{job.company_email}</span>
                     </div>
@@ -451,8 +451,8 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                 {/* Contact */}
                 {job.company_contact && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium">
                       <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span>{job.company_contact}</span>
                     </div>
@@ -462,21 +462,21 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                 {/* Socials */}
                 {(job.company_facebook|| job.company_instagram || job.company_x || job.company_youtube) && (
                   <div className="space-y-2 pt-2">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
+                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
                     <div className="flex flex-wrap gap-2">
                       {job.company_facebook && (
-                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
                           <Facebook className="h-4 w-4" />
                         </a>
                       )}
 
                       {job.company_instagram && (
-                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
                           <Instagram className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_youtube && (
-                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
                           <Youtube className="h-4 w-4" />
                         </a>
                       )}

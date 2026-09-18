@@ -82,6 +82,10 @@ export default function CompanyProfileModule() {
   const [draft, setDraft] = useState<Partial<EditableCompanyFields & { custom_industry_name?: string }>>({});
   const [showPreview, setShowPreview] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [activeProfileSection, setActiveProfileSection] = useState(0);
+
+  const mobileSectionClass = (index: number) =>
+    `max-md:order-2${activeProfileSection === index ? "" : " max-md:hidden"}`;
 
   const [setupForm, setSetupForm] = useState({
     company_name: "",
@@ -326,7 +330,7 @@ export default function CompanyProfileModule() {
   // ── Loading ───────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="flex flex-col items-center justify-center min-h-[60dvh] gap-4">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
         <p className="text-zinc-500 font-medium animate-pulse text-sm">
           Loading company profile...
@@ -364,7 +368,7 @@ export default function CompanyProfileModule() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <Label htmlFor="setup-name" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-name" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Company Display Name <span className="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -372,13 +376,13 @@ export default function CompanyProfileModule() {
                       value={setupForm.company_name}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, company_name: e.target.value }))}
                       placeholder="e.g. Acme Corporation"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="setup-legal-name" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-legal-name" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Legal Company Name <span className="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -386,13 +390,13 @@ export default function CompanyProfileModule() {
                       value={setupForm.company_legal_name}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, company_legal_name: e.target.value }))}
                       placeholder="e.g. Acme Corp. Ltd"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="setup-email" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-email" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Company Email <span className="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -401,13 +405,13 @@ export default function CompanyProfileModule() {
                       value={setupForm.company_email}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, company_email: e.target.value }))}
                       placeholder="hr@acme.com"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="setup-contact" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-contact" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Company Contact <span className="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -415,13 +419,13 @@ export default function CompanyProfileModule() {
                       value={setupForm.company_contact}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, company_contact: e.target.value }))}
                       placeholder="09XXXXXXXXX"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="setup-reg" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-reg" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Registration Number <span className="text-zinc-400">(Optional)</span>
                     </Label>
                     <Input
@@ -429,12 +433,12 @@ export default function CompanyProfileModule() {
                       value={setupForm.registration_no}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, registration_no: e.target.value }))}
                       placeholder="e.g. SEC-123456"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="setup-tin" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <Label htmlFor="setup-tin" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       TIN <span className="text-zinc-400">(Optional)</span>
                     </Label>
                     <Input
@@ -442,13 +446,13 @@ export default function CompanyProfileModule() {
                       value={setupForm.company_tin}
                       onChange={(e) => setSetupForm((prev) => ({ ...prev, company_tin: e.target.value }))}
                       placeholder="e.g. 000-123-456-000"
-                      className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                      className="h-10 md:text-sm max-md:h-10 max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="setup-desc" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  <Label htmlFor="setup-desc" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                     Company Description <span className="text-rose-500">*</span>
                   </Label>
                   <Textarea
@@ -457,7 +461,7 @@ export default function CompanyProfileModule() {
                     onChange={(e) => setSetupForm((prev) => ({ ...prev, company_description: e.target.value }))}
                     rows={4}
                     placeholder="Provide a brief description of your company, core business, and culture..."
-                    className="text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg resize-none"
+                    className="md:text-sm max-md:text-base border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg resize-none"
                     required
                   />
                 </div>
@@ -497,7 +501,7 @@ export default function CompanyProfileModule() {
               Unable to Load Profile
             </h3>
             <p className="text-sm text-zinc-500">{error}</p>
-            <Button onClick={fetchProfile} className="w-full">
+            <Button onClick={fetchProfile} className="w-full max-md:min-h-10">
               Try Again
             </Button>
           </CardContent>
@@ -511,7 +515,7 @@ export default function CompanyProfileModule() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6"
+      className="space-y-4 md:space-y-6"
     >
       {/* Success / Error Messages */}
       <AnimatePresence>
@@ -560,7 +564,7 @@ export default function CompanyProfileModule() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
+                      className="h-8 max-md:min-h-10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
                       onClick={() => setShowAIAssistant(true)}
                     >
                      
@@ -568,7 +572,7 @@ export default function CompanyProfileModule() {
                     </Button>
                   )}
                   {isOwnerOrAdmin && !isEditingInfo && (
-                    <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditInfo}>
+                    <Button variant="ghost" size="sm" className="h-8 max-md:size-10 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditInfo}>
                       <Pencil className="h-4 w-4" />
                     </Button>
                   )}
@@ -591,10 +595,10 @@ export default function CompanyProfileModule() {
                         readOnly={false}
                       />
                       <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                        <Button variant="outline" size="sm" onClick={handleCancelInfo} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                        <Button variant="outline" size="sm" onClick={handleCancelInfo} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -630,7 +634,7 @@ export default function CompanyProfileModule() {
                   </CardTitle>
                 </div>
                 {isOwnerOrAdmin && !isEditingClassification && (
-                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditClassification}>
+                  <Button variant="ghost" size="sm" className="h-8 max-md:size-10 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditClassification}>
                     <Pencil />
                   </Button>
                 )}
@@ -652,10 +656,10 @@ export default function CompanyProfileModule() {
                         readOnly={false}
                       />
                       <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                        <Button variant="outline" size="sm" onClick={handleCancelClassification} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                        <Button variant="outline" size="sm" onClick={handleCancelClassification} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -691,7 +695,7 @@ export default function CompanyProfileModule() {
                   </CardTitle>
                 </div>
                 {isOwnerOrAdmin && !isEditingAddress && (
-                  <Button variant="ghost" size="sm" className="h-8 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditAddress}>
+                  <Button variant="ghost" size="sm" className="h-8 max-md:size-10 text-primary font-medium hover:bg-primary/10 transition-colors" onClick={handleEditAddress}>
                     <Pencil />
                   </Button>
                 )}
@@ -713,10 +717,10 @@ export default function CompanyProfileModule() {
                         readOnly={false}
                       />
                       <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
-                        <Button variant="outline" size="sm" onClick={handleCancelAddress} disabled={saving} className="h-9 px-5 text-sm rounded-xl">
+                        <Button variant="outline" size="sm" onClick={handleCancelAddress} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -732,24 +736,24 @@ export default function CompanyProfileModule() {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Province</span>
+                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Province</span>
                           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_province || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">City / Municipality</span>
+                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">City / Municipality</span>
                           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_city || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Barangay</span>
+                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Barangay</span>
                           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_brgy || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Zip Code</span>
+                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Zip Code</span>
                           <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_zipCode || "—"}</p>
                         </div>
                       </div>
                       <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Street Address</span>
+                        <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Street Address</span>
                         <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_address || "—"}</p>
                       </div>
                     </motion.div>
@@ -761,9 +765,23 @@ export default function CompanyProfileModule() {
         </div>
 
         {/* ── Right Column ─────────────────────────────────────────── */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-6 max-md:flex max-md:flex-col">
+          {/* Mobile-only section tabs (desktop keeps every section stacked) */}
+          <div className="md:hidden max-md:order-1 flex items-center gap-1 rounded-xl border bg-card p-1">
+            {["Profile Status", "Documents", "Public Profile"].map((label, i) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setActiveProfileSection(i)}
+                className={`flex-1 min-h-10 rounded-lg px-2 py-1 text-[11px] leading-tight text-center font-medium transition-colors ${activeProfileSection === i ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Profile Completion */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants} className={mobileSectionClass(0)}>
             <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
               <CardContent className="p-6">
                 <CompanyCompletionBar percent={completionPercent} />
@@ -773,7 +791,7 @@ export default function CompanyProfileModule() {
 
           {/* Verification Status */}
           {company?.verification_status && (
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className={mobileSectionClass(0)}>
               <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
                 <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary" />
@@ -793,7 +811,7 @@ export default function CompanyProfileModule() {
           )}
 
           {/* Verification Documents */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants} className={mobileSectionClass(1)}>
             <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
               <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
@@ -813,7 +831,7 @@ export default function CompanyProfileModule() {
           {/* Submit / Resubmit for Verification */}
           {isOwnerOrAdmin &&
             (verificationStatus === "DRAFT" || verificationStatus === "REJECTED") && (
-              <motion.div variants={itemVariants}>
+              <motion.div variants={itemVariants} className="max-md:order-3">
                 <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
                   <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
@@ -823,7 +841,7 @@ export default function CompanyProfileModule() {
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     {!canSubmit && (
-                      <p className="text-xs text-zinc-555 dark:text-zinc-400 leading-relaxed">
+                      <p className="text-sm md:text-xs text-zinc-555 dark:text-zinc-400 leading-relaxed">
                         Your profile must be at least{" "}
                         <span className="font-semibold text-zinc-700 dark:text-zinc-300">80% complete</span>,
                         include a company logo, and have at least{" "}
@@ -832,14 +850,14 @@ export default function CompanyProfileModule() {
                       </p>
                     )}
                     {canSubmit && verificationStatus === "REJECTED" && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50">
+                      <p className="text-sm md:text-xs text-amber-700 dark:text-amber-400 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50">
                         Please review the rejection reason above, make the necessary corrections, then resubmit.
                       </p>
                     )}
                     <Button
                       onClick={handleSubmitForVerification}
                       disabled={!canSubmit || submitting}
-                      className="w-full h-10 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
+                      className="w-full h-10 max-md:min-h-10 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
                     >
                       {submitting ? (
                         <>
@@ -865,7 +883,7 @@ export default function CompanyProfileModule() {
 
           {/* Preview Public Profile */}
           {company && (
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className={mobileSectionClass(2)}>
               <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
                 <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
                   <Eye className="h-5 w-5 text-primary" />
@@ -874,13 +892,13 @@ export default function CompanyProfileModule() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
                     Preview how job seekers will see your company profile once it goes public.
                   </p>
                   <Button
                     variant="outline"
                     onClick={() => setShowPreview(true)}
-                    className="w-full h-9 text-sm rounded-xl font-medium transition-colors hover:border-primary/50"
+                    className="w-full h-9 max-md:min-h-10 text-sm rounded-xl font-medium transition-colors hover:border-primary/50"
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Preview Public Profile
@@ -891,7 +909,7 @@ export default function CompanyProfileModule() {
           )}
 
           {/* Public Visibility */}
-          <motion.div variants={itemVariants}>
+          <motion.div variants={itemVariants} className={mobileSectionClass(2)}>
             <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
               <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
@@ -905,7 +923,7 @@ export default function CompanyProfileModule() {
                     <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                       {company?.is_public ? "Public Profile" : "Private Profile"}
                     </p>
-                    <p className="text-xs text-zinc-500 mt-0.5">
+                    <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
                       {company?.is_public
                         ? "Searchable by job seekers and visible on postings."
                         : "Only visible to authorized organization users."}
@@ -921,7 +939,7 @@ export default function CompanyProfileModule() {
                         const nextVal = company?.is_public ? 0 : 1;
                         await updateProfile({ is_public: nextVal });
                       }}
-                      className="h-9 px-4 text-xs font-semibold rounded-xl transition-colors hover:border-primary/50"
+                      className="h-9 max-md:min-h-10 px-4 text-xs font-semibold rounded-xl transition-colors hover:border-primary/50"
                     >
                       Change Visibility
                     </Button>

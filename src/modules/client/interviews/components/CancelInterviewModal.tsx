@@ -75,7 +75,7 @@ export default function CancelInterviewModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-base">
             <XCircle className="h-5 w-5" />
@@ -83,7 +83,7 @@ export default function CancelInterviewModal({
               Cancel Interview Schedule
             </DialogTitle>
           </div>
-          <DialogDescription className="text-xs text-zinc-500 pt-1">
+          <DialogDescription className="text-sm md:text-xs text-zinc-500 pt-1">
             You are about to cancel the interview for{" "}
             <span className="font-semibold text-zinc-800 dark:text-zinc-200">
               {interview.applications?.[0]?.applicant_name || "Candidate"}
@@ -94,7 +94,7 @@ export default function CancelInterviewModal({
 
         <div className="space-y-4 py-3">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-xs text-rose-700 dark:text-rose-300">
+            <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-sm md:text-xs text-rose-700 dark:text-rose-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               {error}
             </div>
@@ -102,13 +102,13 @@ export default function CancelInterviewModal({
 
           {/* Preset Reason Select */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Cancellation Category
             </Label>
             <select
               value={selectedReason}
               onChange={(e) => setSelectedReason(e.target.value)}
-              className="w-full h-9 px-3 text-xs rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none"
+              className="w-full h-9 px-3 md:text-xs max-md:min-h-10 max-md:text-base rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:outline-none"
               disabled={saving}
             >
               {COMMON_REASONS.map((reason) => (
@@ -121,7 +121,7 @@ export default function CancelInterviewModal({
 
           {/* Details / Custom Reason Textarea */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Additional Details / Reason <span className="text-zinc-400 font-normal">(Required for &apos;Other&apos;)</span>
             </Label>
             <Textarea
@@ -129,7 +129,7 @@ export default function CancelInterviewModal({
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               rows={3}
-              className="resize-none text-xs rounded-xl"
+              className="resize-none md:text-xs max-md:text-base rounded-xl"
               disabled={saving}
             />
           </div>
@@ -140,7 +140,7 @@ export default function CancelInterviewModal({
             variant="outline"
             onClick={handleClose}
             disabled={saving}
-            className="h-9 text-xs rounded-xl"
+            className="h-9 max-md:min-h-10 text-sm md:text-xs rounded-xl"
           >
             Keep Interview
           </Button>
@@ -149,7 +149,7 @@ export default function CancelInterviewModal({
             variant="destructive"
             onClick={handleSubmit}
             disabled={saving}
-            className="h-9 text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium gap-1.5"
+            className="h-9 max-md:min-h-10 text-sm md:text-xs rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium gap-1.5"
           >
             {saving ? (
               <>

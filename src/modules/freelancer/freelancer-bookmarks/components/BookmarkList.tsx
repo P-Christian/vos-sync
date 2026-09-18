@@ -69,7 +69,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
             You haven&apos;t bookmarked any jobs yet.
           </p>
         </div>
-        <Button variant="outline" className="mt-2" asChild>
+        <Button variant="outline" className="mt-2 max-md:min-h-11" asChild>
           <Link href="/vos-sync/freelancer/jobs">
             Browse Jobs
           </Link>
@@ -101,8 +101,8 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
               </div>
 
               <div className="flex-1 min-w-0 pr-8">
-                <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`}>
-                  <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
+                <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`} className="max-md:min-h-11 max-md:flex max-md:items-center">
+                  <h3 className="text-base md:text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
                     {job.job_title}
                   </h3>
                 </Link>
@@ -115,7 +115,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
               <Button
                 size="icon"
                 variant="ghost"
-                className="absolute top-0 right-0 h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary"
+                className="absolute top-0 right-0 h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemoveBookmark(job.job_id);
@@ -149,15 +149,15 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50 max-md:flex-wrap max-md:gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground max-md:min-w-0">
                 <Clock className="h-3 w-3" />
-                <span className="font-medium text-foreground">{formatSalary(job)}</span>
+                <span className="font-medium text-foreground max-md:truncate">{formatSalary(job)}</span>
               </div>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2"
+                className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2 max-md:min-h-11"
                 asChild
               >
                 <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`}>

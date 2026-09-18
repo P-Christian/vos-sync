@@ -43,7 +43,7 @@ export default function SavedTalentPanel({
           Saved Candidates
         </span>
         {saved.length > 0 && (
-          <span className="ml-1 text-xs text-zinc-400">({saved.length})</span>
+          <span className="ml-1 text-sm md:text-xs text-zinc-400">({saved.length})</span>
         )}
       </div>
 
@@ -55,7 +55,7 @@ export default function SavedTalentPanel({
       )}
 
       {!loading && error && (
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 text-rose-700 dark:text-rose-300 text-xs">
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 text-rose-700 dark:text-rose-300 text-sm md:text-xs">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           {error}
         </div>
@@ -65,7 +65,7 @@ export default function SavedTalentPanel({
         <div className="text-center py-12">
           <Bookmark className="h-10 w-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-3" />
           <p className="text-sm text-zinc-500 dark:text-zinc-400">No saved candidates yet.</p>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-sm md:text-xs text-zinc-400 mt-1">
             Search for talent and click &ldquo;Save&rdquo; to add them here.
           </p>
         </div>
@@ -104,10 +104,10 @@ export default function SavedTalentPanel({
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm text-zinc-900 dark:text-white truncate">{s.name}</p>
                 {s.headline && (
-                  <p className="text-xs text-zinc-500 truncate">{s.headline}</p>
+                  <p className="text-sm md:text-xs text-zinc-500 truncate">{s.headline}</p>
                 )}
                 {s.location && (
-                  <p className="text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+                  <p className="text-sm md:text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
                     <MapPin className="h-2.5 w-2.5" />
                     {s.location}
                   </p>
@@ -123,12 +123,12 @@ export default function SavedTalentPanel({
                       </span>
                     ))}
                     {s.skills.length > 3 && (
-                      <span className="text-xs text-zinc-400">+{s.skills.length - 3}</span>
+                      <span className="text-sm md:text-xs text-zinc-400">+{s.skills.length - 3}</span>
                     )}
                   </div>
                 )}
                 {s.notes && (
-                  <p className="text-xs text-zinc-400 mt-1.5 italic line-clamp-1">
+                  <p className="text-sm md:text-xs text-zinc-400 mt-1.5 italic line-clamp-1">
                     📝 {s.notes}
                   </p>
                 )}
@@ -140,7 +140,7 @@ export default function SavedTalentPanel({
                   size="sm"
                   variant="outline"
                   onClick={() => onView(s.talent_user_id)}
-                  className="h-7 px-2 rounded-lg text-xs"
+                  className="h-7 px-2 rounded-lg text-sm md:text-xs max-md:size-10 max-md:p-0"
                 >
                   <Eye className="h-3 w-3" />
                 </Button>
@@ -148,7 +148,7 @@ export default function SavedTalentPanel({
                   id={`saved-invite-${s.talent_user_id}`}
                   size="sm"
                   onClick={() => onInvite(s.talent_user_id, s.name)}
-                  className="h-7 px-2 rounded-lg text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-0"
+                  className="h-7 px-2 rounded-lg text-sm md:text-xs bg-indigo-600 hover:bg-indigo-700 text-white border-0 max-md:size-10 max-md:p-0"
                 >
                   <Send className="h-3 w-3" />
                 </Button>
@@ -158,7 +158,7 @@ export default function SavedTalentPanel({
                   variant="outline"
                   onClick={() => onUnsave(s.talent_user_id)}
                   disabled={unsaving}
-                  className="h-7 px-2 rounded-lg text-xs text-rose-500 hover:border-rose-300 hover:text-rose-600"
+                  className="h-7 px-2 rounded-lg text-sm md:text-xs text-rose-500 hover:border-rose-300 hover:text-rose-600 max-md:size-10 max-md:p-0"
                 >
                   <Trash2 className="h-3 w-3" />
                 </Button>

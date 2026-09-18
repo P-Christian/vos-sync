@@ -141,7 +141,7 @@ export default function MessageInput({
                   type="button"
                   onClick={() => removeFile(i)}
                   disabled={isBusy}
-                  className="absolute right-1.5 top-1.5 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="absolute right-1.5 top-1.5 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed max-md:size-11 max-md:grid max-md:place-items-center"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -163,8 +163,8 @@ export default function MessageInput({
             onKeyDown={handleKeyDown}
             disabled={isBusy}
             placeholder="Type here..."
-            className="flex-1 bg-transparent border-0 text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none resize-none overflow-y-auto leading-relaxed py-1.5 pr-2 disabled:opacity-50"
-            style={{ minHeight: "36px", maxHeight: "100px" }}
+            className="flex-1 bg-transparent border-0 text-base md:text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none resize-none overflow-y-auto leading-relaxed py-1.5 pr-2 disabled:opacity-50 min-h-9 max-md:min-h-11"
+            style={{ maxHeight: "100px" }}
           />
 
           {/* Inline Attachment Icon */}
@@ -173,7 +173,7 @@ export default function MessageInput({
             onClick={() => fileInputRef.current?.click()}
             disabled={isBusy}
             title="Attach file"
-            className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-slate-200/50 dark:hover:bg-zinc-700/50 transition shrink-0 disabled:opacity-40"
+            className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-slate-200/50 dark:hover:bg-zinc-700/50 transition shrink-0 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
           >
             <Paperclip className="h-4.5 w-4.5" />
           </button>
@@ -185,7 +185,7 @@ export default function MessageInput({
           onClick={handleSend}
           disabled={!canSend}
           className={cn(
-            "h-10 w-10 rounded-full flex items-center justify-center transition-all shrink-0",
+            "h-10 w-10 rounded-full flex items-center justify-center transition-all shrink-0 max-md:size-11",
             canSend
               ? "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 active:scale-95 cursor-pointer shadow-xs"
               : "bg-slate-100 dark:bg-zinc-800/60 text-slate-300 dark:text-zinc-600 cursor-not-allowed"

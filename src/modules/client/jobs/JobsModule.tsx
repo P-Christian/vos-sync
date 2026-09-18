@@ -364,7 +364,7 @@ export default function JobsModule() {
 
   return (
     <CompanyVerificationGuard moduleName="Job Postings">
-      <div className="space-y-6 client-page-transition">
+      <div className="space-y-4 md:space-y-6 client-page-transition">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -378,7 +378,7 @@ export default function JobsModule() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Job Postings</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Job Postings</h1>
             <p className="text-sm text-muted-foreground mt-1">
               {activeCount} active &bull; {draftCount} draft
             </p>
@@ -386,7 +386,7 @@ export default function JobsModule() {
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
             <Button
               onClick={() => setIsAutoCreateOpen(true)}
-              className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold gap-1.5 shadow-sm border-0 flex-1 sm:flex-none cursor-pointer"
+              className="h-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold gap-1.5 shadow-sm border-0 flex-1 sm:flex-none cursor-pointer max-md:min-h-10"
             >
               <Sparkles className="h-4 w-4" />
               Auto Create Job
@@ -394,7 +394,7 @@ export default function JobsModule() {
             <Button
               variant="outline"
               onClick={() => handleNewJob()}
-              className="h-10 rounded-xl text-sm font-medium gap-1.5 flex-1 sm:flex-none"
+              className="h-10 rounded-xl text-sm font-medium gap-1.5 flex-1 sm:flex-none max-md:min-h-10"
             >
               <Plus className="h-4 w-4" />
               Manual Post
@@ -429,7 +429,7 @@ export default function JobsModule() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by job title, department, or location..."
-                  className="pl-9 pr-9 h-9 text-xs sm:text-sm bg-background border-border/80 rounded-lg focus-visible:ring-primary/20 w-full"
+                  className="pl-9 pr-9 h-9 sm:text-sm bg-background border-border/80 rounded-lg focus-visible:ring-primary/20 w-full max-md:h-10 max-md:text-base"
                 />
                 {searchQuery && (
                   <button
@@ -438,7 +438,7 @@ export default function JobsModule() {
                     aria-label="Clear search"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3.5 w-3.5 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                   </button>
                 )}
               </div>
@@ -452,7 +452,7 @@ export default function JobsModule() {
                     value={filterCategory}
                     onValueChange={(v) => setFilterCategory(v)}
                     placeholder="All Categories"
-                    className="h-9 text-xs rounded-lg border-border/80 bg-background font-medium w-full"
+                    className="h-9 md:text-xs rounded-lg border-border/80 bg-background font-medium w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60"
                   />
                 </div>
 
@@ -462,16 +462,16 @@ export default function JobsModule() {
                     value={filterJobType}
                     onValueChange={(v) => setFilterJobType(v as JobType | "ALL")}
                   >
-                    <SelectTrigger className="h-9 text-xs font-medium rounded-lg border-border/80 bg-background w-full">
+                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL" className="text-xs font-medium">All Types</SelectItem>
-                      <SelectItem value="FULL_TIME" className="text-xs font-medium">Full-Time</SelectItem>
-                      <SelectItem value="PART_TIME" className="text-xs font-medium">Part-Time</SelectItem>
-                      <SelectItem value="CONTRACT" className="text-xs font-medium">Contract</SelectItem>
-                      <SelectItem value="INTERNSHIP" className="text-xs font-medium">Internship</SelectItem>
-                      <SelectItem value="FREELANCE" className="text-xs font-medium">Freelance</SelectItem>
+                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Types</SelectItem>
+                      <SelectItem value="FULL_TIME" className="text-sm md:text-xs font-medium">Full-Time</SelectItem>
+                      <SelectItem value="PART_TIME" className="text-sm md:text-xs font-medium">Part-Time</SelectItem>
+                      <SelectItem value="CONTRACT" className="text-sm md:text-xs font-medium">Contract</SelectItem>
+                      <SelectItem value="INTERNSHIP" className="text-sm md:text-xs font-medium">Internship</SelectItem>
+                      <SelectItem value="FREELANCE" className="text-sm md:text-xs font-medium">Freelance</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -482,14 +482,14 @@ export default function JobsModule() {
                     value={filterWorkArrangement}
                     onValueChange={(v) => setFilterWorkArrangement(v as WorkArrangement | "ALL")}
                   >
-                    <SelectTrigger className="h-9 text-xs font-medium rounded-lg border-border/80 bg-background w-full">
+                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
                       <SelectValue placeholder="All Setups" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL" className="text-xs font-medium">All Setups</SelectItem>
-                      <SelectItem value="Remote" className="text-xs font-medium">Remote</SelectItem>
-                      <SelectItem value="Hybrid" className="text-xs font-medium">Hybrid</SelectItem>
-                      <SelectItem value="On-site" className="text-xs font-medium">On-site</SelectItem>
+                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Setups</SelectItem>
+                      <SelectItem value="Remote" className="text-sm md:text-xs font-medium">Remote</SelectItem>
+                      <SelectItem value="Hybrid" className="text-sm md:text-xs font-medium">Hybrid</SelectItem>
+                      <SelectItem value="On-site" className="text-sm md:text-xs font-medium">On-site</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -500,14 +500,14 @@ export default function JobsModule() {
                     value={filterStatus}
                     onValueChange={(v) => setFilterStatus(v as JobStatus | "ALL")}
                   >
-                    <SelectTrigger className="h-9 text-xs font-medium rounded-lg border-border/80 bg-background w-full">
+                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
                       <SelectValue placeholder="All Status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ALL" className="text-xs font-medium">All Status</SelectItem>
-                      <SelectItem value="ACTIVE" className="text-xs font-medium text-primary">Active</SelectItem>
-                      <SelectItem value="DRAFT" className="text-xs font-medium text-amber-600">Draft</SelectItem>
-                      <SelectItem value="CLOSED" className="text-xs font-medium text-rose-600">Closed</SelectItem>
+                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Status</SelectItem>
+                      <SelectItem value="ACTIVE" className="text-sm md:text-xs font-medium text-primary">Active</SelectItem>
+                      <SelectItem value="DRAFT" className="text-sm md:text-xs font-medium text-amber-600">Draft</SelectItem>
+                      <SelectItem value="CLOSED" className="text-sm md:text-xs font-medium text-rose-600">Closed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -515,7 +515,7 @@ export default function JobsModule() {
             </div>
 
             {/* Active Filters Bar / Results Summary */}
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-sm md:text-xs text-muted-foreground">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-foreground">
                   Showing {filteredJobs.length} {filteredJobs.length === 1 ? "posting" : "postings"}
@@ -526,42 +526,42 @@ export default function JobsModule() {
 
                 {/* Active Filter Chips */}
                 {searchQuery.trim() && (
-                  <Badge variant="secondary" className="text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
+                  <Badge variant="secondary" className="text-xs md:text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
                     Search: &ldquo;{searchQuery}&rdquo;
                     <button onClick={() => setSearchQuery("")} className="hover:text-foreground">
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 )}
                 {filterCategory !== "ALL" && (
-                  <Badge variant="secondary" className="text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
+                  <Badge variant="secondary" className="text-xs md:text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
                     Category: {filterCategory}
                     <button onClick={() => setFilterCategory("ALL")} className="hover:text-foreground">
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 )}
                 {filterJobType !== "ALL" && (
-                  <Badge variant="secondary" className="text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
+                  <Badge variant="secondary" className="text-xs md:text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
                     Type: {JOB_TYPE_LABELS[filterJobType]}
                     <button onClick={() => setFilterJobType("ALL")} className="hover:text-foreground">
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 )}
                 {filterWorkArrangement !== "ALL" && (
-                  <Badge variant="secondary" className="text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
+                  <Badge variant="secondary" className="text-xs md:text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
                     Arrangement: {filterWorkArrangement}
                     <button onClick={() => setFilterWorkArrangement("ALL")} className="hover:text-foreground">
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 )}
                 {filterStatus !== "ALL" && (
-                  <Badge variant="secondary" className="text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
+                  <Badge variant="secondary" className="text-xs md:text-[11px] gap-1 py-0.5 px-2 bg-muted rounded-md font-normal">
                     Status: {filterStatus}
                     <button onClick={() => setFilterStatus("ALL")} className="hover:text-foreground">
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 )}
@@ -572,7 +572,7 @@ export default function JobsModule() {
                   variant="ghost"
                   size="sm"
                   onClick={handleResetFilters}
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 -mr-1"
+                  className="h-7 px-2 text-sm md:text-xs text-muted-foreground hover:text-foreground gap-1 -mr-1 max-md:min-h-10"
                 >
                   <RotateCcw className="h-3 w-3" />
                   Reset all
@@ -581,7 +581,7 @@ export default function JobsModule() {
             </div>
           </div>
 
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-3 sm:p-6">
             {loading ? (
               <div className="flex items-center justify-center py-16 gap-3">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -646,7 +646,7 @@ export default function JobsModule() {
 
         {/* Create / Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-5xl w-full h-[85vh] max-h-[85vh] flex flex-col p-6 overflow-hidden">
+          <DialogContent className="sm:max-w-5xl w-full h-[85vh] max-h-[85vh] flex flex-col p-6 overflow-hidden max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
             <DialogHeader className="pb-2 border-b border-border/80">
               <DialogTitle className="text-base font-bold">
                 {editingJob ? "Edit Job Posting" : "Create New Job Posting"}
@@ -657,7 +657,7 @@ export default function JobsModule() {
             </DialogHeader>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 {error}
               </div>

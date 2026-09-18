@@ -29,7 +29,7 @@ export default function JobStatusBadge({ status }: JobStatusBadgeProps) {
     >
       <Badge
         variant="outline"
-        className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
+        className={`text-xs md:text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-colors ${
           STATUS_STYLES[status] ?? STATUS_STYLES.CLOSED
         }`}
       >

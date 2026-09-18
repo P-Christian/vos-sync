@@ -1,5 +1,5 @@
 import * as React from "react";
-import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
+import { FreelancerPageHeader } from "@/components/shared/layout/FreelancerPageHeader";
 import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { FreelancerProfilePage } from "@/modules/freelancer/freelancer-profile/FreelancerProfilePage";
@@ -18,7 +18,7 @@ export default async function FreelancerProfileRoute() {
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            <PortalPageHeader user={user} />
+            <FreelancerPageHeader label="Profile" user={user} />
 
             <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
                 <ProfilePageHeader />

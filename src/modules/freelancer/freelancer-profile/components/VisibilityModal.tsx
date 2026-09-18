@@ -32,7 +32,7 @@ export function VisibilityModal({ isOpen, onClose }: VisibilityModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-md p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
                     <DialogTitle className="text-xl font-semibold text-foreground">
                         Profile Visibility
@@ -87,12 +87,12 @@ export function VisibilityModal({ isOpen, onClose }: VisibilityModalProps) {
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleApply}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                     >
                         Apply Changes
                     </Button>

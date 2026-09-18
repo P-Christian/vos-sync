@@ -137,7 +137,7 @@ export default function CompanyStatus({ status, remarks, publicRejectionReason }
               <ShieldAlert className="h-4 w-4" />
               Verification Reviewer Feedback / Action Items
             </div>
-            <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap font-medium">
+            <p className="text-sm md:text-xs text-foreground leading-relaxed whitespace-pre-wrap font-medium">
               {feedback}
             </p>
           </motion.div>

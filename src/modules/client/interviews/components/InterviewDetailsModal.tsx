@@ -79,7 +79,7 @@ export default function InterviewDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl md:max-w-4xl max-h-[90vh] overflow-y-auto max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="text-base font-bold text-zinc-900 dark:text-zinc-100">
@@ -110,7 +110,7 @@ export default function InterviewDetailsModal({
                         <h5 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                           {app.applicant_name}
                         </h5>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-sm md:text-xs text-zinc-500">
                           Applying for: <span className="font-medium text-zinc-700 dark:text-zinc-300">{app.job_title || "Position"}</span>
                         </p>
                       </div>
@@ -119,7 +119,7 @@ export default function InterviewDetailsModal({
                     {/* Attendance Status Badge */}
                     <Badge
                       variant="outline"
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                      className={`text-xs md:text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
                         app.attendance_status === "ATTENDED"
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400"
                           : app.attendance_status === "NO_SHOW"
@@ -138,7 +138,7 @@ export default function InterviewDetailsModal({
 
                   {/* Candidate Feedback if recorded */}
                   {app.feedback && (
-                    <div className="p-3 bg-white dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-800 rounded-lg text-xs space-y-1">
+                    <div className="p-3 bg-white dark:bg-zinc-950 border border-zinc-200/60 dark:border-zinc-800 rounded-lg text-sm md:text-xs space-y-1">
                       <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                         <MessageSquare className="h-3.5 w-3.5" /> Candidate Feedback:
                       </span>
@@ -160,8 +160,8 @@ export default function InterviewDetailsModal({
             <div className="flex items-center gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl">
               <Calendar className="h-4 w-4 text-indigo-500 shrink-0" />
               <div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Date</span>
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <span className="text-xs md:text-[10px] uppercase font-bold text-zinc-400 block">Date</span>
+                <span className="text-sm md:text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                   {formattedDate}
                 </span>
               </div>
@@ -170,8 +170,8 @@ export default function InterviewDetailsModal({
             <div className="flex items-center gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl">
               <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
               <div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Time & Duration</span>
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <span className="text-xs md:text-[10px] uppercase font-bold text-zinc-400 block">Time & Duration</span>
+                <span className="text-sm md:text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                   {formattedTime} ({interview.duration_minutes ?? 60}m)
                 </span>
               </div>
@@ -180,8 +180,8 @@ export default function InterviewDetailsModal({
             <div className="flex items-center gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl">
               <Globe className="h-4 w-4 text-indigo-500 shrink-0" />
               <div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 block">Timezone</span>
-                <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                <span className="text-xs md:text-[10px] uppercase font-bold text-zinc-400 block">Timezone</span>
+                <span className="text-sm md:text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                   {interview.timezone || "Asia/Manila"}
                 </span>
               </div>
@@ -200,7 +200,7 @@ export default function InterviewDetailsModal({
             </div>
 
             {interview.meeting_link && (
-              <div className="text-xs">
+              <div className="text-sm md:text-xs">
                 <span className="text-zinc-400">Meeting Link: </span>
                 <a
                   href={
@@ -218,14 +218,14 @@ export default function InterviewDetailsModal({
             )}
 
             {interview.meeting_location && (
-              <div className="text-xs text-zinc-700 dark:text-zinc-300">
+              <div className="text-sm md:text-xs text-zinc-700 dark:text-zinc-300">
                 <span className="text-zinc-400">Location: </span>
                 {interview.meeting_location}
               </div>
             )}
 
             {interview.interview_notes && (
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 pt-1 border-t border-zinc-100 dark:border-zinc-900">
+              <div className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 pt-1 border-t border-zinc-100 dark:border-zinc-900">
                 <span className="font-semibold text-zinc-500">Internal Interviewer Notes: </span>
                 {interview.interview_notes}
               </div>
@@ -234,7 +234,7 @@ export default function InterviewDetailsModal({
 
           {/* Cancellation reason if cancelled */}
           {interview.cancel_reason && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 rounded-xl text-xs text-rose-700 dark:text-rose-300">
+            <div className="p-3 bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 rounded-xl text-sm md:text-xs text-rose-700 dark:text-rose-300">
               <span className="font-bold">Cancellation Reason: </span>
               {interview.cancel_reason}
             </div>
@@ -251,7 +251,7 @@ export default function InterviewDetailsModal({
                   onClose();
                   onOpenEvaluation(interview);
                 }}
-                className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
+                className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 font-semibold"
               >
                 <MessageSquare className="h-3.5 w-3.5 text-emerald-500" />
                 {interview.interview_status === "COMPLETED" ? "View Feedback" : "Record Feedback"}
@@ -270,7 +270,7 @@ export default function InterviewDetailsModal({
                       onClose();
                       onReschedule(interview);
                     }}
-                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 font-semibold text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 hover:bg-amber-50 dark:hover:bg-amber-950/40"
                   >
                     <RefreshCw className="h-3.5 w-3.5 text-amber-500" />
                     Reschedule
@@ -285,7 +285,7 @@ export default function InterviewDetailsModal({
                       onClose();
                       onOpenCancelModal(interview);
                     }}
-                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                   >
                     <XCircle className="h-3.5 w-3.5 text-rose-500" />
                     Cancel Interview
@@ -295,7 +295,7 @@ export default function InterviewDetailsModal({
             )}
           </div>
 
-          <Button variant="default" size="sm" onClick={onClose} className="h-8 text-xs rounded-lg font-semibold px-4 bg-indigo-600 hover:bg-indigo-700">
+          <Button variant="default" size="sm" onClick={onClose} className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg font-semibold px-4 bg-indigo-600 hover:bg-indigo-700">
             Close
           </Button>
         </div>

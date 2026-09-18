@@ -243,13 +243,13 @@ export default function ImageCropModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && !uploading && onCancel()}>
-      <DialogContent className="sm:max-w-md md:max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl">
+      <DialogContent className="sm:max-w-md md:max-w-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-2xl max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader className="space-y-1 pb-3 border-b border-zinc-100 dark:border-zinc-800">
           <DialogTitle className="text-base font-bold text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
             <Move className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             {title}
           </DialogTitle>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
             Drag the image to move/center, and use the slider or scroll mouse wheel to zoom.
           </p>
         </DialogHeader>
@@ -302,11 +302,11 @@ export default function ImageCropModal({
 
           {/* Controls: Zoom & Center */}
           <div className="space-y-3 bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
-            <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <div className="flex items-center justify-between text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1.5">
                 <ZoomIn className="h-3.5 w-3.5 text-zinc-500" /> Image Scale
               </span>
-              <span className="text-zinc-500 font-mono text-[11px]">{Math.round(zoom * 100)}%</span>
+              <span className="text-zinc-500 font-mono text-xs md:text-[11px]">{Math.round(zoom * 100)}%</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -327,7 +327,7 @@ export default function ImageCropModal({
                 variant="ghost"
                 size="sm"
                 onClick={handleReset}
-                className="h-7 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 px-2.5 rounded-lg"
+                className="h-7 max-md:min-h-10 text-xs md:text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 px-2.5 rounded-lg"
               >
                 <RotateCcw className="h-3 w-3" /> Reset Alignment
               </Button>
@@ -341,7 +341,7 @@ export default function ImageCropModal({
             size="sm"
             onClick={onCancel}
             disabled={uploading}
-            className="h-9 text-xs font-medium rounded-xl border-zinc-200"
+            className="h-9 max-md:min-h-10 text-xs font-medium rounded-xl border-zinc-200"
           >
             Cancel
           </Button>
@@ -349,7 +349,7 @@ export default function ImageCropModal({
             onClick={handleApplyCrop}
             disabled={uploading || !imgElement}
             size="sm"
-            className="h-9 px-5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
+            className="h-9 max-md:min-h-10 px-5 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5"
           >
             {uploading ? (
               <>

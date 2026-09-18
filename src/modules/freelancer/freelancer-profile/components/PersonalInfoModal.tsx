@@ -199,7 +199,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)]">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
                     <DialogTitle className="text-xl font-semibold text-foreground">
                         Edit Personal Information
@@ -219,7 +219,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_fname"
                                     value={formData.user_fname || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -229,7 +229,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_mname"
                                     value={formData.user_mname || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -239,7 +239,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_lname"
                                     value={formData.user_lname || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -250,7 +250,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     value={formData.suffix_name || ""}
                                     onChange={handleChange}
                                     placeholder="e.g. Jr, Sr, III"
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -260,7 +260,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="nickname"
                                     value={formData.nickname || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                         </div>
@@ -277,7 +277,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_contact"
                                     value={formData.user_contact || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                         </div>
@@ -294,7 +294,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_bday"
                                     value={formData.user_bday || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -303,7 +303,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="gender"
                                     value={formData.gender || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
@@ -317,7 +317,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="civil_status"
                                     value={formData.civil_status || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="">Select Status</option>
                                     <option value="Single">Single</option>
@@ -333,7 +333,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="blood_type"
                                     value={formData.blood_type || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="">Select Type</option>
                                     <option value="A+">A+</option>
@@ -353,7 +353,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="nationality"
                                     value={formData.nationality || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2 sm:col-span-2">
@@ -363,7 +363,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="place_of_birth"
                                     value={formData.place_of_birth || ""}
                                     onChange={handleChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                         </div>
@@ -384,7 +384,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="user_province"
                                     value={selectedProvinceCode || ""}
                                     onChange={handleProvinceChange}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 >
                                     <option value="">Select Province</option>
                                     {provinces.map(p => (
@@ -399,7 +399,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     value={selectedCityCode || ""}
                                     onChange={handleCityChange}
                                     disabled={!selectedProvinceCode || cities.length === 0}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                                 >
                                     <option value="">Select City/Municipality</option>
                                     {cities.map(c => (
@@ -414,7 +414,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     value={formData.user_brgy || ""}
                                     onChange={handleBarangayChange}
                                     disabled={!selectedCityCode || barangays.length === 0}
-                                    className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                                 >
                                     <option value="">Select Barangay</option>
                                     {barangays.map(b => (
@@ -432,7 +432,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-8 gap-1"
+                                className="h-8 gap-1 max-md:min-h-11"
                                 onClick={() => setSocialLinks([...socialLinks, { id: -Date.now(), user_id: data.user_id, platform_name: 'Github', profile_url: '' }])}
                             >
                                 <Plus className="h-4 w-4" /> Add Link
@@ -440,7 +440,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                         </div>
                         <div className="space-y-4">
                             {socialLinks.map((link, idx) => (
-                                <div key={link.id} className="flex items-center gap-3">
+                                <div key={link.id} className="flex items-center gap-3 max-md:flex-wrap">
                                     <select
                                         value={link.platform_name}
                                         onChange={(e) => {
@@ -448,7 +448,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                             newLinks[idx].platform_name = e.target.value as VsUserSocialLink['platform_name'];
                                             setSocialLinks(newLinks);
                                         }}
-                                        className="flex h-10 w-40 shrink-0 rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        className="flex h-11 md:h-10 w-40 shrink-0 rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-md:w-full"
                                     >
                                         <option value="Github">Github</option>
                                         <option value="LinkedIn">LinkedIn</option>
@@ -464,12 +464,12 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                             newLinks[idx].profile_url = e.target.value;
                                             setSocialLinks(newLinks);
                                         }}
-                                        className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                        className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                     />
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive"
+                                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive max-md:size-11"
                                         onClick={() => {
                                             const newLinks = [...socialLinks];
                                             newLinks.splice(idx, 1);
@@ -489,12 +489,12 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleApply}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                     >
                         Apply Changes
                     </Button>

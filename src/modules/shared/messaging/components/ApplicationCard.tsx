@@ -464,7 +464,7 @@ export default function ApplicationCard({ message }: Props) {
               <button
                 type="button"
                 onClick={() => setShowCoverLetter((prev) => !prev)}
-                className="flex items-center justify-between w-full text-xs font-semibold text-foreground py-1 hover:opacity-80 transition cursor-pointer"
+                className="flex items-center justify-between w-full text-sm md:text-xs font-semibold text-foreground py-1 max-md:min-h-11 hover:opacity-80 transition cursor-pointer"
               >
                 <span>Cover Letter</span>
                 {showCoverLetter ? (
@@ -495,7 +495,7 @@ export default function ApplicationCard({ message }: Props) {
                           })
                         }
                         title="Preview Cover Letter Document"
-                        className="p-1.5 rounded-lg text-success hover:bg-success/10 transition cursor-pointer"
+                        className="p-1.5 rounded-lg text-success hover:bg-success/10 transition cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
@@ -503,7 +503,7 @@ export default function ApplicationCard({ message }: Props) {
                         href={parsed.document.fileUrl}
                         download={parsed.document.fileName}
                         title="Download Cover Letter Document"
-                        className="p-1.5 rounded-lg text-success hover:bg-success/10 transition"
+                        className="p-1.5 rounded-lg text-success hover:bg-success/10 transition max-md:size-11 max-md:grid max-md:place-items-center"
                       >
                         <Download className="h-3.5 w-3.5" />
                       </a>
@@ -530,7 +530,7 @@ export default function ApplicationCard({ message }: Props) {
       {/* Footer — Full View link */}
       <a
         href={viewDetailsUrl}
-        className="flex items-center justify-center gap-1.5 py-2.5 border-t border-inherit text-xs font-medium text-primary hover:bg-accent/40 transition"
+        className="flex items-center justify-center gap-1.5 py-2.5 border-t border-inherit text-sm md:text-xs font-medium text-primary hover:bg-accent/40 transition max-md:min-h-11"
       >
         View Full Application Details
         <ExternalLink className="h-3 w-3" />
@@ -538,7 +538,7 @@ export default function ApplicationCard({ message }: Props) {
 
       {/* Document Preview Modal */}
       <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>
-        <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden max-md:h-[85dvh] max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
           <DialogHeader className="px-6 py-3.5 border-b shrink-0 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 pr-4">
               <FileText className="h-4 w-4 text-primary shrink-0" />
@@ -550,7 +550,7 @@ export default function ApplicationCard({ message }: Props) {
               <a
                 href={previewDoc.fileUrl}
                 download={previewDoc.fileName}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shrink-0 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shrink-0 transition max-md:min-h-11"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download

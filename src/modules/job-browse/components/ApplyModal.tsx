@@ -173,7 +173,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()} >
-      <DialogContent className="sm:max-w-7xl w-full flex flex-col p-0 gap-0 h-220">
+      <DialogContent className="sm:max-w-7xl w-full flex flex-col p-0 gap-0 h-220 max-md:h-auto max-md:max-h-[90dvh] max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="text-base font-bold">Apply for Position</DialogTitle>
@@ -228,7 +228,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="px-6 py-5 space-y-5">
             {prefillLoading && (
-              <div className="flex items-center gap-2 text-xs text-zinc-400 animate-pulse">
+              <div className="flex items-center gap-2 text-sm md:text-xs text-zinc-400 animate-pulse">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                 Loading your freelancer profile data...
               </div>
@@ -318,7 +318,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       size="sm"
                       disabled={saving || uploadingResume}
                       onClick={() => resumeInputRef.current?.click()}
-                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                      className="h-8 text-sm md:text-xs gap-1.5 rounded-lg font-medium max-md:min-h-11"
                     >
                       {uploadingResume ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -333,7 +333,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     <div className="flex items-center gap-3 p-3.5 border border-indigo-200 dark:border-indigo-800 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20">
                       <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">
+                        <p className="text-sm md:text-xs font-semibold text-foreground truncate">
                           {formData.custom_resume.file_name}
                         </p>
                         <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
@@ -345,7 +345,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleFieldChange("custom_resume", null)}
-                        className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 max-md:size-11"
                         title="Revert to profile resume"
                       >
                         <X className="h-4 w-4" />
@@ -355,7 +355,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     <div className="flex items-center gap-3 p-3.5 border rounded-xl bg-muted/20">
                       <Paperclip className="h-5 w-5 text-zinc-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">
+                        <p className="text-sm md:text-xs font-semibold text-foreground truncate">
                           {profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
                         </p>
                         <p className="text-[10px] text-[#14a800] font-medium">Resumé attached from profile</p>
@@ -381,7 +381,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       size="sm"
                       disabled={saving || uploadingCoverFile}
                       onClick={() => coverFileInputRef.current?.click()}
-                      className="h-8 text-xs gap-1.5 rounded-lg font-medium"
+                      className="h-8 text-sm md:text-xs gap-1.5 rounded-lg font-medium max-md:min-h-11"
                     >
                       {uploadingCoverFile ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -399,7 +399,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       value={formData.cover_letter}
                       onChange={(e) => handleFieldChange("cover_letter", e.target.value)}
                       rows={5}
-                      className="resize-none text-sm rounded-xl"
+                      className="resize-none text-base md:text-sm rounded-xl"
                       disabled={saving}
                     />
 
@@ -407,7 +407,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <div className="flex items-center gap-3 p-3 border border-emerald-200 dark:border-emerald-800 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20">
                         <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground truncate">
+                          <p className="text-sm md:text-xs font-semibold text-foreground truncate">
                             {formData.cover_letter_file.file_name}
                           </p>
                           <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
@@ -419,7 +419,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleFieldChange("cover_letter_file", null)}
-                          className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                          className="h-7 w-7 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 max-md:size-11"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -438,7 +438,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {stepInfo.id === "questions" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="flex items-center gap-2 text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     <HelpCircle className="h-4 w-4 text-primary" />
                     Employer Screening Questions
                   </div>
@@ -452,7 +452,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
                 {hasScreening ? (
                   <div className="space-y-4">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm md:text-xs text-muted-foreground">
                       Please answer the following question{job.screening_questions!.length > 1 ? "s" : ""} from the employer to help them evaluate your application.
                     </p>
                     {job.screening_questions?.map((question, i) => {
@@ -481,7 +481,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                             value={currentAnswer}
                             onChange={(e) => handleAnswerChange(i, e.target.value)}
                             rows={3}
-                            className="resize-none text-sm rounded-xl bg-background border-muted"
+                            className="resize-none text-base md:text-sm rounded-xl bg-background border-muted"
                             disabled={saving}
                           />
                         </div>
@@ -494,7 +494,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <CheckCircle className="h-5 w-5" />
                     </div>
                     <h4 className="text-sm font-semibold text-foreground">No Screening Questions Required</h4>
-                    <p className="text-xs text-muted-foreground max-w-sm">
+                    <p className="text-sm md:text-xs text-muted-foreground max-w-sm">
                       The employer has not specified any screening questions for this role. Click <strong>Continue</strong> to proceed to your profile details.
                     </p>
                   </div>
@@ -514,7 +514,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       placeholder="e.g. 50000"
                       value={formData.expected_salary}
                       onChange={(e) => handleFieldChange("expected_salary", e.target.value)}
-                      className="text-sm rounded-xl h-10"
+                      className="text-base md:text-sm rounded-xl h-11 md:h-10"
                       disabled={saving}
                     />
                   </div>
@@ -526,7 +526,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       placeholder="https://your-portfolio.com"
                       value={formData.portfolio_url}
                       onChange={(e) => handleFieldChange("portfolio_url", e.target.value)}
-                      className="text-sm rounded-xl h-10"
+                      className="text-base md:text-sm rounded-xl h-11 md:h-10"
                       disabled={saving}
                     />
                   </div>
@@ -535,12 +535,12 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 <Separator />
 
                 <div className="space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">My Profile Preview</h4>
+                  <h4 className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">My Profile Preview</h4>
                   
                   {/* Summary */}
                   <div className="space-y-1">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">Professional Summary</span>
-                    <p className="text-xs text-foreground/80 leading-relaxed bg-muted/30 p-3 rounded-xl border whitespace-pre-line">
+                    <p className="text-sm md:text-xs text-foreground/80 leading-relaxed bg-muted/30 p-3 rounded-xl border whitespace-pre-line">
                       {profileData?.job_seeker_profile?.[0]?.professional_summary || profileData?.job_seeker_profile?.professional_summary || "No professional summary added yet."}
                     </p>
                   </div>
@@ -557,7 +557,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">No skills added yet.</p>
+                      <p className="text-sm md:text-xs text-muted-foreground italic">No skills added yet.</p>
                     )}
                   </div>
 
@@ -567,14 +567,14 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     {profileData?.work_experience && profileData.work_experience.length > 0 ? (
                       <div className="space-y-2">
                         {profileData.work_experience.map((exp: any, i: number) => (
-                          <div key={i} className="text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
+                          <div key={i} className="text-sm md:text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
                             <p className="font-semibold text-foreground">{exp.job_title}</p>
                             <p className="text-muted-foreground text-[10px]">{exp.company_name} &bull; {exp.start_date} - {exp.is_current_role ? "Present" : exp.end_date}</p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">No work experience added yet.</p>
+                      <p className="text-sm md:text-xs text-muted-foreground italic">No work experience added yet.</p>
                     )}
                   </div>
 
@@ -584,14 +584,14 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     {profileData?.education && profileData.education.length > 0 ? (
                       <div className="space-y-2">
                         {profileData.education.map((edu: any, i: number) => (
-                          <div key={i} className="text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
+                          <div key={i} className="text-sm md:text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
                             <p className="font-semibold text-foreground">{edu.course_name || "Course Not Specified"}</p>
                             <p className="text-muted-foreground text-[10px]">{edu.school_name} &bull; {edu.start_date} - {edu.end_date}</p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">No education added yet.</p>
+                      <p className="text-sm md:text-xs text-muted-foreground italic">No education added yet.</p>
                     )}
                   </div>
                 </div>
@@ -602,13 +602,13 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {stepInfo.id === "review" && (
               <div className="space-y-5">
                 <div className="p-4 bg-[#14a800]/5 border border-[#14a800]/25 rounded-xl space-y-1">
-                  <h4 className="text-xs font-bold text-[#14a800] uppercase tracking-wider">Review Your Application</h4>
+                  <h4 className="text-sm md:text-xs font-bold text-[#14a800] uppercase tracking-wider">Review Your Application</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Ensure all your application details are accurate before submitting.
                   </p>
                 </div>
 
-                <div className="space-y-4 text-xs border rounded-2xl divide-y bg-muted/10 overflow-hidden">
+                <div className="space-y-4 text-sm md:text-xs border rounded-2xl divide-y bg-muted/10 overflow-hidden">
                   {/* Applicant Details */}
                   <div className="p-4 flex items-center gap-3 bg-background">
                     <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-rose-200 text-[#0a192f] flex items-center justify-center font-bold font-mono text-sm border border-border relative">
@@ -631,7 +631,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <p className="font-bold text-sm text-foreground truncate">
                         {profileData?.user_fname} {profileData?.user_lname}
                       </p>
-                      <p className="text-muted-foreground text-xs truncate">
+                      <p className="text-muted-foreground text-sm md:text-xs truncate">
                         {profileData?.user_email} &bull; {profileData?.user_contact}
                       </p>
                     </div>
@@ -644,7 +644,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <Badge className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 font-bold text-[9px] rounded-md border border-emerald-200">
                         RESUMÉ
                       </Badge>
-                      <span className="text-foreground text-xs font-medium">
+                      <span className="text-foreground text-sm md:text-xs font-medium">
                         {formData.custom_resume?.file_name || profileData?.resumes?.[0]?.file_name || "Primary Profile Resume.pdf"}
                       </span>
                       {formData.custom_resume && (
@@ -662,7 +662,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                           </p>
                         )}
                         {formData.cover_letter_file && (
-                          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium pt-1">
+                          <div className="flex items-center gap-2 text-sm md:text-xs text-emerald-600 dark:text-emerald-400 font-medium pt-1">
                             <FileText className="h-3.5 w-3.5 shrink-0" />
                             <span>Attached document: {formData.cover_letter_file.file_name}</span>
                           </div>
@@ -675,13 +675,13 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                   <div className="p-4 grid grid-cols-2 gap-4 bg-background">
                     <div>
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Expected Salary</span>
-                      <p className="font-semibold text-foreground text-xs mt-0.5">
+                      <p className="font-semibold text-foreground text-sm md:text-xs mt-0.5">
                         {formData.expected_salary ? `PHP ${Number(formData.expected_salary).toLocaleString()} / mo` : "Not disclosed"}
                       </p>
                     </div>
                     <div>
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Portfolio URL</span>
-                      <p className="font-semibold text-foreground text-xs mt-0.5 truncate">
+                      <p className="font-semibold text-foreground text-sm md:text-xs mt-0.5 truncate">
                         {formData.portfolio_url || "Not specified"}
                       </p>
                     </div>
@@ -701,10 +701,10 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         const aText = formData.screening_answers[i]?.answer_text;
                         return (
                           <div key={i} className="space-y-1 bg-muted/30 p-3 rounded-xl border">
-                            <p className="font-semibold text-foreground text-xs">
+                            <p className="font-semibold text-foreground text-sm md:text-xs">
                               {i + 1}. {qText}
                             </p>
-                            <p className="text-muted-foreground text-xs whitespace-pre-wrap mt-0.5">
+                            <p className="text-muted-foreground text-sm md:text-xs whitespace-pre-wrap mt-0.5">
                               {aText ? (
                                 aText
                               ) : (
@@ -715,7 +715,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                         );
                       })
                     ) : (
-                      <p className="text-xs text-muted-foreground italic">
+                      <p className="text-sm md:text-xs text-muted-foreground italic">
                         No screening questions required for this position.
                       </p>
                     )}
@@ -730,7 +730,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     onChange={(e) => setConsentAccepted(e.target.checked)}
                     className="h-4.5 w-4.5 rounded border-zinc-300 dark:border-zinc-700 text-primary focus:ring-primary mt-0.5 cursor-pointer"
                   />
-                  <Label htmlFor="consent-checkbox" className="text-xs text-foreground/80 leading-normal font-normal cursor-pointer select-none">
+                  <Label htmlFor="consent-checkbox" className="text-sm md:text-xs text-foreground/80 leading-normal font-normal cursor-pointer select-none">
                     I confirm that the information provided in this application is true and complete to the best of my knowledge. I understand that any false statement or omission may result in my disqualification or the withdrawal of any offer.
                   </Label>
                 </div>
@@ -747,7 +747,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 variant="outline"
                 onClick={() => setCurrentStep(currentStep - 1)}
                 disabled={saving}
-                className="h-9 text-sm rounded-xl gap-1.5 px-4 font-semibold text-zinc-600 border-zinc-200"
+                className="h-9 text-sm rounded-xl gap-1.5 px-4 font-semibold text-zinc-600 border-zinc-200 max-md:min-h-11"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
@@ -757,7 +757,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 variant="outline"
                 onClick={handleClose}
                 disabled={saving}
-                className="h-9 text-sm rounded-xl px-4"
+                className="h-9 text-sm rounded-xl px-4 max-md:min-h-11"
               >
                 Cancel
               </Button>
@@ -778,7 +778,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
             {currentStep < totalSteps ? (
               <Button
                 onClick={() => setCurrentStep(currentStep + 1)}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-4 max-md:min-h-11"
               >
                 Continue
                 <ArrowRight className="h-4 w-4" />
@@ -788,7 +788,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                 id="apply-submit-btn"
                 onClick={handleSubmit}
                 disabled={saving || !consentAccepted || !!successMessage}
-                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5"
+                className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5 max-md:min-h-11"
               >
                 {saving ? (
                   <>

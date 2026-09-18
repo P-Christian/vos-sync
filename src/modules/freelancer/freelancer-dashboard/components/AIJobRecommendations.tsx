@@ -68,7 +68,7 @@ export function AIJobRecommendations() {
 
             <CardContent className="flex-1 overflow-y-auto pr-4 pb-4 custom-scrollbar">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center text-center py-12 px-6 h-full space-y-4">
+                    <div className="flex flex-col items-center justify-center text-center py-12 px-6 h-full space-y-4 max-md:py-8 max-md:px-4">
                         <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center animate-pulse">
                             <Sparkles className="h-8 w-8 text-primary/70 animate-pulse" />
                         </div>
@@ -80,12 +80,12 @@ export function AIJobRecommendations() {
                 ) : error ? (
                     <div className="flex flex-col items-center justify-center h-full text-center p-6">
                         <p className="text-sm text-red-500 mb-4">{error}</p>
-                        <Button variant="outline" onClick={() => window.location.reload()} size="sm">Retry</Button>
+                        <Button variant="outline" onClick={() => window.location.reload()} size="sm" className="max-md:min-h-11">Retry</Button>
                     </div>
                 ) : jobs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center py-8">
                         <p className="text-sm text-muted-foreground">No matches found at the moment. Update your profile to get better recommendations.</p>
-                        <Button variant="outline" asChild className="mt-4" size="sm">
+                        <Button variant="outline" asChild className="mt-4 max-md:min-h-11" size="sm">
                             <Link href="/vos-sync/freelancer/profile">Update Profile</Link>
                         </Button>
                     </div>

@@ -139,7 +139,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
   }, [clearMessages]);
 
   return (
-    <div className="space-y-6 freelancer-page-transition">
+    <div className="space-y-4 md:space-y-6 freelancer-page-transition max-md:flex max-md:h-[calc(100dvh-88px)] max-md:min-h-0 max-md:flex-col sm:max-md:h-[calc(100dvh-128px)]">
       <style>{`
         @keyframes page-entry {
           from { opacity: 0; transform: translateY(8px); }
@@ -157,7 +157,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
           <MessageSquare className="h-7 w-7" />
         </div>
         <div className="relative z-10">
-          <h1 className="text-xl font-bold tracking-tight">Messages</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Messages</h1>
           <p className="text-sm text-zinc-300 mt-1">
             Communicate directly with clients and hiring managers
           </p>
@@ -176,8 +176,8 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
       )}
 
       {/* Main Layout */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-        <div className="flex h-[calc(100vh-330px)] min-h-[500px]">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+        <div className="flex h-[calc(100vh-330px)] min-h-[500px] max-md:flex-1 max-md:min-h-0 max-md:min-w-0">
           <div
             className={cn(
               "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",

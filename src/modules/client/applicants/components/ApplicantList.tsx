@@ -36,7 +36,7 @@ export default function ApplicantList({
           <Users className="h-8 w-8 text-muted-foreground" />
         </div>
         <h3 className="font-semibold text-foreground text-sm">No applicants found</h3>
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+        <p className="text-sm text-muted-foreground mt-1 max-w-xs md:text-xs">
           Applicants will appear here once job seekers apply to your postings.
         </p>
       </motion.div>

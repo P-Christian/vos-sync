@@ -53,14 +53,14 @@ export function WorkExperienceSkillsInput({ selectedSkills, onChange, disabled }
         <div className="space-y-4">
             <div>
                 <label className="text-sm font-medium text-foreground">Skills</label>
-                <p className="text-xs text-muted-foreground mb-2">We recommend adding your top 5 used in this role. They&apos;ll also appear in your Skills section.</p>
+                <p className="text-sm md:text-xs text-muted-foreground mb-2">We recommend adding your top 5 used in this role. They&apos;ll also appear in your Skills section.</p>
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="w-full pl-9 pr-4 py-2 rounded-md border border-input bg-transparent text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         placeholder="Skill (ex: Project Management)"
                         disabled={disabled || selectedSkills.length >= 5}
                     />
@@ -81,7 +81,7 @@ export function WorkExperienceSkillsInput({ selectedSkills, onChange, disabled }
                                 >
                                     <span>{skill.skill_name}</span>
                                     {selectedSkills.some(s => s.id === skill.id) && (
-                                        <span className="text-xs text-muted-foreground">Added</span>
+                                        <span className="text-sm md:text-xs text-muted-foreground">Added</span>
                                     )}
                                 </button>
                             ))}
@@ -103,7 +103,7 @@ export function WorkExperienceSkillsInput({ selectedSkills, onChange, disabled }
                             <button
                                 type="button"
                                 onClick={() => handleRemoveSkill(skill.id)}
-                                className="ml-1 h-5 w-5 rounded-full hover:bg-primary/20 flex items-center justify-center transition-colors"
+                                className="ml-1 h-5 w-5 rounded-full hover:bg-primary/20 flex items-center justify-center transition-colors max-md:h-auto max-md:w-auto max-md:p-4 max-md:-m-3"
                                 disabled={disabled}
                             >
                                 <X className="h-3 w-3" />

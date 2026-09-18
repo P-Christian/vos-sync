@@ -163,7 +163,7 @@ export default function AccountSettings({
   const avatarSrc = getImageUrl(formData.profile_image_url);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-8">
       {/* Hidden File Input */}
       <input
         ref={fileInputRef}
@@ -188,14 +188,14 @@ export default function AccountSettings({
 
       {/* Section 1: Profile Photo & Basic Identity */}
       <div className="space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+        <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Account Photo &amp; Basic Info
         </h3>
 
         {/* Profile Avatar Header */}
-        <div className="flex items-center gap-5 p-4 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800">
+        <div className="flex items-center gap-5 max-md:gap-3 p-4 max-md:p-3 rounded-2xl bg-zinc-50/80 dark:bg-zinc-900/40 border border-zinc-200/70 dark:border-zinc-800">
           <div className="relative group">
-            <div className="w-20 h-20 rounded-full border-2 border-white dark:border-zinc-800 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xl flex items-center justify-center overflow-hidden shadow-sm">
+            <div className="w-20 h-20 max-md:w-16 max-md:h-16 rounded-full border-2 border-white dark:border-zinc-800 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-xl flex items-center justify-center overflow-hidden shadow-sm">
               {avatarSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -210,34 +210,34 @@ export default function AccountSettings({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 p-1.5 bg-[#14a800] hover:bg-[#118f00] text-white rounded-full shadow-md transition-transform hover:scale-105"
+              className="absolute bottom-0 right-0 p-1 max-md:p-1.5 flex items-center justify-center bg-[#14a800] hover:bg-[#118f00] text-white rounded-full shadow-md transition-transform hover:scale-105"
               title="Change Profile Photo"
             >
-              <Camera className="h-3.5 w-3.5" />
+              <Camera className="h-3 w-3 max-md:h-3.5 max-md:w-3.5" />
             </button>
           </div>
 
-          <div className="space-y-1.5 flex-1">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-100">
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-100 min-w-0 truncate">
                 {formData.user_fname} {formData.user_lname}
               </h4>
               {formData.nickname && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-200/60 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-medium min-w-0 truncate">
                   &quot;{formData.nickname}&quot;
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
               PNG, JPG or WebP. Max 5MB. Photo will be displayed on team views and candidate sheets.
             </p>
-            <div className="flex items-center gap-2 pt-0.5">
+            <div className="flex items-center gap-2 pt-0.5 max-md:justify-between">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="h-8 text-xs font-semibold rounded-lg border-zinc-200 dark:border-zinc-700"
+                className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold rounded-lg border-zinc-200 dark:border-zinc-700"
               >
                 Upload New Photo
               </Button>
@@ -247,7 +247,7 @@ export default function AccountSettings({
                   variant="ghost"
                   size="sm"
                   onClick={handleRemovePhoto}
-                  className="h-8 text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Remove
@@ -260,7 +260,7 @@ export default function AccountSettings({
         {/* Name Fields Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="fname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Label htmlFor="fname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-zinc-400" /> First Name <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -268,13 +268,13 @@ export default function AccountSettings({
               value={formData.user_fname}
               onChange={(e) => handleChange("user_fname", e.target.value)}
               placeholder="First name"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="mname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="mname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Middle Name <span className="text-zinc-400 font-normal">(Optional)</span>
             </Label>
             <Input
@@ -282,12 +282,12 @@ export default function AccountSettings({
               value={formData.user_mname}
               onChange={(e) => handleChange("user_mname", e.target.value)}
               placeholder="Middle name"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="lname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="lname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Last Name <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -295,7 +295,7 @@ export default function AccountSettings({
               value={formData.user_lname}
               onChange={(e) => handleChange("user_lname", e.target.value)}
               placeholder="Last name"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
               required
             />
           </div>
@@ -303,7 +303,7 @@ export default function AccountSettings({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="suffix_name" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="suffix_name" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Suffix Name <span className="text-zinc-400 font-normal">(Optional, e.g. Jr., Sr., III)</span>
             </Label>
             <Input
@@ -311,12 +311,12 @@ export default function AccountSettings({
               value={formData.suffix_name}
               onChange={(e) => handleChange("suffix_name", e.target.value)}
               placeholder="Jr. / III"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="nickname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="nickname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Nickname <span className="text-zinc-400 font-normal">(Optional)</span>
             </Label>
             <Input
@@ -324,7 +324,7 @@ export default function AccountSettings({
               value={formData.nickname}
               onChange={(e) => handleChange("nickname", e.target.value)}
               placeholder="Preferred name"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
         </div>
@@ -332,26 +332,26 @@ export default function AccountSettings({
 
       {/* Section 2: Contact & Position */}
       <div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+        <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Contact &amp; Work Details
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Label htmlFor="email" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
               <Mail className="h-3.5 w-3.5 text-zinc-400" /> Account Email address
             </Label>
             <Input
               id="email"
               value={formData.user_email}
               disabled
-              className="h-10 text-sm rounded-lg bg-zinc-100 dark:bg-zinc-800/50 cursor-not-allowed text-zinc-500"
+              className="h-10 md:text-sm rounded-lg bg-zinc-100 dark:bg-zinc-800/50 cursor-not-allowed text-zinc-500 max-md:min-h-10 max-md:text-base"
             />
-            <span className="text-[11px] text-zinc-400">Primary login email cannot be changed directly.</span>
+            <span className="text-sm md:text-xs md:text-[11px] text-zinc-400">Primary login email cannot be changed directly.</span>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="contact" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Label htmlFor="contact" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
               <Phone className="h-3.5 w-3.5 text-zinc-400" /> Contact Number
             </Label>
             <Input
@@ -359,13 +359,13 @@ export default function AccountSettings({
               value={formData.user_contact}
               onChange={(e) => handleChange("user_contact", e.target.value)}
               placeholder="+63 912 345 6789"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="position" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="position" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <Briefcase className="h-3.5 w-3.5 text-zinc-400" /> Job Title / Position
           </Label>
           <Input
@@ -373,20 +373,20 @@ export default function AccountSettings({
             value={formData.user_position}
             onChange={(e) => handleChange("user_position", e.target.value)}
             placeholder="HR Director / Talent Acquisition Lead"
-            className="h-10 text-sm rounded-lg max-w-md"
+            className="h-10 md:text-sm rounded-lg max-w-md max-md:min-h-10 max-md:text-base"
           />
         </div>
       </div>
 
       {/* Section 3: Address Information */}
       <div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
+        <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 flex items-center gap-1.5">
           <MapPin className="h-3.5 w-3.5 text-zinc-400" /> Location &amp; Address
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="province" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="province" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Province
             </Label>
             <Input
@@ -394,12 +394,12 @@ export default function AccountSettings({
               value={formData.user_province}
               onChange={(e) => handleChange("user_province", e.target.value)}
               placeholder="e.g. Metro Manila / Cavite"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="city" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="city" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               City / Municipality
             </Label>
             <Input
@@ -407,12 +407,12 @@ export default function AccountSettings({
               value={formData.user_city}
               onChange={(e) => handleChange("user_city", e.target.value)}
               placeholder="e.g. Makati City"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="brgy" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="brgy" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Barangay
             </Label>
             <Input
@@ -420,7 +420,7 @@ export default function AccountSettings({
               value={formData.user_brgy}
               onChange={(e) => handleChange("user_brgy", e.target.value)}
               placeholder="e.g. Brgy. Bel-Air"
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
         </div>
@@ -428,13 +428,13 @@ export default function AccountSettings({
 
       {/* Section 4: Personal Details */}
       <div className="space-y-4 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+        <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
           Personal Information <span className="text-zinc-400 font-normal">(Optional)</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="bday" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Label htmlFor="bday" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-zinc-400" /> Date of Birth
             </Label>
             <Input
@@ -442,19 +442,19 @@ export default function AccountSettings({
               type="date"
               value={formData.user_bday ? formData.user_bday.slice(0, 10) : ""}
               onChange={(e) => handleChange("user_bday", e.target.value)}
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:min-h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="gender" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label htmlFor="gender" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Gender
             </Label>
             <Select
               value={formData.gender || "unspecified"}
               onValueChange={(val) => handleChange("gender", val === "unspecified" ? "" : val)}
             >
-              <SelectTrigger id="gender" className="h-10 text-sm rounded-lg border-zinc-200">
+              <SelectTrigger id="gender" className="h-10 md:text-sm rounded-lg border-zinc-200 max-md:min-h-10">
                 <SelectValue placeholder="Select Gender" />
               </SelectTrigger>
               <SelectContent>
@@ -467,14 +467,14 @@ export default function AccountSettings({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="civil_status" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+            <Label htmlFor="civil_status" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
               <Heart className="h-3.5 w-3.5 text-zinc-400" /> Civil Status
             </Label>
             <Select
               value={formData.civil_status || "unspecified"}
               onValueChange={(val) => handleChange("civil_status", val === "unspecified" ? "" : val)}
             >
-              <SelectTrigger id="civil_status" className="h-10 text-sm rounded-lg border-zinc-200">
+              <SelectTrigger id="civil_status" className="h-10 md:text-sm rounded-lg border-zinc-200 max-md:min-h-10">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
               <SelectContent>
@@ -495,7 +495,7 @@ export default function AccountSettings({
         <Button
           type="submit"
           disabled={saving}
-          className="h-10 px-7 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm flex items-center gap-2"
+          className="h-10 max-md:min-h-10 px-7 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm flex items-center gap-2"
         >
           {saving ? (
             <>

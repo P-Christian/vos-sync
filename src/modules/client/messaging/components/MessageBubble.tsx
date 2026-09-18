@@ -133,7 +133,7 @@ function DateDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 my-4 px-2 select-none pointer-events-none">
       <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
-      <span className="text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide">
+      <span className="text-sm md:text-xs md:text-[11px] font-medium text-zinc-400 dark:text-zinc-500 tracking-wide">
         {label}
       </span>
       <div className="flex-1 h-px bg-zinc-200/80 dark:bg-zinc-800" />
@@ -276,7 +276,7 @@ export default function MessageBubble({
         {isOwn && (
           <div
             className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0 max-md:opacity-100",
               showPicker && "opacity-100"
             )}
           >
@@ -284,7 +284,7 @@ export default function MessageBubble({
               type="button"
               title="Add reaction"
               onClick={() => setShowPicker((prev) => !prev)}
-              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer"
+              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-10"
             >
               <Smile className="h-3.5 w-3.5" />
             </button>
@@ -330,7 +330,7 @@ export default function MessageBubble({
                       data-emoji={emoji}
                       onClick={() => handleReact(emoji)}
                       className={cn(
-                        "relative h-8 w-8 flex items-center justify-center rounded-xl text-lg",
+                        "relative h-8 w-8 flex items-center justify-center rounded-xl text-lg max-md:size-10",
                         "transition-colors duration-150 cursor-pointer",
                         isSelected
                           ? "bg-indigo-100/90 dark:bg-indigo-950/90 border border-indigo-400/80 dark:border-indigo-600/80 scale-110 shadow-xs"
@@ -392,7 +392,7 @@ export default function MessageBubble({
                     {att.file_name && (
                       <div
                         className={cn(
-                          "px-3 py-1.5 text-[10px] flex items-center justify-between gap-1",
+                          "px-3 py-1.5 text-sm md:text-xs md:text-[10px] flex items-center justify-between gap-1",
                           isOwn
                             ? "bg-indigo-600 text-indigo-100"
                             : "bg-zinc-50 dark:bg-zinc-800 text-zinc-500"
@@ -406,7 +406,7 @@ export default function MessageBubble({
                           href={att.file_path}
                           download={att.file_name}
                           title="Download Image"
-                          className="hover:opacity-80 p-0.5"
+                          className="hover:opacity-80 p-0.5 max-md:size-10 max-md:p-0"
                         >
                           <Download className="h-3 w-3 shrink-0" />
                         </a>
@@ -426,9 +426,9 @@ export default function MessageBubble({
                       <FileText className="h-3.5 w-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium truncate">{att.file_name}</p>
+                      <p className="text-sm md:text-xs font-medium truncate">{att.file_name}</p>
                       {att.file_size && (
-                        <p className={cn("text-[10px]", isOwn ? "text-indigo-200" : "text-zinc-400")}>
+                        <p className={cn("text-sm md:text-xs md:text-[10px]", isOwn ? "text-indigo-200" : "text-zinc-400")}>
                           {formatFileSize(att.file_size)}
                         </p>
                       )}
@@ -440,7 +440,7 @@ export default function MessageBubble({
                           setPreviewDoc({ fileName: att.file_name, fileUrl: att.file_path })
                         }
                         title="Preview Document"
-                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
+                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition max-md:size-10"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </button>
@@ -448,7 +448,7 @@ export default function MessageBubble({
                         href={att.file_path}
                         download={att.file_name}
                         title="Download Document"
-                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition"
+                        className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition max-md:size-10"
                       >
                         <Download className="h-3.5 w-3.5" />
                       </a>
@@ -483,7 +483,7 @@ export default function MessageBubble({
                         onClick={() => handleReact(r.reaction)}
                         title={tooltipText}
                         className={cn(
-                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
+                          "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs max-md:min-h-10",
                           "border transition-colors duration-150 cursor-pointer active:scale-95",
                           r.reacted_by_me
                             ? "bg-indigo-50 border-indigo-300 text-indigo-600 dark:bg-indigo-950/40 dark:border-indigo-700 dark:text-indigo-400"
@@ -512,10 +512,10 @@ export default function MessageBubble({
               isOwn ? "flex-row-reverse" : "flex-row"
             )}
           >
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            <span className="text-sm md:text-xs md:text-[10px] text-zinc-400 dark:text-zinc-500">
               {formatTime(created_at)}
             </span>
-            {is_edited && <span className="text-[10px] text-zinc-400 italic">edited</span>}
+            {is_edited && <span className="text-sm md:text-xs md:text-[10px] text-zinc-400 italic">edited</span>}
             {isOwn && <CheckCheck className="h-3 w-3 text-indigo-400 shrink-0" />}
           </div>
         </div>
@@ -524,7 +524,7 @@ export default function MessageBubble({
         {!isOwn && (
           <div
             className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0",
+              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0 max-md:opacity-100",
               showPicker && "opacity-100"
             )}
           >
@@ -532,7 +532,7 @@ export default function MessageBubble({
               type="button"
               title="Add reaction"
               onClick={() => setShowPicker((prev) => !prev)}
-              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer"
+              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-10"
             >
               <Smile className="h-3.5 w-3.5" />
             </button>
@@ -542,7 +542,7 @@ export default function MessageBubble({
 
       {/* ── Document Preview Modal ────────────────────────────────────── */}
       <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>
-        <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-4xl w-full h-[85vh] flex flex-col p-0 gap-0 overflow-hidden max-md:max-h-[90dvh]">
           <DialogHeader className="px-6 py-3.5 border-b shrink-0 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2 min-w-0 pr-4">
               <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
@@ -554,7 +554,7 @@ export default function MessageBubble({
               <a
                 href={previewDoc.fileUrl}
                 download={previewDoc.fileName}
-                className="inline-flex items-center gap-1.5 px-3 mr-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shrink-0 transition"
+                className="inline-flex items-center gap-1.5 px-3 mr-5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm md:text-xs font-semibold shrink-0 transition max-md:min-h-10"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download

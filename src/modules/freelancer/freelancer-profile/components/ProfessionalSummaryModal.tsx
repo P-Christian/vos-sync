@@ -58,7 +58,7 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary }: Pr
             <div className="w-full max-w-2xl bg-background rounded-xl shadow-lg flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-6 border-b">
                     <h2 className="text-xl font-semibold text-foreground">Edit Professional Summary</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="max-md:size-11">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
@@ -70,7 +70,7 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary }: Pr
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-8 text-primary border-primary/20 hover:bg-primary/10 gap-1.5"
+                                className="h-8 text-primary border-primary/20 hover:bg-primary/10 gap-1.5 max-md:min-h-11"
                                 onClick={handleGenerateAI}
                                 disabled={isGenerating}
                             >
@@ -84,20 +84,20 @@ export function ProfessionalSummaryModal({ isOpen, onClose, initialSummary }: Pr
                         <textarea
                             value={summary}
                             onChange={(e) => setSummary(e.target.value)}
-                            className="w-full min-h-[200px] p-3 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="w-full min-h-[200px] p-3 rounded-md border border-input bg-transparent text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Write your professional summary here..."
                         />
                     </div>
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleSave} 
                         disabled={summary === initialSummary}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                     >
                         Save Changes
                     </Button>

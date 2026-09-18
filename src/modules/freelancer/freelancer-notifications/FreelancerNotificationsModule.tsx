@@ -96,7 +96,7 @@ export default function FreelancerNotificationsModule() {
       `}</style>
 
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-4 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="flex items-center gap-4 relative z-10">
           <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20 relative">
@@ -108,7 +108,7 @@ export default function FreelancerNotificationsModule() {
             )}
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Notifications</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Notifications</h1>
             <p className="text-sm text-zinc-300 mt-1">
               {unreadCount > 0
                 ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
@@ -122,7 +122,7 @@ export default function FreelancerNotificationsModule() {
             onClick={markAllAsRead}
             disabled={saving}
             variant="outline"
-            className="relative z-10 h-9 px-4 text-xs font-semibold border-white/20 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur transition-all"
+            className="relative z-10 h-9 px-4 text-xs font-semibold border-white/20 bg-white/10 hover:bg-white/20 text-white rounded-xl backdrop-blur transition-all max-md:min-h-11"
           >
             <CheckCheck className="h-3.5 w-3.5 mr-2" />
             Mark All Read
@@ -188,7 +188,7 @@ export default function FreelancerNotificationsModule() {
                     key={opt.value}
                     onClick={() => setFilter(opt.value)}
                     className={cn(
-                      "px-3 py-1 rounded-lg text-xs font-medium transition-colors",
+                      "px-3 py-1 rounded-lg text-sm md:text-xs font-medium transition-colors max-md:min-h-11",
                       filter === opt.value
                         ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
                         : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"

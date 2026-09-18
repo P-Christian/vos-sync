@@ -17,7 +17,7 @@ export function AutofillConfirmModal({ isOpen, onClose, onConfirm, fileName }: A
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-md p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
                 <DialogHeader className="p-6 border-b shrink-0">
                     <DialogTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-primary" />
@@ -44,12 +44,12 @@ export function AutofillConfirmModal({ isOpen, onClose, onConfirm, fileName }: A
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         onClick={onConfirm}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                     >
                         Confirm Autofill
                     </Button>

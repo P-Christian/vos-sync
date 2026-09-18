@@ -41,16 +41,16 @@ export default function DashboardHeader({ company, userName }: DashboardHeaderPr
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="relative rounded-2xl border bg-card p-6 sm:p-7 shadow-xs overflow-hidden"
+      className="relative rounded-2xl border bg-card p-4 sm:p-7 shadow-xs overflow-hidden"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 relative z-10">
         <div className="flex items-start gap-4">
-          <div className="h-13 w-13 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-            <Building2 className="h-6.5 w-6.5" />
+          <div className="h-13 w-13 max-md:h-11 max-md:w-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
+            <Building2 className="h-6.5 w-6.5 max-md:h-5 max-md:w-5" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
                 {greeting}, {displayName}
               </h1>
               {isVerified ? (
@@ -82,7 +82,7 @@ export default function DashboardHeader({ company, userName }: DashboardHeaderPr
           <Button
             onClick={() => router.push("/vos-sync/client/jobs")}
             disabled={!isVerified}
-            className="h-11 rounded-xl font-semibold px-6 text-sm shadow-sm transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-2"
+            className="h-11 max-md:h-10 rounded-xl font-semibold px-6 max-md:px-4 text-sm max-md:text-xs shadow-sm transition-all duration-200 transform active:scale-95 flex items-center justify-center gap-2 max-md:w-full"
           >
             <Plus className="h-4.5 w-4.5" />
             Post a Job

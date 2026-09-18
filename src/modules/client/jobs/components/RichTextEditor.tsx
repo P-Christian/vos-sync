@@ -235,7 +235,7 @@ export function RichTextEditor({
     >
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-150 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50">
-        <span className="text-[11px] text-zinc-400 font-medium select-none">
+        <span className="text-xs md:text-[11px] text-zinc-400 font-medium select-none">
           Formatting: Bold (Ctrl+B) | List (Ctrl+Shift+8)
         </span>
         <div className="flex items-center gap-1">
@@ -246,7 +246,7 @@ export function RichTextEditor({
               exec("bold");
             }}
             title="Bold (Ctrl+B)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 font-bold transition-colors cursor-pointer"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 font-bold transition-colors cursor-pointer max-md:size-10 max-md:p-0"
           >
             <Bold className="h-3.5 w-3.5" />
           </button>
@@ -257,7 +257,7 @@ export function RichTextEditor({
               exec("insertUnorderedList");
             }}
             title="Bullet List (Ctrl+Shift+8 or type '- ' + Space)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer max-md:size-10 max-md:p-0"
           >
             <List className="h-3.5 w-3.5" />
           </button>
@@ -268,7 +268,7 @@ export function RichTextEditor({
               exec("insertOrderedList");
             }}
             title="Numbered List (Ctrl+Shift+7 or type '1. ' + Space)"
-            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer"
+            className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer max-md:size-10 max-md:p-0"
           >
             <ListOrdered className="h-3.5 w-3.5" />
           </button>
@@ -283,14 +283,14 @@ export function RichTextEditor({
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         data-placeholder={placeholder}
-        className="min-h-[140px] max-h-[300px] p-3.5 text-sm leading-relaxed outline-none focus:outline-none overflow-y-auto text-zinc-800 dark:text-zinc-200 empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 empty:before:pointer-events-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:font-bold [&_strong]:font-bold"
+        className="min-h-[140px] max-h-[300px] p-3.5 md:text-sm max-md:text-base leading-relaxed outline-none focus:outline-none overflow-y-auto text-zinc-800 dark:text-zinc-200 empty:before:content-[attr(data-placeholder)] empty:before:text-zinc-400 empty:before:pointer-events-none [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_b]:font-bold [&_strong]:font-bold"
       />
 
       {/* In-Editor AI Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 border-t border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 border-t border-zinc-150 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 text-sm md:text-xs">
         <div className="flex items-center gap-1.5">
           <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">AI Assist:</span>
+          <span className="text-xs md:text-[11px] font-semibold text-zinc-500 dark:text-zinc-400">AI Assist:</span>
         </div>
 
         <div className="flex items-center gap-1 flex-wrap">
@@ -300,7 +300,7 @@ export function RichTextEditor({
             size="sm"
             disabled={isRefining}
             onClick={() => handleRefine("improve")}
-            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+            className="h-6 px-2 text-xs md:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md max-md:min-h-10"
           >
             {isRefining && activeAction === "improve" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
@@ -316,7 +316,7 @@ export function RichTextEditor({
             size="sm"
             disabled={isRefining}
             onClick={() => handleRefine("concise")}
-            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+            className="h-6 px-2 text-xs md:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md max-md:min-h-10"
           >
             {isRefining && activeAction === "concise" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
@@ -330,7 +330,7 @@ export function RichTextEditor({
             size="sm"
             disabled={isRefining}
             onClick={() => handleRefine("technical")}
-            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+            className="h-6 px-2 text-xs md:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md max-md:min-h-10"
           >
             {isRefining && activeAction === "technical" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
@@ -344,7 +344,7 @@ export function RichTextEditor({
             size="sm"
             disabled={isRefining}
             onClick={() => handleRefine("regenerate")}
-            className="h-6 px-2 text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md"
+            className="h-6 px-2 text-xs md:text-[11px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md max-md:min-h-10"
           >
             {isRefining && activeAction === "regenerate" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
@@ -360,14 +360,14 @@ export function RichTextEditor({
                 variant="ghost"
                 size="sm"
                 disabled={isRefining}
-                className="h-6 px-2 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md gap-1"
+                className="h-6 px-2 text-xs md:text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md gap-1 max-md:min-h-10"
               >
                 <Wand2 className="h-3 w-3" /> Custom
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-3" align="end">
+            <PopoverContent className="w-80 p-3 max-md:w-[calc(100vw-2rem)]" align="end">
               <div className="space-y-2">
-                <span className="text-xs font-semibold block text-foreground">Custom AI Instruction</span>
+                <span className="text-sm md:text-xs font-semibold block text-foreground">Custom AI Instruction</span>
                 <div className="flex items-center gap-1.5">
                   <Input
                     placeholder="e.g. Make suitable for entry-level..."
@@ -379,14 +379,14 @@ export function RichTextEditor({
                         if (customPrompt.trim()) handleRefine("custom", customPrompt.trim());
                       }
                     }}
-                    className="h-8 text-xs"
+                    className="h-8 md:text-xs max-md:min-h-10 max-md:text-base"
                   />
                   <Button
                     type="button"
                     size="sm"
                     disabled={isRefining || !customPrompt.trim()}
                     onClick={() => handleRefine("custom", customPrompt.trim())}
-                    className="h-8 w-8 p-0 bg-[#14a800] hover:bg-[#118f00] text-white"
+                    className="h-8 w-8 p-0 bg-[#14a800] hover:bg-[#118f00] text-white max-md:size-10"
                   >
                     {isRefining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                   </Button>

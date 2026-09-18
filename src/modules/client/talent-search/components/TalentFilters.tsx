@@ -29,7 +29,7 @@ function FilterSection({ title, defaultOpen = true, children }: { title: string;
     <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 last:border-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-between w-full text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider py-2"
+        className="flex items-center justify-between w-full text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider py-2 max-md:min-h-10"
       >
         {title}
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -68,7 +68,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
           <Filter className="h-4 w-4 text-zinc-500" />
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Filters</span>
           {activeCount > 0 && (
-            <Badge className="h-5 px-1.5 text-xs bg-indigo-500 text-white border-0">
+            <Badge className="h-5 px-1.5 text-sm md:text-xs bg-indigo-500 text-white border-0">
               {activeCount}
             </Badge>
           )}
@@ -82,7 +82,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
               onFilterChange("availability", "");
               onFilterChange("school_id", "");
             }}
-            className="text-xs text-zinc-400 hover:text-rose-500 transition-colors"
+            className="text-xs text-zinc-400 hover:text-rose-500 transition-colors max-md:min-h-10"
           >
             Clear filters
           </button>
@@ -104,13 +104,13 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                     addSkill(skillInput);
                   }
                 }}
-                className="h-8 text-xs rounded-lg"
+                className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg"
               />
               <Button
                 size="sm"
                 onClick={() => addSkill(skillInput)}
                 disabled={!skillInput.trim()}
-                className="h-8 px-3 text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white border-0 shrink-0"
+                className="h-8 max-md:min-h-10 px-3 text-sm md:text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white border-0 shrink-0"
               >
                 Add
               </Button>
@@ -125,7 +125,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-medium"
                   >
                     {skill}
-                    <button onClick={() => removeSkill(skill)} className="hover:text-rose-500">
+                    <button onClick={() => removeSkill(skill)} className="hover:text-rose-500 max-md:relative max-md:after:absolute max-md:after:-inset-[15px] max-md:after:content-['']">
                       <X className="h-2.5 w-2.5" />
                     </button>
                   </span>
@@ -139,7 +139,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                 <button
                   key={skill}
                   onClick={() => addSkill(skill)}
-                  className="px-2 py-0.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+                  className="px-2 py-0.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors max-md:min-h-10 max-md:px-3"
                 >
                   + {skill}
                 </button>
@@ -154,7 +154,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             placeholder="City or province…"
             value={filters.location}
             onChange={(e) => onFilterChange("location", e.target.value)}
-            className="h-8 text-xs rounded-lg"
+            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg"
           />
         </FilterSection>
 
@@ -168,7 +168,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                   onFilterChange("experience_level", filters.experience_level === level ? "" : level)
                 }
                 className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
+                  "w-full text-left px-3 py-1.5 rounded-lg text-sm md:text-xs transition-colors max-md:min-h-10",
                   filters.experience_level === level
                     ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold"
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -190,7 +190,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                   onFilterChange("availability", filters.availability === status ? "" : status)
                 }
                 className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
+                  "w-full text-left px-3 py-1.5 rounded-lg text-sm md:text-xs transition-colors max-md:min-h-10",
                   filters.availability === status
                     ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold"
                     : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -206,7 +206,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
       <Button
         id="talent-filter-apply"
         onClick={onApply}
-        className="w-full h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0"
+        className="w-full h-9 max-md:min-h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0"
       >
         Apply Filters
       </Button>

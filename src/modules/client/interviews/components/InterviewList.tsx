@@ -68,7 +68,7 @@ export default function InterviewList({
         <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
           No Interviews Found
         </h3>
-        <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+        <p className="text-sm md:text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
           There are no interview schedules matching your current filter.
         </p>
       </div>
@@ -115,7 +115,7 @@ export default function InterviewList({
                     {applicantName}
                   </h4>
                   {appCount > 1 && (
-                    <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
+                    <Badge variant="secondary" className="text-xs md:text-[10px] font-bold px-2 py-0.5 gap-1 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300">
                       <Users className="h-3 w-3" />
                       +{appCount - 1} Batch Candidate{appCount - 1 !== 1 ? "s" : ""}
                     </Badge>
@@ -123,11 +123,11 @@ export default function InterviewList({
                   <InterviewStatusBadge status={item.interview_status} />
                 </div>
 
-                <p className="text-xs text-zinc-500 truncate">
+                <p className="text-sm md:text-xs text-zinc-500 truncate">
                   Role: <span className="font-medium text-zinc-700 dark:text-zinc-300">{jobTitle}</span>
                 </p>
 
-                <div className="flex items-center gap-4 text-xs text-zinc-500 pt-1 flex-wrap">
+                <div className="flex items-center gap-4 text-sm md:text-xs text-zinc-500 pt-1 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5 text-indigo-500" />
                     {formattedDate}
@@ -154,7 +154,7 @@ export default function InterviewList({
                 variant="outline"
                 size="sm"
                 onClick={() => onViewDetails(item)}
-                className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
+                className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 font-semibold"
               >
                 <Eye className="h-3.5 w-3.5 text-zinc-500" />
                 View & Q&A
@@ -168,7 +168,7 @@ export default function InterviewList({
                     variant="outline"
                     size="sm"
                     onClick={() => onReschedule(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5 font-semibold"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 font-semibold"
                   >
                     <RefreshCw className="h-3.5 w-3.5 text-amber-500" />
                     Reschedule
@@ -177,7 +177,7 @@ export default function InterviewList({
                   <Button
                     size="sm"
                     onClick={() => onOpenEvaluation(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-semibold"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-semibold"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
                     Record Feedback
@@ -187,7 +187,7 @@ export default function InterviewList({
                     variant="outline"
                     size="sm"
                     onClick={() => onOpenCancelModal(item)}
-                    className="h-8 text-xs rounded-lg gap-1.5 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold"
                   >
                     <XCircle className="h-3.5 w-3.5 text-rose-500" />
                     Cancel
@@ -198,7 +198,7 @@ export default function InterviewList({
                   variant="outline"
                   size="sm"
                   onClick={() => onOpenEvaluation(item)}
-                  className="h-8 text-xs rounded-lg gap-1.5 text-emerald-600 border-emerald-200 dark:border-emerald-900/50 font-semibold"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs rounded-lg gap-1.5 text-emerald-600 border-emerald-200 dark:border-emerald-900/50 font-semibold"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   View Feedback

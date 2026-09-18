@@ -175,6 +175,12 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  // Keep the first render identical to the server (desktop markup): this
+  // Suspense boundary can hydrate after isMobile has already flipped to true.
+  const [hasMounted, setHasMounted] = React.useState(false)
+  React.useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   if (collapsible === "none") {
     return (
@@ -191,7 +197,7 @@ function Sidebar({
     )
   }
 
-  if (isMobile) {
+  if (isMobile && hasMounted) {
     return (
       <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
         <SheetContent
@@ -277,7 +283,7 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      className={cn("size-7", className)}
+      className={cn("size-7 max-md:size-11", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()

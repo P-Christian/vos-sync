@@ -64,7 +64,7 @@ export default function CompanyCompletionBar({ percent }: CompanyCompletionBarPr
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           />
         </div>
-        <p className={`text-[11px] font-medium ${textColorClass}`}>{label}</p>
+        <p className={`text-xs md:text-[11px] font-medium ${textColorClass}`}>{label}</p>
       </div>
     </div>
   );

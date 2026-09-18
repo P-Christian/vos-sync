@@ -123,7 +123,7 @@ export function SuggestCategoryModal({
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-lg p-6">
+      <DialogContent className="sm:max-w-lg p-6 max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader className="pb-2 border-b border-border/80">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
@@ -131,7 +131,7 @@ export function SuggestCategoryModal({
             </div>
             <div>
               <DialogTitle className="text-base font-bold">Suggest a Role Category</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+              <DialogDescription className="text-sm md:text-xs text-muted-foreground mt-0.5">
                 Submit a new category candidate for platform taxonomy governance.
               </DialogDescription>
             </div>
@@ -140,7 +140,7 @@ export function SuggestCategoryModal({
 
         <div className="space-y-4 py-2">
           {error && (
-            <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+            <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 text-rose-700 dark:text-rose-300 text-sm md:text-xs flex items-center gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -151,7 +151,7 @@ export function SuggestCategoryModal({
             <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 space-y-3">
               <div className="flex items-start gap-2.5">
                 <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1">
+                <div className="text-sm md:text-xs space-y-1">
                   <p className="font-bold text-amber-900 dark:text-amber-200">
                     Existing Category Match Detected ({existingMatch.confidence}% match)
                   </p>
@@ -170,7 +170,7 @@ export function SuggestCategoryModal({
                   type="button"
                   size="sm"
                   onClick={() => handleUseExisting(existingMatch.existing_category!)}
-                  className="h-8 text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-8 text-sm md:text-xs font-semibold gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-10"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Use &quot;{existingMatch.existing_category.category_name}&quot;
@@ -181,7 +181,7 @@ export function SuggestCategoryModal({
                   variant="outline"
                   disabled={loading}
                   onClick={() => handleCheckAndSubmit(true)}
-                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                  className="h-8 text-sm md:text-xs text-muted-foreground hover:text-foreground max-md:min-h-10"
                 >
                   Submit as New Anyway
                 </Button>
@@ -191,7 +191,7 @@ export function SuggestCategoryModal({
 
           {/* Form Fields */}
           <div className="space-y-1.5">
-            <Label htmlFor="sug-name" className="text-xs font-semibold">
+            <Label htmlFor="sug-name" className="text-sm md:text-xs font-semibold">
               Category Name <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -203,12 +203,12 @@ export function SuggestCategoryModal({
                 if (existingMatch) setExistingMatch(null);
                 if (error) setError(null);
               }}
-              className="h-10 text-sm rounded-lg"
+              className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="sug-desc" className="text-xs font-semibold">
+            <Label htmlFor="sug-desc" className="text-sm md:text-xs font-semibold">
               Why is this category needed? (Scope & Technologies)
             </Label>
             <Textarea
@@ -217,11 +217,11 @@ export function SuggestCategoryModal({
               placeholder="Briefly describe the domain, core responsibilities, or tools (e.g. ROS, PLC, kinematics)..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="text-xs rounded-lg resize-none"
+              className="md:text-xs rounded-lg resize-none max-md:text-base"
             />
           </div>
 
-          <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+          <p className="text-xs md:text-[11px] text-muted-foreground italic leading-relaxed">
             Note: Your job will still be published immediately with this custom category while platform governance reviews the candidate.
           </p>
         </div>
@@ -233,7 +233,7 @@ export function SuggestCategoryModal({
             size="sm"
             onClick={() => onOpenChange(false)}
             disabled={loading}
-            className="h-9 text-xs"
+            className="h-9 text-sm md:text-xs max-md:min-h-10"
           >
             Cancel
           </Button>
@@ -243,7 +243,7 @@ export function SuggestCategoryModal({
               size="sm"
               onClick={() => handleCheckAndSubmit(false)}
               disabled={loading || !categoryName.trim()}
-              className="h-9 text-xs font-semibold gap-1.5"
+              className="h-9 text-sm md:text-xs font-semibold gap-1.5 max-md:min-h-10"
             >
               {loading ? (
                 <>

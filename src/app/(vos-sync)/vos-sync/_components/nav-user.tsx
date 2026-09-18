@@ -151,7 +151,7 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
                     </DropdownMenuTrigger>
 
                     <DropdownMenuContent
-                        className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                        className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg max-md:min-w-0 max-md:max-w-[calc(100vw-2rem)]"
                         side="bottom"
                         align="start"
                         sideOffset={8}

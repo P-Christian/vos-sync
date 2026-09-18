@@ -147,7 +147,7 @@ export default function TalentSearchModule() {
 
   return (
     <CompanyVerificationGuard moduleName="Talent Search">
-      <div className="space-y-6 client-page-transition">
+      <div className="space-y-4 md:space-y-6 client-page-transition">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -167,7 +167,7 @@ export default function TalentSearchModule() {
               <Search className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Talent Search</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Talent Search</h1>
               <p className="text-sm text-indigo-200 mt-0.5">
                 Discover and connect with professionals, freelancers &amp; students
               </p>
@@ -176,14 +176,14 @@ export default function TalentSearchModule() {
 
           {/* Stats */}
           {hasSearched && (
-            <div className="flex gap-6 relative z-10">
+            <div className="flex gap-4 md:gap-6 relative z-10">
               <div className="text-center">
                 <p className="text-2xl font-bold">{total}</p>
-                <p className="text-xs text-zinc-400">Profiles Found</p>
+                <p className="text-sm md:text-xs text-zinc-400">Profiles Found</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold">{saved.length}</p>
-                <p className="text-xs text-zinc-400">Saved</p>
+                <p className="text-sm md:text-xs text-zinc-400">Saved</p>
               </div>
             </div>
           )}
@@ -191,12 +191,12 @@ export default function TalentSearchModule() {
 
         {/* ── Main Content ─────────────────────────── */}
         <Tabs defaultValue="search" className="space-y-4">
-          <TabsList className="h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 w-fit">
-            <TabsTrigger value="search" className="rounded-lg text-sm gap-2 px-4">
+          <TabsList className="h-10 max-md:min-h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 w-fit">
+            <TabsTrigger value="search" className="rounded-lg text-sm max-md:text-xs gap-2 px-4 max-md:px-3">
               <Search className="h-4 w-4" />
               Search Talent
             </TabsTrigger>
-            <TabsTrigger value="saved" className="rounded-lg text-sm gap-2 px-4">
+            <TabsTrigger value="saved" className="rounded-lg text-sm max-md:text-xs gap-2 px-4 max-md:px-3">
               <Bookmark className="h-4 w-4" />
               Saved
               {saved.length > 0 && (
@@ -209,7 +209,7 @@ export default function TalentSearchModule() {
 
           {/* ── SEARCH TAB ────────────────────────── */}
           <TabsContent value="search">
-            <div className="flex gap-6">
+            <div className="flex gap-4 md:gap-6">
               {/* Sidebar filters — desktop */}
               <div className="hidden lg:flex flex-col w-64 shrink-0">
                 <div className="sticky top-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
@@ -224,7 +224,7 @@ export default function TalentSearchModule() {
               {/* Results area */}
               <div className="flex-1 min-w-0 space-y-4">
                 {/* Search bar */}
-                <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm space-y-3">
+                <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 max-md:p-3 shadow-sm space-y-3">
                   <TalentSearchBar
                     keyword={filters.keyword}
                     jobIdForMatch={jobIdForMatch}
@@ -241,7 +241,7 @@ export default function TalentSearchModule() {
                       variant="outline"
                       size="sm"
                       onClick={() => setMobileFiltersOpen((v) => !v)}
-                      className="h-8 text-xs gap-1.5 rounded-lg"
+                      className="h-8 max-md:min-h-10 text-xs gap-1.5 rounded-lg"
                     >
                       <SlidersHorizontal className="h-3.5 w-3.5" />
                       Filters
@@ -254,7 +254,7 @@ export default function TalentSearchModule() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-3 right-0 h-7 w-7 p-0 rounded-full"
+                        className="absolute top-3 right-0 h-7 w-7 max-md:size-10 p-0 rounded-full"
                         onClick={() => setMobileFiltersOpen(false)}
                       >
                         <X className="h-3.5 w-3.5" />
@@ -330,7 +330,7 @@ export default function TalentSearchModule() {
                     <Button
                       variant="outline"
                       onClick={resetFilters}
-                      className="mt-4 rounded-xl text-sm"
+                      className="mt-4 rounded-xl text-sm max-md:min-h-10 max-md:px-3 max-md:text-xs"
                     >
                       Clear All Filters
                     </Button>
@@ -381,13 +381,13 @@ export default function TalentSearchModule() {
 
                 {/* Pagination */}
                 {!loading && totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4">
+                  <div className="flex items-center justify-center gap-2 pt-4 max-md:flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(page - 1)}
                       disabled={page <= 1}
-                      className="h-9 px-3 rounded-xl text-sm gap-1.5"
+                      className="h-9 max-md:min-h-10 px-3 rounded-xl text-sm max-md:text-xs gap-1.5"
                     >
                       <ChevronLeft className="h-4 w-4" />
                       Previous
@@ -403,7 +403,7 @@ export default function TalentSearchModule() {
                             size="sm"
                             onClick={() => handlePageChange(pg)}
                             className={cn(
-                              "h-9 w-9 p-0 rounded-xl text-sm",
+                              "h-9 w-9 max-md:size-10 p-0 rounded-xl text-sm max-md:text-xs",
                               pg === page ? "bg-indigo-600 text-white border-0" : ""
                             )}
                           >
@@ -417,7 +417,7 @@ export default function TalentSearchModule() {
                       size="sm"
                       onClick={() => handlePageChange(page + 1)}
                       disabled={page >= totalPages}
-                      className="h-9 px-3 rounded-xl text-sm gap-1.5"
+                      className="h-9 max-md:min-h-10 px-3 rounded-xl text-sm max-md:text-xs gap-1.5"
                     >
                       Next
                       <ChevronRight className="h-4 w-4" />
@@ -430,7 +430,7 @@ export default function TalentSearchModule() {
 
           {/* ── SAVED TAB ─────────────────────────── */}
           <TabsContent value="saved">
-            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
+            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 max-md:p-4 shadow-sm">
               <SavedTalentPanel
                 saved={saved}
                 loading={savedLoading}

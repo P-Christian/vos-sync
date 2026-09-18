@@ -64,17 +64,17 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
   return (
     <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b shadow-xs bg-background sm:h-16 px-4">
       {/* Left: sidebar toggle + searchbar */}
-      <div className="flex h-full items-center gap-4 shrink-0">
+        <div className="flex h-full min-w-0 flex-1 items-center gap-4">
         <SidebarTrigger className="-ml-1 shrink-0" />
         {!isVosAdminRoute && !isSchoolAdminRoute && (
-          <div className="hidden md:block w-2xl">
+          <div className="hidden md:block w-full max-w-2xl min-w-0">
             <UserSearchBar />
           </div>
         )}
       </div>
 
       {/* Right: actions + user avatar */}
-      <div className="flex h-full items-center gap-2 shrink-0">
+      <div className="flex h-full items-center gap-2 shrink-0 min-w-0">
         {isClientRoute && <ClientNotificationBell />}
         {isFreelancerRoute && <FreelancerNotificationBell />}
         {isSchoolAdminRoute && <SchoolAdminNotificationBell />}
@@ -86,7 +86,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 asChild
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-foreground flex relative cursor-pointer"
+                className="text-muted-foreground hover:text-foreground flex relative cursor-pointer max-md:size-11"
               >
                 <Link href={getHelpRoute()}>
                   <HelpCircle className="h-5 w-5" />
@@ -106,7 +106,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
         </TooltipProvider>
 
         <div className="border-l h-6 mx-2 hidden sm:block" />
-        <div className="w-auto max-w-[240px]">
+        <div className="w-auto max-w-[240px] max-md:max-w-[45vw]">
           <NavUser user={user} />
         </div>
       </div>

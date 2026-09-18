@@ -20,7 +20,7 @@ const FreelancerBookmarksPage: React.FC = () => {
   }, [fetchBookmarks]);
 
   return (
-    <div className="w-full p-6 sm:p-8">
+    <div className="w-full p-4 sm:p-8">
       <BookmarkHeader />
 
       {error && (
@@ -30,7 +30,7 @@ const FreelancerBookmarksPage: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-16 gap-3 bg-card rounded-xl border shadow-sm mb-6">
+        <div className="flex items-center justify-center py-16 gap-3 bg-card rounded-xl border shadow-sm mb-6 max-md:py-8">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <span className="text-sm text-zinc-400 animate-pulse">Loading saved jobs...</span>
         </div>

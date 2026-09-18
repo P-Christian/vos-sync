@@ -15,7 +15,7 @@ export default function ScreeningAnswersView({
 }: ScreeningAnswersViewProps) {
   if (!screeningAnswers) {
     return (
-      <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-xs text-zinc-400">
+      <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-sm md:text-xs text-zinc-400">
         No screening questions were required for this application.
       </div>
     );
@@ -34,7 +34,7 @@ export default function ScreeningAnswersView({
 
   if (answersList.length === 0) {
     return (
-      <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-xs text-zinc-400">
+      <div className="p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-sm md:text-xs text-zinc-400">
         No screening responses recorded.
       </div>
     );
@@ -42,7 +42,7 @@ export default function ScreeningAnswersView({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+      <div className="flex items-center gap-2 text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
         <FileText className="h-4 w-4 text-indigo-500" />
         Candidate Screening Responses ({answersList.length})
       </div>
@@ -53,11 +53,11 @@ export default function ScreeningAnswersView({
             key={idx}
             className="p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-1.5"
           >
-            <div className="flex items-start gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200">
+            <div className="flex items-start gap-2 text-sm md:text-xs font-medium text-zinc-800 dark:text-zinc-200">
               <HelpCircle className="h-3.5 w-3.5 text-indigo-500 shrink-0 mt-0.5" />
               <span>{item.question_text}</span>
             </div>
-            <div className="pl-5 text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/40 p-2.5 rounded-lg font-mono">
+            <div className="pl-5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/40 p-2.5 rounded-lg font-mono">
               {item.answer_text || "— No response provided —"}
             </div>
           </div>

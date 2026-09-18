@@ -72,7 +72,7 @@ export function RecentApplicationsPreview() {
                         <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">
                             Start applying to jobs to see your progress here.
                         </p>
-                        <Button variant="outline" size="sm" asChild className="mt-4">
+                        <Button variant="outline" size="sm" asChild className="mt-4 max-md:min-h-11">
                             <Link href="/vos-sync/freelancer/jobs">Browse Jobs</Link>
                         </Button>
                     </div>
@@ -85,7 +85,7 @@ export function RecentApplicationsPreview() {
                                         <h4 className="font-semibold text-sm truncate text-foreground">
                                             {app.job_title}
                                         </h4>
-                                        <div className="flex items-center text-xs text-muted-foreground mt-1 space-x-2">
+                                        <div className="flex items-center text-xs text-muted-foreground mt-1 space-x-2 max-md:flex-wrap">
                                             <span className="flex items-center truncate">
                                                 <Building className="h-3 w-3 mr-1 shrink-0" />
                                                 <span className="truncate">{app.company_name || 'Confidential'}</span>
@@ -109,7 +109,7 @@ export function RecentApplicationsPreview() {
                 )}
                 
                 {recentApps.length > 0 && (
-                    <Button variant="ghost" size="sm" asChild className="w-full mt-4 sm:hidden">
+                    <Button variant="ghost" size="sm" asChild className="w-full mt-4 sm:hidden max-md:min-h-11">
                         <Link href="/vos-sync/freelancer/applications">
                             View All Applications
                         </Link>

@@ -466,46 +466,46 @@ export default function InterviewBigCalendar({
       ref={containerRef}
       className={`transition-all duration-200 relative ${
         isFullscreen
-          ? "bg-background text-foreground h-screen w-screen p-4 sm:p-6 overflow-y-auto flex flex-col space-y-4"
+          ? "bg-background text-foreground h-[100dvh] w-full p-4 sm:p-6 overflow-y-auto flex flex-col space-y-4"
           : "space-y-4"
       }`}
     >
       {/* Calendar Navigation Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 rounded-2xl shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 max-md:w-full max-md:justify-between">
           <Button
             variant="outline"
             size="sm"
             onClick={handlePrevMonth}
-            className="h-8 w-8 p-0 rounded-lg"
+            className="h-8 w-8 max-md:size-10 p-0 rounded-lg"
           >
             <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-base max-md:text-sm font-bold text-zinc-900 dark:text-white ml-2 max-md:ml-0">
+            {format(currentDate, "MMMM yyyy")}
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextMonth}
+            className="h-8 w-8 max-md:size-10 p-0 rounded-lg"
+          >
+            <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleToday}
-            className="h-8 px-3 text-xs font-medium rounded-lg"
+            className="h-8 max-md:min-h-10 px-3 max-md:px-2.5 text-sm max-md:text-xs md:text-xs font-medium rounded-lg"
           >
             Today
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNextMonth}
-            className="h-8 w-8 p-0 rounded-lg"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <h2 className="text-base font-bold text-zinc-900 dark:text-white ml-2">
-            {format(currentDate, "MMMM yyyy")}
-          </h2>
         </div>
 
         {/* Legend and Actions */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 max-md:gap-2 flex-wrap max-md:w-full max-md:justify-between max-md:order-last">
           {/* Legend */}
-          <div className="flex items-center gap-2 text-xs flex-wrap">
+          <div className="flex items-center gap-2 max-md:gap-1.5 text-sm max-md:text-[11px] md:text-xs flex-wrap">
             <span className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
               <span className="h-2 w-2 rounded-full bg-indigo-500" />
               Scheduled
@@ -530,7 +530,7 @@ export default function InterviewBigCalendar({
             size="sm"
             onClick={toggleFullscreen}
             title={isFullscreen ? "Exit Fullscreen (Esc / F11)" : "Fullscreen Calendar (F11)"}
-            className="h-8 px-2.5 text-xs font-semibold rounded-lg gap-1.5 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30"
+            className="h-8 max-md:min-h-10 px-2.5 text-sm max-md:text-xs md:text-xs font-semibold rounded-lg gap-1.5 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30"
           >
             {isFullscreen ? (
               <>
@@ -618,7 +618,7 @@ export default function InterviewBigCalendar({
                         }
                       }}
                       title={`Schedule interview on ${format(day, "MMM d, yyyy")}`}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="opacity-0 group-hover:opacity-100 max-md:opacity-100 max-md:size-10 max-md:hidden transition-opacity p-1 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
                     >
                       <Plus className="h-3.5 w-3.5" />
                     </button>
@@ -643,7 +643,7 @@ export default function InterviewBigCalendar({
                               e.stopPropagation();
                               openFullscreenDetails(item);
                             }}
-                            className={`w-full text-left p-1.5 rounded-lg border text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
+                            className={`w-full max-md:min-h-10 text-left p-1.5 rounded-lg border text-xs md:text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
                               item.interview_status
                             )}`}
                           >
@@ -668,7 +668,7 @@ export default function InterviewBigCalendar({
                                 e.stopPropagation();
                                 onViewDetails(item);
                               }}
-                              className={`w-full text-left p-1.5 rounded-lg border text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
+                              className={`w-full max-md:min-h-10 text-left p-1.5 rounded-lg border text-xs md:text-[11px] font-medium transition-all shadow-2xs truncate flex items-center justify-between gap-1 ${getEventBadgeStyle(
                                 item.interview_status
                               )}`}
                             >
@@ -686,7 +686,7 @@ export default function InterviewBigCalendar({
                           <PopoverContent
                             side="top"
                             align="start"
-                            className="w-72 p-3 text-xs space-y-2 shadow-xl border-zinc-200 dark:border-zinc-800"
+                            className="w-72 p-3 text-sm md:text-xs space-y-2 shadow-xl border-zinc-200 dark:border-zinc-800 max-md:w-[calc(100vw-2rem)] max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto"
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-zinc-900 dark:text-white">
@@ -703,7 +703,7 @@ export default function InterviewBigCalendar({
                             </div>
                             {item.applications && item.applications.length > 0 && (
                               <div className="pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                                <div className="text-[10px] font-semibold uppercase text-zinc-400 mb-1">
+                                <div className="text-xs md:text-[10px] font-semibold uppercase text-zinc-400 mb-1">
                                   Candidates ({item.applications.length})
                                 </div>
                                 <div className="space-y-1 max-h-24 overflow-y-auto">
@@ -715,7 +715,7 @@ export default function InterviewBigCalendar({
                                       <span className="truncate font-medium">
                                         {app.applicant_name || "Applicant"}
                                       </span>
-                                      <span className="text-[10px] text-zinc-400">
+                                      <span className="text-xs md:text-[10px] text-zinc-400">
                                         {app.job_title || "Job"}
                                       </span>
                                     </div>
@@ -729,7 +729,7 @@ export default function InterviewBigCalendar({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onViewDetails(item)}
-                                className="h-7 text-[10px] px-2 rounded-md font-semibold"
+                                className="h-7 max-md:min-h-10 text-xs md:text-[10px] px-2 rounded-md font-semibold"
                               >
                                 <Eye className="h-3 w-3 mr-1 text-zinc-500" /> View & Q&A
                               </Button>
@@ -737,7 +737,7 @@ export default function InterviewBigCalendar({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => onOpenEvaluation(item)}
-                                className="h-7 text-[10px] px-2 rounded-md text-emerald-700 dark:text-emerald-300 font-semibold"
+                                className="h-7 max-md:min-h-10 text-xs md:text-[10px] px-2 rounded-md text-emerald-700 dark:text-emerald-300 font-semibold"
                               >
                                 <MessageSquare className="h-3 w-3 mr-1 text-emerald-600" />{" "}
                                 {item.interview_status === "COMPLETED" ? "View Feedback" : "Feedback"}
@@ -750,7 +750,7 @@ export default function InterviewBigCalendar({
                                     size="sm"
                                     variant="outline"
                                     onClick={() => onReschedule(item)}
-                                    className="h-7 text-[10px] px-2 rounded-md font-semibold text-amber-600 dark:text-amber-400"
+                                    className="h-7 max-md:min-h-10 text-xs md:text-[10px] px-2 rounded-md font-semibold text-amber-600 dark:text-amber-400"
                                     title="Reschedule Interview"
                                   >
                                     <RefreshCw className="h-3 w-3 mr-1 text-amber-500" /> Reschedule
@@ -759,7 +759,7 @@ export default function InterviewBigCalendar({
                                     size="sm"
                                     variant="outline"
                                     onClick={() => onOpenCancelModal(item)}
-                                    className="h-7 text-[10px] px-2 rounded-md font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                                    className="h-7 max-md:min-h-10 text-xs md:text-[10px] px-2 rounded-md font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                                     title="Cancel Interview"
                                   >
                                     <XCircle className="h-3 w-3 mr-1 text-rose-500" /> Cancel
@@ -782,7 +782,7 @@ export default function InterviewBigCalendar({
                           interviews: dayInterviews,
                         });
                       }}
-                      className="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
+                      className="w-full max-md:min-h-10 text-left px-1.5 py-0.5 rounded text-xs md:text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 transition-colors"
                     >
                       + {overflowCount} more interviews
                     </button>
@@ -797,7 +797,7 @@ export default function InterviewBigCalendar({
       {/* Overflow Day Agenda Modal / Popover */}
       <AnimatePresence>
         {selectedDayInterviews && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 max-md:p-0">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -810,14 +810,14 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl md:max-w-2xl w-full p-5 sm:p-6 space-y-4 max-h-[88vh] flex flex-col"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl md:max-w-2xl w-full max-md:max-w-none max-md:w-full max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 p-5 sm:p-6 max-md:p-4 space-y-4 max-h-[88vh] flex flex-col"
             >
               <div className="flex items-center justify-between border-b pb-3 border-zinc-100 dark:border-zinc-800 shrink-0">
                 <div>
                   <h3 className="font-bold text-base text-zinc-900 dark:text-white">
                     Interviews on {format(selectedDayInterviews.date, "MMMM d, yyyy")}
                   </h3>
-                  <p className="text-xs text-zinc-500 mt-0.5">
+                  <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
                     {selectedDayInterviews.interviews.length === 0
                       ? "No interviews scheduled"
                       : `${selectedDayInterviews.interviews.length} interview${selectedDayInterviews.interviews.length !== 1 ? "s" : ""} scheduled`}
@@ -826,7 +826,7 @@ export default function InterviewBigCalendar({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
+                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
                   onClick={() => setSelectedDayInterviews(null)}
                 >
                   <X className="h-4 w-4" />
@@ -846,7 +846,7 @@ export default function InterviewBigCalendar({
                           <span className="font-bold text-sm text-zinc-900 dark:text-white">
                             {format(parseISO(item.scheduled_at), "h:mm a")}
                           </span>
-                          <span className="text-xs text-zinc-400 font-normal">
+                          <span className="text-sm md:text-xs text-zinc-400 font-normal">
                             ({item.duration_minutes || 60}m · {item.interview_format.toLowerCase()})
                           </span>
                         </div>
@@ -869,7 +869,7 @@ export default function InterviewBigCalendar({
                               onViewDetails(item);
                             }
                           }}
-                          className="h-8 text-xs px-3 rounded-lg font-semibold"
+                          className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View & Q&A
                         </Button>
@@ -884,7 +884,7 @@ export default function InterviewBigCalendar({
                               onOpenEvaluation(item);
                             }
                           }}
-                          className="h-8 text-xs px-3 rounded-lg text-emerald-700 dark:text-emerald-300 font-semibold"
+                          className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg text-emerald-700 dark:text-emerald-300 font-semibold"
                         >
                           <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Feedback
                         </Button>
@@ -903,7 +903,7 @@ export default function InterviewBigCalendar({
                                   onReschedule(item);
                                 }
                               }}
-                              className="h-8 text-xs px-3 rounded-lg font-semibold text-amber-600 dark:text-amber-400"
+                              className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-amber-600 dark:text-amber-400"
                             >
                               <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" /> Reschedule
                             </Button>
@@ -918,7 +918,7 @@ export default function InterviewBigCalendar({
                                   onOpenCancelModal(item);
                                 }
                               }}
-                              className="h-8 text-xs px-3 rounded-lg font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
+                              className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
                             >
                               <XCircle className="h-3.5 w-3.5 mr-1.5 text-rose-500" /> Cancel
                             </Button>
@@ -934,7 +934,7 @@ export default function InterviewBigCalendar({
                       <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
                         No interviews scheduled for this date
                       </p>
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
                         There are no candidate interview sessions booked for {format(selectedDayInterviews.date, "MMMM d, yyyy")}.
                       </p>
                     </div>
@@ -951,7 +951,7 @@ export default function InterviewBigCalendar({
                               onScheduleDate(dateStr);
                             }
                           }}
-                          className="h-8 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg gap-1.5"
+                          className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg gap-1.5"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Schedule Interview on this Date
@@ -984,7 +984,7 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl w-full p-5 sm:p-6 space-y-4 max-h-[90vh] max-md:max-h-[90dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="flex items-start justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -995,7 +995,7 @@ export default function InterviewBigCalendar({
                     </h3>
                     <InterviewStatusBadge status={selectedInterview.interview_status} />
                   </div>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm md:text-xs text-zinc-500">
                     {format(parseISO(selectedInterview.scheduled_at), "EEEE, MMMM d, yyyy")}
                   </p>
                 </div>
@@ -1003,21 +1003,21 @@ export default function InterviewBigCalendar({
                   variant="ghost"
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
+                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
               {/* Overview Info Cards */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm md:text-xs">
                 <div className="p-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
                   <div>
                     <div className="font-bold text-zinc-900 dark:text-zinc-100">
                       {format(parseISO(selectedInterview.scheduled_at), "h:mm a")}
                     </div>
-                    <div className="text-[10px] text-zinc-400">
+                    <div className="text-xs md:text-[10px] text-zinc-400">
                       {selectedInterview.duration_minutes || 60} mins ({selectedInterview.timezone || "Asia/Manila"})
                     </div>
                   </div>
@@ -1033,7 +1033,7 @@ export default function InterviewBigCalendar({
                     <div className="font-bold text-zinc-900 dark:text-zinc-100 capitalize truncate">
                       {selectedInterview.interview_format.toLowerCase()} Interview
                     </div>
-                    <div className="text-[10px] text-zinc-400 truncate">
+                    <div className="text-xs md:text-[10px] text-zinc-400 truncate">
                       {selectedInterview.meeting_link || selectedInterview.meeting_location || "Standard Slot"}
                     </div>
                   </div>
@@ -1043,7 +1043,7 @@ export default function InterviewBigCalendar({
               {/* Candidate Attendees List & Screening Answers */}
               {selectedInterview.applications && selectedInterview.applications.length > 0 && (
                 <div className="space-y-3">
-                  <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <div className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                     <Users className="h-3.5 w-3.5 text-zinc-400" />
                     Candidate Attendees ({selectedInterview.applications.length})
                   </div>
@@ -1055,15 +1055,15 @@ export default function InterviewBigCalendar({
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <div className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">
+                            <div className="font-bold text-sm md:text-xs text-zinc-900 dark:text-zinc-100 truncate">
                               {app.applicant_name || "Candidate"}
                             </div>
-                            <div className="text-[11px] text-zinc-500 truncate">
+                            <div className="text-xs md:text-[11px] text-zinc-500 truncate">
                               {app.job_title || "Target Position"}
                             </div>
                           </div>
                           {app.attendance_status && (
-                            <Badge variant="outline" className="text-[10px] uppercase font-semibold">
+                            <Badge variant="outline" className="text-xs md:text-[10px] uppercase font-semibold">
                               {app.attendance_status}
                             </Badge>
                           )}
@@ -1084,7 +1084,7 @@ export default function InterviewBigCalendar({
                     size="sm"
                     variant="outline"
                     onClick={() => openFullscreenFeedback(selectedInterview)}
-                    className="h-8 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold text-emerald-700 dark:text-emerald-300"
                   >
                     <MessageSquare className="h-3.5 w-3.5 mr-1 text-emerald-600" /> Feedback
                   </Button>
@@ -1097,7 +1097,7 @@ export default function InterviewBigCalendar({
                         size="sm"
                         variant="outline"
                         onClick={() => openFullscreenReschedule(selectedInterview)}
-                        className="h-8 text-xs font-semibold text-amber-600 dark:text-amber-400"
+                        className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold text-amber-600 dark:text-amber-400"
                       >
                         <RefreshCw className="h-3.5 w-3.5 mr-1 text-amber-500" /> Reschedule
                       </Button>
@@ -1105,7 +1105,7 @@ export default function InterviewBigCalendar({
                         size="sm"
                         variant="outline"
                         onClick={() => openFullscreenCancel(selectedInterview)}
-                        className="h-8 text-xs font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
+                        className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
                       >
                         <XCircle className="h-3.5 w-3.5 mr-1 text-rose-500" /> Cancel
                       </Button>
@@ -1117,7 +1117,7 @@ export default function InterviewBigCalendar({
                   size="sm"
                   variant="ghost"
                   onClick={() => setFullscreenModal(null)}
-                  className="h-8 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
                 >
                   Close
                 </Button>
@@ -1142,7 +1142,7 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-2xl md:max-w-3xl lg:max-w-4xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] overflow-y-auto"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-2xl md:max-w-3xl lg:max-w-4xl w-full p-5 sm:p-6 space-y-4 max-h-[92vh] max-md:max-h-[90dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -1155,7 +1155,7 @@ export default function InterviewBigCalendar({
                   variant="ghost"
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
+                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -1177,7 +1177,7 @@ export default function InterviewBigCalendar({
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
                   disabled={isSubmitting || saving}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold"
                 >
                   Cancel
                 </Button>
@@ -1185,7 +1185,7 @@ export default function InterviewBigCalendar({
                   size="sm"
                   onClick={handleSaveInterviewFullscreen}
                   disabled={isSubmitting || saving}
-                  className="h-8 text-xs font-semibold bg-[#14a800] hover:bg-[#118f00] text-white border-0"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold bg-[#14a800] hover:bg-[#118f00] text-white border-0"
                 >
                   {isSubmitting || saving
                     ? "Saving..."
@@ -1215,7 +1215,7 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 max-h-[90vh] max-md:max-h-[90dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="flex items-start justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -1225,12 +1225,12 @@ export default function InterviewBigCalendar({
                       Candidate Evaluation & Feedback
                     </h3>
                     {isCompletedEvaluation && (
-                      <Badge variant="outline" className="text-[10px] text-purple-600 gap-1">
+                      <Badge variant="outline" className="text-xs md:text-[10px] text-purple-600 gap-1">
                         <Lock className="h-3 w-3" /> Read-Only
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm md:text-xs text-zinc-500">
                     {format(parseISO(selectedInterview.scheduled_at), "MMM d, yyyy · h:mm a")}
                   </p>
                 </div>
@@ -1238,7 +1238,7 @@ export default function InterviewBigCalendar({
                   variant="ghost"
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
+                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -1247,8 +1247,8 @@ export default function InterviewBigCalendar({
               {/* Candidate Selector (if batch) */}
               {selectedInterview.applications && selectedInterview.applications.length > 1 && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Select Candidate</Label>
-                  <div className="grid grid-cols-2 gap-1.5">
+                  <Label className="text-sm md:text-xs font-semibold">Select Candidate</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {selectedInterview.applications.map((app) => (
                       <button
                         key={app.interview_application_id}
@@ -1258,14 +1258,14 @@ export default function InterviewBigCalendar({
                           setEvalAttendance(app.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
                           setEvalFeedback(app.feedback || "");
                         }}
-                        className={`p-2 rounded-xl text-left border text-xs transition-all ${
+                        className={`p-2 max-md:min-h-10 rounded-xl text-left border text-sm md:text-xs transition-all ${
                           evalAppId === app.interview_application_id
                             ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-bold"
                             : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                         }`}
                       >
                         <div className="truncate">{app.applicant_name}</div>
-                        <div className="text-[10px] text-zinc-400 truncate">{app.job_title}</div>
+                        <div className="text-xs md:text-[10px] text-zinc-400 truncate">{app.job_title}</div>
                       </button>
                     ))}
                   </div>
@@ -1274,13 +1274,13 @@ export default function InterviewBigCalendar({
 
               {/* Attendance Status */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Attendance Status</Label>
-                <div className="grid grid-cols-2 gap-2">
+                <Label className="text-sm md:text-xs font-semibold">Attendance Status</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     type="button"
                     disabled={isCompletedEvaluation}
                     onClick={() => setEvalAttendance("ATTENDED")}
-                    className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    className={`p-2.5 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                       evalAttendance === "ATTENDED"
                         ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300"
                         : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 opacity-60"
@@ -1292,7 +1292,7 @@ export default function InterviewBigCalendar({
                     type="button"
                     disabled={isCompletedEvaluation}
                     onClick={() => setEvalAttendance("NO_SHOW")}
-                    className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    className={`p-2.5 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                       evalAttendance === "NO_SHOW"
                         ? "bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300"
                         : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 opacity-60"
@@ -1305,25 +1305,25 @@ export default function InterviewBigCalendar({
 
               {/* Feedback Notes */}
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Recruiter Feedback & Notes</Label>
+                <Label className="text-sm md:text-xs font-semibold">Recruiter Feedback & Notes</Label>
                 <Textarea
                   value={evalFeedback}
                   onChange={(e) => setEvalFeedback(e.target.value)}
                   disabled={isCompletedEvaluation}
                   placeholder="Enter detailed evaluation notes, strengths, and areas for improvement..."
-                  className="text-xs min-h-[100px] rounded-xl"
+                  className="md:text-xs max-md:text-base min-h-[100px] rounded-xl"
                 />
               </div>
 
               {/* Decision Status */}
               {!isCompletedEvaluation && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Candidate Recommendation</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <Label className="text-sm md:text-xs font-semibold">Candidate Recommendation</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       type="button"
                       onClick={() => setEvalDecision("HIRED")}
-                      className={`p-2 rounded-xl border text-xs font-semibold text-center transition-all ${
+                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
                         evalDecision === "HIRED"
                           ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300"
                           : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
@@ -1334,7 +1334,7 @@ export default function InterviewBigCalendar({
                     <button
                       type="button"
                       onClick={() => setEvalDecision("REJECTED")}
-                      className={`p-2 rounded-xl border text-xs font-semibold text-center transition-all ${
+                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
                         evalDecision === "REJECTED"
                           ? "bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300"
                           : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
@@ -1345,7 +1345,7 @@ export default function InterviewBigCalendar({
                     <button
                       type="button"
                       onClick={() => setEvalDecision("NO_ACTION")}
-                      className={`p-2 rounded-xl border text-xs font-semibold text-center transition-all ${
+                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
                         evalDecision === "NO_ACTION"
                           ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300"
                           : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
@@ -1364,7 +1364,7 @@ export default function InterviewBigCalendar({
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
                   disabled={isSubmitting || saving}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold"
                 >
                   Close
                 </Button>
@@ -1373,7 +1373,7 @@ export default function InterviewBigCalendar({
                     size="sm"
                     onClick={handleSaveEvaluationFullscreen}
                     disabled={isSubmitting || saving}
-                    className="h-8 text-xs font-semibold bg-[#14a800] hover:bg-[#118f00] text-white border-0"
+                    className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold bg-[#14a800] hover:bg-[#118f00] text-white border-0"
                   >
                     {isSubmitting || saving ? "Saving..." : "Save Candidate Evaluation"}
                   </Button>
@@ -1400,7 +1400,7 @@ export default function InterviewBigCalendar({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 12 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-md w-full p-5 sm:p-6 space-y-4 max-h-[90vh] max-md:max-h-[90dvh] overflow-y-auto"
             >
               {/* Header */}
               <div className="flex items-start justify-between gap-3 border-b border-zinc-100 dark:border-zinc-800 pb-3">
@@ -1408,7 +1408,7 @@ export default function InterviewBigCalendar({
                   <h3 className="font-bold text-sm text-zinc-900 dark:text-white flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
                     <AlertCircle className="h-4 w-4" /> Cancel Interview
                   </h3>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm md:text-xs text-zinc-500">
                     {format(parseISO(selectedInterview.scheduled_at), "MMM d, yyyy · h:mm a")}
                   </p>
                 </div>
@@ -1416,14 +1416,14 @@ export default function InterviewBigCalendar({
                   variant="ghost"
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
-                  className="h-8 w-8 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
+                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
               {cancelError && (
-                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-sm md:text-xs flex items-center gap-2">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {cancelError}
                 </div>
@@ -1431,12 +1431,12 @@ export default function InterviewBigCalendar({
 
               {/* Reason Selection */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">Select Cancellation Reason</Label>
+                <Label className="text-sm md:text-xs font-semibold">Select Cancellation Reason</Label>
                 <div className="space-y-1.5">
                   {COMMON_CANCEL_REASONS.map((r) => (
                     <label
                       key={r}
-                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                      className={`flex items-center gap-2.5 p-2.5 max-md:min-h-10 rounded-xl border text-sm md:text-xs cursor-pointer transition-all ${
                         cancelReason === r
                           ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300 font-semibold"
                           : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1457,12 +1457,12 @@ export default function InterviewBigCalendar({
 
               {cancelReason === "Other reason" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Custom Cancellation Reason</Label>
+                  <Label className="text-sm md:text-xs font-semibold">Custom Cancellation Reason</Label>
                   <Textarea
                     value={customCancelReason}
                     onChange={(e) => setCustomCancelReason(e.target.value)}
                     placeholder="Please specify why this interview is being cancelled..."
-                    className="text-xs min-h-[80px] rounded-xl"
+                    className="md:text-xs max-md:text-base min-h-[80px] rounded-xl"
                   />
                 </div>
               )}
@@ -1474,7 +1474,7 @@ export default function InterviewBigCalendar({
                   size="sm"
                   onClick={() => setFullscreenModal(null)}
                   disabled={isSubmitting || saving}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold"
                 >
                   Cancel
                 </Button>
@@ -1483,7 +1483,7 @@ export default function InterviewBigCalendar({
                   variant="destructive"
                   onClick={handleConfirmCancelFullscreen}
                   disabled={isSubmitting || saving}
-                  className="h-8 text-xs font-semibold"
+                  className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold"
                 >
                   {isSubmitting || saving ? "Cancelling..." : "Confirm Cancellation"}
                 </Button>

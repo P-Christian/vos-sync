@@ -138,7 +138,7 @@ export default function FreelancerNotificationItem({
             {notification.title}
           </p>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[11px] text-zinc-400 whitespace-nowrap">
+            <span className="text-[11px] text-zinc-400 whitespace-nowrap max-md:text-sm">
               {formatRelativeTime(notification.created_at)}
             </span>
             <button
@@ -146,7 +146,7 @@ export default function FreelancerNotificationItem({
                 e.stopPropagation();
                 onToggleStar(notification.notification_id, isStarred);
               }}
-              className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-amber-500 transition-colors"
+              className="p-1 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-amber-500 transition-colors max-md:size-11"
               title={isStarred ? "Remove star" : "Star notification"}
             >
               <Star
