@@ -17,5 +17,21 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
+const DEFAULT_SENDER_NAME = "VOS Sync";
+const DEFAULT_SENDER_ADDRESS = "no-reply@vossync.com";
+
+const HEADER_INJECTION = /[\r\n]/;
+
+function resolveSender(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  if (!value || HEADER_INJECTION.test(value)) return null;
+  if (value.includes("<")) return value;
+  return `"${DEFAULT_SENDER_NAME}" <${value}>`;
+}
+
+// One sender for every mail path: SMTP_FROM -> SMTP_EMAIL -> built-in default.
+// Both transports import this so the two can never drift apart again.
 export const MAIL_FROM =
-  process.env.SMTP_FROM || `"VOS Sync" <no-reply@vossync.com>`;
+  resolveSender(process.env.SMTP_FROM) ??
+  resolveSender(process.env.SMTP_EMAIL) ??
+  `"${DEFAULT_SENDER_NAME}" <${DEFAULT_SENDER_ADDRESS}>`;

@@ -9,6 +9,8 @@ import AddressInfoStep from "./components/AddressInfoStep";
 import ConsentStep from "./components/ConsentStep";
 import OtpVerificationStep from "./components/OtpVerificationStep";
 import { clientRegistrationPayload } from "./types";
+import { useRegistrationChallenge } from "@/modules/auth/registration/client/useRegistrationChallenge";
+import type { RegistrationInput } from "@/modules/auth/registration/registration.schemas";
 import { CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,11 +26,51 @@ const STEP_LABELS: Record<string, string> = {
   consent: "Agreements & Consent",
 };
 
+/**
+ * Adapt this component's legacy, nested form shape to the role-agnostic
+ * challenge initiation contract. Do not pass the form object through: the
+ * unified schema is strict and the browser draft deliberately excludes
+ * sensitive fields such as passwords, contact details, and address data.
+ */
+function toRegistrationInput(
+  formData: Partial<clientRegistrationPayload>
+): RegistrationInput {
+  const account = formData.account;
+  const company = formData.company;
+  const address = formData.address;
+
+  return {
+    role: "CLIENT",
+    user_fname: account?.user_fname ?? "",
+    user_lname: account?.user_lname ?? "",
+    email: account?.user_email ?? "",
+    user_contact: account?.user_contact ?? "",
+    password: account?.password ?? "",
+    confirmPassword: account?.confirmPassword ?? "",
+    company_name: company?.company_name ?? "",
+    industry: company?.industry ?? "",
+    company_province: address?.company_province ?? "",
+    company_city: address?.company_city ?? "",
+    company_brgy: address?.company_brgy?.trim() || undefined,
+    company_size: company?.company_size?.trim() || undefined,
+    company_email: company?.company_email?.trim() || undefined,
+    company_website: company?.company_website?.trim() || undefined,
+    company_phone: company?.company_contact?.trim() || undefined,
+    marketing_consent: false,
+    // ConsentStep gates this handler, so these literal values satisfy the
+    // schema's required-consent contract while the server remains authoritative.
+    terms_accepted: true,
+    privacy_accepted: true,
+  };
+}
+
 export default function RegistrationModule({ onBack }: { onBack?: () => void }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("account");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [destination, setDestination] = useState<string | null>(null);
+  const registration = useRegistrationChallenge({ expectedRole: "CLIENT" });
   const [formData, setFormData] = useState<Partial<clientRegistrationPayload>>({
     account: {
       user_fname: "",
@@ -65,24 +107,31 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
     setFormData((prev) => ({ ...prev, ...fields }));
   };
 
+  // A recovered challenge is authoritative for the visible stage. Deriving
+  // this value avoids mutating React state from an effect during hydration.
+  const visibleStep: Step =
+    registration.phase === "active" || registration.phase === "verifying"
+      ? "otp"
+      : registration.phase === "success"
+        ? "success"
+        : step;
+
   const handleRegister = async () => {
     setError("");
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/client/registration", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      await registration.initiate(toRegistrationInput(formData));
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Registration failed. Please check your inputs.");
-      }
-
+      // The server has already sealed/hash-protected the credential in the
+      // challenge payload. Never retain plaintext passwords while waiting
+      // for OTP verification.
+      setFormData((prev) => ({
+        ...prev,
+        account: prev.account
+          ? { ...prev.account, password: "", confirmPassword: "" }
+          : prev.account,
+      }));
+      setDestination(null);
       setStep("otp");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
@@ -93,57 +142,27 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
 
   const handleVerifyOtp = async (otpCode: string): Promise<boolean> => {
     setError("");
-    try {
-      const response = await fetch("/api/client/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: formData.account?.user_email,
-          otpCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "OTP verification failed.");
-      }
-
-      setStep("success");
-      return true;
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Verification failed.");
-      return false;
-    }
+    const response = await registration.verify(otpCode);
+    setDestination(response.destination);
+    setStep("success");
+    return true;
   };
 
-  const handleResendOtp = async () => {
+  const handleResendOtp = async (): Promise<void> => {
     setError("");
-    try {
-      const response = await fetch("/api/client/registration", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to resend OTP.");
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred resending OTP.");
-      throw err;
-    }
+    await registration.resend();
   };
+
+  const visibleError =
+    error ||
+    (visibleStep !== "otp" && registration.phase === "error"
+      ? registration.error?.message ?? ""
+      : "");
 
   const renderProgressHeader = () => {
-    if (step === "otp" || step === "success") return null;
+    if (visibleStep === "otp" || visibleStep === "success") return null;
 
-    const currentStepIndex = STEP_ORDER.indexOf(step);
+    const currentStepIndex = STEP_ORDER.indexOf(visibleStep);
     const progressPercent = ((currentStepIndex + 1) / STEP_ORDER.length) * 100;
 
     return (
@@ -153,7 +172,7 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
             Step {currentStepIndex + 1} of {STEP_ORDER.length}
           </span>
           <span className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-            {STEP_LABELS[step]}
+            {STEP_LABELS[visibleStep]}
           </span>
         </div>
         <div className="w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -167,7 +186,7 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
   };
 
   const renderStep = () => {
-    switch (step) {
+    switch (visibleStep) {
       case "account":
         return (
           <AccountInfoStep
@@ -208,7 +227,7 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
       case "otp":
         return (
           <OtpVerificationStep
-            email={formData.account?.user_email || ""}
+            email={registration.emailMasked || "your email address"}
             onVerify={handleVerifyOtp}
             onResend={handleResendOtp}
           />
@@ -229,8 +248,9 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
 
             <Button
               onClick={() => {
-                router.push("/vos-sync/client/dashboard");
+                if (destination) router.push(destination);
               }}
+              disabled={!destination}
               className="w-full max-w-xs h-11 bg-primary text-white hover:bg-primary/95 font-medium rounded-lg text-base"
             >
               Go to Dashboard
@@ -254,12 +274,12 @@ export default function RegistrationModule({ onBack }: { onBack?: () => void }) 
         {renderProgressHeader()}
 
         <CardContent className="px-6 sm:px-8">
-          {error && (
+          {visibleError && (
             <div className="mb-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 text-sm text-rose-600 dark:text-rose-400 font-medium">
-              {error}
+              {visibleError}
             </div>
           )}
-          <div key={step} className="animate-slide-in">
+          <div key={visibleStep} className="animate-slide-in">
             {renderStep()}
           </div>
         </CardContent>

@@ -15,12 +15,17 @@ export async function POST(req: NextRequest) {
     const hashPassword = String(body?.hashPassword ?? body?.password ?? "").trim();
 
     try {
-        const { token, role_id, role, role_name } = await loginUser(email, hashPassword);
-
-        console.log(`[api/auth/login] Login success for ${email}: role_id=${role_id}, role=${role}, role_name=${role_name}`);
+        const { token, role_id, role, role_name, destination } = await loginUser(email, hashPassword);
 
         const res = NextResponse.json(
-            { ok: true, message: "Login successful.", role_id, role, role_name },
+            {
+                ok: true,
+                message: "Login successful.",
+                role_id,
+                role,
+                role_name,
+                destination,
+            },
             { headers: { "Cache-Control": "no-store" } }
         );
 
@@ -39,19 +44,23 @@ export async function POST(req: NextRequest) {
         return res;
 
     } catch (err: unknown) {
-        console.error("[auth/login] Login error:", err);
-        
         const errorMessage = err instanceof Error ? err.message : "Server is down, please contact Administrator.";
         const isClientError = errorMessage.includes("Credentials invalid") || 
                               errorMessage.includes("Account is blocked") || 
                               errorMessage.includes("Account is locked") || 
                               errorMessage.includes("Account locked") || 
                               errorMessage.includes("required");
-        const status = isClientError ? 400 : 500;
+        const isInactive = errorMessage.includes("not active or verified");
+        const status = isInactive ? 403 : isClientError ? 400 : 500;
 
         return NextResponse.json(
-            { ok: false, message: errorMessage },
-            { status }
+            {
+                ok: false,
+                message: status === 500
+                    ? "Login could not be completed."
+                    : errorMessage,
+            },
+            { status, headers: { "Cache-Control": "no-store" } }
         );
     }
 }

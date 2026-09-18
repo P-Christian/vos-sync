@@ -27,6 +27,7 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
             
             const formData = new FormData();
             formData.append("file", addressDoc);
+            formData.append("documentClass", "address_document");
             const uploadRes = await uploadVerificationDocumentAction(0 /* placeholder */, formData);
             
             if (!uploadRes.success) throw new Error(uploadRes.error);

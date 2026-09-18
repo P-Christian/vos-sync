@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import {
+    legacyRegistrationRetiredResponse,
+    parseDirectusUtcDateTime,
+} from '@/modules/auth/registration';
 import { sendOTP } from '@/modules/auth/services/email.service';
 import bcrypt from 'bcrypt';
 
@@ -15,6 +19,8 @@ function getHeaders() {
 }
 
 export async function POST(req: Request) {
+    const retired = legacyRegistrationRetiredResponse();
+    if (retired) return retired;
     try {
         const body = await req.json();
         const {
@@ -48,7 +54,8 @@ export async function POST(req: Request) {
             }
 
             const invite = tokenJson.data[0];
-            if (invite.is_used || new Date(invite.expires_at) < new Date()) {
+            const expiresAt = parseDirectusUtcDateTime(invite.expires_at);
+            if (invite.is_used || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
                 return NextResponse.json({ error: "Token is expired or already used" }, { status: 400 });
             }
             invitedSchoolId = invite.school_id;

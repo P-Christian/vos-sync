@@ -101,7 +101,7 @@ export function StepCard({ step, roleKey, isEven }: Props) {
                 size="sm"
                 onClick={handleActionClick}
                 disabled={loading}
-                className="font-bold text-xs gap-2 shadow-sm cursor-pointer"
+                className="font-bold text-xs gap-2 shadow-sm cursor-pointer h-11 md:h-8"
               >
                 {step.actionLabel}
                 <ArrowRight className="h-3.5 w-3.5" />

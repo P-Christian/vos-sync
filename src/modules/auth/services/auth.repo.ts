@@ -1,14 +1,17 @@
 // src/modules/auth/services/auth.repo.ts
 
 export async function getUserByEmail(email: string) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_BASE_URL = (
+        process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+    ).replace(/\/$/, "");
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
-    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+    if (!DIRECTUS_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(email)}`;
+    const normalizedEmail = email.trim().toLowerCase();
+    const url = `${DIRECTUS_BASE_URL}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(normalizedEmail)}`;
     
     const res = await fetch(url, {
         method: "GET",
@@ -31,6 +34,45 @@ export async function getUserByEmail(email: string) {
     }
     
     return null;
+}
+
+/**
+ * Checks whether an email is already present without loading the full user
+ * record. Registration uses this as an advisory preflight; uniqueness remains
+ * authoritative in Directus during provisioning.
+ */
+export async function userExistsByEmail(email: string): Promise<boolean> {
+    const directusBaseUrl = (
+        process.env.DIRECTUS_URL ||
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        ""
+    ).replace(/\/$/, "");
+    const directusToken = process.env.DIRECTUS_STATIC_TOKEN;
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!directusBaseUrl || !directusToken) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${directusBaseUrl}/items/vs_user?filter[user_email][_eq]=${encodeURIComponent(
+        normalizedEmail
+    )}&fields=user_id&limit=1`;
+
+    const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${directusToken}`,
+            "Content-Type": "application/json",
+        },
+        cache: "no-store",
+    });
+
+    if (!res.ok) {
+        throw new Error(`Failed to check user email in Directus: HTTP ${res.status}`);
+    }
+
+    const json = (await res.json()) as { data?: unknown };
+    return Array.isArray(json.data) && json.data.length > 0;
 }
 
 export async function createUser(userData: Record<string, unknown>) {
@@ -62,10 +104,16 @@ export async function createUser(userData: Record<string, unknown>) {
 }
 
 export async function getUserById(userId: string | number) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_BASE_URL = (
+        process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+    ).replace(/\/$/, "");
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_user/${userId}`;
+    if (!DIRECTUS_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    const url = `${DIRECTUS_BASE_URL}/items/vs_user/${encodeURIComponent(String(userId))}`;
 
     const res = await fetch(url, {
         method: "GET",

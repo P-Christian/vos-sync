@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2, MapPin, Clock, DollarSign } from "lucide-react";
+import { Search, Loader2, MapPin, Clock, DollarSign, Filter, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CompanyJob, PublicCompanyProfile } from "../../types";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
 
   const [selectedJob, setSelectedJob] = useState<PublicJobPosting | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Filters state
   const [search, setSearch] = useState("");
@@ -49,6 +50,8 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
 
   const limit = 5;
   const totalPages = Math.ceil(total / limit);
+  const activeFilterCount =
+    (search.trim() ? 1 : 0) + (jobType !== "ALL" ? 1 : 0) + (arrangement !== "ALL" ? 1 : 0);
 
   const loadJobs = async () => {
     setIsLoading(true);
@@ -148,11 +151,8 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
     setIsDetailOpen(true);
   };
 
-  return (
-    <div className="space-y-6 font-sans">
-      {/* Search and Filters box */}
-      <div className="bg-card border border-border rounded-2xl p-5 shadow-xs">
-        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+  const filterPanel = (
+    <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
           {/* Text search */}
           <div className="md:col-span-4 relative">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -161,7 +161,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
               placeholder="Search job title..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-10 rounded-xl text-xs font-medium"
+              className="pl-9 h-11 md:h-10 rounded-xl text-base md:text-xs font-medium"
             />
           </div>
 
@@ -175,7 +175,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                 setPage(1);
               }}
               placeholder="All Types"
-              className="h-10 rounded-xl text-xs font-medium"
+              className="h-11 md:h-10 rounded-xl text-sm md:text-xs font-medium"
             />
           </div>
 
@@ -189,13 +189,13 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                 setPage(1);
               }}
               placeholder="All Setup"
-              className="h-10 rounded-xl text-xs font-medium"
+              className="h-11 md:h-10 rounded-xl text-sm md:text-xs font-medium"
             />
           </div>
 
           {/* Action buttons */}
           <div className="md:col-span-2 flex gap-2">
-            <Button type="submit" disabled={isLoading} className="flex-1 h-10 rounded-xl font-semibold cursor-pointer gap-1 text-xs">
+            <Button type="submit" disabled={isLoading} className="flex-1 h-11 md:h-10 rounded-xl font-semibold cursor-pointer gap-1 text-sm md:text-xs">
               {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
               {isLoading ? "..." : "Search"}
             </Button>
@@ -203,14 +203,50 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
               type="button"
               variant="outline"
               onClick={handleResetFilters}
-              className="h-10 px-3 rounded-xl border-input hover:bg-muted text-xs font-medium cursor-pointer"
+              className="h-11 md:h-10 px-3 rounded-xl border-input hover:bg-muted text-sm md:text-xs font-medium cursor-pointer"
               title="Reset Filters"
             >
               Reset
             </Button>
           </div>
-        </form>
+    </form>
+  );
+
+  return (
+    <div className="space-y-6 font-sans">
+      {/* Mobile filter trigger (below md only; the inline panel stays at >=768px) */}
+      <div className="md:hidden">
+        <Button
+          type="button"
+          onClick={() => setIsFilterOpen((open) => !open)}
+          aria-expanded={isFilterOpen}
+          aria-controls="jobs-filter-panel"
+          className="w-full h-11 justify-between text-sm font-semibold shadow-sm cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filters
+          </span>
+          <span className="flex items-center gap-2">
+            {activeFilterCount > 0 && (
+              <span className="h-5 min-w-5 px-1.5 rounded-full bg-primary-foreground/20 text-primary-foreground text-xs font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown className={`h-4 w-4 transition-transform ${isFilterOpen ? "rotate-180" : ""}`} />
+          </span>
+        </Button>
       </div>
+
+      {/* Mobile filter panel — rendered inline so the on-screen keyboard can never cover it (below md only; the inline card stays at >=768px) */}
+      {isFilterOpen && (
+        <div id="jobs-filter-panel" className="md:hidden bg-card border border-border rounded-2xl p-5 shadow-xs">
+          {filterPanel}
+        </div>
+      )}
+
+      {/* Search and Filters box (inline at >=768px; below md the same panel renders inline above) */}
+      <div className="hidden md:block bg-card border border-border rounded-2xl p-5 shadow-xs">{filterPanel}</div>
 
       {/* Jobs results list */}
       <div className="space-y-4">
@@ -251,7 +287,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
               transition={{ duration: 0.25 }}
               className="flex flex-col gap-4"
             >
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 {jobs.map((job, idx) => (
                   <motion.div
                     key={job.id}
@@ -260,25 +296,25 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                     transition={{ duration: 0.3, delay: Math.min(idx * 0.05, 0.3) }}
                     whileHover={{ y: -3, transition: { duration: 0.2 } }}
                     onClick={() => handleOpenJobDetail(job)}
-                    className="group bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-primary/40 transition-shadow duration-300 flex flex-col justify-between cursor-pointer"
+                    className="group bg-card border border-border p-4 sm:p-5 rounded-2xl hover:shadow-lg hover:border-primary/40 transition-shadow duration-300 flex flex-col justify-between cursor-pointer"
                   >
-                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                       <div>
-                        <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer">
+                        <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer">
                           {job.title}
                         </h3>
                         {job.department && (
-                          <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block mt-1">
+                          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block mt-1">
                             {job.department}
                           </span>
                         )}
                       </div>
 
                       <div className="flex flex-wrap gap-2 shrink-0">
-                        <Badge variant="outline" className="rounded-xl px-2.5 py-0.5 font-semibold text-xs bg-muted/30">
+                        <Badge variant="outline" className="rounded-xl px-2.5 py-0.5 font-semibold text-[10px] bg-muted/30">
                           {formatJobType(job.type)}
                         </Badge>
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 font-semibold px-2.5 py-0.5 rounded-xl text-xs border-none">
+                        <Badge variant="secondary" className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 font-semibold px-2.5 py-0.5 rounded-xl text-[10px] border-none">
                           {job.work_arrangement}
                         </Badge>
                       </div>
@@ -286,7 +322,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
 
                     {/* Skills/Tags */}
                     {job.tags && job.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-4">
+                      <div className="flex flex-wrap gap-1.5 mb-2.5">
                         {job.tags.map((tag) => (
                           <Badge key={tag} variant="secondary" className="px-2 py-0.5 text-[10px] font-semibold rounded-md">
                             {tag}
@@ -296,27 +332,27 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                     )}
 
                     {/* Footer details row */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4 text-sm text-muted-foreground mt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground mt-2">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-medium">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4 shrink-0" />
                           {job.location}
                         </span>
-                        <span className="flex items-center gap-1 text-foreground font-semibold">
+                        <span className="flex items-center gap-1 text-foreground font-semibold text-sm">
                           <DollarSign className="w-4 h-4 shrink-0 text-muted-foreground" />
                           {job.salary}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5" />
                           {job.posted}
                         </span>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="rounded-xl font-semibold cursor-pointer shadow-xs"
+                          className="rounded-xl font-semibold cursor-pointer shadow-xs text-xs"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenJobDetail(job);

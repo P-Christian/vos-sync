@@ -44,11 +44,11 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4), ease: [0.21, 0.45, 0.27, 0.9] }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
-      className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/40 transition-shadow duration-300 flex flex-col md:flex-row gap-6 items-start"
+      className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/40 transition-shadow duration-300 flex flex-col md:flex-row gap-6 items-start max-md:grid max-md:grid-cols-[4rem_minmax(0,1fr)] max-md:gap-x-4 max-md:gap-y-0"
     >
 
       {/* Brand logo container */}
-      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden relative">
+      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden relative max-md:col-start-1 max-md:row-start-2 max-md:row-end-4">
         {company_logo ? (
           <Image
             src={company_logo}
@@ -66,29 +66,30 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
         )}
       </div>
 
-      <div className="flex-1 min-w-0 w-full flex flex-col justify-between h-full">
-        <div>
+      {/* On mobile these wrappers are display:contents so their children join the card grid */}
+      <div className="flex-1 min-w-0 w-full flex flex-col justify-between h-full max-md:contents">
+        <div className="max-md:contents">
           {/* Company Title Header */}
-          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <h3 className="text-xl font-bold text-foreground hover:text-primary transition-colors">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5 max-md:contents">
+            <h3 className="text-base sm:text-xl font-bold text-foreground hover:text-primary transition-colors max-md:col-start-2 max-md:row-start-2">
               <Link href={`/companies/${company_code}`}>{company_name}</Link>
             </h3>
             {verified && (
-              <Badge variant="secondary" className="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full text-[10px] border-none select-none">
+              <Badge variant="secondary" className="bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 font-semibold px-2 py-0.5 rounded-full text-[10px] border-none select-none max-md:col-start-1 max-md:col-end-3 max-md:row-start-1 max-md:mb-2">
                 ✓ Verified Employer
               </Badge>
             )}
           </div>
 
           {/* Subheaders details */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground mb-3 font-medium">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground mb-3 font-medium max-md:flex-col max-md:items-start max-md:gap-y-0.5 max-md:col-start-2 max-md:row-start-3 max-md:mt-1 max-md:mb-0">
             <span>{industry_name || "General Business"}</span>
-            <span>•</span>
+            <span className="max-md:hidden">•</span>
             <span>{company_size_name || "Unknown size"}</span>
             {company_address && (
               <>
-                <span>•</span>
-                <span className="flex items-center gap-1 max-w-[200px] md:max-w-xs truncate">
+                <span className="max-md:hidden">•</span>
+                <span className="flex items-center gap-1 max-w-[200px] md:max-w-xs truncate max-md:hidden">
                   <MapPin className="w-3.5 h-3.5" />
                   {company_address.split(",")[0]}
                 </span>
@@ -98,14 +99,14 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
 
           {/* Short description */}
           {company_description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed max-md:col-start-1 max-md:col-end-3 max-md:row-start-4 max-md:mt-3">
               {company_description}
             </p>
           )}
         </div>
 
         {/* Action footer */}
-        <div className="flex items-center justify-between border-t border-border pt-4 mt-auto">
+        <div className="flex flex-wrap items-center justify-between gap-y-3 border-t border-border pt-4 mt-auto max-md:flex-col max-md:items-stretch max-md:gap-y-2 max-md:col-start-1 max-md:col-end-3 max-md:row-start-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Briefcase className="w-4 h-4 text-muted-foreground" />
             <span>
@@ -113,19 +114,20 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="rounded-xl font-medium" asChild>
+          <div className="flex items-center gap-2 max-md:w-full">
+            <Button variant="ghost" size="sm" className="text-xs sm:text-sm rounded-xl font-medium max-md:flex-1" asChild>
               <Link href={`/companies/${company_code}`}>View Profile</Link>
             </Button>
             
             {activeJobsCount > 0 ? (
-              <Button size="sm" className="rounded-xl font-medium cursor-pointer shadow-sm" asChild>
+              <Button size="sm" className="text-xs sm:text-sm rounded-xl font-medium cursor-pointer shadow-sm max-md:flex-1" asChild>
                 <Link href={`/companies/${company_code}?tab=jobs`}>
-                  View {activeJobsCount} Open Jobs
+                  <span className="max-md:hidden">View {activeJobsCount} Open Jobs</span>
+                  <span className="md:hidden">View Jobs</span>
                 </Link>
               </Button>
             ) : (
-              <Button size="sm" variant="outline" className="rounded-xl font-medium opacity-60 cursor-not-allowed" disabled>
+              <Button size="sm" variant="outline" className="text-xs sm:text-sm rounded-xl font-medium opacity-60 cursor-not-allowed max-md:flex-1" disabled>
                 No Open Positions
               </Button>
             )}
@@ -135,4 +137,3 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
     </motion.div>
   );
 }
-

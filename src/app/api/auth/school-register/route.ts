@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import {
+    legacyRegistrationRetiredResponse,
+    parseDirectusUtcDateTime,
+} from '@/modules/auth/registration';
 import { sendOTP } from '@/modules/auth/services/email.service';
 import bcrypt from 'bcrypt';
 
@@ -15,6 +19,8 @@ function getHeaders() {
 }
 
 export async function GET(req: Request) {
+    const retired = legacyRegistrationRetiredResponse();
+    if (retired) return retired;
     try {
         const { searchParams } = new URL(req.url);
         const token = searchParams.get('token');
@@ -37,7 +43,8 @@ export async function GET(req: Request) {
             return NextResponse.json({ valid: false, reason: "used" }, { status: 400 });
         }
 
-        if (new Date(invite.expires_at) < new Date()) {
+        const expiresAt = parseDirectusUtcDateTime(invite.expires_at);
+        if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
             return NextResponse.json({ valid: false, reason: "expired" }, { status: 400 });
         }
 
@@ -55,6 +62,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const retired = legacyRegistrationRetiredResponse();
+    if (retired) return retired;
     try {
         const body = await req.json();
         const { token, user_fname, user_lname, user_contact, password } = body;
@@ -74,7 +83,8 @@ export async function POST(req: Request) {
 
         const invite = tokenJson.data[0];
 
-        if (invite.is_used || new Date(invite.expires_at) < new Date()) {
+        const expiresAt = parseDirectusUtcDateTime(invite.expires_at);
+        if (invite.is_used || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
             return NextResponse.json({ error: "Token is expired or already used" }, { status: 400 });
         }
 

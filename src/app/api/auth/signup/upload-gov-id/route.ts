@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,8 @@ const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
  * Returns: { fileId: string }
  */
 export async function POST(req: NextRequest) {
+  const retired = legacyRegistrationRetiredResponse();
+  if (retired) return retired;
   try {
     if (!DIRECTUS_BASE) {
       return NextResponse.json(

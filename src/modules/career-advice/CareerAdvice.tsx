@@ -138,21 +138,21 @@ export default function CareerAdvice() {
   const session = useAuthSession();
 
   return (
-    <div className="bg-background text-foreground font-sans pt-16">
+    <div className="bg-background text-foreground font-sans md:pt-16">
       {/* HERO */}
-      <section className="relative overflow-hidden pt-20 pb-20 md:pt-28 md:pb-28">
+      <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-28">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm text-sm border-zinc-200 dark:border-zinc-800">
             Career Advice
           </Badge>
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
+          <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
             Level up your{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
               career game.
             </span>
           </h1>
-          <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
             Expert articles, step-by-step guides, and real-world strategies for every stage of your career journey.
           </p>
 
@@ -161,7 +161,7 @@ export default function CareerAdvice() {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.label}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-900 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-900 hover:border-zinc-900 dark:hover:border-zinc-100 transition-all duration-150 cursor-pointer font-medium"
+                  className="inline-flex items-center gap-1.5 px-4 py-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-900 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-900 hover:border-zinc-900 dark:hover:border-zinc-100 transition-all duration-150 cursor-pointer font-medium"
               >
                 {cat.label}
                 <span className="text-xs opacity-60">({cat.count})</span>
@@ -187,7 +187,7 @@ export default function CareerAdvice() {
           <div className="group border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 bg-white dark:bg-zinc-900/60 cursor-pointer">
             <div className="grid grid-cols-1 lg:grid-cols-5">
               {/* Visual placeholder */}
-              <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-700 p-12 flex flex-col justify-between min-h-[280px]">
+              <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 md:p-12 flex flex-col justify-between min-h-[180px] md:min-h-[280px]">
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
@@ -198,7 +198,7 @@ export default function CareerAdvice() {
               </div>
 
               {/* Content */}
-              <div className="lg:col-span-3 p-8 md:p-10 flex flex-col justify-center">
+              <div className="lg:col-span-3 p-6 md:p-10 flex flex-col justify-center">
                 <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[FEATURED_ARTICLE.category] || "bg-zinc-100 text-zinc-700"}`}>
                   {FEATURED_ARTICLE.category}
                 </Badge>
@@ -213,7 +213,7 @@ export default function CareerAdvice() {
                     <span>·</span>
                     <span>{FEATURED_ARTICLE.date}</span>
                   </div>
-                  <Button size="sm" variant="outline" className="rounded-full cursor-pointer group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 group-hover:text-white dark:group-hover:text-zinc-900 group-hover:border-zinc-900 dark:group-hover:border-zinc-100 transition-all border-zinc-200 dark:border-zinc-800">
+                  <Button size="sm" variant="outline"             className="rounded-full cursor-pointer group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 group-hover:text-white dark:group-hover:text-zinc-900 group-hover:border-zinc-900 dark:group-hover:border-zinc-100 transition-all border-zinc-200 dark:border-zinc-800 h-11 md:h-8">
                     Read now <ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </div>
@@ -233,11 +233,11 @@ export default function CareerAdvice() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {ARTICLES.map((article) => (
               <div
                 key={article.id}
-                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer flex flex-col"
+                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer flex flex-col"
               >
                 <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[article.category] || "bg-zinc-100 text-zinc-700"}`}>
                   {article.category}
@@ -260,7 +260,7 @@ export default function CareerAdvice() {
           </div>
 
           <div className="mt-10 text-center">
-            <Button size="lg" variant="outline" className="rounded-full px-8 cursor-pointer border-zinc-200 dark:border-zinc-800">
+            <Button size="lg" variant="outline"             className="rounded-full px-8 cursor-pointer border-zinc-200 dark:border-zinc-800 h-11 md:h-10">
               Load more articles
             </Button>
           </div>
@@ -268,9 +268,9 @@ export default function CareerAdvice() {
       </section>
 
       {/* GUIDES SECTION */}
-      <section className="py-20 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
+      <section className="py-14 md:py-20 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
             <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Structured Learning</p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">In-depth guides</h2>
             <p className="text-zinc-500 dark:text-zinc-400">
@@ -278,7 +278,7 @@ export default function CareerAdvice() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {GUIDES.map((guide) => (
               <div
                 key={guide.title}
@@ -300,9 +300,9 @@ export default function CareerAdvice() {
       </section>
 
       {/* DYNAMIC CTA STRIP */}
-      <section className="py-20">
+      <section className="py-14 md:py-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-8 py-14 md:px-16 text-center relative overflow-hidden">
+          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-6 py-10 md:px-16 md:py-14 text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
 
@@ -314,13 +314,13 @@ export default function CareerAdvice() {
                   Apply expert insights directly to your active job applications and land interviews faster.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Go to Job Seeker Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs" className="flex items-center gap-2">
                       <Briefcase className="h-4 w-4" />
                       Find Jobs
@@ -336,13 +336,13 @@ export default function CareerAdvice() {
                   Learn how industry-leading companies source, interview, and retain world-class talent.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/talent-search" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Find Talent
@@ -358,13 +358,13 @@ export default function CareerAdvice() {
                   Access your dashboard tools to guide candidate career readiness and manage verification.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Go to Dashboard
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs</Link>
                   </Button>
                 </div>
@@ -377,10 +377,10 @@ export default function CareerAdvice() {
                   Weekly advice from industry experts — no spam, no filler. Just insights that move your career forward.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/signup">Create Free Account</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer">
+                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>

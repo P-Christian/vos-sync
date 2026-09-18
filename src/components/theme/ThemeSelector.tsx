@@ -18,7 +18,7 @@ export function ThemeSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md border border-zinc-200 bg-white/50 text-zinc-900 shadow-sm hover:bg-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-100 dark:hover:bg-zinc-900">
+        <Button variant="ghost" size="icon" className="size-11 rounded-md border border-zinc-200 bg-white/50 text-zinc-900 shadow-sm hover:bg-zinc-100 focus-visible:ring-1 focus-visible:ring-zinc-300 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-100 dark:hover:bg-zinc-900">
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>

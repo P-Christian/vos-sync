@@ -47,6 +47,14 @@ next-env.d.ts
 /AGENTS.md
 /backup/
 /scm-vault/
+/.postman/
+/postman/
+
+.omo/
+
+# agent + browser artifacts — never commit (visual evidence belongs in the OS temp dir, not the repo)
+/.playwright-mcp/
+/visual-qa-evidence/
 
 
 zmine/

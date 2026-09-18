@@ -2,6 +2,7 @@
 "use client";
 
 
+import { useState } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,10 +44,20 @@ export default function HowItWorksModule({
     return defaultRole;
   };
 
-  const activeRole = getRoleFromQuery();
+  const queryRole = getRoleFromQuery();
+  const [optimisticRole, setOptimisticRole] = useState<RoleKey | null>(null);
+  const [lastQueryRole, setLastQueryRole] = useState(queryRole);
+
+  if (queryRole !== lastQueryRole) {
+    setLastQueryRole(queryRole);
+    setOptimisticRole(null);
+  }
+
+  const activeRole = optimisticRole ?? queryRole;
 
   const handleRoleChange = (newRole: RoleKey) => {
     if (singleRoleMode) return;
+    setOptimisticRole(newRole);
     const params = new URLSearchParams(searchParams.toString());
     params.set("role", newRole);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });

@@ -21,13 +21,13 @@ export function NeedHelpSection() {
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          <Button asChild variant="outline" size="sm" className="font-bold text-xs gap-1.5">
+          <Button asChild variant="outline" size="sm" className="font-bold text-xs gap-1.5 h-11 md:h-8">
             <Link href="/contact-us">
               <Mail className="h-3.5 w-3.5" />
               Contact Support
             </Link>
           </Button>
-          <Button asChild size="sm" className="font-bold text-xs gap-1.5">
+          <Button asChild size="sm" className="font-bold text-xs gap-1.5 h-11 md:h-8">
             <Link href="/contact-us">
               <MessageSquare className="h-3.5 w-3.5" />
               Help Center

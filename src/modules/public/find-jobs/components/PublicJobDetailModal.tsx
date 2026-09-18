@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +60,7 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="!max-w-3xl w-[92vw] max-h-[88vh] flex flex-col p-0 overflow-hidden bg-card border shadow-2xl rounded-2xl">
         {/* Header */}
-        <DialogHeader className="p-6 border-b bg-muted/20 shrink-0">
+        <DialogHeader className="text-left p-4 md:p-6 border-b bg-muted/20 shrink-0">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
               <a
@@ -102,13 +101,14 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
                 <DialogTitle className="text-xl font-extrabold text-foreground mt-0.5">
                   {job.job_title}
                 </DialogTitle>
+                {/* Mobile shows job type before the address (order-* only; the DOM order and the sm: reset keep desktop exactly as it was) */}
                 <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-3 mt-1">
-                  <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1 order-3 sm:order-none">
                     <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                     {job.location}
                   </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
+                  <span className="order-2 sm:order-none">•</span>
+                  <span className="flex items-center gap-1 order-1 sm:order-none">
                     <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
                     {job.job_type} • {job.work_setup}
                   </span>
@@ -119,9 +119,9 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
         </DialogHeader>
 
         {/* Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-sm">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 text-sm">
           {/* Quick Summary Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl border bg-muted/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-3 md:p-4 rounded-xl border bg-muted/20">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">Salary Range</span>
               <span className="font-extrabold text-foreground text-sm flex items-center gap-1 mt-0.5">
@@ -227,21 +227,21 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
 
           {/* Dynamic Notice Box */}
           {session.isJobSeeker ? (
-            <div className="p-3.5 rounded-xl border border-indigo-200/50 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-300 text-xs flex items-center gap-2.5">
+            <div className="p-3 md:p-3.5 rounded-xl border border-indigo-200/50 bg-indigo-50/40 dark:bg-indigo-950/20 dark:border-indigo-900/40 text-indigo-900 dark:text-indigo-300 text-xs flex items-center gap-2.5">
               <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
               <span>
                 <strong>Logged In:</strong> You are ready to apply with your active Job Seeker profile.
               </span>
             </div>
           ) : session.isEmployer ? (
-            <div className="p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-950/30 dark:border-amber-900/40 text-amber-900 dark:text-amber-300 text-xs flex items-center gap-2.5">
+            <div className="p-3 md:p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-950/30 dark:border-amber-900/40 text-amber-900 dark:text-amber-300 text-xs flex items-center gap-2.5">
               <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>
                 <strong>Employer Preview:</strong> Viewing this position in public preview mode.
               </span>
             </div>
           ) : (
-            <div className="p-3.5 rounded-xl border border-muted bg-muted/40 text-muted-foreground text-xs flex items-center gap-2.5">
+            <div className="p-3 md:p-3.5 rounded-xl border border-muted bg-muted/40 text-muted-foreground text-xs flex items-center gap-2.5">
               <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
               <span>
                 <strong>Sign in to apply</strong> — Create a free Job Seeker account or sign in to submit your application.
@@ -250,34 +250,6 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
           )}
         </div>
 
-        {/* Footer */}
-        <DialogFooter className="p-4 border-t bg-muted/10 flex items-center justify-between gap-3 shrink-0">
-          <Button variant="outline" size="sm" onClick={onClose} className="text-xs font-semibold">
-            Continue Browsing Jobs
-          </Button>
-          {session.isJobSeeker ? (
-            <Button asChild size="sm" className="font-bold text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white">
-              <Link href={targetPath}>
-                Apply Now
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          ) : session.isEmployer ? (
-            <Button asChild size="sm" className="font-bold text-xs gap-1.5">
-              <Link href="/vos-sync/client/manage-jobs">
-                Go to Client Portal
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="sm" className="font-bold text-xs gap-1.5">
-              <Link href={loginHref}>
-                Sign In to Apply
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </Button>
-          )}
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
