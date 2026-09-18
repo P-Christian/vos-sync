@@ -90,12 +90,12 @@ function SearchInput({
 
   return (
     <div className="relative flex-1 w-full">
-      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground max-md:top-1/2 max-md:-translate-y-1/2" />
       <Input
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="rounded-lg pl-8"
+        className="rounded-lg pl-8 max-md:h-11"
       />
       {isLoading && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -263,7 +263,7 @@ export function DataTable<TData, TValue>({
           {actionComponent}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 max-md:min-h-11">
                 <Settings2 className="h-4 w-4" />
                 View
               </Button>
@@ -366,21 +366,21 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex-1 text-sm text-muted-foreground font-medium">
+      <div className="flex items-center justify-between px-2 max-md:flex-wrap max-md:justify-center max-md:gap-3">
+        <div className="flex-1 min-w-0 text-sm text-muted-foreground font-medium max-md:text-xs">
           Showing {table.getRowModel().rows.length} of{" "}
           {table.getFilteredRowModel().rows.length} record(s)
         </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
+        <div className="flex items-center space-x-6 lg:space-x-8 max-md:space-x-3">
           <div className="flex items-center space-x-2">
-            <p className="text-sm font-bold">Rows per page</p>
+            <p className="text-sm font-bold max-md:text-xs">Rows per page</p>
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
                 table.setPageSize(Number(value));
               }}
             >
-              <SelectTrigger className="h-8 w-[70px] rounded-lg">
+              <SelectTrigger className="h-8 w-[70px] rounded-lg max-md:min-h-11">
                 <SelectValue
                   placeholder={table.getState().pagination.pageSize}
                 />
@@ -394,14 +394,14 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex w-[100px] items-center justify-center text-sm font-bold">
+          <div className="flex w-[100px] items-center justify-center text-sm font-bold max-md:w-auto max-md:text-xs">
             Page {table.getState().pagination.pageIndex + 1} of{" "}
             {table.getPageCount()}
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex rounded-lg"
+              className="hidden h-8 w-8 p-0 lg:flex rounded-lg max-md:size-11"
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
             >
@@ -410,7 +410,7 @@ export function DataTable<TData, TValue>({
             </Button>
             <Button
               variant="outline"
-              className="h-8 w-8 p-0 rounded-lg"
+              className="h-8 w-8 p-0 rounded-lg max-md:size-11"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
@@ -419,7 +419,7 @@ export function DataTable<TData, TValue>({
             </Button>
             <Button
               variant="outline"
-              className="h-8 w-8 p-0 rounded-lg"
+              className="h-8 w-8 p-0 rounded-lg max-md:size-11"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
@@ -428,7 +428,7 @@ export function DataTable<TData, TValue>({
             </Button>
             <Button
               variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex rounded-lg"
+              className="hidden h-8 w-8 p-0 lg:flex rounded-lg max-md:size-11"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
             >

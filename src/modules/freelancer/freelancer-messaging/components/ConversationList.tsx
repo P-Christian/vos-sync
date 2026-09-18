@@ -80,7 +80,7 @@ export default function ConversationList({
               onClick={onToggleArchived}
               title={showArchived ? "Hide archived" : "Show archived"}
               className={cn(
-                "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300",
+                "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 max-md:size-11 max-md:grid max-md:place-items-center",
                 showArchived &&
                   "bg-primary/10 text-primary"
               )}
@@ -91,7 +91,7 @@ export default function ConversationList({
               onClick={onRefresh}
               disabled={loading}
               title="Refresh"
-              className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40"
+              className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
             >
               <RefreshCw
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
@@ -108,7 +108,7 @@ export default function ConversationList({
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+            className="w-full pl-9 pr-3 py-2 rounded-xl text-base md:text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition max-md:min-h-11"
           />
         </div>
       </div>
@@ -118,7 +118,7 @@ export default function ConversationList({
         <button
           onClick={() => setFilterTab("ALL")}
           className={cn(
-            "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+            "px-3 py-1.5 rounded-lg text-sm md:text-xs font-medium transition-colors max-md:min-h-11",
             filterTab === "ALL"
               ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
               : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -129,7 +129,7 @@ export default function ConversationList({
         <button
           onClick={() => setFilterTab("UNREAD")}
           className={cn(
-            "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5",
+            "px-3 py-1.5 rounded-lg text-sm md:text-xs font-medium transition-colors flex items-center gap-1.5 max-md:min-h-11",
             filterTab === "UNREAD"
               ? "bg-rose-500 text-white"
               : "text-zinc-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 dark:hover:text-rose-400"
@@ -170,7 +170,7 @@ export default function ConversationList({
               <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                 {searchQuery ? "No results found" : showArchived ? "No archived messages" : "No messages yet"}
               </p>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-sm md:text-xs text-zinc-400 mt-1">
                 {searchQuery
                   ? "Try a different search term"
                   : "When employers message you about your applications, they will appear here."}

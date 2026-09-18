@@ -235,7 +235,7 @@ export default function InterviewsModule() {
 
   return (
     <CompanyVerificationGuard moduleName="Interviews Workspace">
-      <div className="space-y-6 client-page-transition">
+      <div className="space-y-4 md:space-y-6 client-page-transition">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -247,14 +247,14 @@ export default function InterviewsModule() {
         `}</style>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-4 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
           <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
             <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
               <CalendarDays className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Interview & Batch Screening Workspace</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Interview & Batch Screening Workspace</h1>
               <p className="text-sm text-zinc-300 mt-1">
                 Schedule candidate batch interviews, review screening answers, and record individual candidate evaluations.
               </p>
@@ -263,7 +263,7 @@ export default function InterviewsModule() {
 
           <Button
             onClick={handleOpenSchedule}
-            className="relative z-10 h-10 px-5 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-md gap-2"
+            className="relative z-10 h-10 max-md:min-h-10 px-5 max-md:px-4 text-sm max-md:text-xs md:text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-md gap-2"
           >
             <Plus className="h-4 w-4" />
             Schedule Interview
@@ -286,7 +286,7 @@ export default function InterviewsModule() {
 
         {/* Filter & View Switcher Card */}
         <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 p-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 p-4 max-md:p-3 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-md:gap-2">
             <div className="flex items-center gap-3 flex-wrap">
               <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
                 Schedule & Interviews
@@ -297,7 +297,7 @@ export default function InterviewsModule() {
                 <button
                   type="button"
                   onClick={() => setViewMode("calendar")}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  className={`flex items-center gap-1.5 px-3 max-md:px-2.5 py-1 max-md:min-h-10 text-xs font-semibold rounded-md transition-all ${
                     viewMode === "calendar"
                       ? "bg-white dark:bg-zinc-950 text-indigo-600 dark:text-indigo-400 shadow-2xs"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
@@ -309,7 +309,7 @@ export default function InterviewsModule() {
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
-                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  className={`flex items-center gap-1.5 px-3 max-md:px-2.5 py-1 max-md:min-h-10 text-xs font-semibold rounded-md transition-all ${
                     viewMode === "list"
                       ? "bg-white dark:bg-zinc-950 text-indigo-600 dark:text-indigo-400 shadow-2xs"
                       : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
@@ -321,15 +321,15 @@ export default function InterviewsModule() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3 max-md:gap-2 flex-wrap">
               {/* Search */}
-              <div className="relative w-full sm:w-60">
+              <div className="relative w-full max-md:min-w-0 max-md:flex-1 sm:w-60">
                 <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-zinc-400" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search candidate / role..."
-                  className="h-8 pl-8 text-xs rounded-lg"
+                  className="h-8 pl-8 md:text-xs max-md:h-10 max-md:pr-2.5 max-md:text-base rounded-lg"
                 />
               </div>
 
@@ -339,31 +339,31 @@ export default function InterviewsModule() {
                   value={filterStatus}
                   onValueChange={(val) => setFilterStatus(val as InterviewStatus | "ALL")}
                 >
-                  <SelectTrigger className="h-8 text-xs rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 gap-1.5 px-2.5 shadow-2xs font-semibold">
+                  <SelectTrigger className="h-8 max-md:min-h-10 max-md:text-xs md:text-xs rounded-lg border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 gap-1.5 px-2.5 shadow-2xs font-semibold">
                     <Filter className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
                     <SelectValue placeholder="All Statuses" />
                   </SelectTrigger>
-                  <SelectContent align="end" className="text-xs">
-                    <SelectItem value="ALL" className="text-xs font-medium">All Statuses</SelectItem>
-                    <SelectItem value="SCHEDULED" className="text-xs font-medium">
+              <SelectContent align="end" className="text-sm md:text-xs">
+                <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Statuses</SelectItem>
+                <SelectItem value="SCHEDULED" className="text-sm md:text-xs font-medium">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-indigo-500 shrink-0" />
                         <span>Scheduled</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="RESCHEDULED" className="text-xs font-medium">
+                <SelectItem value="RESCHEDULED" className="text-sm md:text-xs font-medium">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
                         <span>Rescheduled</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="COMPLETED" className="text-xs font-medium">
+                <SelectItem value="COMPLETED" className="text-sm md:text-xs font-medium">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-purple-500 shrink-0" />
                         <span>Completed</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="CANCELLED" className="text-xs font-medium">
+                <SelectItem value="CANCELLED" className="text-sm md:text-xs font-medium">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
                         <span>Cancelled</span>
@@ -411,7 +411,7 @@ export default function InterviewsModule() {
 
         {/* Schedule / Reschedule Dialog */}
         <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[92vh] overflow-y-auto max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold">
                 {isRescheduling ? "Reschedule Candidate Interview" : "Schedule New Candidate Interview"}
@@ -429,13 +429,13 @@ export default function InterviewsModule() {
             />
 
             <DialogFooter className="mt-4">
-              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)} disabled={saving} className="h-9 text-xs rounded-lg">
+              <Button variant="outline" onClick={() => setScheduleDialogOpen(false)} disabled={saving} className="h-9 max-md:min-h-10 text-sm md:text-xs rounded-lg">
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveInterview}
                 disabled={saving}
-                className="h-9 text-xs rounded-lg bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
+                className="h-9 max-md:min-h-10 text-sm md:text-xs rounded-lg bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
               >
                 {saving
                   ? "Saving..."

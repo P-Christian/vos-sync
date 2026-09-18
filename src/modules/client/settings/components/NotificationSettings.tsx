@@ -21,7 +21,7 @@ export default function NotificationSettings() {
   }, [loadPreferences]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <NotificationPreferences
         preferences={preferences}
         loading={prefsLoading}

@@ -157,7 +157,7 @@ export default function HiringCelebrationModal({
             <button
               type="button"
               onClick={onDismiss}
-              className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              className="absolute top-4 right-4 p-2 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition max-md:size-11 max-md:grid max-md:place-items-center"
               title="Dismiss"
             >
               <X className="h-4 w-4" />
@@ -199,10 +199,10 @@ export default function HiringCelebrationModal({
                 <PartyPopper className="h-3.5 w-3.5" />
                 OFFICIAL OFFER EXTENDED
               </div>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
+              <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">
                 Congratulations! You&apos;re Hired!
               </h2>
-              <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mx-auto leading-relaxed">
                 The employer has reviewed your application and interview, and has officially selected you for this position.
               </p>
             </motion.div>

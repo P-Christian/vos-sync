@@ -105,27 +105,27 @@ export default function InlineAITrigger({
             variant="ghost"
             size="sm"
             disabled={disabled || loading}
-            className="h-7 px-2.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs"
+            className="h-7 max-md:min-h-10 px-2.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/80 hover:bg-emerald-100/80 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs"
           >
             {loading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
-                <span className="text-[11px]">Refining...</span>
+                <span className="text-xs md:text-[11px]">Refining...</span>
               </>
             ) : (
               <>
                 
-                <span className="text-[11px]">AI Assist</span>
+                <span className="text-xs md:text-[11px]">AI Assist</span>
               </>
             )}
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-56 text-xs p-1">
+        <DropdownMenuContent align="end" className="w-56 text-sm md:text-xs p-1">
           <DropdownMenuItem
             onClick={() => handleAction("improve")}
             disabled={loading || !currentText.trim()}
-            className="flex items-center gap-2 cursor-pointer py-1.5"
+            className="flex items-center gap-2 cursor-pointer py-1.5 max-md:min-h-10"
           >
             <Wand2 className="h-3.5 w-3.5 text-emerald-600" />
             <span>Polish & Improve Writing</span>
@@ -134,7 +134,7 @@ export default function InlineAITrigger({
           <DropdownMenuItem
             onClick={() => handleAction("candidate_focused")}
             disabled={loading || !currentText.trim()}
-            className="flex items-center gap-2 cursor-pointer py-1.5"
+            className="flex items-center gap-2 cursor-pointer py-1.5 max-md:min-h-10"
           >
             <FileCheck2 className="h-3.5 w-3.5 text-blue-600" />
             <span>Make Candidate-Focused</span>
@@ -143,7 +143,7 @@ export default function InlineAITrigger({
           <DropdownMenuItem
             onClick={() => handleAction("professional")}
             disabled={loading || !currentText.trim()}
-            className="flex items-center gap-2 cursor-pointer py-1.5"
+            className="flex items-center gap-2 cursor-pointer py-1.5 max-md:min-h-10"
           >
             <Briefcase className="h-3.5 w-3.5 text-purple-600" />
             <span>More Professional & Corporate</span>
@@ -152,7 +152,7 @@ export default function InlineAITrigger({
           <DropdownMenuItem
             onClick={() => handleAction("shorten")}
             disabled={loading || !currentText.trim()}
-            className="flex items-center gap-2 cursor-pointer py-1.5"
+            className="flex items-center gap-2 cursor-pointer py-1.5 max-md:min-h-10"
           >
             <Scissors className="h-3.5 w-3.5 text-amber-600" />
             <span>Make Concise & Punchy</span>
@@ -162,7 +162,7 @@ export default function InlineAITrigger({
             <DropdownMenuItem
               onClick={() => handleAction("structure")}
               disabled={loading || !currentText.trim()}
-              className="flex items-center gap-2 cursor-pointer py-1.5"
+              className="flex items-center gap-2 cursor-pointer py-1.5 max-md:min-h-10"
             >
               <CheckCircle2 className="h-3.5 w-3.5 text-teal-600" />
               <span>Format into Clean Perks List</span>
@@ -174,7 +174,7 @@ export default function InlineAITrigger({
           <DropdownMenuItem
             onClick={() => handleAction("regenerate")}
             disabled={loading}
-            className="flex items-center gap-2 cursor-pointer py-1.5 text-zinc-700 dark:text-zinc-300"
+            className="flex items-center gap-2 cursor-pointer py-1.5 text-zinc-700 dark:text-zinc-300 max-md:min-h-10"
           >
             <RefreshCw className="h-3.5 w-3.5 text-indigo-600" />
             <span>Generate Fresh from Scratch</span>
@@ -183,7 +183,7 @@ export default function InlineAITrigger({
           <DropdownMenuItem
             onClick={() => setCustomPromptOpen(true)}
             disabled={loading}
-            className="flex items-center gap-2 cursor-pointer py-1.5 text-zinc-700 dark:text-zinc-300"
+            className="flex items-center gap-2 cursor-pointer py-1.5 text-zinc-700 dark:text-zinc-300 max-md:min-h-10"
           >
             <Edit3 className="h-3.5 w-3.5 text-zinc-500" />
             <span>Custom AI Instruction...</span>
@@ -193,7 +193,7 @@ export default function InlineAITrigger({
 
       {/* Custom Prompt Dialog */}
       <Dialog open={customPromptOpen} onOpenChange={setCustomPromptOpen}>
-        <DialogContent className="sm:max-w-xl p-0 overflow-hidden gap-0 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl">
+        <DialogContent className="sm:max-w-xl p-0 overflow-hidden gap-0 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 shadow-xl max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
           <DialogHeader className="px-6 pt-6 pb-4 border-b border-zinc-100 dark:border-zinc-800 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
             <div className="flex items-center gap-3">
              
@@ -201,7 +201,7 @@ export default function InlineAITrigger({
                 <DialogTitle className="text-base font-bold text-zinc-900 dark:text-zinc-50">
                   Custom AI Refinement
                 </DialogTitle>
-                <DialogDescription className="text-xs text-zinc-500 mt-0.5">
+                <DialogDescription className="text-sm md:text-xs text-zinc-500 mt-0.5">
                   Instruct the AI on specific tone, highlights, or requirements for this field.
                 </DialogDescription>
               </div>
@@ -215,13 +215,13 @@ export default function InlineAITrigger({
                 onChange={(e) => setCustomPromptText(e.target.value)}
                 placeholder="e.g. Highlight our modern engineering practices, hybrid flexibility in BGC, and strong culture of continuous learning..."
                 rows={4}
-                className="text-xs leading-relaxed resize-none rounded-xl border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                className="md:text-xs max-md:text-base leading-relaxed resize-none rounded-xl border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500/20"
                 autoFocus
               />
               
               {/* Quick Prompt Chips */}
               <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-medium text-zinc-400 block">Quick Suggestions:</span>
+                <span className="text-xs md:text-[11px] font-medium text-zinc-400 block">Quick Suggestions:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
                     "Focus on candidate career growth & mentorship",
@@ -233,7 +233,7 @@ export default function InlineAITrigger({
                       key={idx}
                       variant="outline"
                       onClick={() => setCustomPromptText(preset)}
-                      className="cursor-pointer text-[11px] py-1 px-2.5 rounded-lg border-zinc-200 dark:border-zinc-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors select-none font-normal"
+                      className="cursor-pointer text-xs md:text-[11px] py-1 px-2.5 rounded-lg border-zinc-200 dark:border-zinc-700 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors select-none font-normal max-md:min-h-10"
                     >
                       {preset}
                     </Badge>
@@ -248,7 +248,7 @@ export default function InlineAITrigger({
                 variant="outline"
                 size="sm"
                 onClick={() => setCustomPromptOpen(false)}
-                className="h-9 px-4 text-xs rounded-xl"
+                className="h-9 max-md:min-h-10 px-4 text-xs rounded-xl"
               >
                 Cancel
               </Button>
@@ -256,7 +256,7 @@ export default function InlineAITrigger({
                 type="submit"
                 size="sm"
                 disabled={!customPromptText.trim()}
-                className="h-9 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-transform active:scale-[0.98]"
+                className="h-9 max-md:min-h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-transform active:scale-[0.98]"
               >
                 Apply AI Instruction
               </Button>

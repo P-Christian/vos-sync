@@ -238,7 +238,7 @@ export default function ChatPanel({
         {onBack && (
           <button
             onClick={onBack}
-            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition max-md:size-11 max-md:grid max-md:place-items-center"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -296,7 +296,7 @@ export default function ChatPanel({
           onClick={onRefresh}
           disabled={loading}
           title="Refresh messages"
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 shrink-0"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 shrink-0 max-md:size-11 max-md:grid max-md:place-items-center"
         >
           <RefreshCw
             className={cn("h-3.5 w-3.5", loading && "animate-spin")}
@@ -323,7 +323,7 @@ export default function ChatPanel({
               <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                 No messages yet
               </p>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-sm md:text-xs text-zinc-400 mt-1">
                 Send a message to reply to the employer
               </p>
             </div>
@@ -342,7 +342,7 @@ export default function ChatPanel({
                 <button
                   onClick={onLoadOlder}
                   disabled={loadingOlder}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm md:text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50 max-md:min-h-11"
                 >
                   {loadingOlder ? (
                     <>
@@ -394,7 +394,7 @@ export default function ChatPanel({
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={() => scrollToBottom(true)}
             title="Jump to recent messages"
-            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
+            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer max-md:size-11"
           >
             <ArrowDown className="h-4 w-4" />
           </motion.button>
@@ -403,7 +403,7 @@ export default function ChatPanel({
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-xs text-rose-600 dark:text-rose-400 shrink-0">
+        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-sm md:text-xs text-rose-600 dark:text-rose-400 shrink-0">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           {error}
         </div>

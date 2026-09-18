@@ -154,7 +154,7 @@ export default function JobBrowseModule() {
   };
 
   return (
-    <div className="space-y-6 p-6 sm:p-8">
+    <div className="space-y-6 p-4 sm:p-8">
       <style>{`
         @keyframes page-entry {
           from { opacity: 0; transform: translateY(8px); }
@@ -174,7 +174,7 @@ export default function JobBrowseModule() {
               <Briefcase className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Find Work</h1>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Find Work</h1>
               <p className="text-sm text-zinc-300 mt-1">
                 {totalCount} active job{totalCount !== 1 ? "s" : ""} available
               </p>
@@ -233,7 +233,7 @@ export default function JobBrowseModule() {
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">No jobs found</p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm md:text-xs text-muted-foreground mt-1">
                   Try adjusting your filters or search terms
                 </p>
               </div>
@@ -274,7 +274,7 @@ export default function JobBrowseModule() {
                     type="button"
                     onClick={() => loadMore()}
                     disabled={loadingMore}
-                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border/50 transition-colors"
+                    className="flex items-center gap-2 text-sm md:text-xs text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border/50 transition-colors max-md:min-h-11"
                   >
                     {loadingMore ? (
                       <>
@@ -289,7 +289,7 @@ export default function JobBrowseModule() {
               )}
 
               {!hasMore && jobs.length > 0 && (
-                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                <div className="flex items-center justify-center py-6 text-sm md:text-xs text-muted-foreground">
                   <span>Showing all {filteredCount} job{filteredCount !== 1 ? "s" : ""}</span>
                 </div>
               )}

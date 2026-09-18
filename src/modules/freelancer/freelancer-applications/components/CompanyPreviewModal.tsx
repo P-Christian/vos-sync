@@ -68,7 +68,7 @@ function InfoRow({
         <Icon className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-0.5">
+        <p className="text-sm md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-0.5">
           {label}
         </p>
         {href ? (
@@ -111,7 +111,7 @@ export default function CompanyPreviewModal({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-1/2 p-0 overflow-y-auto flex flex-col gap-0 z-[100]"
+        className="w-full sm:max-w-1/2 p-0 overflow-y-auto flex flex-col gap-0 z-[100] max-md:[&>button]:p-3.5 max-md:[&>button]:-m-3.5"
       >
         {/* Cover + Logo Header */}
         <div className="relative shrink-0">
@@ -124,7 +124,7 @@ export default function CompanyPreviewModal({
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xs text-zinc-400">No cover photo</span>
+                <span className="text-sm md:text-xs text-zinc-400">No cover photo</span>
               </div>
             )}
           </div>
@@ -152,7 +152,7 @@ export default function CompanyPreviewModal({
                 </SheetTitle>
                 {company.company_legal_name &&
                   company.company_legal_name !== company.company_name && (
-                    <p className="text-xs text-zinc-500 mt-0.5">
+                    <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
                       {company.company_legal_name}
                     </p>
                   )}
@@ -181,7 +181,7 @@ export default function CompanyPreviewModal({
           {/* About */}
           {company.company_description && (
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="text-sm md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                 About
               </p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
@@ -192,7 +192,7 @@ export default function CompanyPreviewModal({
 
           {/* Key Details */}
           <div className="space-y-3 pt-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <p className="text-sm md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
               Company Details
             </p>
             <div className="space-y-2.5">
@@ -229,7 +229,7 @@ export default function CompanyPreviewModal({
 
           {/* Contact */}
           <div className="space-y-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <p className="text-sm md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
               Contact Information
             </p>
             <div className="space-y-2.5">
@@ -252,7 +252,7 @@ export default function CompanyPreviewModal({
           {/* Socials */}
           {(company.company_facebook || company.company_linkedin || company.company_instagram || company.company_x || company.company_youtube) && (
             <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+              <p className="text-sm md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
                 Social Media
               </p>
               <div className="flex flex-wrap gap-2">
@@ -261,7 +261,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_facebook)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors"
+                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors max-md:size-11 max-md:grid max-md:place-items-center"
                   >
                     <Facebook className="h-4 w-4" />
                   </a>
@@ -271,7 +271,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_linkedin)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors"
+                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors max-md:size-11 max-md:grid max-md:place-items-center"
                   >
                     <Linkedin className="h-4 w-4" />
                   </a>
@@ -281,7 +281,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_instagram)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors"
+                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors max-md:size-11 max-md:grid max-md:place-items-center"
                   >
                     <Instagram className="h-4 w-4" />
                   </a>
@@ -291,7 +291,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_youtube)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors"
+                    className="p-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-zinc-600 dark:text-zinc-400 transition-colors max-md:size-11 max-md:grid max-md:place-items-center"
                   >
                     <Youtube className="h-4 w-4" />
                   </a>

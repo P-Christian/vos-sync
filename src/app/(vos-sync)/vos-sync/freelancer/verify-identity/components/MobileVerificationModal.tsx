@@ -90,7 +90,7 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
                 onClose();
             }
         }}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
                 <DialogHeader>
                     <DialogTitle>Verify Mobile Number</DialogTitle>
                     <DialogDescription>
@@ -102,12 +102,12 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Mobile Number</label>
                             <div className="flex gap-2">
-                                <div className="w-[120px]">
+                                <div className="w-[120px] max-md:min-h-11">
                                     <Select 
                                         value={selectedCountry} 
                                         onValueChange={setSelectedCountry}
                                     >
-                                        <SelectTrigger className="flex gap-2 items-center justify-between">
+                                        <SelectTrigger className="flex gap-2 items-center justify-between max-md:min-h-11">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -125,7 +125,7 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
                                     placeholder="912 345 6789"
                                     value={mobileNumber}
                                     onChange={(e) => setMobileNumber(e.target.value)}
-                                    className="flex-1"
+                                    className="flex-1 max-md:min-h-11"
                                 />
                             </div>
                         </div>
@@ -138,18 +138,19 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
                                 maxLength={6}
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
+                                className="max-md:min-h-11"
                             />
                         </div>
                     )}
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="max-md:min-h-11">Cancel</Button>
                     {step === 1 ? (
-                        <Button onClick={handleSendOtp} disabled={isSubmitting}>
+                        <Button onClick={handleSendOtp} disabled={isSubmitting} className="max-md:min-h-11">
                             {isSubmitting ? "Sending..." : "Send OTP"}
                         </Button>
                     ) : (
-                        <Button onClick={handleVerifyOtp} disabled={isSubmitting}>
+                        <Button onClick={handleVerifyOtp} disabled={isSubmitting} className="max-md:min-h-11">
                             {isSubmitting ? "Verifying..." : "Verify OTP"}
                         </Button>
                     )}

@@ -60,7 +60,7 @@ export default function SettingsModule() {
   };
 
   return (
-    <div className="space-y-6 client-page-transition">
+    <div className="space-y-4 md:space-y-6 client-page-transition">
       <style>{`
         @keyframes page-entry {
           from { opacity: 0; transform: translateY(8px); }
@@ -103,8 +103,8 @@ export default function SettingsModule() {
 
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
-        <CardHeader className="border-b gap-0 border-zinc-100 dark:border-zinc-800 px-6 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <CardHeader className="border-b gap-0 border-zinc-100 dark:border-zinc-800 px-6 max-md:px-1 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-md:grid max-md:grid-cols-4 max-md:items-stretch max-md:gap-0.5">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -113,7 +113,7 @@ export default function SettingsModule() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={cn(
-                    "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors whitespace-nowrap",
+                    "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors whitespace-nowrap max-md:flex-col max-md:justify-center max-md:gap-1 max-md:px-1 max-md:py-3 max-md:text-xs max-md:tracking-tight max-md:text-center max-md:leading-tight max-md:whitespace-normal max-md:break-words",
                     isActive
                       ? "text-indigo-600 dark:text-indigo-400"
                       : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
@@ -134,7 +134,7 @@ export default function SettingsModule() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           {loading && activeTab === "account" ? (
             <div className="flex items-center justify-center py-12 gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />

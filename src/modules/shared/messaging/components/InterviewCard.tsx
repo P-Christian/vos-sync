@@ -290,7 +290,7 @@ export default function InterviewCard({ message }: Props) {
 
   if (loading) {
     return (
-      <div className={`w-80 rounded-2xl border p-4 ${statusCfg.accent} flex items-center gap-3 shadow-xs`}>
+      <div className={`w-80 max-md:w-full rounded-2xl border p-4 ${statusCfg.accent} flex items-center gap-3 shadow-xs`}>
         <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
         <span className="text-xs text-muted-foreground">Loading interview details...</span>
       </div>
@@ -306,7 +306,7 @@ export default function InterviewCard({ message }: Props) {
   const canJoinMeeting = isOnline && Boolean(meetingLink) && ACTIVE_JOIN_STATUSES.has(statusBadge);
 
   return (
-    <div className={`w-80 sm:w-96 rounded-2xl border shadow-xs overflow-hidden ${statusCfg.accent}`}>
+    <div className={`w-full sm:w-96 rounded-2xl border shadow-xs overflow-hidden ${statusCfg.accent}`}>
       {/* Header */}
       <div className="px-4 py-2.5 border-b border-inherit flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -368,7 +368,7 @@ export default function InterviewCard({ message }: Props) {
             href={meetingLink!}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs transition"
+            className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs transition max-md:min-h-11"
           >
             <Monitor className="h-3.5 w-3.5 shrink-0" />
             Join Online Meeting

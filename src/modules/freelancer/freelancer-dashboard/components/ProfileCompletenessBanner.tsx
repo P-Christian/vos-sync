@@ -67,7 +67,7 @@ export function ProfileCompletenessBanner() {
 
     if (missingSections.length === 0) {
         return (
-            <Card className="mb-8 border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20 shadow-sm">
+            <Card className="mb-8 border-green-200 bg-green-50/50 dark:border-green-900/50 dark:bg-green-950/20 shadow-sm max-md:hidden">
                 <CardContent className="p-4 sm:p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-6 w-6 text-green-500" />
@@ -103,7 +103,7 @@ export function ProfileCompletenessBanner() {
                             <div className="flex flex-wrap gap-2 mt-3">
                                 {missingSections.map((section, idx) => (
                                     <Link key={idx} href={section.href}>
-                                        <span className="inline-flex items-center rounded-md bg-orange-100 dark:bg-orange-900/40 px-2.5 py-1 text-xs font-medium text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-600/20 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors cursor-pointer">
+                                        <span className="inline-flex items-center rounded-md bg-orange-100 dark:bg-orange-900/40 px-2.5 py-1 text-sm md:text-xs font-medium text-orange-700 dark:text-orange-300 ring-1 ring-inset ring-orange-600/20 hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors cursor-pointer">
                                             {section.name}
                                         </span>
                                     </Link>
@@ -111,7 +111,7 @@ export function ProfileCompletenessBanner() {
                             </div>
                         </div>
                     </div>
-                    <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600 text-white shrink-0 sm:mt-2">
+                    <Button asChild size="sm" className="bg-orange-500 hover:bg-orange-600 text-white shrink-0 sm:mt-2 max-md:min-h-11">
                         <Link href="/vos-sync/freelancer/profile">
                             Update Profile <ChevronRight className="ml-2 h-4 w-4" />
                         </Link>

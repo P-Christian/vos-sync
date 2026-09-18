@@ -154,7 +154,7 @@ export default function CompanyAddress({
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="cp-province" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-province" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>Province <span className="text-rose-500">*</span></span>
             {!readOnly && loadingProvinces && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -163,7 +163,7 @@ export default function CompanyAddress({
               id="cp-province"
               value={data.company_province ?? ""}
               disabled
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           ) : (
             <SearchableSelect
@@ -172,13 +172,13 @@ export default function CompanyAddress({
               onValueChange={handleProvinceChange}
               disabled={loadingProvinces}
               placeholder="Select Province"
-              className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
             />
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-city" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-city" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>City / Municipality <span className="text-rose-500">*</span></span>
             {!readOnly && loadingCities && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -187,7 +187,7 @@ export default function CompanyAddress({
               id="cp-city"
               value={data.company_city ?? ""}
               disabled
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           ) : (
             <SearchableSelect
@@ -202,13 +202,13 @@ export default function CompanyAddress({
                   ? "Select City"
                   : "Select province first"
               }
-              className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
             />
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-brgy" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-brgy" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>Barangay</span>
             {!readOnly && loadingBarangays && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -217,7 +217,7 @@ export default function CompanyAddress({
               id="cp-brgy"
               value={data.company_brgy ?? ""}
               disabled
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           ) : (
             <SearchableSelect
@@ -232,13 +232,13 @@ export default function CompanyAddress({
                   ? "Select Barangay"
                   : "Select city first"
               }
-              className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+              className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
             />
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-zipcode" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <Label htmlFor="cp-zipcode" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Zip Code
           </Label>
           <Input
@@ -247,12 +247,12 @@ export default function CompanyAddress({
             onChange={(e) => onChange("company_zipCode", e.target.value)}
             disabled={readOnly}
             placeholder="e.g. 1200"
-            className="h-9 text-sm"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base"
           />
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
-          <Label htmlFor="cp-address" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <Label htmlFor="cp-address" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Street Address
           </Label>
           <Input
@@ -261,7 +261,7 @@ export default function CompanyAddress({
             onChange={(e) => onChange("company_address", e.target.value)}
             disabled={readOnly}
             placeholder="e.g. Unit 301, The Hub Building, Ayala Ave."
-            className="h-9 text-sm"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base"
           />
         </div>
       </div>

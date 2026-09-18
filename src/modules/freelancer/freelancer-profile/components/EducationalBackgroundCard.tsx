@@ -50,7 +50,7 @@ export function EducationalBackgroundCard() {
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                         onClick={handleAddClick}
                         disabled={isAutofilling}
                     >
@@ -94,7 +94,7 @@ export function EducationalBackgroundCard() {
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                                     onClick={() => handleEditClick(edu)}
                                 >
                                     <Pencil className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function EducationalBackgroundCard() {
                             <div className="text-sm font-medium text-muted-foreground">
                                 {edu.course_name || edu.course_name_raw || "No Course Specified"}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-sm md:text-xs text-muted-foreground">
                                 {edu.start_date ? new Date(edu.start_date).getFullYear() : "?"} - {edu.end_date ? new Date(edu.end_date).getFullYear() : "Present"}
                             </div>
                         </div>

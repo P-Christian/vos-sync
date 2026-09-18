@@ -67,7 +67,7 @@ function getInitials(name?: string | null): string {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+      <h4 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
       {children}
     </div>
   );
@@ -165,7 +165,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0"
+        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0 max-md:[&>button]:p-3.5 max-md:[&>button]:-m-3.5"
       >
         {/* Cover Banner */}
         <div className="h-32 w-full bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative overflow-hidden shrink-0 border-b">
@@ -234,17 +234,17 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
 
           {/* Quick meta */}
           <div className="flex flex-wrap gap-2 mt-3">
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1 text-sm md:text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
               <MapPin className="h-3 w-3" /> {job.job_location}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1 text-sm md:text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
               <Briefcase className="h-3 w-3" /> {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
             </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
+            <span className="inline-flex items-center gap-1 text-sm md:text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
               <Building2 className="h-3 w-3" /> {job.work_arrangement}
             </span>
             {job.number_of_openings > 1 && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 text-sm md:text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
                 <Users className="h-3 w-3" /> {job.number_of_openings} openings
               </span>
             )}
@@ -260,15 +260,15 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
               {/* Salary & Requirements Summary */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-muted/40 border">
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                  <div className="flex items-center gap-1.5 text-sm md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                     <DollarSign className="h-3 w-3" /> Salary
                   </div>
                   <p className="text-sm font-semibold text-foreground">{formatSalary(job)}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{job.salary_type}</p>
+                  <p className="text-sm md:text-[10px] text-muted-foreground mt-0.5">{job.salary_type}</p>
                 </div>
                 {job.experience_level && (
                   <div className="p-3 rounded-xl bg-muted/40 border">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                    <div className="flex items-center gap-1.5 text-sm md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                       <Layers className="h-3 w-3" /> Experience
                     </div>
                     <p className="text-sm font-semibold text-foreground">
@@ -278,7 +278,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                 )}
                 {job.education && (
                   <div className="p-3 rounded-xl bg-muted/40 border col-span-2">
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground uppercase mb-1">
+                    <div className="flex items-center gap-1.5 text-sm md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
                       <GraduationCap className="h-3 w-3" /> Education
                     </div>
                     <p className="text-sm text-foreground">{job.education}</p>
@@ -360,7 +360,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                         );
                       })}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-2">
+                    <p className="text-sm md:text-[11px] text-muted-foreground mt-2">
                       You will answer these questions in the application form.
                     </p>
                   </Section>
@@ -370,13 +370,13 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
 
             {/* Right Column: Client info */}
             <div className="md:col-span-1 space-y-5 border-t pt-5 md:border-l md:border-l-0 md:pl-5 border-border/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">About the client</h3>
+              <h3 className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">About the client</h3>
 
               <div className="space-y-4">
                 {/* Location */}
                 <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
-                  <div className="flex items-start gap-1.5 text-xs text-foreground font-medium">
+                  <span className="text-sm md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
+                  <div className="flex items-start gap-1.5 text-sm md:text-xs text-foreground font-medium">
                     <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-zinc-500" />
                     <span>
                       {[job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") || job.job_location}
@@ -387,8 +387,8 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                 {/* Email */}
                 {job.company_email && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium truncate">
+                    <span className="text-sm md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium truncate">
                       <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span className="truncate" title={job.company_email}>{job.company_email}</span>
                     </div>
@@ -398,8 +398,8 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                 {/* Contact */}
                 {job.company_contact && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
-                    <div className="flex items-center gap-1.5 text-xs text-foreground font-medium">
+                    <span className="text-sm md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
+                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium">
                       <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       <span>{job.company_contact}</span>
                     </div>
@@ -409,25 +409,25 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
                 {/* Socials */}
                 {(job.company_facebook || job.company_linkedin || job.company_instagram || job.company_x || job.company_youtube) && (
                   <div className="space-y-2 pt-2">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
+                    <span className="text-sm md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
                     <div className="flex flex-wrap gap-2">
                       {job.company_facebook && (
-                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Facebook className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_linkedin && (
-                        <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Linkedin className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_instagram && (
-                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Instagram className="h-4 w-4" />
                         </a>
                       )}
                       {job.company_youtube && (
-                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400">
+                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                           <Youtube className="h-4 w-4" />
                         </a>
                       )}
@@ -441,11 +441,11 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
         </ScrollArea>
 
         {/* Sticky Apply Button */}
-        <div className="px-6 py-4 border-t bg-background shrink-0 flex gap-3">
+        <div className="px-6 py-4 border-t bg-background shrink-0 flex gap-3 max-md:flex-wrap">
           {onToggleBookmark && (
             <Button
               variant="outline"
-              className={`h-10 px-4 rounded-xl font-medium gap-2 transition-colors ${
+              className={`h-10 px-4 rounded-xl font-medium gap-2 transition-colors max-md:min-h-11 ${
                 isBookmarked 
                   ? "border-primary text-primary hover:bg-primary/5" 
                   : "text-foreground border-zinc-200 dark:border-zinc-800"
@@ -458,7 +458,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
           )}
           <Button
             variant="outline"
-            className="h-10 px-4 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800"
+            className="h-10 px-4 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800 max-md:min-h-11"
             onClick={() => setReferModalOpen(true)}
           >
             <Share2 className="h-4 w-4" />
@@ -468,7 +468,7 @@ export function JobDetailSheet({ job, open, onClose, onApply, appliedJobIds = []
             id="job-detail-apply-btn"
             onClick={() => onApply(job)}
             disabled={alreadyApplied}
-            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+            className="flex-1 h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-sm disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600 max-md:min-h-11"
           >
             <Send className="h-4 w-4" />
             {alreadyApplied ? "Already Applied" : "Apply Now"}

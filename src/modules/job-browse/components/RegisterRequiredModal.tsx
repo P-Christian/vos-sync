@@ -21,7 +21,7 @@ interface RegisterRequiredModalProps {
 export function RegisterRequiredModal({ open, onClose }: RegisterRequiredModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5 max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader className="flex flex-col items-center text-center space-y-3">
           <div className="p-3 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 rounded-full">
             <ShieldAlert className="h-8 w-8" />
@@ -34,7 +34,7 @@ export function RegisterRequiredModal({ open, onClose }: RegisterRequiredModalPr
         <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4 sm:space-x-0">
           <Button
             variant="outline"
-            className="w-full sm:flex-1 rounded-xl cursor-pointer"
+            className="w-full sm:flex-1 rounded-xl cursor-pointer max-md:min-h-11"
             onClick={onClose}
           >
             Cancel
@@ -42,7 +42,7 @@ export function RegisterRequiredModal({ open, onClose }: RegisterRequiredModalPr
           <Button
             asChild
             variant="outline"
-            className="w-full sm:flex-1 rounded-xl cursor-pointer gap-2 border-zinc-200 dark:border-zinc-800"
+            className="w-full sm:flex-1 rounded-xl cursor-pointer gap-2 border-zinc-200 dark:border-zinc-800 max-md:min-h-11"
           >
             <Link href="/login">
               <LogIn className="h-4 w-4" />
@@ -51,7 +51,7 @@ export function RegisterRequiredModal({ open, onClose }: RegisterRequiredModalPr
           </Button>
           <Button
             asChild
-            className="w-full sm:flex-1 rounded-xl cursor-pointer gap-2 bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full sm:flex-1 rounded-xl cursor-pointer gap-2 bg-primary hover:bg-primary/90 text-primary-foreground max-md:min-h-11"
           >
             <Link href="/signup">
               <UserPlus className="h-4 w-4" />

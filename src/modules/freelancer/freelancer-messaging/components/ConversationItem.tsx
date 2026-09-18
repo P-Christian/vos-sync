@@ -229,7 +229,7 @@ export default function ConversationItem({
           onArchive(conversation_id);
         }}
         title={archived_by_freelancer ? "Unarchive" : "Archive"}
-        className="absolute right-3 top-3.5 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-400 transition-all"
+        className="absolute right-3 top-3.5 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-400 transition-all max-md:flex max-md:size-11"
       >
         {archived_by_freelancer ? (
           <ArchiveRestore className="h-3.5 w-3.5" />

@@ -128,7 +128,7 @@ export default function NotificationPreferences({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Header Banner */}
       <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex items-start gap-3">
         <BellRing className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
@@ -136,14 +136,14 @@ export default function NotificationPreferences({
           <h4 className="text-sm font-semibold text-indigo-950 dark:text-indigo-200">
             Employer Notification Center
           </h4>
-          <p className="text-xs text-indigo-700/80 dark:text-indigo-300/70 mt-0.5">
+          <p className="text-sm md:text-xs text-indigo-700/80 dark:text-indigo-300/70 mt-0.5">
             Manage how and when you receive emails and in-app alerts for candidate activity, job updates, and team messages.
           </p>
         </div>
       </div>
 
       {/* Global Email Switch */}
-      <div className="flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
+      <div className="flex items-center justify-between max-md:min-h-10 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-zinc-500" />
@@ -151,7 +151,7 @@ export default function NotificationPreferences({
               Receive email notifications
             </span>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
             Master toggle for all email alerts across all categories
           </p>
         </div>
@@ -166,11 +166,11 @@ export default function NotificationPreferences({
       {/* Column Headers */}
       <div className="flex items-center justify-between px-2 pt-2 text-xs font-bold uppercase tracking-wider text-zinc-400">
         <span>Notification Category</span>
-        <div className="flex items-center gap-8 pr-2">
-          <span className="w-16 text-center flex items-center justify-center gap-1">
+        <div className="flex items-center gap-4 md:gap-8 pr-2">
+          <span className="w-16 max-md:w-12 text-center flex items-center justify-center gap-1">
             <Mail className="h-3 w-3" /> Email
           </span>
-          <span className="w-16 text-center flex items-center justify-center gap-1">
+          <span className="w-16 max-md:w-12 text-center flex items-center justify-center gap-1">
             <Smartphone className="h-3 w-3" /> In-App
           </span>
         </div>
@@ -187,7 +187,7 @@ export default function NotificationPreferences({
             <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
               {group.title}
             </h3>
-            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{group.description}</p>
+            <p className="text-xs md:text-[11px] text-zinc-500 dark:text-zinc-400">{group.description}</p>
           </div>
 
           {/* Items List */}
@@ -206,15 +206,15 @@ export default function NotificationPreferences({
               return (
                 <div
                   key={catItem.category}
-                  className="flex items-center justify-between px-4 py-3.5 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors"
+                  className="flex items-center justify-between max-md:min-h-10 px-4 py-3.5 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors"
                 >
-                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 min-w-0 truncate">
                     {labelText}
                   </span>
 
-                  <div className="flex items-center gap-8 pr-2">
+                  <div className="flex items-center gap-4 md:gap-8 pr-2">
                     {/* Email Switch */}
-                    <div className="w-16 flex justify-center">
+                    <div className="w-16 max-md:w-12 flex justify-center">
                       <Switch
                         id={`email-${catItem.category}`}
                         checked={emailActive}
@@ -226,7 +226,7 @@ export default function NotificationPreferences({
                     </div>
 
                     {/* In-App Switch */}
-                    <div className="w-16 flex justify-center">
+                    <div className="w-16 max-md:w-12 flex justify-center">
                       <Switch
                         id={`inapp-${catItem.category}`}
                         checked={pref.in_app_enabled}
@@ -246,28 +246,28 @@ export default function NotificationPreferences({
 
       {/* Feedback Messages */}
       {error && (
-        <div className="flex items-center gap-2 text-xs text-rose-600 dark:text-rose-400 px-1">
+        <div className="flex items-center gap-2 text-sm md:text-xs text-rose-600 dark:text-rose-400 px-1">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
       {saved && (
-        <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 px-1">
+        <div className="flex items-center gap-2 text-sm md:text-xs text-emerald-600 dark:text-emerald-400 px-1">
           <CheckCircle className="h-4 w-4 shrink-0" />
           Changes saved successfully.
         </div>
       )}
 
       {/* Action Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <span className="text-xs text-zinc-500 flex items-center gap-1">
+      <div className="flex items-center justify-between max-md:flex-wrap pt-4 border-t border-zinc-200 dark:border-zinc-800">
+        <span className="text-sm md:text-xs text-zinc-500 flex items-center gap-1">
           <Info className="h-3.5 w-3.5" /> Preference updates apply immediately across all notifications.
         </span>
 
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-semibold shadow-sm transition-all"
+          className="h-10 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-semibold shadow-sm transition-all"
         >
           {saving ? (
             <>

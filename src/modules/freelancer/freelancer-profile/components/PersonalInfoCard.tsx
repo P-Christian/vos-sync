@@ -99,7 +99,7 @@ export function PersonalInfoCard() {
                         </div>
                     )}
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium relative" onClick={() => setIsModalOpen(true)} disabled={isAutofilling}>
+                <Button variant="ghost" size="sm" className="h-8 text-primary font-medium relative max-md:min-h-11" onClick={() => setIsModalOpen(true)} disabled={isAutofilling}>
                     Edit
                     {pendingPersonalInfo && (
                         <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background"></span>
@@ -108,7 +108,7 @@ export function PersonalInfoCard() {
             </div>
 
             {isAutofilling ? (
-                <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
+                <div className="p-6 flex flex-col md:flex-row gap-4 md:gap-8 items-start">
                     <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
                         <Skeleton className="w-48 h-48 rounded-full" />
                         <Skeleton className="w-full h-8" />
@@ -124,7 +124,7 @@ export function PersonalInfoCard() {
                     </div>
                 </div>
             ) : (
-                <div className="p-6 flex flex-col md:flex-row gap-8 items-start">
+                <div className="p-6 flex flex-col md:flex-row gap-4 md:gap-8 items-start">
                     {/* Left Column: Profile Picture */}
                     <div className="flex flex-col items-center gap-4 w-full md:w-64 shrink-0">
                         <div className="relative w-48 h-48 rounded-full overflow-hidden border-2 border-border shadow-sm group">
@@ -150,7 +150,7 @@ export function PersonalInfoCard() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="w-full gap-2 text-xs h-8"
+                            className="w-full gap-2 text-sm md:text-xs h-8 max-md:min-h-11"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isUploading}
                         >
@@ -168,7 +168,7 @@ export function PersonalInfoCard() {
                         <Button
                             variant="default"
                             size="sm"
-                            className="w-full gap-2 text-xs h-8 mt-1"
+                            className="w-full gap-2 text-sm md:text-xs h-8 mt-1 max-md:min-h-11"
                             onClick={() => window.location.href = '/vos-sync/freelancer/verify-identity'}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path></svg>
@@ -179,7 +179,7 @@ export function PersonalInfoCard() {
                     {/* Right Column: Personal Info & Social Links */}
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 w-full">
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">
                                 {displayData.user_fname} {displayData.user_mname ? displayData.user_mname + ' ' : ''}{displayData.user_lname} {displayData.suffix_name || ''}
@@ -187,27 +187,27 @@ export function PersonalInfoCard() {
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Primary Role</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Primary Role</label>
                         <div className="flex items-center gap-2">
                             <Briefcase className="h-4 w-4 text-muted-foreground hidden" />
                             <span className="font-medium text-foreground">{displayData.user_position || 'Not specified'}</span>
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Email Address</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Email Address</label>
                         <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4 text-muted-foreground hidden" />
                             <span className="font-medium text-foreground">{displayData.user_email}</span>
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Contact Number</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Contact Number</label>
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{displayData.user_contact || 'Not specified'}</span>
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
                         <div className="flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground hidden" />
                             <span className="font-medium text-foreground">
@@ -216,19 +216,19 @@ export function PersonalInfoCard() {
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Gender</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Gender</label>
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{displayData.gender || 'Not specified'}</span>
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Birthday</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Birthday</label>
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{displayData.user_bday || 'Not specified'}</span>
                         </div>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Social Links</label>
+                        <label className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Social Links</label>
                         <div className="flex flex-wrap items-center gap-3">
                             {displaySocialLinks.length > 0 ? (
                                 displaySocialLinks.map((link) => (
@@ -237,7 +237,7 @@ export function PersonalInfoCard() {
                                         href={link.profile_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-primary transition-colors"
+                                        className="text-muted-foreground hover:text-primary transition-colors max-md:size-11 max-md:grid max-md:place-items-center"
                                         title={link.platform_name}
                                     >
                                         {getPlatformIcon(link.platform_name)}

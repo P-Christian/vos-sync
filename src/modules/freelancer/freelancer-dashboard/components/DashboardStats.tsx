@@ -39,39 +39,39 @@ export function DashboardStats() {
 
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <Card className="animate-pulse bg-muted/50 h-[120px]" />
-                <Card className="animate-pulse bg-muted/50 h-[120px]" />
-                <Card className="animate-pulse bg-muted/50 h-[120px]" />
+            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
+                <Card className="animate-pulse bg-muted/50 h-[120px] max-md:h-[92px]" />
+                <Card className="animate-pulse bg-muted/50 h-[120px] max-md:h-[92px]" />
+                <Card className="animate-pulse bg-muted/50 h-[120px] max-md:h-[92px]" />
             </div>
         );
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Applications</CardTitle>
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+        <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
+            <Card className="max-md:py-2.5 max-md:gap-1.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 max-md:px-2.5 max-md:pb-1.5">
+                    <CardTitle className="text-sm font-medium max-md:text-[11px] max-md:leading-tight">Active Applications</CardTitle>
+                    <Briefcase className="h-4 w-4 text-muted-foreground max-md:h-3.5 max-md:w-3.5" />
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{summary.pendingApplications || 0}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="max-md:px-2.5">
+                    <div className="text-2xl font-bold max-md:text-lg">{summary.pendingApplications || 0}</div>
+                    <p className="text-sm md:text-xs text-muted-foreground mt-1 max-md:text-[10px] max-md:leading-tight">
                         Out of {summary.totalApplied || 0} total applications
                     </p>
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Profile Completeness</CardTitle>
-                    <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <Card className="max-md:py-2.5 max-md:gap-1.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 max-md:px-2.5 max-md:pb-1.5">
+                    <CardTitle className="text-sm font-medium max-md:text-[11px] max-md:leading-tight">Profile Completeness</CardTitle>
+                    <UserCheck className="h-4 w-4 text-muted-foreground max-md:h-3.5 max-md:w-3.5" />
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{profileCompleteness ?? 0}%</div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="max-md:px-2.5">
+                    <div className="text-2xl font-bold max-md:text-lg">{profileCompleteness ?? 0}%</div>
+                    <p className="text-sm md:text-xs text-muted-foreground mt-1 max-md:text-[10px] max-md:leading-tight">
                         {profileCompleteness === 100 ? "Ready to apply for jobs!" : "Complete your profile to stand out"}
                     </p>
-                    <div className="w-full bg-secondary h-2 rounded-full mt-3 overflow-hidden">
+                    <div className="w-full bg-secondary h-2 rounded-full mt-3 overflow-hidden max-md:h-1.5 max-md:mt-2">
                         <div 
                             className="bg-primary h-full rounded-full transition-all duration-500 ease-out" 
                             style={{ width: `${profileCompleteness ?? 0}%` }} 
@@ -79,14 +79,14 @@ export function DashboardStats() {
                     </div>
                 </CardContent>
             </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Recent Messages</CardTitle>
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <Card className="max-md:py-2.5 max-md:gap-1.5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 max-md:px-2.5 max-md:pb-1.5">
+                    <CardTitle className="text-sm font-medium max-md:text-[11px] max-md:leading-tight">Recent Messages</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground max-md:h-3.5 max-md:w-3.5" />
                 </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{unreadMessagesCount} unread</div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                <CardContent className="max-md:px-2.5">
+                    <div className="text-2xl font-bold max-md:text-lg">{unreadMessagesCount} unread</div>
+                    <p className="text-sm md:text-xs text-muted-foreground mt-1 max-md:text-[10px] max-md:leading-tight">
                         In {conversations.length} total conversations
                     </p>
                 </CardContent>

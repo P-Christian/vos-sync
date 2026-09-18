@@ -26,6 +26,7 @@ export default function DashboardModule({ userName }: DashboardModuleProps) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [activeSection, setActiveSection] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,7 +81,7 @@ export default function DashboardModule({ userName }: DashboardModuleProps) {
             </p>
             <Button
               onClick={() => window.location.reload()}
-              className="w-full flex items-center justify-center gap-2"
+              className="w-full max-md:min-h-10 flex items-center justify-center gap-2"
             >
               <RotateCcw className="h-4 w-4" />
               Try Again
@@ -121,7 +122,7 @@ export default function DashboardModule({ userName }: DashboardModuleProps) {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6 pb-14"
+      className="space-y-4 md:space-y-6 pb-14"
     >
       {/* 1. Header / Greeting with Post a Job CTA */}
       <DashboardHeader company={company} userName={userName} />
@@ -129,19 +130,42 @@ export default function DashboardModule({ userName }: DashboardModuleProps) {
       {/* 2. KPI Summary 4-card Grid */}
       <KpiSummaryGrid stats={stats} />
 
-      {/* 3. Primary Visualization: Hiring Overview Chart */}
-      <HiringOverviewChart chartData={chartData} />
-
-      {/* 4 & 6. Mid Row: Job Performance & Upcoming Interviews */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        <JobPerformanceTable jobs={jobPerformance} />
-        <UpcomingInterviewsCard interviews={upcomingInterviews} />
-      </div>
-
-      {/* 5 & 7. Bottom Row: Recent Applicants & Action Required */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        <RecentApplicantsCard applicants={recentApplicants} />
-        <ActionRequiredCard initialActions={actionsRequired} />
+      {/* 3. Content Sections
+          - Mobile: Action Required first, then a switcher, then the selected section only.
+          - Desktop (md+): no order applied -> the original layout renders unchanged
+            (Hiring Overview full width, Job Performance | Upcoming Interviews,
+            Recent Applicants | Action Required). */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-stretch">
+        {/* Mobile-only switcher for the four content sections */}
+        <div className="md:hidden max-md:order-2 flex items-center gap-1 rounded-xl border bg-card p-1">
+          {["Hiring Overview", "Job Performance", "Upcoming Interviews", "Recent Applicants"].map((label, i) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setActiveSection(i)}
+              className={`flex-1 min-h-10 rounded-lg px-2 py-1 text-[11px] leading-tight text-center font-medium transition-colors ${activeSection === i ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className={`max-md:order-3 lg:col-span-2${activeSection === 0 ? "" : " max-md:hidden"}`}>
+          <HiringOverviewChart chartData={chartData} />
+        </div>
+        <div className={`max-md:order-3${activeSection === 1 ? "" : " max-md:hidden"}`}>
+          <JobPerformanceTable jobs={jobPerformance} />
+        </div>
+        <div className={`max-md:order-3${activeSection === 2 ? "" : " max-md:hidden"}`}>
+          <UpcomingInterviewsCard interviews={upcomingInterviews} />
+        </div>
+        <div className={`max-md:order-3${activeSection === 3 ? "" : " max-md:hidden"}`}>
+          <RecentApplicantsCard applicants={recentApplicants} />
+        </div>
+        {/* Action Required: pulled to the top on mobile only; on desktop it keeps its
+            original half-width cell beside Recent Applicants. */}
+        <div className="max-md:order-1">
+          <ActionRequiredCard initialActions={actionsRequired} />
+        </div>
       </div>
     </motion.div>
   );

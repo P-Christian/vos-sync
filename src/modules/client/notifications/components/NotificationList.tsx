@@ -96,7 +96,7 @@ export default function NotificationList({
           <p className="text-sm font-semibold text-foreground">
             {isFiltered ? "No notifications match your filters" : "You're all caught up"}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm md:text-xs text-muted-foreground">
             {isFiltered
               ? "Try adjusting your search query, category, or unread toggle."
               : "No notifications to show right now."}
@@ -108,7 +108,7 @@ export default function NotificationList({
             onClick={onClearFilters}
             variant="outline"
             size="sm"
-            className="h-8 text-xs font-medium cursor-pointer"
+            className="h-8 max-md:min-h-10 text-sm md:text-xs font-medium cursor-pointer"
           >
             Clear Filters
           </Button>
@@ -121,7 +121,7 @@ export default function NotificationList({
     <div className="divide-y divide-border/60">
       {groupedNotifications.map((group) => (
         <div key={group.key} className="space-y-0">
-          <div className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-y border-border/40 select-none">
+          <div className="px-5 py-2 text-xs md:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground bg-muted/40 border-y border-border/40 select-none">
             {group.label}
           </div>
           <div className="divide-y divide-border/40">

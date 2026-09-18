@@ -109,7 +109,7 @@ export default function SecuritySettings({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Security Guidance Banner */}
       <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
         <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
@@ -117,25 +117,25 @@ export default function SecuritySettings({
           <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             Account Password & Security
           </h4>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             Ensure your account uses a strong, unique password with at least 8 characters. Changing your credentials requires verifying your current password.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
         {/* Password Form */}
         <div className="space-y-5">
           <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Change Password</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {localError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
                 {localError}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="curr-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                 <Lock className="h-3.5 w-3.5 text-zinc-400" /> Current Password
               </Label>
               <Input
@@ -144,13 +144,13 @@ export default function SecuritySettings({
                 value={form.current_password}
                 onChange={(e) => setForm((p) => ({ ...p, current_password: e.target.value }))}
                 placeholder="••••••••"
-                className="h-10 text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="new-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> New Password
               </Label>
               <Input
@@ -159,13 +159,13 @@ export default function SecuritySettings({
                 value={form.new_password}
                 onChange={(e) => setForm((p) => ({ ...p, new_password: e.target.value }))}
                 placeholder="Min. 8 characters"
-                className="h-10 text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="conf-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+              <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> Confirm New Password
               </Label>
               <Input
@@ -174,7 +174,7 @@ export default function SecuritySettings({
                 value={form.confirm_password}
                 onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
                 placeholder="Re-enter new password"
-                className="h-10 text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
                 required
               />
             </div>
@@ -185,7 +185,7 @@ export default function SecuritySettings({
               <Button
                 type="submit"
                 disabled={saving || !validatePasswordStrict(form.new_password || "")}
-                className="h-10 px-6 text-sm rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium shadow-sm transition-all disabled:opacity-50"
+                className="h-10 px-6 text-sm rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium shadow-sm transition-all disabled:opacity-50 max-md:min-h-11"
               >
                 {saving ? (
                   <>
@@ -206,16 +206,16 @@ export default function SecuritySettings({
           {sessionsLoading ? (
             <div className="flex items-center justify-center py-10 gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-              <span className="text-xs text-zinc-400">Loading active sessions...</span>
+              <span className="text-sm md:text-xs text-zinc-400">Loading active sessions...</span>
             </div>
           ) : (
             <div className="space-y-3">
               {sessions.map((session) => (
                 <div 
                   key={session.session_id} 
-                  className="flex items-center justify-between p-4 rounded-xl border bg-white dark:bg-zinc-950 shadow-sm"
+                  className="flex items-center justify-between p-4 rounded-xl border bg-white dark:bg-zinc-950 shadow-sm max-md:flex-wrap max-md:gap-3"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
                     <div className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg text-zinc-400 mt-0.5">
                       {session.device.includes("iPhone") || session.device.includes("Android") ? (
                         <Smartphone className="h-4 w-4" />
@@ -223,17 +223,17 @@ export default function SecuritySettings({
                         <Monitor className="h-4 w-4" />
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0 max-md:break-words">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-semibold text-zinc-950 dark:text-zinc-100">{session.device}</span>
                         {session.is_current && (
                           <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/30">This device</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                      <p className="text-sm md:text-xs text-zinc-400 mt-0.5">
                         {session.browser} • {session.ip_address}
                       </p>
-                      <p className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5">
+                      <p className="text-sm md:text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
                         <Globe className="h-3 w-3" /> {session.location} • {session.last_active}
                       </p>
                     </div>
@@ -244,7 +244,7 @@ export default function SecuritySettings({
                     size="sm"
                     onClick={() => handleRevokeSession(session.session_id)}
                     disabled={revokingId === session.session_id}
-                    className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg p-2"
+                    className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg p-2 max-md:min-h-11"
                   >
                     {revokingId === session.session_id ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

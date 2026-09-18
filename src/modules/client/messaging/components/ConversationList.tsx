@@ -61,7 +61,7 @@ export default function ConversationList({
             </span>
             <span
               className={cn(
-                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
+                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-xs md:text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
                 totalUnread > 0
                   ? "scale-100 opacity-100 max-w-[60px]"
                   : "scale-0 opacity-0 max-w-0 px-0 min-w-0 overflow-hidden border-0"
@@ -80,7 +80,7 @@ export default function ConversationList({
               onClick={onToggleArchived}
               title={showArchived ? "Hide archived" : "Show archived"}
               className={cn(
-                "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300",
+                "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 max-md:size-10 max-md:p-0",
                 showArchived &&
                   "bg-primary/10 text-primary"
               )}
@@ -91,7 +91,7 @@ export default function ConversationList({
               onClick={onRefresh}
               disabled={loading}
               title="Refresh"
-              className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40"
+              className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 max-md:size-10 max-md:p-0"
             >
               <RefreshCw
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
@@ -108,7 +108,7 @@ export default function ConversationList({
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition"
+            className="w-full pl-9 pr-3 py-2 rounded-xl md:text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition max-md:h-10 max-md:text-base"
           />
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function ConversationList({
               <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                 {searchQuery ? "No results found" : showArchived ? "No archived messages" : "No messages yet"}
               </p>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-sm md:text-xs text-zinc-400 mt-1">
                 {searchQuery
                   ? "Try a different search term"
                   : "Start chatting with a freelancer from the Applicants page"}

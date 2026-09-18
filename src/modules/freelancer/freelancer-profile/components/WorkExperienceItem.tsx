@@ -142,7 +142,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
         <div className="relative">
             {isEditing && (
                 <Dialog open={isEditing} onOpenChange={handleCancel}>
-                    <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
+                    <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)]">
                         <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
                             <DialogTitle className="text-xl font-semibold text-foreground">Edit Work Experience</DialogTitle>
                         </DialogHeader>
@@ -161,7 +161,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 type="text"
                                 value={companyName}
                                 onChange={(e) => setCompanyName(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div className="space-y-2">
@@ -170,7 +170,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 type="text"
                                 value={jobTitle}
                                 onChange={(e) => setJobTitle(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                     </div>
@@ -181,7 +181,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 type="text"
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div className="space-y-2">
@@ -189,7 +189,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                             <select
                                 value={locationType}
                                 onChange={(e) => setLocationType(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="">Select Type</option>
                                 <option value="On-site">On-site</option>
@@ -205,7 +205,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                             <select
                                 value={employmentType}
                                 onChange={(e) => setEmploymentType(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="">Select Type</option>
                                 <option value="Full-time">Full-time</option>
@@ -224,7 +224,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                         <div className="space-y-2">
@@ -233,13 +233,13 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={isCurrentRole}
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 max-md:min-h-11 max-md:items-center">
                         <input
                             type="checkbox"
                             id={`isCurrentRole-${experience.id}`}
@@ -267,7 +267,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                         <textarea
                             value={jobDescription}
                             onChange={(e) => setJobDescription(e.target.value)}
-                            className="w-full min-h-[100px] p-2 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="w-full min-h-[100px] p-2 rounded-md border border-input bg-transparent text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                         />
                     </div>
                             <div className="pt-4 border-t">
@@ -280,15 +280,15 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                         </div>
 
                         <div className="flex justify-end gap-2 p-6 border-t shrink-0">
-                            <Button variant="destructive" onClick={handleDeleteClick} className="mr-auto">
+                            <Button variant="destructive" onClick={handleDeleteClick} className="mr-auto max-md:min-h-11">
                                 Delete
                             </Button>
-                            <Button variant="outline" onClick={handleCancel}>
+                            <Button variant="outline" onClick={handleCancel} className="max-md:min-h-11">
                                 Cancel
                             </Button>
                             <Button 
                                 onClick={handleSave} 
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                             >
                                 Save Experience
                             </Button>
@@ -306,7 +306,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                 <div className="flex-1 space-y-1">
                     <div className="flex items-start justify-between">
                         <h4 className="font-semibold text-lg text-foreground">{experience.job_title}</h4>
-                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary">
+                        <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)} className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary max-md:size-11">
                             <Pencil className="h-4 w-4" />
                         </Button>
                     </div>
@@ -367,10 +367,10 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="max-md:min-h-11">Cancel</AlertDialogCancel>
                         <AlertDialogAction 
                             onClick={confirmDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 max-md:min-h-11"
                         >
                             Delete
                         </AlertDialogAction>

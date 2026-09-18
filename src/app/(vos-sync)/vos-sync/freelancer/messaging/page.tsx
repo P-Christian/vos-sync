@@ -1,7 +1,7 @@
 // src/app/(vos-sync)/vos-sync/freelancer/messaging/page.tsx
 
 import * as React from "react";
-import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
+import { FreelancerPageHeader } from "@/components/shared/layout/FreelancerPageHeader";
 import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import FreelancerMessagingModule from "@/modules/freelancer/freelancer-messaging";
@@ -50,7 +50,7 @@ export default async function FreelancerMessagingRoute() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      <PortalPageHeader user={user} />
+      <FreelancerPageHeader label="Messages" user={user} />
 
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
         <FreelancerMessagingModule currentUserId={currentUserId} />

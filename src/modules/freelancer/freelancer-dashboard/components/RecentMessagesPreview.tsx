@@ -100,7 +100,7 @@ export function RecentMessagesPreview() {
                                     <AvatarFallback>{getInitials(conv.other_party_name)}</AvatarFallback>
                                 </Avatar>
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between max-md:flex-wrap">
                                         <h4 className={`text-sm truncate ${(conv.unread_count || 0) > 0 ? "font-semibold" : "font-medium"}`}>
                                             {conv.other_party_name}
                                         </h4>
@@ -121,7 +121,7 @@ export function RecentMessagesPreview() {
                 )}
 
                 {recentConversations.length > 0 && (
-                    <Button variant="ghost" size="sm" asChild className="w-full mt-4 sm:hidden">
+                    <Button variant="ghost" size="sm" asChild className="w-full mt-4 sm:hidden max-md:min-h-11">
                         <Link href="/vos-sync/freelancer/messaging">
                             View All Messages
                         </Link>

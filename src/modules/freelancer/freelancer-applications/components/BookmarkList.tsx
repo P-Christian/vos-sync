@@ -125,7 +125,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
               <div className="flex-1 flex flex-col items-center justify-center gap-1">
                 <BookmarkMinus className="h-5 w-5 text-muted-foreground animate-pulse" />
                 <p className="text-sm font-semibold text-foreground">Saved job removed</p>
-                <p className="text-xs text-muted-foreground max-w-[200px] truncate">
+                <p className="text-sm md:text-xs text-muted-foreground max-w-[200px] truncate">
                   &quot;{job.job_title}&quot; was removed.
                 </p>
               </div>
@@ -133,7 +133,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
                 size="sm"
                 variant="outline"
                 onClick={() => handleUndo(job.job_id)}
-                className="mt-3 w-28 text-xs font-semibold rounded-xl bg-background hover:bg-muted shadow-xs"
+                className="mt-3 w-28 text-xs font-semibold rounded-xl bg-background hover:bg-muted shadow-xs max-md:min-h-11"
               >
                 Undo
               </Button>
@@ -162,11 +162,11 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
 
               <div className="flex-1 min-w-0 pr-8">
                 <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`}>
-                  <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
+                  <h3 className="text-base md:text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
                     {job.job_title}
                   </h3>
                 </Link>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-sm md:text-xs text-muted-foreground truncate mt-0.5">
                   {job.company_name ?? "—"}
                 </p>
               </div>
@@ -175,7 +175,7 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
               <Button
                 size="icon"
                 variant="ghost"
-                className="absolute top-0 right-0 h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary"
+                className="absolute top-0 right-0 h-8 w-8 text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleLocalRemove(job.job_id);
@@ -189,19 +189,19 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
             {/* Meta pills */}
             <div className="flex flex-wrap gap-2">
               {job.job_location && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-sm md:text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
                   <MapPin className="h-3 w-3" />
                   {job.job_location}
                 </span>
               )}
               {job.job_type && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-sm md:text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
                   <Briefcase className="h-3 w-3" />
                   {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
                 </span>
               )}
               {job.work_arrangement && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-sm md:text-[11px] text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
                   <ArrangeIcon className="h-3 w-3" />
                   {job.work_arrangement}
                 </span>
@@ -210,14 +210,14 @@ export const BookmarkList: React.FC<Props> = ({ bookmarks, onRemoveBookmark }) =
 
             {/* Footer */}
             <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1 text-sm md:text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span className="font-medium text-foreground">{formatSalary(job)}</span>
               </div>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2"
+                className="h-7 text-xs gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2 max-md:min-h-11"
                 asChild
               >
                 <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`}>

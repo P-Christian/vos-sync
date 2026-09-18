@@ -530,7 +530,7 @@ export default function JobForm({
                 type="button"
                 onClick={() => curIdx < step && setStep(curIdx)}
                 disabled={curIdx >= step || saving}
-                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2 max-md:size-10
                   ${isDone
                     ? "bg-[#14a800] border-[#14a800] text-white shadow-sm"
                     : isActive
@@ -570,7 +570,7 @@ export default function JobForm({
                   if (localErrors.job_title) setLocalErrors((p) => ({ ...p, job_title: "" }));
                 }}
                 placeholder="e.g. Senior Full Stack Engineer"
-                className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_title ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                className={`h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-md:h-10 max-md:text-base ${localErrors.job_title ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
                   }`}
               />
               {localErrors.job_title && (
@@ -595,7 +595,7 @@ export default function JobForm({
                       role="combobox"
                       aria-expanded={categoryPopoverOpen}
                       className={cn(
-                        "w-full h-10 justify-between text-sm rounded-lg font-normal border-zinc-200 hover:border-emerald-500 bg-background",
+                        "w-full h-10 justify-between text-sm rounded-lg font-normal border-zinc-200 hover:border-emerald-500 bg-background max-md:min-h-10",
                         !data.job_category && !data.category_id && "text-muted-foreground",
                         localErrors.job_category && "border-rose-500 focus:ring-rose-500"
                       )}
@@ -618,7 +618,7 @@ export default function JobForm({
                         placeholder="Search categories..."
                         value={categorySearchQuery}
                         onValueChange={setCategorySearchQuery}
-                        className="h-9 text-xs"
+                        className="h-9 md:text-xs max-md:h-10 max-md:text-base"
                       />
                       <CommandList
                         className="max-h-60 overflow-y-auto overscroll-contain"
@@ -637,7 +637,7 @@ export default function JobForm({
                                 setCategoryPopoverOpen(false);
                                 setSuggestCategoryModalOpen(true);
                               }}
-                              className="h-7 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5"
+                              className="h-7 text-xs gap-1 text-primary border-primary/30 hover:bg-primary/5 max-md:min-h-10"
                             >
                               <Plus className="h-3 w-3" />
                               Suggest &quot;{categorySearchQuery}&quot;
@@ -659,7 +659,7 @@ export default function JobForm({
                                     if (localErrors.job_category) setLocalErrors((p) => ({ ...p, job_category: "" }));
                                     setCategoryPopoverOpen(false);
                                   }}
-                                  className="text-xs flex items-center justify-between cursor-pointer py-2"
+                                  className="text-xs flex items-center justify-between cursor-pointer py-2 max-md:min-h-10"
                                 >
                                   <div>
                                     <span className="font-medium text-foreground">{cat.category_name}</span>
@@ -680,7 +680,7 @@ export default function JobForm({
                               setCategoryPopoverOpen(false);
                               setSuggestCategoryModalOpen(true);
                             }}
-                            className="w-full text-left text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-primary/5 transition-colors font-medium cursor-pointer"
+                            className="w-full text-left text-xs text-muted-foreground hover:text-primary flex items-center gap-1.5 py-1 px-2 rounded-md hover:bg-primary/5 transition-colors font-medium cursor-pointer max-md:min-h-10"
                           >
                             <Plus className="h-3.5 w-3.5" />
                             Can&apos;t find the right category? <span className="underline ml-auto font-semibold text-primary">Suggest new</span>
@@ -710,7 +710,7 @@ export default function JobForm({
                 >
                   <SelectTrigger
                     id="jf-type"
-                    className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_type ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                    className={`h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_type ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
                       }`}
                   >
                     <SelectValue placeholder="Select Type" />
@@ -742,7 +742,7 @@ export default function JobForm({
                     }`}
                 >
                   {["Remote", "Hybrid", "On-site"].map((arr) => (
-                    <label key={arr} className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                    <label key={arr} className="flex items-center gap-1.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer max-md:min-h-10">
                       <input
                         type="radio"
                         name="work_arrangement"
@@ -776,7 +776,7 @@ export default function JobForm({
                   value={data.number_of_openings ?? ""}
                   onChange={(e) => onChange("number_of_openings", e.target.value)}
                   placeholder="e.g. 1"
-                  className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                  className="h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-md:h-10 max-md:text-base"
                 />
               </div>
             </div>
@@ -795,7 +795,7 @@ export default function JobForm({
                     if (localErrors.job_location) setLocalErrors((p) => ({ ...p, job_location: "" }));
                   }}
                   placeholder="e.g. Manila, Philippines"
-                  className={`h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_location ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                  className={`h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-md:h-10 max-md:text-base ${localErrors.job_location ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
                     }`}
                 />
                 {localErrors.job_location && (
@@ -814,7 +814,7 @@ export default function JobForm({
                   value={data.job_department ?? ""}
                   onChange={(e) => onChange("job_department", e.target.value)}
                   placeholder="e.g. Engineering"
-                  className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg"
+                  className="h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-md:h-10 max-md:text-base"
                 />
               </div>
             </div>
@@ -849,7 +849,7 @@ export default function JobForm({
                       }
                     }
                   }}
-                  className="pl-9 h-10 text-sm border-zinc-200 rounded-lg animate-none focus-visible:ring-emerald-500"
+                  className="pl-9 h-10 md:text-sm border-zinc-200 rounded-lg animate-none focus-visible:ring-emerald-500 max-md:h-10 max-md:text-base"
                 />
                 {isSearchingSkills && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -866,7 +866,7 @@ export default function JobForm({
                     <li
                       key={`${skill.id}-${skill.skill_name}`}
                       onClick={() => handleSelectSkill(skill)}
-                      className="px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer flex items-center justify-between"
+                      className="px-4 py-2 text-sm text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900 cursor-pointer flex items-center justify-between max-md:min-h-10"
                     >
                       <span>{skill.skill_name}</span>
                       <Plus className="h-3.5 w-3.5 text-zinc-400" />
@@ -875,7 +875,7 @@ export default function JobForm({
                   {skillQuery.trim().length > 0 && !skillResults.some(s => s.skill_name.toLowerCase() === skillQuery.trim().toLowerCase()) && (
                     <li
                       onClick={handleAddCustomSkill}
-                      className="px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer flex items-center justify-between font-medium border-t border-zinc-100 dark:border-zinc-800/50"
+                      className="px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 cursor-pointer flex items-center justify-between font-medium border-t border-zinc-100 dark:border-zinc-800/50 max-md:min-h-10"
                     >
                       <span>+ Add &quot;{skillQuery.trim()}&quot; as a custom skill</span>
                       <Plus className="h-3.5 w-3.5" />
@@ -902,7 +902,7 @@ export default function JobForm({
                           key={`${skill.id}-${skill.skill_name}`}
                           type="button"
                           onClick={() => !isAdded && handleSelectSkill(skill)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200 max-md:min-h-10
                             ${isAdded
                               ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-450 border-zinc-205 dark:border-zinc-700 cursor-not-allowed opacity-50"
                               : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 hover:text-[#14a800] dark:hover:border-emerald-600 cursor-pointer"
@@ -930,7 +930,7 @@ export default function JobForm({
                           key={`${skill.id}-${skill.skill_name}`}
                           type="button"
                           onClick={() => !isAdded && handleSelectSkill(skill)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1 transition-all duration-200 max-md:min-h-10
                             ${isAdded
                               ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-450 border-zinc-205 dark:border-zinc-700 cursor-not-allowed opacity-50"
                               : "bg-zinc-50 dark:bg-zinc-900/60 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 hover:text-[#14a800] dark:hover:border-emerald-600 cursor-pointer"
@@ -960,7 +960,7 @@ export default function JobForm({
                       onClick={() => handleRemoveSkill(skill.id)}
                       className="text-zinc-400 hover:text-rose-500 transition-colors"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3 w-3 max-md:relative max-md:after:absolute max-md:after:-inset-3 max-md:after:content-['']" />
                     </button>
                   </Badge>
                 ))}
@@ -1058,7 +1058,7 @@ export default function JobForm({
                 <Label className="text-xs font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-400 flex items-center gap-1.5">
                   <CircleDollarSign className="h-4 w-4 text-emerald-600" /> Salary Information
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 max-md:min-h-10">
                   <Checkbox
                     id="jf-negotiable"
                     checked={data.salary_negotiable}
@@ -1088,7 +1088,7 @@ export default function JobForm({
                     }}
                     disabled={data.salary_negotiable}
                   >
-                    <SelectTrigger className="h-10 text-sm border-zinc-200 rounded-lg">
+                    <SelectTrigger className="h-10 md:text-sm border-zinc-200 rounded-lg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1114,7 +1114,7 @@ export default function JobForm({
                       }}
                       placeholder="e.g. 35000"
                       disabled={data.salary_negotiable}
-                      className="h-10 text-sm border-zinc-200 rounded-lg"
+                      className="h-10 md:text-sm border-zinc-200 rounded-lg max-md:h-10 max-md:text-base"
                     />
                   </div>
                 )}
@@ -1134,7 +1134,7 @@ export default function JobForm({
                       }}
                       placeholder="e.g. 500"
                       disabled={data.salary_negotiable}
-                      className="h-10 text-sm border-zinc-200 rounded-lg"
+                      className="h-10 md:text-sm border-zinc-200 rounded-lg max-md:h-10 max-md:text-base"
                     />
                   </div>
                 )}
@@ -1155,7 +1155,7 @@ export default function JobForm({
                         }}
                         placeholder="e.g. 25000"
                         disabled={data.salary_negotiable}
-                        className="h-10 text-sm border-zinc-200 rounded-lg"
+                        className="h-10 md:text-sm border-zinc-200 rounded-lg max-md:h-10 max-md:text-base"
                       />
                     </div>
 
@@ -1172,7 +1172,7 @@ export default function JobForm({
                         }}
                         placeholder="e.g. 50000"
                         disabled={data.salary_negotiable}
-                        className="h-10 text-sm border-zinc-200 rounded-lg"
+                        className="h-10 md:text-sm border-zinc-200 rounded-lg max-md:h-10 max-md:text-base"
                       />
                     </div>
                   </>
@@ -1194,7 +1194,7 @@ export default function JobForm({
               <div className="space-y-4 p-4 bg-zinc-50/50 dark:bg-zinc-900/35 border border-zinc-200/60 dark:border-zinc-800/80 rounded-xl">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {allBenefits.map((benefit) => (
-                    <label key={benefit} className="flex items-start gap-2.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                    <label key={benefit} className="flex items-start gap-2.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none max-md:min-h-10">
                       <Checkbox
                         checked={(data.benefits || []).includes(benefit)}
                         onCheckedChange={() => handleToggleBenefit(benefit)}
@@ -1218,12 +1218,12 @@ export default function JobForm({
                         handleAddCustomBenefit();
                       }
                     }}
-                    className="h-10 text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-w-md"
+                    className="h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg max-w-md max-md:h-10 max-md:text-base"
                   />
                   <Button
                     type="button"
                     onClick={handleAddCustomBenefit}
-                    className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none text-xs flex items-center gap-1.5 shrink-0"
+                    className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none text-xs flex items-center gap-1.5 shrink-0 max-md:min-h-10"
                   >
                     <Plus className="h-4 w-4" /> Add Benefit
                   </Button>
@@ -1246,7 +1246,7 @@ export default function JobForm({
                   value={data.experience_level || "MID"}
                   onValueChange={(v) => onChange("experience_level", v as ExperienceLevel)}
                 >
-                  <SelectTrigger id="jf-exp" className="h-10 text-sm border-zinc-200 rounded-lg">
+                  <SelectTrigger id="jf-exp" className="h-10 md:text-sm border-zinc-200 rounded-lg">
                     <SelectValue placeholder="Select Level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1267,7 +1267,7 @@ export default function JobForm({
                   value={data.education || "Bachelor's Degree Graduate"}
                   onValueChange={(v) => onChange("education", v)}
                 >
-                  <SelectTrigger id="jf-education" className="h-10 text-sm border-zinc-200 rounded-lg">
+                  <SelectTrigger id="jf-education" className="h-10 md:text-sm border-zinc-200 rounded-lg">
                     <SelectValue placeholder="Select Minimum Education" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1292,12 +1292,12 @@ export default function JobForm({
                   value={questionInput}
                   onChange={(e) => setQuestionInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddQuestion())}
-                  className="h-10 text-sm border-zinc-200 rounded-lg"
+                  className="h-10 md:text-sm border-zinc-200 rounded-lg max-md:h-10 max-md:text-base"
                 />
                 <Button
                   type="button"
                   onClick={handleAddQuestion}
-                  className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none flex items-center gap-1.5"
+                  className="h-10 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-350 hover:bg-zinc-200 rounded-lg border-0 shadow-none flex items-center gap-1.5 max-md:min-h-10"
                 >
                   <PlusCircle className="h-4 w-4" /> Add
                 </Button>
@@ -1318,7 +1318,7 @@ export default function JobForm({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveQuestion(index)}
-                      className="h-7 w-7 text-zinc-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                      className="h-7 w-7 text-zinc-400 hover:text-rose-500 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/20 max-md:size-10"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -1479,7 +1479,7 @@ export default function JobForm({
               variant="outline"
               onClick={handlePrev}
               disabled={saving}
-              className="h-10 px-4 text-xs font-semibold rounded-xl flex items-center gap-1.5"
+              className="h-10 px-4 text-xs font-semibold rounded-xl flex items-center gap-1.5 max-md:min-h-10"
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back
             </Button>
@@ -1489,7 +1489,7 @@ export default function JobForm({
               variant="outline"
               onClick={onCancel}
               disabled={saving}
-              className="h-10 px-4 text-xs font-semibold rounded-xl"
+              className="h-10 px-4 text-xs font-semibold rounded-xl max-md:min-h-10"
             >
               Cancel
             </Button>
@@ -1501,7 +1501,7 @@ export default function JobForm({
             <Button
               type="button"
               onClick={handleNext}
-              className="h-10 px-5 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5"
+              className="h-10 px-5 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5 max-md:min-h-10"
             >
               Next <ArrowRight className="h-3.5 w-3.5" />
             </Button>
@@ -1510,7 +1510,7 @@ export default function JobForm({
               type="button"
               onClick={handleFinalSubmit}
               disabled={saving}
-              className="h-10 px-6 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5"
+              className="h-10 px-6 text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm flex items-center gap-1.5 max-md:min-h-10"
             >
               {saving ? (
                 "Saving..."

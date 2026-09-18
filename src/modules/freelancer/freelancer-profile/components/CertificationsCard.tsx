@@ -41,7 +41,7 @@ export function CertificationsCard() {
                     <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                        className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                         onClick={() => {
                             setCertificationToEdit(null);
                             setIsModalOpen(true);
@@ -76,7 +76,7 @@ export function CertificationsCard() {
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary"
+                                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary max-md:size-11"
                                     onClick={() => {
                                         setCertificationToEdit(cert);
                                         setIsModalOpen(true);
@@ -88,7 +88,7 @@ export function CertificationsCard() {
                             <div className="text-sm font-medium text-muted-foreground">
                                 {cert.issuing_organization}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-sm md:text-xs text-muted-foreground">
                                 Issued {cert.issue_date || 'N/A'}
                             </div>
                             {cert.image_uuid && (

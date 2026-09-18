@@ -284,7 +284,7 @@ export default function ApplicantDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] !max-w-[1300px] h-[90vh] p-0 overflow-hidden flex flex-col border-border/80 bg-background">
+      <DialogContent className="w-[95vw] !max-w-[1300px] h-[90vh] p-0 overflow-hidden flex flex-col border-border/80 bg-background max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh]">
         {/* Sticky Header */}
         <div className="shrink-0 border-b border-border bg-card/90 backdrop-blur-md px-6 py-4">
           <DialogHeader>
@@ -319,13 +319,13 @@ export default function ApplicantDetailsModal({
                     <span>{name}</span>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${STATUS_STYLES[status]}`}
+                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border md:text-[10px] ${STATUS_STYLES[status]}`}
                     >
                       {STATUS_LABELS[status]}
                     </Badge>
                   </DialogTitle>
 
-                  <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <div className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 md:text-xs">
                     <span className="flex items-center gap-1.5 font-medium text-foreground/80">
                       <Briefcase className="h-3.5 w-3.5 text-muted-foreground/70" />
                       {jobTitle}
@@ -352,7 +352,7 @@ export default function ApplicantDetailsModal({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto scroll-smooth p-6 [scrollbar-gutter:stable] bg-muted/20">
           {error && (
-            <div className="mb-5 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+            <div className="mb-5 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive md:text-xs">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               {error}
             </div>
@@ -377,26 +377,26 @@ export default function ApplicantDetailsModal({
                   <SectionCard icon={LandPlot} title="Profile Metrics">
                     <div className="grid grid-cols-2 gap-2.5">
                       <div className="rounded-lg border border-border/70 bg-background/60 p-3">
-                        <p className="text-[11px] text-muted-foreground">Profile Completion</p>
+                        <p className="text-xs text-muted-foreground md:text-[11px]">Profile Completion</p>
                         <p className="text-lg font-bold text-foreground mt-0.5">{profileCompletion}%</p>
                       </div>
 
                       <div className="rounded-lg border border-border/70 bg-background/60 p-3">
-                        <p className="text-[11px] text-muted-foreground">Experience</p>
+                        <p className="text-xs text-muted-foreground md:text-[11px]">Experience</p>
                         <p className="text-lg font-bold text-foreground mt-0.5">
                           {detail.experience_years ?? activeApplicant?.experience_years ?? 0} yrs
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-border/70 bg-background/60 p-3">
-                        <p className="text-[11px] text-muted-foreground">Work Records</p>
+                        <p className="text-xs text-muted-foreground md:text-[11px]">Work Records</p>
                         <p className="text-lg font-bold text-foreground mt-0.5">
                           {detail.work_experience_count ?? activeApplicant?.work_experience_count ?? 0}
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-border/70 bg-background/60 p-3">
-                        <p className="text-[11px] text-muted-foreground">Resumes</p>
+                        <p className="text-xs text-muted-foreground md:text-[11px]">Resumes</p>
                         <p className="text-lg font-bold text-foreground mt-0.5">
                           {detail.resume_count ?? activeApplicant?.resume_count ?? 0}
                         </p>
@@ -408,7 +408,7 @@ export default function ApplicantDetailsModal({
                 {/* Contact Info */}
                 <AnimatedSection delay={0.1}>
                   <SectionCard icon={Contact} title="Contact Information">
-                    <div className="space-y-2.5 text-xs">
+                    <div className="space-y-2.5 text-sm md:text-xs">
                       <div className="flex items-center gap-2.5 text-foreground">
                         <Mail className="h-4 w-4 text-primary shrink-0" />
                         <span className="font-medium break-all">{detail.applicant_email || "—"}</span>
@@ -461,7 +461,7 @@ export default function ApplicantDetailsModal({
                             href={detail.portfolio_url.startsWith("http") ? detail.portfolio_url : `https://${detail.portfolio_url}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:min-h-10 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold text-foreground transition-colors md:text-xs"
                           >
                             <ExternalLink className="h-3.5 w-3.5 text-primary" />
                             View Portfolio
@@ -479,18 +479,18 @@ export default function ApplicantDetailsModal({
                       <div className="space-y-3">
                         {detail.screening_answers.map((item) => (
                           <div key={item.question_id} className="rounded-lg border border-border/60 bg-background/50 p-2.5">
-                            <p className="text-xs font-semibold text-muted-foreground">{item.question_text}</p>
+                            <p className="text-sm font-semibold text-muted-foreground md:text-xs">{item.question_text}</p>
                             {item.answer_text?.trim() ? (
-                              <p className="text-xs text-foreground mt-1 font-medium">{item.answer_text}</p>
+                              <p className="text-sm text-foreground mt-1 font-medium md:text-xs">{item.answer_text}</p>
                             ) : (
-                              <p className="text-xs text-muted-foreground italic mt-1">No answer provided</p>
+                              <p className="text-sm text-muted-foreground italic mt-1 md:text-xs">No answer provided</p>
                             )}
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="p-3 text-center rounded-lg border border-dashed border-border/60 bg-muted/20">
-                        <p className="text-xs text-muted-foreground font-medium">No screening answers submitted</p>
+                        <p className="text-sm text-muted-foreground font-medium md:text-xs">No screening answers submitted</p>
                       </div>
                     )}
                   </SectionCard>
@@ -516,10 +516,10 @@ export default function ApplicantDetailsModal({
                               href={href}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full border border-border bg-background hover:border-primary text-xs font-medium text-foreground transition-all"
+                              className="inline-flex items-center gap-1.5 py-1 px-2.5 max-md:min-h-10 rounded-full border border-border bg-background hover:border-primary text-xs font-medium text-foreground transition-all"
                             >
                               <FontAwesomeIcon icon={iconInfo.icon} className={cn("h-3.5 w-3.5", iconInfo.color)} />
-                              <span className="truncate max-w-[140px] text-[11px]">{chipLabel}</span>
+                              <span className="truncate max-w-[140px] text-xs md:text-[11px]">{chipLabel}</span>
                             </a>
                           );
                         })}
@@ -532,7 +532,7 @@ export default function ApplicantDetailsModal({
                 {detail.client_notes && (
                   <AnimatedSection delay={0.3}>
                     <SectionCard icon={NotebookText} title="Client Notes">
-                      <p className="text-xs text-foreground/90 whitespace-pre-line leading-relaxed">{detail.client_notes}</p>
+                      <p className="text-sm text-foreground/90 whitespace-pre-line leading-relaxed md:text-xs">{detail.client_notes}</p>
                     </SectionCard>
                   </AnimatedSection>
                 )}
@@ -548,7 +548,7 @@ export default function ApplicantDetailsModal({
                         <h4 className="font-semibold text-foreground text-sm">{detail.profile_headline}</h4>
                       )}
                       {detail.professional_summary && (
-                        <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
+                        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed whitespace-pre-line md:text-xs">
                           {detail.professional_summary}
                         </p>
                       )}
@@ -565,14 +565,14 @@ export default function ApplicantDetailsModal({
                       <SectionCard icon={LetterText} title="Cover Letter">
                         <div className="space-y-3">
                           {parsed.text && (
-                            <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">{parsed.text}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed md:text-xs">{parsed.text}</p>
                           )}
                           {parsed.document && (
                             <div className="flex items-center gap-2 pt-1">
                               <button
                                 type="button"
                                 onClick={() => setPreviewDoc({ fileName: parsed.document!.fileName, fileUrl: parsed.document!.fileUrl })}
-                                className="inline-flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors flex-1 min-w-0"
+                                className="inline-flex items-center gap-2.5 px-3 py-2 max-md:min-h-10 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold text-foreground transition-colors flex-1 min-w-0 md:text-xs"
                               >
                                 <FileText className="h-4 w-4 text-primary shrink-0" />
                                 <span className="truncate flex-1 text-left">{parsed.document.fileName}</span>
@@ -582,7 +582,7 @@ export default function ApplicantDetailsModal({
                                 href={parsed.document.fileUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors shrink-0"
+                                className="p-2 max-md:size-10 max-md:p-0 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors shrink-0"
                                 title="Download Cover Letter"
                               >
                                 <DownloadIcon className="h-4 w-4" />
@@ -605,12 +605,12 @@ export default function ApplicantDetailsModal({
                             <button
                               type="button"
                               onClick={() => setPreviewDoc({ fileName: resume.file_name || "Resume.pdf", fileUrl: resume.file_url })}
-                              className="inline-flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted text-xs font-semibold text-foreground transition-colors flex-1 min-w-0"
+                              className="inline-flex items-center gap-2.5 px-3 py-2 max-md:min-h-10 rounded-lg border border-border bg-background hover:bg-muted text-sm font-semibold text-foreground transition-colors flex-1 min-w-0 md:text-xs"
                             >
                               <FileText className="h-4 w-4 text-primary shrink-0" />
                               <div className="flex flex-col min-w-0 flex-1 text-left">
                                 <span className="truncate">{resume.file_name || "Resume.pdf"}</span>
-                                <span className="text-[10px] font-normal text-muted-foreground">Click to preview document</span>
+                                <span className="text-xs font-normal text-muted-foreground md:text-[10px]">Click to preview document</span>
                               </div>
                               <Eye className="h-4 w-4 text-muted-foreground shrink-0" />
                             </button>
@@ -618,7 +618,7 @@ export default function ApplicantDetailsModal({
                               href={resume.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors shrink-0"
+                              className="p-2 max-md:size-10 max-md:p-0 rounded-lg border border-border bg-background hover:bg-muted text-foreground transition-colors shrink-0"
                               title="Download Resume"
                             >
                               <DownloadIcon className="h-4 w-4" />
@@ -657,17 +657,17 @@ export default function ApplicantDetailsModal({
                         {detail.work_experience.map((exp) => (
                           <div key={exp.id} className="border-l-2 border-primary/40 pl-3.5 py-0.5">
                             <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <h4 className="font-semibold text-foreground text-xs">{exp.job_title}</h4>
-                              <span className="text-[11px] text-muted-foreground">
+                              <h4 className="font-semibold text-foreground text-sm md:text-xs">{exp.job_title}</h4>
+                              <span className="text-xs text-muted-foreground md:text-[11px]">
                                 {formatDateRange(exp.start_date, exp.end_date, exp.is_current_role)}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                            <p className="text-sm text-muted-foreground mt-0.5 font-medium md:text-xs">
                               {exp.company_name}
                               {exp.location ? ` • ${exp.location}` : ""}
                             </p>
                             {exp.job_description && (
-                              <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-line leading-relaxed">
+                              <p className="text-sm text-muted-foreground mt-1.5 whitespace-pre-line leading-relaxed md:text-xs">
                                 {exp.job_description}
                               </p>
                             )}
@@ -685,12 +685,12 @@ export default function ApplicantDetailsModal({
                       <div className="space-y-3">
                         {detail.education.map((edu, index) => (
                           <div key={index} className="border-l-2 border-border pl-3 py-0.5">
-                            <h4 className="font-semibold text-foreground text-xs">{edu.school_name}</h4>
+                            <h4 className="font-semibold text-foreground text-sm md:text-xs">{edu.school_name}</h4>
                             {edu.course_name && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{edu.course_name}</p>
+                              <p className="text-sm text-muted-foreground mt-0.5 md:text-xs">{edu.course_name}</p>
                             )}
                             {(edu.start_date || edu.end_date) && (
-                              <p className="text-[11px] text-muted-foreground mt-1">
+                              <p className="text-xs text-muted-foreground mt-1 md:text-[11px]">
                                 {formatDateRange(edu.start_date, edu.end_date)}
                               </p>
                             )}
@@ -709,8 +709,8 @@ export default function ApplicantDetailsModal({
                         {detail.certifications.map((cert) => (
                           <div key={cert.id} className="flex items-start justify-between gap-2 flex-wrap border-b border-border/50 pb-2 last:border-0 last:pb-0">
                             <div>
-                              <p className="font-semibold text-foreground text-xs">{cert.certificate_name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
+                              <p className="font-semibold text-foreground text-sm md:text-xs">{cert.certificate_name}</p>
+                              <p className="text-sm text-muted-foreground mt-0.5 md:text-xs">
                                 {cert.issuing_organization}
                                 {formatDate(cert.issue_date) ? ` • ${formatDate(cert.issue_date)}` : ""}
                               </p>
@@ -720,7 +720,7 @@ export default function ApplicantDetailsModal({
                                 href={cert.credential_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1 shrink-0"
+                                className="text-sm font-semibold text-primary hover:underline inline-flex items-center gap-1 shrink-0 max-md:min-h-10 md:text-xs"
                               >
                                 View <ExternalLink className="h-3 w-3" />
                               </a>
@@ -741,8 +741,8 @@ export default function ApplicantDetailsModal({
         </div>
 
         {/* Modal Footer */}
-        <DialogFooter className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/90 backdrop-blur-md px-6 py-3.5 flex flex-row items-center justify-end gap-2.5">
-          <Button variant="outline" onClick={onClose} className="border-border">
+        <DialogFooter className="sticky bottom-0 z-20 shrink-0 border-t border-border bg-card/90 backdrop-blur-md px-6 py-3.5 flex flex-row items-center justify-end gap-2.5 max-md:flex-col max-md:items-stretch">
+          <Button variant="outline" onClick={onClose} className="border-border max-md:w-full max-md:min-h-10">
             Close
           </Button>
 
@@ -750,21 +750,21 @@ export default function ApplicantDetailsModal({
           <Button
             variant="outline"
             onClick={() => setAiModalOpen(true)}
-            className="border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-foreground font-semibold gap-1.5 shadow-2xs cursor-pointer"
+            className="border-primary/40 hover:border-primary/80 hover:bg-primary/5 text-foreground font-semibold gap-1.5 shadow-2xs cursor-pointer max-md:w-full max-md:min-h-10"
           >
             <Sparkles className="h-4 w-4 text-amber-500 fill-amber-500/20" />
             {cachedAnalysis ? "View AI Analysis" : "Generate AI Analysis"}
           </Button>
 
           <Link href={`/vos-sync/client/messaging?freelancer_id=${activeApplicant?.user_id ?? ''}&job_id=${activeApplicant?.job_id ?? ''}`}>
-            <Button variant="outline" className="border-border hover:bg-muted font-medium gap-1.5">
+            <Button variant="outline" className="border-border hover:bg-muted font-medium gap-1.5 max-md:w-full max-md:min-h-10">
               <MessageSquare className="h-4 w-4 text-primary" />
               Message Applicant
             </Button>
           </Link>
 
           {status !== "HIRED" && status !== "REJECTED" && status !== "INTERVIEWING" && (
-            <Button variant="outline" onClick={onUpdateStatus} className="border-border">
+            <Button variant="outline" onClick={onUpdateStatus} className="border-border max-md:w-full max-md:min-h-10">
               Update Status
             </Button>
           )}
@@ -772,7 +772,7 @@ export default function ApplicantDetailsModal({
           {status === "SHORTLISTED" && (
             <Button
               onClick={onScheduleInterview}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5 max-md:w-full max-md:min-h-10"
             >
               <CalendarPlus className="h-4 w-4" />
               Schedule Interview
@@ -783,7 +783,7 @@ export default function ApplicantDetailsModal({
             <Link href="/vos-sync/client/interviews">
               <Button
                 variant="outline"
-                className="border-border hover:bg-muted font-medium gap-1.5"
+                className="border-border hover:bg-muted font-medium gap-1.5 max-md:w-full max-md:min-h-10"
               >
                 <CalendarPlus className="h-4 w-4 text-primary" />
                 View Interview
@@ -794,7 +794,7 @@ export default function ApplicantDetailsModal({
           {status === "INTERVIEWING" && !activeApplicant?.active_interview_id && (
             <Button
               onClick={onScheduleInterview}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5 max-md:w-full max-md:min-h-10"
             >
               <CalendarPlus className="h-4 w-4" />
               Schedule Interview
@@ -812,7 +812,7 @@ export default function ApplicantDetailsModal({
 
       {/* Nested Document Preview Modal */}
       <Dialog open={!!previewDoc} onOpenChange={(openState) => !openState && setPreviewDoc(null)}>
-        <DialogContent className="!w-[96vw] !max-w-[1600px] sm:!max-w-[1600px] !h-[92vh] p-0 flex flex-col z-[100] gap-0 overflow-hidden border-border bg-background">
+        <DialogContent className="!w-[96vw] !max-w-[1600px] sm:!max-w-[1600px] !h-[92vh] max-md:max-h-[90dvh] p-0 flex flex-col z-[100] gap-0 overflow-hidden border-border bg-background">
           <DialogHeader className="px-6 py-3.5 border-b border-border flex flex-row items-center justify-between space-y-0 bg-card shrink-0">
             <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
               <FileText className="h-5 w-5 text-primary shrink-0" />
@@ -827,7 +827,7 @@ export default function ApplicantDetailsModal({
                     href={previewDoc.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors text-foreground"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:min-h-10 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors text-foreground md:text-xs"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     Open Original
@@ -835,7 +835,7 @@ export default function ApplicantDetailsModal({
                   <a
                     href={previewDoc.fileUrl}
                     download={previewDoc.fileName}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-medium transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 max-md:min-h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors md:text-xs"
                   >
                     <Download className="h-3.5 w-3.5" />
                     Download

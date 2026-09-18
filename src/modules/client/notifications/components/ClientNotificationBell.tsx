@@ -16,7 +16,7 @@ export function ClientNotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative"
+        className="relative max-md:size-10"
         onClick={() => setOpen(!open)}
       >
         <Bell className={cn("h-5 w-5 transition-transform duration-200", unreadCount > 0 && "text-zinc-900 dark:text-zinc-100")} />

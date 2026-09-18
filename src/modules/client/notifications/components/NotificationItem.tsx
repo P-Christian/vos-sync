@@ -250,7 +250,7 @@ export default function NotificationItem({
 
           <p
             className={cn(
-              "text-xs mt-1 leading-relaxed line-clamp-2",
+              "text-sm md:text-xs mt-1 leading-relaxed line-clamp-2",
               notification.is_read
                 ? "text-muted-foreground/80"
                 : "text-muted-foreground"
@@ -263,7 +263,7 @@ export default function NotificationItem({
 
       {/* Right Actions & Meta */}
       <div className="flex items-center gap-2 shrink-0 ml-2">
-        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+        <span className="text-xs md:text-[11px] text-muted-foreground whitespace-nowrap">
           {formatRelativeTime(notification.created_at)}
         </span>
 

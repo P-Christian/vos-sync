@@ -52,7 +52,7 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
                 <DialogHeader>
                     <DialogTitle>Address Verification</DialogTitle>
                     <DialogDescription>
@@ -72,12 +72,13 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
                             type="file" 
                             accept="image/*,application/pdf" 
                             onChange={(e) => setAddressDoc(e.target.files?.[0] || null)} 
+                            className="max-md:min-h-11"
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting}>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="max-md:min-h-11">Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting} className="max-md:min-h-11">
                         {isSubmitting ? "Submitting..." : "Submit"}
                     </Button>
                 </DialogFooter>

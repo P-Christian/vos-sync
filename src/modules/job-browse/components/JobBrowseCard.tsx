@@ -106,7 +106,7 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
             </a>
 
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+              <h3 className="text-base md:text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                 {job.job_title}
               </h3>
               {job.company_name ? (
@@ -189,7 +189,7 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-border/50 mt-auto">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 pr-2">
+        <div className="flex items-center gap-1.5 text-sm md:text-xs text-muted-foreground min-w-0 pr-2">
           <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <span className="font-semibold text-foreground truncate">{formatSalary(job)}</span>
         </div>
@@ -197,7 +197,7 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/70 max-md:size-11"
             onClick={(e) => {
               e.stopPropagation();
               onToggleBookmark(job.job_id);
@@ -209,7 +209,7 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 text-xs font-medium gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2.5"
+            className="h-8 text-sm md:text-xs font-medium gap-1 text-primary hover:text-primary hover:bg-primary/10 rounded-lg px-2.5 max-md:min-h-11"
             onClick={(e) => {
               e.stopPropagation();
               onViewDetail(job);

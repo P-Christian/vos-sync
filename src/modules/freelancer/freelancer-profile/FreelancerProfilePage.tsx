@@ -12,8 +12,8 @@ import { ResumeSidebar } from "./components/ResumeSidebar";
 
 export function FreelancerProfilePage() {
     return (
-        <div className="w-full space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="w-full space-y-4 md:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 items-start">
                 {/* Left Column: Profile Data */}
                 <div className="lg:col-span-2 space-y-6">
                     <PersonalInfoCard />

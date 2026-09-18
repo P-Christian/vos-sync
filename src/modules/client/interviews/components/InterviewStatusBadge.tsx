@@ -26,7 +26,7 @@ export default function InterviewStatusBadge({ status }: InterviewStatusBadgePro
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs md:text-[11px] font-semibold border",
         colorClass
       )}
     >

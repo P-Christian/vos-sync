@@ -34,8 +34,8 @@ export default function TalentSearchBar({
   return (
     <div className="flex flex-col gap-3 !mb-0">
       {/* Primary search */}
-      <div className="relative flex-1 flex gap-2">
-        <div className="relative flex-1">
+      <div className="relative flex-1 flex gap-2 max-md:flex-wrap">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
           <Input
             id="talent-search-keyword"
@@ -43,12 +43,12 @@ export default function TalentSearchBar({
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-10 h-11 rounded-xl border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm"
+            className="pl-10 h-10 rounded-xl border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 md:text-sm max-md:text-base"
           />
           {keyword && (
             <button
               onClick={() => onKeywordChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 max-md:size-10"
             >
               <X className="h-4 w-4" />
             </button>
@@ -59,7 +59,7 @@ export default function TalentSearchBar({
           id="talent-search-btn"
           onClick={onSearch}
           disabled={loading}
-          className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0 gap-2 shrink-0"
+          className="h-10 px-6 max-md:px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0 gap-2 shrink-0"
         >
           {loading ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -74,7 +74,7 @@ export default function TalentSearchBar({
             id="talent-search-reset"
             variant="outline"
             onClick={onReset}
-            className="h-11 px-4 rounded-xl text-sm shrink-0"
+            className="h-10 px-4 max-md:px-3 rounded-xl text-sm max-md:text-xs shrink-0"
           >
             Clear All
           </Button>
@@ -91,10 +91,10 @@ export default function TalentSearchBar({
             value={jobIdForMatch}
             onChange={(e) => onJobIdChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-9 h-9 rounded-lg border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 text-xs placeholder:text-violet-400"
+            className="pl-9 h-9 rounded-lg border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 text-sm md:text-xs placeholder:text-violet-400"
           />
         </div>
-        <span className="text-xs text-zinc-400">
+        <span className="text-sm md:text-xs text-zinc-400">
           Provide a Job ID to score candidates against your job requirements
         </span>
       </div> */}

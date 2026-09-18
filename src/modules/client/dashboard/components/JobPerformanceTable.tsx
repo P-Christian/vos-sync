@@ -51,7 +51,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
               variant="ghost"
               size="sm"
               onClick={handleNavigateAll}
-              className="text-xs font-semibold text-primary hover:text-primary/90 h-8 px-2.5 flex items-center gap-1 group"
+              className="text-sm md:text-xs font-semibold text-primary hover:text-primary/90 h-8 max-md:min-h-10 px-2.5 flex items-center gap-1 group"
             >
               View All Jobs
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -60,25 +60,31 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
 
           <CardContent className="p-0">
             {jobs.length === 0 ? (
-              <div className="py-12 text-center text-muted-foreground text-xs space-y-2">
+              <div className="py-12 text-center text-muted-foreground text-sm md:text-xs space-y-2">
                 <Briefcase className="h-8 w-8 mx-auto text-muted-foreground/40" />
                 <p>No active jobs posted yet.</p>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => router.push("/vos-sync/client/jobs")}
-                  className="text-xs font-semibold mt-1"
+                  className="text-sm md:text-xs font-semibold mt-1 max-md:min-h-10"
                 >
                   Create First Job
                 </Button>
               </div>
             ) : (
               <div className="divide-y divide-border/60">
-                <div className="grid grid-cols-12 px-5 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40">
-                  <span className="col-span-6">Job</span>
-                  <span className="col-span-2 text-center">Applicants</span>
-                  <span className="col-span-2 text-center">Shortlisted</span>
-                  <span className="col-span-2 text-right">Status</span>
+                <div className="grid grid-cols-12 px-5 max-md:px-4 py-2.5 text-xs md:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider max-md:tracking-normal bg-muted/40">
+                  <span className="col-span-6 min-w-0 truncate">Job</span>
+                  <span className="col-span-2 text-center min-w-0 truncate">
+                    <span className="max-md:hidden">Applicants</span>
+                    <span className="hidden max-md:inline">Apps</span>
+                  </span>
+                  <span className="col-span-2 text-center min-w-0 truncate">
+                    <span className="max-md:hidden">Shortlisted</span>
+                    <span className="hidden max-md:inline">Shortlist</span>
+                  </span>
+                  <span className="col-span-2 text-right min-w-0 truncate">Status</span>
                 </div>
 
                 {jobs.map((job) => {
@@ -94,13 +100,13 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
                     <div
                       key={id}
                       onClick={() => handleNavigateJob(id)}
-                      className="grid grid-cols-12 items-center px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group text-xs"
+                      className="grid grid-cols-12 items-center px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group text-sm md:text-xs"
                     >
                       <div className="col-span-6 pr-2">
                         <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                           {title}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate pt-0.5">
+                        <p className="text-xs md:text-[11px] text-muted-foreground truncate pt-0.5">
                           {department} {location ? `• ${location}` : ""}
                         </p>
                       </div>
@@ -117,11 +123,11 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
 
                       <div className="col-span-2 text-right">
                         {isJobActive ? (
-                          <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px] font-semibold px-2 py-0.5">
+                          <Badge className="bg-primary/10 text-primary border-primary/20 text-xs md:text-[10px] font-semibold px-2 py-0.5">
                             Active
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-muted-foreground border-border text-[10px] px-2 py-0.5">
+                          <Badge variant="outline" className="text-muted-foreground border-border text-xs md:text-[10px] px-2 py-0.5">
                             {job.status}
                           </Badge>
                         )}
@@ -135,12 +141,12 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
         </div>
 
         <div className="p-4 bg-muted/20 border-t border-border/60 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Showing top performing postings</span>
+          <span className="text-sm md:text-xs text-muted-foreground">Showing top performing postings</span>
           <Button
             variant="outline"
             size="sm"
             onClick={handleNavigateAll}
-            className="text-xs font-semibold h-8 rounded-lg"
+            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
           >
             View All Jobs
           </Button>

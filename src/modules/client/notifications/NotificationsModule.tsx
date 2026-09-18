@@ -160,7 +160,7 @@ export default function NotificationsModule() {
   const isFiltered = selectedCategory !== "ALL" || unreadOnly || searchQuery.trim().length > 0;
 
   return (
-    <div className="space-y-6 client-page-transition">
+    <div className="space-y-4 md:space-y-6 client-page-transition">
       <style>{`
         @keyframes page-entry {
           from { opacity: 0; transform: translateY(8px); }
@@ -192,12 +192,12 @@ export default function NotificationsModule() {
       {/* ── Tabs + Content Card ────────────────────────────────────────── */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
         {/* Tab Bar */}
-        <CardHeader className="border-b border-border px-6 !py-0 bg-muted/20">
+        <CardHeader className="border-b border-border px-6 max-md:px-1 !py-0 bg-muted/20">
           <div className="flex items-center gap-1">
             <button
               onClick={() => handleTabChange("feed")}
               className={cn(
-                "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors cursor-pointer",
+                "relative flex items-center gap-2 px-4 max-md:px-3 py-3.5 text-sm font-medium transition-colors cursor-pointer",
                 activeTab === "feed"
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -206,7 +206,7 @@ export default function NotificationsModule() {
               <Bell className="h-4 w-4" />
               Notifications
               {unreadCount > 0 && (
-                <span className="ml-1 h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                <span className="ml-1 h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-primary/10 text-primary text-xs md:text-[10px] font-bold">
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>
               )}
@@ -222,7 +222,7 @@ export default function NotificationsModule() {
             <button
               onClick={() => handleTabChange("preferences")}
               className={cn(
-                "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors cursor-pointer",
+                "relative flex items-center gap-2 px-4 max-md:px-3 py-3.5 text-sm font-medium transition-colors cursor-pointer",
                 activeTab === "preferences"
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
@@ -248,21 +248,21 @@ export default function NotificationsModule() {
               {/* Comprehensive Filter Toolbar */}
               <div className="p-4 space-y-3 border-b border-border bg-card">
                 {/* Search Bar + Actions Row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex flex-row items-center justify-between gap-2 sm:gap-3">
                   {/* Search Input */}
-                  <div className="relative flex-1 max-w-md">
+                  <div className="relative flex-1 min-w-0 max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search alerts by candidate, job, or keyword..."
-                      className="pl-9 pr-8 h-9 text-xs rounded-lg bg-background border-border"
+                      className="pl-9 pr-8 h-9 md:text-xs max-md:h-10 max-md:text-base rounded-lg bg-background border-border"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 max-md:size-10 max-md:p-0"
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -270,11 +270,11 @@ export default function NotificationsModule() {
                   </div>
 
                   {/* Right Action Controls: Unread Only & Mark All Read */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     <button
                       onClick={() => setUnreadOnly((prev) => !prev)}
                       className={cn(
-                        "h-9 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer border flex items-center gap-1.5",
+                        "h-9 max-md:min-h-10 px-3 max-md:px-2.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border flex items-center gap-1.5",
                         unreadOnly
                           ? "bg-primary/10 border-primary/30 text-primary font-semibold"
                           : "bg-background border-border text-muted-foreground hover:bg-muted"
@@ -288,7 +288,7 @@ export default function NotificationsModule() {
                       />
                       Unread only
                       {unreadCount > 0 && (
-                        <span className="ml-0.5 text-[10px] opacity-80 font-bold">
+                        <span className="ml-0.5 text-xs md:text-[10px] opacity-80 font-bold">
                           ({unreadCount})
                         </span>
                       )}
@@ -300,10 +300,11 @@ export default function NotificationsModule() {
                         disabled={saving}
                         variant="ghost"
                         size="sm"
-                        className="h-9 px-3 text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                        aria-label="Mark all as read"
+                        className="h-9 max-md:min-h-10 px-3 max-md:size-10 max-md:px-0 text-sm md:text-xs font-medium text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
                       >
-                        <CheckCheck className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                        Mark All Read
+                        <CheckCheck className="h-3.5 w-3.5 mr-1.5 max-md:mr-0 text-primary" />
+                        <span className="max-md:hidden">Mark All Read</span>
                       </Button>
                     )}
                   </div>
@@ -321,7 +322,7 @@ export default function NotificationsModule() {
                         key={opt.value}
                         onClick={() => setSelectedCategory(opt.value)}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0",
+                          "flex items-center gap-1.5 px-3 py-1.5 max-md:min-h-10 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0",
                           isSelected
                             ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                             : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -331,7 +332,7 @@ export default function NotificationsModule() {
                         {opt.label}
                         <span
                           className={cn(
-                            "ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full",
+                            "ml-0.5 text-xs md:text-[10px] px-1.5 py-0.2 rounded-full",
                             isSelected
                               ? "bg-primary-foreground/20 text-primary-foreground"
                               : "bg-muted text-muted-foreground"
@@ -362,7 +363,7 @@ export default function NotificationsModule() {
                 <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                   Notification Preferences
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm md:text-xs text-muted-foreground mt-1">
                   Choose how you want to be notified for each category.
                 </p>
               </div>

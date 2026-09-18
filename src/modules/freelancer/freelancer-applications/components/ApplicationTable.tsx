@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 interface Props {
   applications: ApplicationItem[];
   onRefresh?: () => void;
+  mobileSearch?: string;
 }
 
 type StatusConfigEntry = { icon: React.ElementType; className: string; style?: React.CSSProperties };
@@ -114,7 +115,7 @@ function getInitials(name?: string): string {
     .toUpperCase();
 }
 
-export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) => {
+export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mobileSearch }) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
   const [originalJob, setOriginalJob] = useState<PublicJobPosting | null>(null);
   const [isJobSheetOpen, setIsJobSheetOpen] = useState(false);
@@ -196,7 +197,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
         return (
           <div>
             <div className="text-sm font-semibold text-foreground">{app.job_title ?? '—'}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
+            <div className="text-sm md:text-xs text-muted-foreground mt-0.5">
               {[app.job_type, app.job_location].filter(Boolean).join(' • ')}
             </div>
           </div>
@@ -264,7 +265,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
           <div className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground">
+                <Button variant="ghost" size="icon" className="text-muted-foreground max-md:size-11">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -285,15 +286,85 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
     },
   ];
 
+  const mobileQuery = (mobileSearch ?? "").trim().toLowerCase();
+  const mobileApplications = mobileQuery
+    ? applications.filter(
+        (app) =>
+          (app.job_title ?? "").toLowerCase().includes(mobileQuery) ||
+          (app.company_name ?? "").toLowerCase().includes(mobileQuery),
+      )
+    : applications;
+
   return (
     <>
-      <DataTable
-        columns={columns}
-        data={applications}
-        searchKey="job_title"
-        emptyTitle="No applications found"
-        emptyDescription="You haven't applied to any jobs yet."
-      />
+      <div className="hidden md:block">
+        <DataTable
+          columns={columns}
+          data={applications}
+          searchKey="job_title"
+          emptyTitle="No applications found"
+          emptyDescription="You haven't applied to any jobs yet."
+        />
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {mobileApplications.length === 0 ? (
+          <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+            {mobileQuery ? (
+              <>
+                <p className="text-base font-semibold text-foreground">No matching applications</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Try a different search term or clear the filter.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-base font-semibold text-foreground">No applications found</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  You haven&apos;t applied to any jobs yet.
+                </p>
+              </>
+            )}
+          </div>
+        ) : (
+          mobileApplications.map((app) => (
+            <div key={app.application_id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-semibold text-foreground">{app.job_title ?? '—'}</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5 break-words">
+                    {[app.job_type, app.job_location].filter(Boolean).join(' • ')}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5 break-words">
+                    {app.company_name ?? '—'}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-muted-foreground max-md:size-11">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setSelectedApp(app)} className="cursor-pointer gap-2">
+                      <Eye className="w-4 h-4" />
+                      View Application
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { setWithdrawApp(app); setWithdrawReason(""); }} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
+                      <XOctagon className="w-4 h-4" />
+                      Withdraw Application
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className="text-sm text-muted-foreground">{formatDate(app.applied_at)}</span>
+                <StatusBadge status={app.application_status} />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       <Drawer direction="right" open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
         <DrawerContent className="h-full !w-[90vw] sm:!w-[800px] !max-w-none ml-auto right-0 rounded-none border-l">
@@ -339,7 +410,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="shrink-0"
+                    className="shrink-0 max-md:min-h-11"
                     disabled={loadingJob}
                     onClick={() => handleOpenJobPost(selectedApp.job_id)}
                   >
@@ -375,7 +446,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
 
                 {selectedApp.job_description && (
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Job Description</p>
+                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Job Description</p>
                     <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto">
                       {selectedApp.job_description}
                     </div>
@@ -384,11 +455,11 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Current Status</p>
+                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Current Status</p>
                     <div><StatusBadge status={selectedApp.application_status} /></div>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Expected Salary</p>
+                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Expected Salary</p>
                     <div className="flex items-center gap-1 text-sm font-medium">
                       <DollarSign className="w-4 h-4 text-muted-foreground" />
                       {selectedApp.expected_salary ? selectedApp.expected_salary.toLocaleString() : 'Not specified'}
@@ -397,7 +468,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                  <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> Cover Letter
                   </p>
                   <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground">
@@ -407,7 +478,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
 
                 {selectedApp.portfolio_url && (
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
                       <LinkIcon className="w-3.5 h-3.5" /> Portfolio
                     </p>
                     <a
@@ -423,7 +494,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
 
                 {selectedApp.resume && (
                   <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5" /> Attached Resume
                     </p>
                     <a
@@ -444,7 +515,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
 
                 {/* Application Progress Timeline */}
                 <div className="border border-border bg-muted/20 p-5 rounded-xl space-y-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Application Progress</p>
+                  <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-bold">Application Progress</p>
                   
                   <div className="relative pl-8 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
                     {selectedApp.application_status === "REJECTED" ? (
@@ -456,7 +527,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                           </span>
                           <div>
                             <p className="text-sm font-semibold text-foreground">Applied</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">Your application was successfully submitted.</p>
+                            <p className="text-sm md:text-xs text-muted-foreground mt-0.5">Your application was successfully submitted.</p>
                           </div>
                         </div>
 
@@ -467,7 +538,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                           </span>
                           <div>
                             <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Rejected</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">The employer decided not to move forward with your application.</p>
+                            <p className="text-sm md:text-xs text-muted-foreground mt-0.5">The employer decided not to move forward with your application.</p>
                           </div>
                         </div>
                       </>
@@ -514,7 +585,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
                               </span>
                               <div>
                                 <p className={`text-sm ${labelColor}`}>{step.label}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{step.desc}</p>
+                                <p className="text-sm md:text-xs text-muted-foreground mt-0.5">{step.desc}</p>
                               </div>
                             </div>
                           );
@@ -542,7 +613,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
       />
 
       <Dialog open={!!withdrawApp} onOpenChange={(open) => !open && setWithdrawApp(null)}>
-        <DialogContent className="sm:max-w-[500px] rounded-2xl">
+        <DialogContent className="sm:max-w-[500px] rounded-2xl max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-foreground">Withdraw Application</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground mt-2">
@@ -552,7 +623,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-4">
-            <Label htmlFor="withdraw-reason-input" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            <Label htmlFor="withdraw-reason-input" className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Reason for withdrawal (optional)
             </Label>
             <Textarea
@@ -560,7 +631,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
               placeholder="e.g. I have accepted another offer, salary misalignment, etc."
               value={withdrawReason}
               onChange={(e) => setWithdrawReason(e.target.value)}
-              className="resize-none text-sm rounded-xl bg-background"
+              className="resize-none text-base md:text-sm rounded-xl bg-background"
               rows={3}
               disabled={isWithdrawing}
             />
@@ -570,7 +641,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
               variant="outline"
               onClick={() => { setWithdrawApp(null); setWithdrawReason(""); }}
               disabled={isWithdrawing}
-              className="rounded-xl h-9 text-sm"
+              className="rounded-xl h-9 text-sm max-md:min-h-11"
             >
               Cancel
             </Button>
@@ -578,7 +649,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh }) =
               variant="destructive"
               onClick={executeWithdrawal}
               disabled={isWithdrawing}
-              className="rounded-xl h-9 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium border-0"
+              className="rounded-xl h-9 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium border-0 max-md:min-h-11"
             >
               {isWithdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
             </Button>

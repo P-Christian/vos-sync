@@ -48,7 +48,7 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
       transition={{ duration: 0.35, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
     >
       <Card className="border bg-card rounded-2xl shadow-2xs overflow-hidden py-0">
-        <CardHeader className="p-5 sm:p-6 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <CardHeader className="p-4 sm:p-6 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg font-bold text-foreground">Hiring Overview</CardTitle>
@@ -56,7 +56,7 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
                 <TrendingUp className="h-3 w-3" /> Trending Up
               </span>
             </div>
-            <CardDescription className="text-xs text-muted-foreground">
+            <CardDescription className="text-sm md:text-xs text-muted-foreground">
               Total of <strong className="text-foreground font-semibold">{totalInPeriod} applications</strong> logged in this window.
             </CardDescription>
           </div>
@@ -69,7 +69,7 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
                 <button
                   key={interval.key}
                   onClick={() => setSelectedRange(interval.key)}
-                  className="relative px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap z-10"
+                  className="relative px-3 py-1.5 max-md:min-h-10 text-xs font-medium rounded-lg transition-colors whitespace-nowrap z-10"
                 >
                   {isActive && (
                     <motion.div
@@ -88,7 +88,7 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 pt-4">
-          <div className="h-[260px] sm:h-[290px] w-full">
+          <div className="h-[220px] sm:h-[290px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={currentData} margin={{ top: 10, right: 12, left: -20, bottom: 0 }}>
                 <defs>

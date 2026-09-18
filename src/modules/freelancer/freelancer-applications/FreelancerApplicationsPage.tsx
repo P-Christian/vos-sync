@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useFreelancerApplications } from './hooks/useFreelancerApplications';
 import { useRealtime } from '@/modules/shared/providers/RealtimeProvider';
-import { ApplicationHeader } from './components/ApplicationHeader';
+import { ApplicationHeader, APPLICATION_STATUS_FILTERS } from './components/ApplicationHeader';
 import { ApplicationSummaryCards } from './components/ApplicationSummaryCards';
 import { ApplicationTable } from './components/ApplicationTable';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -11,7 +11,9 @@ import { useFreelancerBookmarks } from './hooks/useFreelancerBookmarks';
 import { BookmarkList } from './components/BookmarkList';
 import { BookmarkHeader } from './components/BookmarkHeader';
 import { Input } from '@/components/ui/input';
-import { Search, ClipboardList } from 'lucide-react';
+import { Search, ClipboardList, Filter } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ApplicationStatus } from './types';
 
 interface FreelancerApplicationsPageProps {
   defaultTab?: "applications" | "bookmarks";
@@ -51,6 +53,7 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
 
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [bookmarkSearch, setBookmarkSearch] = useState("");
+  const [applicationSearch, setApplicationSearch] = useState("");
 
   const filteredBookmarks = bookmarks.filter((bookmark) => {
     const query = bookmarkSearch.toLowerCase();
@@ -78,7 +81,7 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
   }, [fetchApplications, fetchBookmarks]);
 
   return (
-    <div className="w-full p-6 sm:p-8 space-y-6">
+    <div className="w-full p-4 sm:p-8 space-y-6">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-teal-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -87,7 +90,7 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             <ClipboardList className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Applications & Saved Jobs</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Applications & Saved Jobs</h1>
             <p className="text-sm text-zinc-300 mt-1">
               Track your active job applications and manage bookmarked opportunities.
             </p>
@@ -96,11 +99,11 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
       </div>
 
       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "applications" | "bookmarks")} className="w-full">
-        <TabsList className="mb-6 bg-muted/60 p-1 border">
-          <TabsTrigger value="applications" className="px-4 py-2 font-semibold">
+        <TabsList className="mb-6 bg-muted/60 p-1 border max-md:min-h-11">
+          <TabsTrigger value="applications" className="px-4 py-2 font-semibold max-md:min-h-11">
             Job Applications
           </TabsTrigger>
-          <TabsTrigger value="bookmarks" className="px-4 py-2 font-semibold">
+          <TabsTrigger value="bookmarks" className="px-4 py-2 font-semibold max-md:min-h-11">
             Saved Jobs
           </TabsTrigger>
         </TabsList>
@@ -112,6 +115,37 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             onFilterChange={setFilterStatus} 
           />
           <ApplicationSummaryCards summary={summary} />
+
+          {/* Mobile-only filter bar: search + status (desktop keeps the DataTable toolbar) */}
+          <div className="md:hidden mb-4 space-y-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search applications..."
+                value={applicationSearch}
+                onChange={(e) => setApplicationSearch(e.target.value)}
+                className="rounded-lg pl-8 h-11 text-base"
+              />
+            </div>
+            <Select
+              value={filterStatus}
+              onValueChange={(val) => setFilterStatus(val as ApplicationStatus | "ALL")}
+            >
+              <SelectTrigger className="w-full max-md:min-h-11">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <SelectValue placeholder="Filter by status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {APPLICATION_STATUS_FILTERS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {error && (
             <div className="flex items-center gap-3 p-4 mb-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
@@ -126,7 +160,7 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             </div>
           ) : (
             <div className="mb-8">
-              <ApplicationTable applications={applications} onRefresh={fetchApplications} />
+              <ApplicationTable applications={applications} onRefresh={fetchApplications} mobileSearch={applicationSearch} />
             </div>
           )}
         </TabsContent>
@@ -136,12 +170,12 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
 
           <div className="mb-6 max-w-sm">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground max-md:top-1/2 max-md:-translate-y-1/2" />
               <Input
                 placeholder="Search saved jobs..."
                 value={bookmarkSearch}
                 onChange={(e) => setBookmarkSearch(e.target.value)}
-                className="rounded-lg pl-8"
+                className="rounded-lg pl-8 max-md:h-11"
               />
             </div>
           </div>

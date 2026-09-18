@@ -117,7 +117,7 @@ export default function JobCard({
                 "transition-all duration-300 ease-in-out",
               ].join(" ")}
             >
-              <CardContent className="p-5 sm:p-6">
+              <CardContent className="p-5 sm:p-6 max-md:p-3">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
                   {/* ── Left: Main Job Details ──────────────────────── */}
@@ -131,12 +131,12 @@ export default function JobCard({
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <JobStatusBadge status={job.status} />
                         {category && (
-                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/40 dark:border-emerald-800/30 rounded-md">
+                          <Badge variant="outline" className="text-xs md:text-[10px] py-0.5 px-2 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200/40 dark:border-emerald-800/30 rounded-md">
                             {category}
                           </Badge>
                         )}
                         {arrangement && (
-                          <Badge variant="outline" className="text-[10px] py-0.5 px-2 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/40 dark:border-blue-800/30 rounded-md">
+                          <Badge variant="outline" className="text-xs md:text-[10px] py-0.5 px-2 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/40 dark:border-blue-800/30 rounded-md">
                             {arrangement}
                           </Badge>
                         )}
@@ -145,14 +145,14 @@ export default function JobCard({
 
                     {/* Department */}
                     {job.job_department && (
-                      <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
+                      <div className="text-sm md:text-xs text-muted-foreground font-medium flex items-center gap-1.5">
                         <Landmark className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
                         <span>{job.job_department} Department</span>
                       </div>
                     )}
 
                     {/* Meta row */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm md:text-xs text-muted-foreground">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-muted-foreground/70 shrink-0" />
                         {job.job_location}
@@ -192,12 +192,12 @@ export default function JobCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 px-3.5 text-xs gap-2 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 font-semibold shadow-xs"
+                        className="h-9 px-3.5 text-sm md:text-xs gap-2 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 font-semibold shadow-xs max-md:min-h-10"
                       >
                         <Users className="h-3.5 w-3.5 text-primary" />
                         View Applicants
                         {typeof job.applicants_count === "number" && job.applicants_count > 0 && (
-                          <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-[10px] font-bold">
+                          <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-xs md:text-[10px] font-bold">
                             {job.applicants_count}
                           </span>
                         )}
@@ -210,7 +210,7 @@ export default function JobCard({
               </CardContent>
             </Card>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
+          <TooltipContent side="top" className="text-sm md:text-xs">
             Click to preview and edit job details
           </TooltipContent>
         </Tooltip>
