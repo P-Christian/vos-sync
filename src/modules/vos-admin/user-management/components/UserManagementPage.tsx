@@ -63,9 +63,9 @@ export function UserManagementPage() {
     return 'not_submitted';
   };
 
-  // Safe client-side exclusion of client accounts (role_id = 2)
+  // Safe client-side exclusion of client accounts (role_id = 2) and school admin accounts (role_id = 4)
   const activeUsers = useMemo(() => {
-    return users.filter(u => u.role_id !== 2);
+    return users.filter(u => u.role_id !== 2 && u.role_id !== 4);
   }, [users]);
 
   // Filter users by verification status client-side globally

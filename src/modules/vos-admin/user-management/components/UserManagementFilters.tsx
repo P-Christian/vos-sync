@@ -21,9 +21,7 @@ export const UserManagementFilters: React.FC<UserManagementFiltersProps> = ({
   const roleDropdownOptions = [
     { value: "ALL", label: "All Roles" },
     { value: "1", label: "Freelancer" },
-    { value: "2", label: "Client / Employer" },
     { value: "3", label: "Admin" },
-    { value: "4", label: "School Admin" },
   ];
 
   return (

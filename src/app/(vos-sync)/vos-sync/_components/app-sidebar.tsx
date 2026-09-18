@@ -179,6 +179,7 @@ export function AppSidebar({
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
                 { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2 },
+                { label: "School Verification", href: "/vos-sync/vos-admin/school-verification", icon: GraduationCap },
                 { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target },
                 { label: "Gemini Monitoring", href: "/vos-sync/vos-admin/gemini-monitoring", icon: Cpu },
                 { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
