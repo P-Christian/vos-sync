@@ -210,10 +210,10 @@ export default function AccountSettings({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 p-1.5 max-md:p-2 flex items-center justify-center bg-[#14a800] hover:bg-[#118f00] text-white rounded-full shadow-md transition-transform hover:scale-105"
+              className="absolute bottom-0 right-0 p-1 max-md:p-1.5 flex items-center justify-center bg-[#14a800] hover:bg-[#118f00] text-white rounded-full shadow-md transition-transform hover:scale-105"
               title="Change Profile Photo"
             >
-              <Camera className="h-3.5 w-3.5 max-md:h-4 max-md:w-4" />
+              <Camera className="h-3 w-3 max-md:h-3.5 max-md:w-3.5" />
             </button>
           </div>
 

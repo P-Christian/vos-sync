@@ -70,24 +70,24 @@ export function StudentInvitationTerminalScreen({
   const Icon = copy.icon;
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 sm:px-6 py-12 text-center">
+    <div className="w-full max-w-md mx-auto px-4 sm:px-6 pt-6 pb-8 md:py-12 text-center">
       <div
         className={
           copy.destructive
-            ? "mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"
-            : "mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary"
+            ? "mx-auto mb-4 md:mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"
+            : "mx-auto mb-4 md:mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary"
         }
       >
         <Icon className="h-7 w-7" aria-hidden="true" />
       </div>
       <h1 className="text-2xl md:text-3xl font-medium text-primary mb-3">{copy.title}</h1>
-      <p className="text-sm text-muted-foreground leading-relaxed mb-8">{copy.body}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed mb-6 md:mb-8">{copy.body}</p>
 
       <div className="flex flex-col items-center gap-3">
         {variant === "registered" && (
           <Link
             href="/login"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             <LogIn className="h-4 w-4" aria-hidden="true" />
             Sign in
