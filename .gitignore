@@ -55,6 +55,7 @@ next-env.d.ts
 # agent + browser artifacts — never commit (visual evidence belongs in the OS temp dir, not the repo)
 /.playwright-mcp/
 /visual-qa-evidence/
+/screenshots/
 
 
 zmine/
