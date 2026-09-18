@@ -65,7 +65,7 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
     >
       <Card className="border bg-card rounded-2xl py-0 shadow-2xs overflow-hidden flex flex-col justify-between h-full">
         <div>
-          <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-border/60">
+          <CardHeader className="p-4 md:p-5 md:pb-3 flex flex-row items-center justify-between border-b border-border/60">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                 <AlertTriangle className="h-4 w-4" />
@@ -73,7 +73,7 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold text-foreground">Action Required</CardTitle>
                 {visibleActions.length > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                  <span className="px-1.5 py-0.5 rounded-full text-xs md:text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                     {visibleActions.length}
                   </span>
                 )}
@@ -81,12 +81,12 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
             </div>
           </CardHeader>
 
-          <CardContent className="p-5">
+          <CardContent className="p-4 md:p-5">
             {visibleActions.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground text-xs space-y-2">
+              <div className="py-8 text-center text-muted-foreground text-sm md:text-xs space-y-2">
                 <CheckCircle2 className="h-8 w-8 mx-auto text-primary" />
                 <p className="font-semibold text-foreground">All caught up!</p>
-                <p className="text-[11px]">No urgent hiring actions require your attention.</p>
+                <p className="text-xs md:text-[11px]">No urgent hiring actions require your attention.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -110,16 +110,16 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
                         <div className="flex items-start gap-3 min-w-0">
                           <div className="mt-0.5">{getIcon(item)}</div>
                           <div className="min-w-0 space-y-0.5">
-                            <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                            <p className="text-sm md:text-xs font-bold text-foreground group-hover:text-primary transition-colors">
                               {item.title}
                             </p>
                             {item.description && (
-                              <p className="text-[11px] text-muted-foreground line-clamp-1">
+                              <p className="text-xs md:text-[11px] text-muted-foreground line-clamp-1">
                                 {item.description}
                               </p>
                             )}
                             <div className="pt-1.5">
-                              <span className="inline-flex items-center text-[11px] font-semibold text-primary group-hover:underline">
+                              <span className="inline-flex items-center text-xs md:text-[11px] font-semibold text-primary group-hover:underline">
                                 {item.actionLabel}
                                 <ChevronRight className="h-3 w-3 ml-0.5 group-hover:translate-x-0.5 transition-transform" />
                               </span>
@@ -131,7 +131,7 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
                           <button
                             type="button"
                             onClick={(e) => handleDismiss(item.id, e)}
-                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            className="p-1 max-md:size-10 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity shrink-0"
                             title="Dismiss notification"
                           >
                             <X className="h-3.5 w-3.5" />
@@ -147,12 +147,12 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
         </div>
 
         <div className="p-4 bg-muted/20 border-t border-border/60 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Prioritized next steps</span>
+          <span className="text-sm md:text-xs text-muted-foreground">Prioritized next steps</span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => router.push("/vos-sync/client/notifications")}
-            className="text-xs font-semibold h-8 rounded-lg"
+            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
           >
             Notification Center
           </Button>

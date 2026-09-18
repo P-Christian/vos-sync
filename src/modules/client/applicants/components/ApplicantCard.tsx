@@ -91,7 +91,7 @@ export default function ApplicantCard({
       }}
       className="group hover:shadow-lg hover:border-primary/40 transition-all duration-200 border border-border/70 bg-card/90 backdrop-blur-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 overflow-hidden"
     >
-      <CardContent className="p-4 sm:p-5">
+      <CardContent className="p-4 sm:p-5 max-md:p-3">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Left Side: Avatar + Stacked Info */}
           <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -124,14 +124,14 @@ export default function ApplicantCard({
                 </h3>
 
                 {applicant.applicant_email && (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground md:text-xs">
                     <Mail className="h-3 w-3 text-muted-foreground/70" />
                     {applicant.applicant_email}
                   </span>
                 )}
 
                 {applicant.job_title && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-foreground/85">
+                  <span className="flex items-center gap-1 text-sm font-medium text-foreground/85 md:text-xs">
                     <Briefcase className="h-3 w-3 text-muted-foreground/70" />
                     {applicant.job_title}
                   </span>
@@ -139,7 +139,7 @@ export default function ApplicantCard({
               </div>
 
               {/* Row 2: Secondary Stats (Muted Softer Text) */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground/80">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground/80 md:text-xs">
                 <span className="flex items-center gap-1">
                   <User className="h-3 w-3 text-muted-foreground/60" />
                   {applicant.experience_years} yrs exp
@@ -169,7 +169,7 @@ export default function ApplicantCard({
           </div>
 
           {/* Right Side: Status Badge Column + Action Buttons */}
-          <div className="flex items-center gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50 w-full lg:w-auto justify-between lg:justify-end">
+          <div className="flex items-center gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50 w-full lg:w-auto justify-between lg:justify-end max-md:flex-col max-md:items-start max-md:gap-3">
             {/* Status Badge - Anchored to a fixed column */}
             <div className="shrink-0 flex items-center">
               <motion.div
@@ -180,7 +180,7 @@ export default function ApplicantCard({
               >
                 <Badge
                   variant="outline"
-                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-200 shadow-2xs ${STATUS_STYLES[applicant.application_status]}`}
+                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-200 shadow-2xs md:text-[11px] ${STATUS_STYLES[applicant.application_status]}`}
                 >
                   {STATUS_LABELS[applicant.application_status]}
                 </Badge>
@@ -188,7 +188,7 @@ export default function ApplicantCard({
             </div>
 
             {/* Action Buttons Group */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 max-md:w-full max-md:flex-wrap">
               {/* View Candidate Button */}
               <Button
                 size="sm"
@@ -197,7 +197,7 @@ export default function ApplicantCard({
                   e.stopPropagation();
                   onViewDetails(applicant);
                 }}
-                className="h-8 px-3 text-xs rounded-lg gap-1.5 hover:bg-muted font-medium text-foreground"
+                className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 hover:bg-muted font-medium text-foreground md:text-xs"
               >
                 <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                 View Candidate
@@ -207,11 +207,12 @@ export default function ApplicantCard({
               <Link
                 href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}
                 onClick={(e) => e.stopPropagation()}
+                className="max-md:flex-1"
               >
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-3 text-xs rounded-lg gap-1.5 border-border hover:bg-muted font-medium"
+                  className="h-8 max-md:min-h-10 max-md:w-full px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium md:text-xs"
                 >
                   <MessageSquare className="h-3.5 w-3.5 text-primary" />
                   Message
@@ -229,7 +230,7 @@ export default function ApplicantCard({
                       onViewScheduledInterview(applicant.active_interview_id);
                     }
                   }}
-                  className="h-8 px-3 text-xs rounded-lg gap-1.5 border-border hover:bg-muted font-medium shadow-sm"
+                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium shadow-sm md:text-xs"
                 >
                   <CalendarPlus className="h-3.5 w-3.5 text-primary" />
                   View Interview
@@ -243,7 +244,7 @@ export default function ApplicantCard({
                     e.stopPropagation();
                     onScheduleInterview(applicant);
                   }}
-                  className="h-8 px-3 text-xs rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
                 >
                   <CalendarPlus className="h-3.5 w-3.5" />
                   Schedule Interview
@@ -257,7 +258,7 @@ export default function ApplicantCard({
                     e.stopPropagation();
                     onScheduleInterview(applicant);
                   }}
-                  className="h-8 px-3 text-xs rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
                 >
                   <CalendarPlus className="h-3.5 w-3.5" />
                   Schedule Interview
@@ -271,14 +272,14 @@ export default function ApplicantCard({
                     size="sm"
                     variant="ghost"
                     onClick={(e) => e.stopPropagation()}
-                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                    className="h-8 w-8 p-0 max-md:size-10 max-md:p-0 max-md:shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
                     aria-label="More candidate actions"
                   >
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuLabel className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider md:text-[11px]">
                     Quick Actions
                   </DropdownMenuLabel>
 
@@ -287,21 +288,21 @@ export default function ApplicantCard({
                     <>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("UNDER_REVIEW", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
                       >
                         <Clock className="h-3.5 w-3.5 text-blue-500" />
                         Move to Under Review
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("SHORTLISTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5 text-violet-500" />
                         Shortlist Candidate
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-rose-600 focus:text-rose-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
                       >
                         <XCircle className="h-3.5 w-3.5 text-rose-500" />
                         Reject Candidate
@@ -313,14 +314,14 @@ export default function ApplicantCard({
                     <>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("SHORTLISTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5 text-violet-500" />
                         Shortlist Candidate
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-rose-600 focus:text-rose-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
                       >
                         <XCircle className="h-3.5 w-3.5 text-rose-500" />
                         Reject Candidate
@@ -332,14 +333,14 @@ export default function ApplicantCard({
                     <>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("HIRED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-emerald-600 focus:text-emerald-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-emerald-600 focus:text-emerald-600 font-medium md:text-xs"
                       >
                         <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
                         Mark as Hired
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-rose-600 focus:text-rose-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
                       >
                         <XCircle className="h-3.5 w-3.5 text-rose-500" />
                         Reject Candidate
@@ -351,14 +352,14 @@ export default function ApplicantCard({
                     <>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("HIRED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-emerald-600 focus:text-emerald-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-emerald-600 focus:text-emerald-600 font-medium md:text-xs"
                       >
                         <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
                         Mark as Hired
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-xs gap-2 cursor-pointer py-1.5 text-rose-600 focus:text-rose-600 font-medium"
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
                       >
                         <XCircle className="h-3.5 w-3.5 text-rose-500" />
                         Reject Candidate
@@ -370,7 +371,7 @@ export default function ApplicantCard({
                     applicant.application_status === "WITHDRAWN") && (
                     <DropdownMenuItem
                       onClick={(e) => handleQuickStatus("UNDER_REVIEW", e)}
-                      className="text-xs gap-2 cursor-pointer py-1.5 font-medium"
+                      className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
                     >
                       <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
                       Reopen Application
@@ -384,7 +385,7 @@ export default function ApplicantCard({
                       e.stopPropagation();
                       onUpdateStatus(applicant);
                     }}
-                    className="text-xs gap-2 cursor-pointer"
+                    className="text-sm gap-2 cursor-pointer max-md:min-h-10 md:text-xs"
                   >
                     <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
                     Custom Status & Notes...
@@ -400,4 +401,4 @@ export default function ApplicantCard({
     </Card>
   );
 }
-
+

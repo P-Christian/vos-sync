@@ -33,6 +33,8 @@ export function ResumeSidebar() {
     const [isAutofillConfirmOpen, setIsAutofillConfirmOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     
+    const [activeSection, setActiveSection] = useState("resume");
+
     // Data states
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [resumeToDelete, setResumeToDelete] = useState<{ id: number, name: string } | null>(null);
@@ -234,7 +236,26 @@ export function ResumeSidebar() {
                 className="hidden" 
             />
             
-            <div className="border border-dashed rounded-xl p-8 text-center bg-card flex flex-col items-center justify-center space-y-4 max-md:p-6">
+            {/* Mobile-only section tabs (desktop keeps every section stacked) */}
+            <div className="md:hidden flex items-center gap-1 rounded-xl border bg-card p-1">
+                {[
+                    { key: "resume", label: "Resume" },
+                    { key: "primary", label: "Primary Document" },
+                    ...(historyResumes.length > 0 ? [{ key: "history", label: "Document History" }] : []),
+                    { key: "visibility", label: "Visibility" },
+                ].map((tab) => (
+                    <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setActiveSection(tab.key)}
+                        className={`flex-1 min-h-10 rounded-lg px-2 py-1 text-[11px] leading-tight text-center font-medium transition-colors ${activeSection === tab.key ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            <div className={`border border-dashed rounded-xl p-8 text-center bg-card flex flex-col items-center justify-center space-y-4 max-md:p-6${activeSection === "resume" ? "" : " max-md:hidden"}`}>
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <FileUp className="h-6 w-6 text-primary" />
                 </div>
@@ -258,7 +279,7 @@ export function ResumeSidebar() {
                 </Button>
             </div>
 
-            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6">
+            <div className={`bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6${activeSection === "primary" ? "" : " max-md:hidden"}`}>
                 <h3 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <Star className="h-3 w-3 fill-primary text-primary" />
                     Primary Document
@@ -276,7 +297,7 @@ export function ResumeSidebar() {
             </div>
 
             {historyResumes.length > 0 && (
-                <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6">
+                <div className={`bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6${activeSection === "history" ? "" : " max-md:hidden"}`}>
                     <h3 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Document History
                     </h3>
@@ -295,7 +316,7 @@ export function ResumeSidebar() {
                 </div>
             )}
 
-            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-row items-center justify-between max-md:flex-col max-md:items-start max-md:gap-2">
+            <div className={`bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-row items-center justify-between max-md:flex-col max-md:items-start max-md:gap-2${activeSection === "visibility" ? "" : " max-md:hidden"}`}>
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-full text-primary">
                         {visibility === "Private" ? <Lock className="h-5 w-5" /> : visibility === "Recruiters Only" ? <Users className="h-5 w-5" /> : <Globe className="h-5 w-5" />}

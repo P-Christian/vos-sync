@@ -72,7 +72,7 @@ function InfoRow({
         <Icon className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-0.5">
+        <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-0.5">
           {label}
         </p>
         {href ? (
@@ -158,7 +158,7 @@ export default function CompanyPreviewModal({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-2xl p-0 overflow-y-auto flex flex-col gap-0"
+        className="w-full sm:max-w-2xl p-0 overflow-y-auto flex flex-col gap-0 max-md:h-[90dvh] max-md:max-h-[90dvh]"
       >
         {/* Cover + Logo Header */}
         <div className="relative shrink-0">
@@ -204,7 +204,7 @@ export default function CompanyPreviewModal({
                 </SheetTitle>
                 {company.company_legal_name &&
                   company.company_legal_name !== company.company_name && (
-                    <p className="text-xs text-zinc-500 mt-0.5">
+                    <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
                       {company.company_legal_name}
                     </p>
                   )}
@@ -233,7 +233,7 @@ export default function CompanyPreviewModal({
           {/* About */}
           {company.company_description && (
             <div className="space-y-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+              <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                 About
               </p>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
@@ -247,22 +247,22 @@ export default function CompanyPreviewModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
               {company.company_mission && (
                 <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                     <Target className="h-3 w-3 text-blue-600" />
                     Mission
                   </p>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                     {company.company_mission}
                   </p>
                 </div>
               )}
               {company.company_vision && (
                 <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                  <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                     <Compass className="h-3 w-3 text-purple-600" />
                     Vision
                   </p>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                     {company.company_vision}
                   </p>
                 </div>
@@ -273,7 +273,7 @@ export default function CompanyPreviewModal({
           {/* Culture & Work Environment */}
           {company.company_culture && (
             <div className="space-y-1.5 pt-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+              <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <HeartHandshake className="h-3.5 w-3.5 text-rose-500" />
                 Culture & Values
               </p>
@@ -286,7 +286,7 @@ export default function CompanyPreviewModal({
           {/* Perks & Benefits */}
           {company.company_benefits && (
             <div className="space-y-1.5 pt-1">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+              <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <Gift className="h-3.5 w-3.5 text-amber-500" />
                 Perks & Benefits
               </p>
@@ -298,7 +298,7 @@ export default function CompanyPreviewModal({
 
           {/* Key Details */}
           <div className="space-y-3 pt-1">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
               Company Details
             </p>
             <div className="space-y-2.5">
@@ -343,7 +343,7 @@ export default function CompanyPreviewModal({
 
           {/* Contact */}
           <div className="space-y-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
               Contact Information
             </p>
             <div className="space-y-2.5">
@@ -366,7 +366,7 @@ export default function CompanyPreviewModal({
           {/* Social Links */}
           {hasSocials && (
             <div className="space-y-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+              <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
                 Social Media
               </p>
               <div className="flex flex-wrap gap-2">
@@ -375,7 +375,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_facebook)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-400 hover:text-blue-600 transition-colors max-md:min-h-10"
                   >
                     <Facebook className="h-3.5 w-3.5 text-blue-600" />
                     Facebook
@@ -386,7 +386,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_linkedin)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-600 hover:text-blue-700 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-600 hover:text-blue-700 transition-colors max-md:min-h-10"
                   >
                     <Linkedin className="h-3.5 w-3.5 text-blue-700" />
                     LinkedIn
@@ -397,7 +397,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_instagram)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-pink-500 hover:text-pink-600 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-pink-500 hover:text-pink-600 transition-colors max-md:min-h-10"
                   >
                     <Instagram className="h-3.5 w-3.5 text-pink-600" />
                     Instagram
@@ -408,7 +408,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_youtube)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-red-500 hover:text-red-600 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-red-500 hover:text-red-600 transition-colors max-md:min-h-10"
                   >
                     <Youtube className="h-3.5 w-3.5 text-red-600" />
                     YouTube
@@ -419,7 +419,7 @@ export default function CompanyPreviewModal({
                     href={formatUrl(company.company_x)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors max-md:min-h-10"
                   >
                     <span className="h-3.5 w-3.5 flex items-center justify-center font-bold text-zinc-900 dark:text-zinc-100 text-xs select-none">
                       𝕏
@@ -432,7 +432,7 @@ export default function CompanyPreviewModal({
           )}
 
           {/* Disclaimer */}
-          <p className="text-[11px] text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+          <p className="text-xs md:text-[11px] text-zinc-400 border-t border-zinc-100 dark:border-zinc-800 pt-4">
             This is a preview of your public company profile as it appears to job seekers.
             Verification documents are never shown publicly.
           </p>

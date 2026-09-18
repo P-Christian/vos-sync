@@ -83,7 +83,7 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
     >
       <Card className="border bg-card rounded-2xl shadow-2xs overflow-hidden flex flex-col justify-between h-full py-0">
         <div>
-          <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-border/60">
+          <CardHeader className="p-4 md:p-5 md:pb-3 flex flex-row items-center justify-between border-b border-border/60">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                 <Calendar className="h-4 w-4" />
@@ -94,27 +94,27 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
               variant="ghost"
               size="sm"
               onClick={handleNavigateSchedule}
-              className="text-xs font-semibold text-primary hover:text-primary/90 h-8 px-2.5 flex items-center gap-1 group"
+              className="text-sm md:text-xs font-semibold text-primary hover:text-primary/90 h-8 max-md:min-h-10 px-2.5 flex items-center gap-1 group"
             >
               View Schedule
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Button>
           </CardHeader>
 
-          <CardContent className="p-5 space-y-5">
+          <CardContent className="p-4 md:p-5 space-y-5">
             {interviews.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground text-xs space-y-3">
+              <div className="py-10 text-center text-muted-foreground text-sm md:text-xs space-y-3">
                 <Calendar className="h-8 w-8 mx-auto text-muted-foreground/50" />
                 <div className="space-y-1">
                   <p className="font-semibold text-foreground text-sm">No upcoming interviews</p>
-                  <p className="text-[11px] text-muted-foreground">Your next scheduled interview will appear here.</p>
+                  <p className="text-xs md:text-[11px] text-muted-foreground">Your next scheduled interview will appear here.</p>
                 </div>
                 <div>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleNavigateSchedule}
-                    className="text-xs font-semibold"
+                    className="text-sm md:text-xs font-semibold max-md:min-h-10"
                   >
                     View Interview Schedule
                   </Button>
@@ -127,22 +127,22 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
                     {/* Section Date Header */}
                     <div className="flex items-center justify-between">
                       {section.category === "today" ? (
-                        <span className="text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-xs md:text-[11px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                           <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                           {section.label}
                         </span>
                       ) : section.category === "tomorrow" ? (
-                        <span className="text-[11px] font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-xs md:text-[11px] font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5 text-primary" />
                           {section.label}
                         </span>
                       ) : (
-                        <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="text-xs md:text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                           <Calendar className="h-3.5 w-3.5 text-muted-foreground/70" />
                           {section.label}
                         </span>
                       )}
-                      <span className="text-[10px] text-muted-foreground font-semibold">
+                      <span className="text-xs md:text-[10px] text-muted-foreground font-semibold">
                         {section.items.length} session{section.items.length !== 1 ? "s" : ""}
                       </span>
                     </div>
@@ -171,23 +171,23 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
                               {item.candidateAvatar && (
                                 <AvatarImage src={item.candidateAvatar} alt={item.candidateName} />
                               )}
-                              <AvatarFallback className="bg-muted text-[10px] font-bold">
+                              <AvatarFallback className="bg-muted text-xs md:text-[10px] font-bold">
                                 {getInitials(item.candidateName)}
                               </AvatarFallback>
                             </Avatar>
 
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                              <p className="text-sm md:text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate">
                                 {item.candidateName}
                               </p>
-                              <p className="text-[11px] text-muted-foreground truncate">{item.jobTitle}</p>
+                              <p className="text-xs md:text-[11px] text-muted-foreground truncate">{item.jobTitle}</p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
                             <Badge
                               variant="outline"
-                              className="text-[10px] font-medium border-border/70 hidden sm:inline-flex items-center gap-1 py-0.5"
+                              className="text-xs md:text-[10px] font-medium border-border/70 hidden sm:inline-flex items-center gap-1 py-0.5"
                             >
                               {item.format === "ONLINE" ? (
                                 <>
@@ -202,7 +202,7 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 text-[11px] font-semibold text-primary px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-7 max-md:min-h-10 text-xs md:text-[11px] font-semibold text-primary px-2 opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity"
                             >
                               View
                               <ChevronRight className="h-3 w-3 ml-0.5" />
@@ -223,7 +223,7 @@ export default function UpcomingInterviewsCard({ interviews }: UpcomingInterview
             variant="outline"
             size="sm"
             onClick={handleNavigateSchedule}
-            className="text-xs font-semibold h-8 rounded-lg"
+            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
           >
             View Schedule
           </Button>

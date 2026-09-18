@@ -168,7 +168,7 @@ export default function MessagingModule({
 
   return (
     <CompanyVerificationGuard moduleName="Candidate Messages">
-      <div className="space-y-6 client-page-transition">
+      <div className="space-y-4 md:space-y-6 client-page-transition max-md:flex max-md:min-h-full max-md:flex-col">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -187,7 +187,7 @@ export default function MessagingModule({
             <MessageSquare className="h-7 w-7" />
           </div>
           <div className="relative z-10">
-            <h1 className="text-xl font-bold tracking-tight">Messages</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Messages</h1>
             <p className="text-sm text-zinc-300 mt-1">
               Chat with freelancers and manage your conversations
             </p>
@@ -199,15 +199,15 @@ export default function MessagingModule({
           <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {convsError}
-            <button onClick={clearConvsError} className="ml-auto text-xs underline">
+            <button onClick={clearConvsError} className="ml-auto text-sm md:text-xs underline max-md:min-h-10">
               Dismiss
             </button>
           </div>
         )}
 
         {/* ── Main Chat Layout ────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm">
-          <div className="flex h-[calc(100vh-280px)] min-h-[500px]">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+          <div className="flex h-[calc(100vh-280px)] min-h-[500px] max-md:h-full max-md:min-h-[65dvh]">
             {/* Conversation List — hidden on mobile when chat is open */}
             <div
               className={cn(

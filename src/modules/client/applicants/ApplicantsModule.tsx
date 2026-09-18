@@ -275,7 +275,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
   return (
     <CompanyVerificationGuard moduleName="Candidate Applicants">
-      <div className="space-y-6 client-page-transition">
+      <div className="space-y-4 client-page-transition md:space-y-6">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -286,14 +286,14 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           }
         `}</style>
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950 via-zinc-900 to-indigo-950 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950 via-zinc-900 to-indigo-950 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-white p-4 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
           <div className="absolute -right-10 -top-10 h-40 w-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
             <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
               <Users className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Applicant Management</h1>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Applicant Management</h1>
               <p className="text-sm text-zinc-300 mt-1">
                 {applicants.length} candidate{applicants.length !== 1 ? "s" : ""} shown
               </p>
@@ -307,7 +307,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
               <Button
                 onClick={toggleBestMatches}
                 variant={showBestMatches ? "secondary" : "default"}
-                className={`h-10 text-xs px-4 rounded-xl font-bold transition-all ${
+                className={`h-10 max-md:min-h-10 text-sm px-4 rounded-xl font-bold transition-all md:text-xs ${
                   showBestMatches
                     ? "bg-white text-zinc-900 hover:bg-zinc-100"
                     : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
@@ -327,10 +327,10 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             {/* Job Selector Dropdown */}
             <div className="w-full sm:w-auto sm:min-w-[220px]">
               <Select value={jobIdParam || "ALL"} onValueChange={handleJobChange}>
-                <SelectTrigger className="h-10 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
+                <SelectTrigger className="h-10 max-md:min-h-10 max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
                   <SelectValue placeholder="Filter by Job Posting" />
                 </SelectTrigger>
-                <SelectContent className="max-w-md">
+                <SelectContent className="max-md:max-w-[calc(100vw-2rem)]">
                   <SelectItem value="ALL">All Job Postings</SelectItem>
                   {allJobs.map((j) => (
                     <SelectItem key={j.job_id} value={String(j.job_id)}>
@@ -354,7 +354,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
         {/* Selected Job Sub-Header if filter applied */}
         {selectedJobTitle && (
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-semibold text-zinc-500">
+            <span className="text-sm font-semibold text-zinc-500 md:text-xs">
               Filtering candidates for: <strong className="text-zinc-800 dark:text-zinc-200">{selectedJobTitle}</strong>
             </span>
           </div>
@@ -370,7 +370,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             onScheduleInterview={handleOpenSchedule}
           />
         ) : (
-          <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md">
+          <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md py-0 gap-0">
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
                 Candidates
@@ -383,7 +383,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 counts={statusCounts}
               />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
               {loading ? (
                 <div className="flex items-center justify-center py-16 gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -415,12 +415,12 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
         {/* Schedule Interview Dialog */}
         <Dialog open={interviewDialogOpen} onOpenChange={setInterviewDialogOpen}>
-          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-4xl max-h-[92vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-4xl max-h-[92vh] overflow-y-auto max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-sm font-bold">Schedule Interview for Candidate</DialogTitle>
             </DialogHeader>
             {scheduleError && (
-              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm md:text-xs">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 {scheduleError}
               </div>
@@ -437,14 +437,14 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 variant="outline"
                 onClick={() => setInterviewDialogOpen(false)}
                 disabled={scheduling}
-                className="h-9 text-sm rounded-lg"
+                className="h-9 max-md:min-h-10 text-sm rounded-lg"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveInterview}
                 disabled={scheduling}
-                className="h-9 text-sm rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
+                className="h-9 max-md:min-h-10 text-sm rounded-lg gap-1.5 bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium"
               >
                 {scheduling ? "Scheduling..." : "Schedule Interview"}
               </Button>

@@ -56,7 +56,7 @@ export default function KpiSummaryGrid({ stats }: KpiSummaryGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
       {cards.map((card, idx) => {
         const IconComponent = card.icon;
         return (
@@ -70,27 +70,27 @@ export default function KpiSummaryGrid({ stats }: KpiSummaryGridProps) {
             className="cursor-pointer group"
           >
             <Card className="border bg-card shadow-2xs hover:shadow-md transition-all duration-200 group-hover:border-primary/40 rounded-2xl overflow-hidden relative">
-              <CardContent className="px-5 flex flex-col justify-between h-full space-y-4">
+              <CardContent className="px-5 max-md:px-3 flex flex-col justify-between h-full space-y-4 max-md:space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                  <span className="text-sm md:text-xs max-md:text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
                     {card.title}
                   </span>
-                  <div className="h-8 w-8 rounded-xl bg-muted group-hover:bg-primary/10 text-muted-foreground group-hover:text-primary transition-colors flex items-center justify-center">
-                    <IconComponent className="h-4 w-4" />
+                  <div className="h-8 w-8 max-md:h-6 max-md:w-6 rounded-xl bg-muted group-hover:bg-primary/10 text-muted-foreground group-hover:text-primary transition-colors flex items-center justify-center">
+                    <IconComponent className="h-4 w-4 max-md:h-3.5 max-md:w-3.5" />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-3xl font-bold tracking-tight text-foreground flex items-center justify-between">
+                  <div className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center justify-between">
                     <span>{card.value}</span>
                     <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground pt-0.5">
+                  <div className="flex items-center gap-1.5 text-sm md:text-xs max-md:text-xs font-medium text-muted-foreground pt-0.5">
                     <span>{card.deltaText}</span>
                   </div>
                 </div>
 
-                <div className="pt-1 flex items-center justify-between text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity border-t border-border/50">
+                <div className="pt-1 max-md:pt-1.5 flex items-center justify-between text-xs md:text-[11px] font-medium text-primary opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity border-t border-border/50">
                   <span>View details</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </div>

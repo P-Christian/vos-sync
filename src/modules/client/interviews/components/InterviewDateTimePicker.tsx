@@ -307,7 +307,7 @@ export default function InterviewDateTimePicker({
         variant="outline"
         onClick={() => setOpen(!open)}
         className={cn(
-          "w-full h-10 px-3 justify-between text-left text-xs font-semibold rounded-xl transition-all cursor-pointer",
+          "w-full h-10 max-md:min-h-10 px-3 justify-between text-left md:text-xs font-semibold rounded-xl transition-all cursor-pointer",
           hasConflict
             ? "border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-300"
             : value
@@ -320,7 +320,7 @@ export default function InterviewDateTimePicker({
           <span className="truncate">{displayLabel}</span>
         </div>
         {dateInterviews && dateInterviews.length > 0 && (
-          <span className="flex items-center gap-1 text-[10px] font-extrabold text-rose-500 shrink-0 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/40">
+          <span className="flex items-center gap-1 text-xs md:text-[10px] font-extrabold text-rose-500 shrink-0 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/40">
             <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
             {dateInterviews.length} interview{dateInterviews.length !== 1 ? "s" : ""} booked
           </span>
@@ -357,15 +357,15 @@ export default function InterviewDateTimePicker({
                   <div className="md:w-1/2 space-y-3">
                     {/* Month / Year Navigation */}
                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-800">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={handlePrevMonth}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 max-md:size-10 rounded-lg" onClick={handlePrevMonth}>
                         <ChevronLeft className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                       </Button>
 
-                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                      <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200">
                         {MONTH_NAMES[currentMonth]} {currentYear}
                       </span>
 
-                      <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={handleNextMonth}>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 max-md:size-10 rounded-lg" onClick={handleNextMonth}>
                         <ChevronRight className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                       </Button>
                     </div>
@@ -374,7 +374,7 @@ export default function InterviewDateTimePicker({
                     <div className="space-y-1">
                       <div className="grid grid-cols-7 text-center">
                         {WEEKDAY_NAMES.map((wd) => (
-                          <span key={wd} className="text-[10px] font-bold text-zinc-400 uppercase py-1">
+                          <span key={wd} className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase py-1">
                             {wd}
                           </span>
                         ))}
@@ -400,7 +400,7 @@ export default function InterviewDateTimePicker({
                                 whileTap={{ scale: 0.94 }}
                                 onClick={() => handleSelectDay(cell.year, cell.month, cell.day)}
                                 className={cn(
-                                  "h-8 w-full rounded-lg text-xs font-semibold relative flex flex-col items-center justify-center transition-all cursor-pointer",
+                                  "h-8 max-md:h-10 w-full rounded-lg md:text-xs font-semibold relative flex flex-col items-center justify-center transition-all cursor-pointer",
                                   !cell.isCurrentMonth && "text-zinc-300 dark:text-zinc-700 opacity-40",
                                   cell.isCurrentMonth && "text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800",
                                   isSelected && "bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-sm"
@@ -420,13 +420,13 @@ export default function InterviewDateTimePicker({
 
                               {/* HOVER TOOLTIP: Show scheduled candidate details on date cell hover */}
                               {hoveredYMD === ymd && dayInterviews.length > 0 && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-zinc-950 text-white text-[11px] rounded-xl shadow-2xl z-50 pointer-events-none space-y-1.5 border border-zinc-800 animate-in fade-in zoom-in-95 duration-150">
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-zinc-950 text-white text-xs md:text-[11px] rounded-xl shadow-2xl z-50 pointer-events-none space-y-1.5 border border-zinc-800 animate-in fade-in zoom-in-95 duration-150">
                                   <div className="font-bold text-rose-400 flex items-center justify-between border-b border-zinc-800 pb-1">
                                     <span className="flex items-center gap-1">
                                       <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                                       Booked on {ymd}
                                     </span>
-                                    <span className="text-[10px] text-zinc-400 font-normal">({dayInterviews.length})</span>
+                                    <span className="text-xs md:text-[10px] text-zinc-400 font-normal">({dayInterviews.length})</span>
                                   </div>
                                   {dayInterviews.map((iv) => (
                                     <div key={iv.interview_id} className="space-y-0.5 pt-0.5 text-zinc-300">
@@ -435,12 +435,12 @@ export default function InterviewDateTimePicker({
                                         <span className="truncate">{getInterviewDisplayLabel(iv)}</span>
                                       </p>
                                       {iv.applications?.[0]?.job_title && (
-                                        <p className="text-[10px] text-zinc-400 flex items-center gap-1">
+                                        <p className="text-xs md:text-[10px] text-zinc-400 flex items-center gap-1">
                                           <Briefcase className="h-3 w-3 shrink-0" />
                                           <span className="truncate">{iv.applications[0].job_title}</span>
                                         </p>
                                       )}
-                                      <p className="text-[10px] text-amber-400 font-medium flex items-center gap-1">
+                                      <p className="text-xs md:text-[10px] text-amber-400 font-medium flex items-center gap-1">
                                         <Clock className="h-3 w-3 shrink-0" />
                                         <span>{formatTimeRange(iv.scheduled_at, iv.duration_minutes)}</span>
                                       </p>
@@ -458,11 +458,11 @@ export default function InterviewDateTimePicker({
                   {/* RIGHT SIDE: Time Slot Picker Grid */}
                   <div className="md:w-1/2 md:border-l md:border-zinc-200/80 md:dark:border-zinc-800 md:pl-6 space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-zinc-200/60 dark:border-zinc-800">
-                      <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                         <Clock className="h-3.5 w-3.5 text-indigo-500" />
                         Select Time Slot
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-semibold">{selectedYMD}</span>
+                      <span className="text-xs md:text-[10px] text-zinc-400 font-semibold">{selectedYMD}</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-60 overflow-y-auto p-1 pr-2">
@@ -480,7 +480,7 @@ export default function InterviewDateTimePicker({
                                   disabled
                                   variant="outline"
                                   size="sm"
-                                  className="w-full h-8 text-[11px] px-2 font-semibold rounded-lg border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-not-allowed opacity-85 flex items-center justify-between"
+                                  className="w-full h-8 max-md:h-10 text-xs md:text-[11px] px-2 font-semibold rounded-lg border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 cursor-not-allowed opacity-85 flex items-center justify-between"
                                 >
                                   <span className="flex items-center gap-1.5 truncate">
                                     <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
@@ -498,7 +498,7 @@ export default function InterviewDateTimePicker({
                                 disabled
                                 variant="outline"
                                 size="sm"
-                                className="w-full h-8 text-[11px] px-2 font-semibold rounded-lg border-destructive/30 bg-destructive/10 text-destructive cursor-not-allowed opacity-80 flex items-center justify-between"
+                                className="w-full h-8 max-md:h-10 text-xs md:text-[11px] px-2 font-semibold rounded-lg border-destructive/30 bg-destructive/10 text-destructive cursor-not-allowed opacity-80 flex items-center justify-between"
                               >
                                 <span className="flex items-center gap-1 truncate">
                                   <Lock className="h-3 w-3 shrink-0 text-destructive" />
@@ -518,7 +518,7 @@ export default function InterviewDateTimePicker({
                             whileTap={{ scale: 0.98 }}
                             onClick={() => handleSelectTime(timeSlot)}
                             className={cn(
-                              "w-full h-8 text-[11px] px-2 font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer border",
+                              "w-full h-8 max-md:h-10 text-xs md:text-[11px] px-2 font-semibold rounded-lg transition-all flex items-center justify-between cursor-pointer border",
                               isSelected
                                 ? "bg-amber-500 hover:bg-amber-600 text-white font-bold border-amber-600 shadow-2xs"
                                 : "border-emerald-200/80 bg-emerald-50/40 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
@@ -541,7 +541,7 @@ export default function InterviewDateTimePicker({
                         type="button"
                         size="sm"
                         onClick={() => setOpen(false)}
-                        className="h-8 px-4 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+                        className="h-8 max-md:min-h-10 px-4 text-sm md:text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
                       >
                         Confirm & Close
                       </Button>

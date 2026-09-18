@@ -64,10 +64,10 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
         <div className="flex-1 min-w-0 pr-8">
           <h3 className="font-semibold text-zinc-900 dark:text-white text-sm truncate">{talent.name}</h3>
           {talent.headline && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{talent.headline}</p>
+            <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 truncate mt-0.5">{talent.headline}</p>
           )}
           {talent.location && (
-            <p className="flex items-center gap-1 text-xs text-zinc-400 mt-1">
+            <p className="flex items-center gap-1 text-sm md:text-xs text-zinc-400 mt-1">
               <MapPin className="h-3 w-3 shrink-0" />
               {talent.location}
             </p>
@@ -77,13 +77,13 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
 
       {/* Experience */}
       {(talent.experience_years > 0 || (talent.relevant_experience_years ?? 0) > 0) && (
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
           <Briefcase className="h-3.5 w-3.5 text-indigo-400" />
           <span className="font-semibold text-zinc-800 dark:text-zinc-200">
             {formatExperienceYears(talent.relevant_experience_years ?? talent.experience_years)} relevant exp
           </span>
           {talent.experience_years > (talent.relevant_experience_years ?? talent.experience_years) && (
-            <span className="text-zinc-400 text-[11px]">
+            <span className="text-zinc-400 text-sm md:text-xs md:text-[11px]">
               ({formatExperienceYears(talent.experience_years)} total)
             </span>
           )}
@@ -120,7 +120,7 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
 
       {/* Summary */}
       {talent.summary && (
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">
+        <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed line-clamp-2">
           {truncate(talent.summary, 140)}
         </p>
       )}
@@ -149,7 +149,7 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
             onClick={() => onToggleSave(talent)}
             disabled={saving}
             className={cn(
-              "h-8 px-2.5 rounded-lg text-xs gap-1.5 transition-all",
+              "h-8 max-md:min-h-10 px-2.5 rounded-lg text-xs gap-1.5 transition-all",
               talent.is_saved
                 ? "border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-600"
                 : "border-zinc-300 dark:border-zinc-700 text-zinc-500 hover:border-indigo-300 hover:text-indigo-600"
@@ -168,7 +168,7 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
             id={`talent-view-${talent.user_id}`}
             size="sm"
             onClick={() => onViewProfile(talent)}
-            className="h-8 px-3 rounded-lg text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-medium"
+            className="h-8 max-md:min-h-10 px-3 rounded-lg text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-medium"
           >
             <Eye className="h-3.5 w-3.5" />
             View

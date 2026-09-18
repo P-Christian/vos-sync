@@ -187,7 +187,7 @@ export default function AIProfileAssistantModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col p-0 gap-0">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col p-0 gap-0 max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh]">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-zinc-100 dark:border-zinc-800 bg-linear-to-r from-emerald-500/10 via-teal-500/5 to-transparent">
           <div className="flex items-center gap-2 mb-1">
  
@@ -195,7 +195,7 @@ export default function AIProfileAssistantModal({
               <DialogTitle className="text-base font-bold text-zinc-900 dark:text-zinc-50">
                 AI Company Profile Assistant
               </DialogTitle>
-              <DialogDescription className="text-xs text-zinc-500">
+              <DialogDescription className="text-sm md:text-xs text-zinc-500">
                 Generate high-impact candidate-facing profile content and classify your taxonomy. Propose → Review → Apply.
               </DialogDescription>
             </div>
@@ -208,11 +208,11 @@ export default function AIProfileAssistantModal({
             <div className="space-y-4">
               <div className="bg-zinc-50 dark:bg-zinc-900/60 p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                  <span className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                     <SlidersHorizontal className="h-3.5 w-3.5 text-emerald-600" />
                     Custom Notes / Context (Optional)
                   </span>
-                  <span className="text-[11px] text-zinc-400">
+                  <span className="text-xs md:text-[11px] text-zinc-400">
                     Company: <strong className="text-zinc-700 dark:text-zinc-300">{currentCompany.company_name || "Company"}</strong>
                   </span>
                 </div>
@@ -221,15 +221,15 @@ export default function AIProfileAssistantModal({
                   onChange={(e) => setPromptNotes(e.target.value)}
                   placeholder="e.g. We are a fast-growing B2B SaaS startup specializing in AI workflow automation. Hybrid in Makati, offering HMO with dependents and learning stipends..."
                   rows={3}
-                  className="text-xs resize-none"
+                  className="md:text-xs max-md:text-base resize-none"
                 />
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-xs md:text-[11px] text-zinc-400">
                   AI will use your existing company name, website, and entered notes to generate accurate, grounded recommendations.
                 </p>
               </div>
 
               {error && (
-                <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-xs">
+                <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm md:text-xs">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   {error}
                 </div>
@@ -238,7 +238,7 @@ export default function AIProfileAssistantModal({
               <div className="flex justify-end">
                 <Button
                   onClick={handleGenerate}
-                  className="h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2 transition-transform active:scale-[0.98]"
+                  className="h-10 max-md:min-h-10 px-6 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2 transition-transform active:scale-[0.98]"
                 >
                    
                   Generate AI Profile Recommendations
@@ -261,7 +261,7 @@ export default function AIProfileAssistantModal({
                 <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                   Analyzing & Crafting Profile Intelligence
                 </h4>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">
+                <p className="text-sm md:text-xs text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">
                   {GENERATION_STEPS[currentStepIndex]}...
                 </p>
               </div>
@@ -283,7 +283,7 @@ export default function AIProfileAssistantModal({
               <div className="flex items-center justify-between bg-emerald-50/70 dark:bg-emerald-950/30 p-3.5 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span className="text-xs font-semibold text-emerald-900 dark:text-emerald-200">
+                  <span className="text-sm md:text-xs font-semibold text-emerald-900 dark:text-emerald-200">
                     Recommendations Ready! Review proposals and uncheck anything you wish to skip.
                   </span>
                 </div>
@@ -291,7 +291,7 @@ export default function AIProfileAssistantModal({
                   variant="ghost"
                   size="sm"
                   onClick={handleGenerate}
-                  className="h-7 px-2.5 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
+                  className="h-7 max-md:min-h-10 px-2.5 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100"
                 >
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Regenerate
@@ -303,21 +303,21 @@ export default function AIProfileAssistantModal({
                 {suggestions.company_description && (
                   <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                         <Checkbox
                           checked={selectedFields.company_description}
                           onCheckedChange={() => toggleField("company_description")}
                         />
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                           <Building2 className="h-3.5 w-3.5 text-primary" />
                           Company Description
                         </span>
                       </label>
-                      <Badge variant="outline" className="text-[10px] text-emerald-600 border-emerald-300">
+                      <Badge variant="outline" className="text-xs md:text-[10px] text-emerald-600 border-emerald-300">
                         AI Recommended
                       </Badge>
                     </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
+                    <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
                       {suggestions.company_description}
                     </p>
                   </div>
@@ -328,18 +328,18 @@ export default function AIProfileAssistantModal({
                   {suggestions.company_mission && (
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                           <Checkbox
                             checked={selectedFields.company_mission}
                             onCheckedChange={() => toggleField("company_mission")}
                           />
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                          <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                             <Target className="h-3.5 w-3.5 text-blue-600" />
                             Mission Statement
                           </span>
                         </label>
                       </div>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed pl-6">
+                      <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed pl-6">
                         {suggestions.company_mission}
                       </p>
                     </div>
@@ -348,18 +348,18 @@ export default function AIProfileAssistantModal({
                   {suggestions.company_vision && (
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                           <Checkbox
                             checked={selectedFields.company_vision}
                             onCheckedChange={() => toggleField("company_vision")}
                           />
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                          <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                             <Compass className="h-3.5 w-3.5 text-purple-600" />
                             Vision Statement
                           </span>
                         </label>
                       </div>
-                      <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed pl-6">
+                      <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed pl-6">
                         {suggestions.company_vision}
                       </p>
                     </div>
@@ -370,18 +370,18 @@ export default function AIProfileAssistantModal({
                 {suggestions.company_culture && (
                   <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                         <Checkbox
                           checked={selectedFields.company_culture}
                           onCheckedChange={() => toggleField("company_culture")}
                         />
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                           <HeartHandshake className="h-3.5 w-3.5 text-rose-500" />
                           Company Culture & Work Environment
                         </span>
                       </label>
                     </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
+                    <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
                       {suggestions.company_culture}
                     </p>
                   </div>
@@ -391,18 +391,18 @@ export default function AIProfileAssistantModal({
                 {suggestions.company_benefits && (
                   <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                         <Checkbox
                           checked={selectedFields.company_benefits}
                           onCheckedChange={() => toggleField("company_benefits")}
                         />
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                           <Gift className="h-3.5 w-3.5 text-amber-500" />
                           Perks & Benefits
                         </span>
                       </label>
                     </div>
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
+                    <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap pl-6">
                       {suggestions.company_benefits}
                     </p>
                   </div>
@@ -414,28 +414,28 @@ export default function AIProfileAssistantModal({
                   {suggestions.suggested_industry_name && (
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                           <Checkbox
                             checked={selectedFields.industry_id}
                             onCheckedChange={() => toggleField("industry_id")}
                           />
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                          <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                             <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                             Taxonomy Industry
                           </span>
                         </label>
                         {suggestions.industry_confidence && (
-                          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-[10px]">
+                          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 text-xs md:text-[10px]">
                             {suggestions.industry_confidence}% Match
                           </Badge>
                         )}
                       </div>
                       <div className="pl-6 space-y-1">
-                        <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        <p className="text-sm md:text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                           {suggestions.suggested_industry_name}
                         </p>
                         {suggestions.industry_reason && (
-                          <p className="text-[11px] text-zinc-500 leading-relaxed">
+                          <p className="text-xs md:text-[11px] text-zinc-500 leading-relaxed">
                             Reason: {suggestions.industry_reason}
                           </p>
                         )}
@@ -447,24 +447,24 @@ export default function AIProfileAssistantModal({
                   {suggestions.suggested_organization_type_name && (
                     <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                       <div className="flex items-center justify-between">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                           <Checkbox
                             checked={selectedFields.organization_type_id}
                             onCheckedChange={() => toggleField("organization_type_id")}
                           />
-                          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                          <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                             <Layers className="h-3.5 w-3.5 text-indigo-600" />
                             Organization Type
                           </span>
                         </label>
                         {suggestions.org_type_confidence && (
-                          <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 text-[10px]">
+                          <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 text-xs md:text-[10px]">
                             {suggestions.org_type_confidence}% Match
                           </Badge>
                         )}
                       </div>
                       <div className="pl-6">
-                        <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">
+                        <p className="text-sm md:text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                           {suggestions.suggested_organization_type_name}
                         </p>
                       </div>
@@ -476,12 +476,12 @@ export default function AIProfileAssistantModal({
                 {suggestions.company_tags && (
                   <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 space-y-2 bg-white dark:bg-zinc-900">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <label className="flex items-center gap-2 cursor-pointer select-none max-md:min-h-10 max-md:items-center">
                         <Checkbox
                           checked={selectedFields.company_tags}
                           onCheckedChange={() => toggleField("company_tags")}
                         />
-                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                        <span className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                           <Tag className="h-3.5 w-3.5 text-teal-600" />
                           Matching & Discovery Tags
                         </span>
@@ -512,7 +512,7 @@ export default function AIProfileAssistantModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-xs"
+              className="text-xs max-md:min-h-10"
             >
               Cancel
             </Button>
@@ -520,7 +520,7 @@ export default function AIProfileAssistantModal({
               type="button"
               size="sm"
               onClick={handleApply}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm max-md:min-h-10"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               Apply Selected Suggestions to Draft

@@ -115,7 +115,7 @@ export default function InviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent key={talentName} className="max-w-md">
+      <DialogContent key={talentName} className="max-w-md max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold flex items-center gap-2">
             <Send className="h-4 w-4 text-indigo-500" />
@@ -124,7 +124,7 @@ export default function InviteDialog({
         </DialogHeader>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+          <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {error}
           </div>
@@ -133,12 +133,12 @@ export default function InviteDialog({
         <div className="space-y-4">
           {/* Searchable job select */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Label className="text-sm md:text-xs font-medium text-muted-foreground flex items-center gap-1.5">
               <Briefcase className="h-3.5 w-3.5" />
               Link to Company Job Posting (optional)
             </Label>
             {loadingJobs ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground h-9 px-3 rounded-lg border border-border">
+              <div className="flex items-center gap-2 text-sm md:text-xs text-muted-foreground h-9 px-3 rounded-lg border border-border">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Loading company jobs…
               </div>
@@ -154,7 +154,7 @@ export default function InviteDialog({
                     setSearchQuery("");
                   }}
                   className={cn(
-                    "w-full h-9 justify-between text-xs rounded-lg border-border font-normal px-3",
+                    "w-full h-9 max-md:min-h-10 justify-between text-sm md:text-xs rounded-lg border-border font-normal px-3",
                     !selectedJobId && "text-muted-foreground"
                   )}
                 >
@@ -172,12 +172,12 @@ export default function InviteDialog({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         autoFocus
-                        className="flex h-7 w-full rounded-md bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                        className="flex h-7 w-full rounded-md bg-transparent md:text-xs outline-none placeholder:text-muted-foreground max-md:min-h-10 max-md:text-base"
                       />
                     </div>
                     <div className="max-h-48 overflow-y-auto p-1 overscroll-contain">
                       {filteredOptions.length === 0 ? (
-                        <div className="py-4 text-center text-xs text-muted-foreground">
+                        <div className="py-4 text-center text-sm md:text-xs text-muted-foreground">
                           No matching jobs found.
                         </div>
                       ) : (
@@ -190,7 +190,7 @@ export default function InviteDialog({
                               setIsDropdownOpen(false);
                             }}
                             className={cn(
-                              "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-7 pr-2 text-xs outline-none hover:bg-accent hover:text-accent-foreground text-left transition-colors",
+                              "relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-7 pr-2 text-sm md:text-xs outline-none hover:bg-accent hover:text-accent-foreground text-left transition-colors max-md:min-h-10",
                               (selectedJobId || "none") === opt.value && "bg-accent/50 font-medium"
                             )}
                           >
@@ -208,14 +208,14 @@ export default function InviteDialog({
                 )}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm md:text-xs text-muted-foreground">
               Select an open position or choose general interest invitation
             </p>
           </div>
 
           {/* Message */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Message <span className="text-rose-500">*</span>
             </Label>
             <Textarea
@@ -223,10 +223,10 @@ export default function InviteDialog({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={7}
-              className="text-sm rounded-lg resize-none"
+              className="md:text-sm rounded-lg resize-none max-md:text-base"
               placeholder="Write a personalized invitation message…"
             />
-            <p className="text-xs text-zinc-400">{message.length} characters</p>
+            <p className="text-sm md:text-xs text-zinc-400">{message.length} characters</p>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ export default function InviteDialog({
             variant="outline"
             onClick={onClose}
             disabled={sending}
-            className="h-9 text-sm rounded-lg"
+            className="h-9 text-sm rounded-lg max-md:min-h-10"
           >
             Cancel
           </Button>
@@ -243,7 +243,7 @@ export default function InviteDialog({
             id="invite-send-btn"
             onClick={handleSend}
             disabled={sending || !message.trim()}
-            className="h-9 text-sm rounded-lg gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-medium"
+            className="h-9 text-sm rounded-lg gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-medium max-md:min-h-10"
           >
             {sending ? (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

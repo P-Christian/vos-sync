@@ -53,7 +53,7 @@ export default function JobList({
             No matching job postings
           </h3>
 
-          <p className="text-xs text-muted-foreground mt-1 max-w-sm">
+          <p className="text-sm md:text-xs text-muted-foreground mt-1 max-w-sm">
             We couldn&apos;t find any job postings matching your current search or filter criteria.
           </p>
 
@@ -62,7 +62,7 @@ export default function JobList({
               variant="outline"
               size="sm"
               onClick={onResetFilters}
-              className="mt-4 text-xs font-medium gap-1.5 rounded-xl border-border hover:bg-muted/50"
+              className="mt-4 text-sm md:text-xs font-medium gap-1.5 rounded-xl border-border hover:bg-muted/50"
             >
               <RotateCcw className="h-3.5 w-3.5" />
               Reset all filters
@@ -87,7 +87,7 @@ export default function JobList({
           No job postings yet
         </h3>
 
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+        <p className="text-sm md:text-xs text-muted-foreground mt-1 max-w-xs">
           Create your first job posting to start attracting top talent.
         </p>
       </motion.div>
@@ -114,4 +114,4 @@ export default function JobList({
       </AnimatePresence>
     </motion.div>
   );
-}
+}

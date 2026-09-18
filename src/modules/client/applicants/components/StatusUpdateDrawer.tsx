@@ -67,13 +67,13 @@ export default function StatusUpdateDrawer({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm font-bold">
             Update Application Status
           </DialogTitle>
           {applicant && (
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-sm text-zinc-500 mt-1 md:text-xs">
               {applicant.applicant_name ?? `Applicant #${applicant.application_id}`} &bull;{" "}
               {applicant.job_title ?? "—"}
             </p>
@@ -82,7 +82,7 @@ export default function StatusUpdateDrawer({
 
         <div className="space-y-4 py-2">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+            <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               {error}
             </div>
@@ -90,14 +90,14 @@ export default function StatusUpdateDrawer({
 
           {allowedTransitions.length > 0 ? (
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              <Label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs">
                 New Status <span className="text-rose-500">*</span>
               </Label>
               <Select
                 value={selectedStatus}
                 onValueChange={(v) => setSelectedStatus(v as ApplicationStatus)}
               >
-                <SelectTrigger className="h-9 text-sm">
+                <SelectTrigger className="h-9 max-md:min-h-10 md:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -110,7 +110,7 @@ export default function StatusUpdateDrawer({
               </Select>
             </div>
           ) : (
-            <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-xs text-muted-foreground">
+            <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-sm text-muted-foreground md:text-xs">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold text-foreground">
@@ -130,7 +130,7 @@ export default function StatusUpdateDrawer({
           <div className="space-y-1.5">
             <Label
               htmlFor="status-notes"
-              className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
+              className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs"
             >
               Internal Notes (optional)
             </Label>
@@ -140,7 +140,7 @@ export default function StatusUpdateDrawer({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Internal notes about this applicant..."
-              className="resize-none text-sm"
+              className="resize-none md:text-sm max-md:text-base"
             />
           </div>
         </div>
@@ -150,7 +150,7 @@ export default function StatusUpdateDrawer({
             variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="h-9 text-sm rounded-lg"
+            className="h-9 max-md:min-h-10 text-sm rounded-lg"
           >
             Cancel
           </Button>
@@ -158,7 +158,7 @@ export default function StatusUpdateDrawer({
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="h-9 text-sm rounded-lg"
+              className="h-9 max-md:min-h-10 text-sm rounded-lg"
             >
               {saving ? "Saving..." : "Save Status"}
             </Button>

@@ -239,7 +239,7 @@ export default function ChatPanel({
         {onBack && (
           <button
             onClick={onBack}
-            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition max-md:size-10 max-md:p-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -267,7 +267,7 @@ export default function ChatPanel({
             <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
               {other_party_name}
             </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs md:text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
               {conversation_type === "JOB_APPLICATION"
                 ? "Applicant"
                 : conversation_type === "DIRECT_MESSAGE"
@@ -280,13 +280,13 @@ export default function ChatPanel({
               {job_title && (
                 <div className="flex items-center gap-1">
                   <Briefcase className="h-2.5 w-2.5 text-indigo-400" />
-                  <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-medium truncate">
+                  <span className="text-sm md:text-xs md:text-[10px] text-indigo-500 dark:text-indigo-400 font-medium truncate">
                     {job_title}
                   </span>
                 </div>
               )}
               {other_party_email && !job_title && (
-                <span className="text-[10px] text-zinc-400 truncate">
+                <span className="text-sm md:text-xs md:text-[10px] text-zinc-400 truncate">
                   {other_party_email}
                 </span>
               )}
@@ -298,7 +298,7 @@ export default function ChatPanel({
           onClick={onRefresh}
           disabled={loading}
           title="Refresh messages"
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 shrink-0"
+          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 shrink-0 max-md:size-10 max-md:p-0"
         >
           <RefreshCw
             className={cn("h-3.5 w-3.5", loading && "animate-spin")}
@@ -325,7 +325,7 @@ export default function ChatPanel({
               <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
                 No messages yet
               </p>
-              <p className="text-xs text-zinc-400 mt-1">
+              <p className="text-sm md:text-xs text-zinc-400 mt-1">
                 Send a message to start the conversation
               </p>
             </div>
@@ -344,7 +344,7 @@ export default function ChatPanel({
                 <button
                   onClick={onLoadOlder}
                   disabled={loadingOlder}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50 max-md:min-h-10"
                 >
                   {loadingOlder ? (
                     <>
@@ -396,7 +396,7 @@ export default function ChatPanel({
             exit={{ opacity: 0, scale: 0.8, y: 10 }}
             onClick={() => scrollToBottom(true)}
             title="Jump to recent messages"
-            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer"
+            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer max-md:size-10"
           >
             <ArrowDown className="h-4 w-4" />
           </motion.button>
@@ -405,7 +405,7 @@ export default function ChatPanel({
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-xs text-rose-600 dark:text-rose-400 shrink-0">
+        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-sm md:text-xs text-rose-600 dark:text-rose-400 shrink-0">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           {error}
         </div>

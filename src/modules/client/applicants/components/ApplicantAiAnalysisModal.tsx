@@ -119,7 +119,7 @@ export function ApplicantAiAnalysisModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] !max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border bg-background shadow-2xl">
+      <DialogContent className="w-[95vw] !max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border bg-background shadow-2xl max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-border/70 flex flex-row items-center justify-between space-y-0 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
@@ -135,7 +135,7 @@ export function ApplicantAiAnalysisModal({
                   </Badge>
                 )}
               </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground truncate">
+              <DialogDescription className="text-sm text-muted-foreground truncate md:text-xs">
                 {applicant?.applicant_name} • Applied for {applicant?.job_title}
               </DialogDescription>
             </div>
@@ -147,7 +147,7 @@ export function ApplicantAiAnalysisModal({
               variant="outline"
               onClick={() => fetchAnalysis(true)}
               disabled={loading}
-              className="h-8 px-3 text-xs gap-1.5 border-border hover:bg-muted font-medium cursor-pointer"
+              className="h-8 max-md:min-h-10 px-3 text-sm gap-1.5 border-border hover:bg-muted font-medium cursor-pointer md:text-xs"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
               Regenerate
@@ -166,7 +166,7 @@ export function ApplicantAiAnalysisModal({
               </div>
               <div className="space-y-1">
                 <h4 className="font-semibold text-sm text-foreground">Analyzing Candidate Compatibility...</h4>
-                <p className="text-xs text-muted-foreground max-w-sm">
+                <p className="text-sm text-muted-foreground max-w-sm md:text-xs">
                   Evaluating professional background, screening answers, technical skills, and requirements against {applicant?.job_title}.
                 </p>
               </div>
@@ -176,8 +176,8 @@ export function ApplicantAiAnalysisModal({
               <div className="p-3 rounded-full bg-rose-500/10 text-rose-500">
                 <AlertTriangle className="h-6 w-6" />
               </div>
-              <p className="text-xs text-rose-500 font-medium">{error}</p>
-              <Button size="sm" onClick={() => fetchAnalysis(true)} variant="outline" className="text-xs">
+              <p className="text-sm text-rose-500 font-medium md:text-xs">{error}</p>
+              <Button size="sm" onClick={() => fetchAnalysis(true)} variant="outline" className="text-sm max-md:min-h-10 md:text-xs">
                 Retry Analysis
               </Button>
             </div>
@@ -194,7 +194,7 @@ export function ApplicantAiAnalysisModal({
                     {analysis.fit_level}
                   </Badge>
                 </div>
-                <p className="text-xs text-foreground/90 leading-relaxed font-normal">
+                <p className="text-sm text-foreground/90 leading-relaxed font-normal md:text-xs">
                   {analysis.executive_summary}
                 </p>
               </div>
@@ -203,11 +203,11 @@ export function ApplicantAiAnalysisModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Strengths */}
                 <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 md:text-xs">
                     <CheckCircle2 className="h-4 w-4" />
                     <span>Key Strengths & Qualifications</span>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-foreground/85">
+                  <ul className="space-y-1.5 text-sm text-foreground/85 md:text-xs">
                     {analysis.strengths.map((str, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
@@ -219,11 +219,11 @@ export function ApplicantAiAnalysisModal({
 
                 {/* Gaps & Considerations */}
                 <div className="p-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.03] space-y-2.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-2 text-sm font-bold text-amber-600 dark:text-amber-400 md:text-xs">
                     <HelpCircle className="h-4 w-4" />
                     <span>Gaps & Interview Probing Points</span>
                   </div>
-                  <ul className="space-y-1.5 text-xs text-foreground/85">
+                  <ul className="space-y-1.5 text-sm text-foreground/85 md:text-xs">
                     {analysis.gaps_or_considerations.map((gap, idx) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
@@ -237,11 +237,11 @@ export function ApplicantAiAnalysisModal({
               {/* Screening Question Assessment */}
               {analysis.screening_assessment && (
                 <div className="p-4 rounded-xl border border-border/70 bg-card/40 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                  <div className="flex items-center gap-2 text-sm font-bold text-foreground md:text-xs">
                     <MessageSquare className="h-4 w-4 text-primary" />
                     <span>Screening Answers Evaluation</span>
                   </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-sm text-muted-foreground leading-relaxed md:text-xs">
                     {analysis.screening_assessment}
                   </p>
                 </div>
@@ -250,18 +250,18 @@ export function ApplicantAiAnalysisModal({
               {/* Alternative Company Openings Recommendation */}
               <div className="p-4 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/[0.04] to-primary/[0.01] space-y-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                  <div className="flex items-center gap-2 text-sm font-bold text-primary md:text-xs">
                     <Briefcase className="h-4 w-4" />
                     <span>Alternative Company Openings — Cross-Role Match</span>
                   </div>
-                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-medium">
+                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30 font-medium md:text-[10px]">
                     AI Opportunity Scan
                   </Badge>
                 </div>
 
                 {analysis.alternative_job_recommendations && analysis.alternative_job_recommendations.length > 0 ? (
                   <>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground md:text-xs">
                       Based on their technical skillset and qualifications, this candidate also shows strong alignment for the following active job posting{analysis.alternative_job_recommendations.length > 1 ? "s" : ""}:
                     </p>
                     <div className="space-y-2 pt-1">
@@ -272,17 +272,17 @@ export function ApplicantAiAnalysisModal({
                         >
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-xs text-foreground">
+                              <span className="font-semibold text-sm text-foreground md:text-xs">
                                 {alt.job_title}
                               </span>
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] px-2 py-0 font-bold ${getScoreColor(alt.match_score)}`}
+                                className={`text-xs px-2 py-0 font-bold md:text-[10px] ${getScoreColor(alt.match_score)}`}
                               >
                                 {alt.match_score}% Match
                               </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground/90 leading-snug">
+                            <p className="text-sm text-muted-foreground/90 leading-snug md:text-xs">
                               {alt.reasoning}
                             </p>
                           </div>
@@ -291,7 +291,7 @@ export function ApplicantAiAnalysisModal({
                     </div>
                   </>
                 ) : (
-                  <div className="p-3 rounded-lg border border-border/60 bg-muted/20 text-xs text-muted-foreground leading-relaxed">
+                  <div className="p-3 rounded-lg border border-border/60 bg-muted/20 text-sm text-muted-foreground leading-relaxed md:text-xs">
                     No alternative active openings found with a higher match — candidate is currently best aligned with this applied role.
                   </div>
                 )}
@@ -299,11 +299,11 @@ export function ApplicantAiAnalysisModal({
 
               {/* Hiring Recommendation Callout */}
               <div className="p-4 rounded-xl border border-primary/25 bg-primary/[0.04] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                <div className="flex items-center gap-2 text-sm font-bold text-primary md:text-xs">
                   <ShieldCheck className="h-4 w-4" />
                   <span>Recruiter Action Recommendation</span>
                 </div>
-                <p className="text-xs text-foreground font-medium leading-relaxed">
+                <p className="text-sm text-foreground font-medium leading-relaxed md:text-xs">
                   {analysis.recommendation}
                 </p>
               </div>
@@ -314,7 +314,7 @@ export function ApplicantAiAnalysisModal({
         {/* Footer */}
         <div className="px-6 py-3 border-t border-border/70 bg-muted/20 flex items-center justify-end shrink-0">
  
-          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)} className="text-xs">
+          <Button size="sm" variant="outline" onClick={() => onOpenChange(false)} className="text-sm max-md:min-h-10 md:text-xs">
             Close
           </Button>
         </div>

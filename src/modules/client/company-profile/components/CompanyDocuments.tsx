@@ -246,7 +246,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
       {/* Header Info Banner */}
       <div className="rounded-lg bg-zinc-50 dark:bg-zinc-900/60 p-4 border border-zinc-200 dark:border-zinc-800 flex items-start gap-3">
         <Lock className="h-4 w-4 text-zinc-500 dark:text-zinc-400 shrink-0 mt-0.5" />
-        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+        <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
           Upload documents required to verify your company.
           These documents are <span className="font-semibold text-zinc-700 dark:text-zinc-300">private</span> and will only be accessible to authorized VOS Sync administrators.
         </p>
@@ -269,7 +269,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                   <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                     {slot.title}
                   </h4>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
                     {slot.description}
                   </p>
                 </div>
@@ -287,7 +287,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                       >
                         {existingDoc.name}
                       </a>
-                      <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
+                      <span className="text-xs md:text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">
                         ({formatFileSize(existingDoc.size)}
                         {existingDoc.uploaded_at ? ` · Uploaded ${formatDate(existingDoc.uploaded_at)}` : ""})
                       </span>
@@ -300,7 +300,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         size="sm"
                         disabled={isUploading}
                         onClick={() => triggerFileInput(slot.type)}
-                        className="h-8 text-xs gap-1.5 font-medium"
+                        className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium"
                       >
                         {isUploading ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -315,7 +315,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         variant="ghost"
                         size="sm"
                         asChild
-                        className="h-8 text-xs gap-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                        className="h-8 max-md:min-h-10 text-xs gap-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                       >
                         <a href={`/api/client/assets/${existingDoc.id}`} target="_blank" rel="noopener noreferrer">
                           <Eye className="h-3.5 w-3.5" />
@@ -332,7 +332,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                       size="sm"
                       disabled={isUploading}
                       onClick={() => triggerFileInput(slot.type)}
-                      className="h-9 text-xs gap-2 font-medium border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+                      className="h-9 max-md:min-h-10 text-xs gap-2 font-medium border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
                     >
                       {isUploading ? (
                         <>
@@ -358,7 +358,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.18 }}
-                    className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-2 overflow-hidden"
+                    className="text-sm md:text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 mt-2 overflow-hidden"
                   >
                     <X className="h-3.5 w-3.5 shrink-0" />
                     {errorMsg}
@@ -390,7 +390,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               Other Supporting Documents
             </h4>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
               Upload optional supplementary files such as BIR 2303, General Information Sheet (GIS), Secretary&apos;s Certificate, or Special Permits.
             </p>
           </div>
@@ -402,7 +402,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               size="sm"
               disabled={isUploadingOther}
               onClick={() => otherFileInputRef.current?.click()}
-              className="h-9 text-xs gap-1.5 font-medium border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+              className="h-9 max-md:min-h-10 text-xs gap-1.5 font-medium border-indigo-200 dark:border-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
             >
               {isUploadingOther ? (
                 <>
@@ -438,7 +438,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.18 }}
-              className="text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/40 overflow-hidden"
+              className="text-sm md:text-xs text-rose-600 dark:text-rose-400 flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/30 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/40 overflow-hidden"
             >
               <X className="h-3.5 w-3.5 shrink-0" />
               {otherError}
@@ -460,7 +460,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 text-xs"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-zinc-50/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800 text-sm md:text-xs"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
@@ -474,7 +474,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         >
                           {doc.name}
                         </a>
-                        <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <span className="text-xs md:text-[11px] text-zinc-400 dark:text-zinc-500">
                           {formatFileSize(doc.size)}
                           {doc.uploaded_at ? ` · Uploaded ${formatDate(doc.uploaded_at)}` : ""}
                         </span>
@@ -487,7 +487,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         variant="ghost"
                         size="sm"
                         asChild
-                        className="h-7 px-2 text-xs gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                        className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                       >
                         <a href={`/api/client/assets/${doc.id}`} target="_blank" rel="noopener noreferrer">
                           <Eye className="h-3.5 w-3.5" />
@@ -501,7 +501,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         size="sm"
                         disabled={isDeleting}
                         onClick={() => handleDeleteDoc(doc.id)}
-                        className="h-7 px-2 text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                        className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                       >
                         {isDeleting ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -517,7 +517,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
             </AnimatePresence>
           </div>
         ) : (
-          <div className="text-center py-5 border border-dashed rounded-lg border-zinc-200 dark:border-zinc-800 text-zinc-400 text-xs">
+          <div className="text-center py-5 border border-dashed rounded-lg border-zinc-200 dark:border-zinc-800 text-zinc-400 text-sm md:text-xs">
             No other supporting documents uploaded yet.
           </div>
         )}

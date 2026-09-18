@@ -336,7 +336,7 @@ export default function InterviewForm({
         <div className="space-y-4 p-4 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/80 dark:border-zinc-800 rounded-xl">
           {/* Step 1: Select Job Position */}
           <div className="space-y-1.5">
-            <Label htmlFor="select-job" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+            <Label htmlFor="select-job" className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
               <BriefcaseBusiness className="h-4 w-4 text-indigo-500" />
               1. Choose Job Position <span className="text-rose-500">*</span>
             </Label>
@@ -344,12 +344,12 @@ export default function InterviewForm({
               value={selectedJobId || ""}
               onValueChange={(val) => handleJobSelect(val)}
             >
-              <SelectTrigger id="select-job" className="w-full h-9 text-xs font-semibold rounded-lg bg-background border-border">
+              <SelectTrigger id="select-job" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
                 <SelectValue placeholder="-- Select Target Job Position --" />
               </SelectTrigger>
               <SelectContent>
                 {availableJobs.map((j) => (
-                  <SelectItem key={j.job_id} value={String(j.job_id)} className="text-xs">
+                  <SelectItem key={j.job_id} value={String(j.job_id)} className="text-sm md:text-xs">
                     {j.job_title}
                   </SelectItem>
                 ))}
@@ -360,7 +360,7 @@ export default function InterviewForm({
           {/* Step 2: Select Candidates by Name */}
           <div className="space-y-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-800">
             <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+              <Label className="text-sm md:text-xs font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-indigo-500" />
                 2. Select Candidate Attendee(s) <span className="text-rose-500">*</span>
               </Label>
@@ -368,7 +368,7 @@ export default function InterviewForm({
                 <button
                   type="button"
                   onClick={selectAllCandidatesForJob}
-                  className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="text-xs md:text-[11px] max-md:min-h-10 font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                 >
                   Select All ({filteredApplicants.length})
                 </button>
@@ -376,11 +376,11 @@ export default function InterviewForm({
             </div>
 
             {!selectedJobId ? (
-              <p className="text-xs text-zinc-400 italic p-3 bg-white dark:bg-zinc-950 rounded-lg text-center border">
+              <p className="text-sm md:text-xs text-zinc-400 italic p-3 bg-white dark:bg-zinc-950 rounded-lg text-center border">
                 Please select a job position first to list candidate applicants.
               </p>
             ) : filteredApplicants.length === 0 ? (
-              <p className="text-xs text-zinc-400 italic p-3 bg-white dark:bg-zinc-950 rounded-lg text-center border">
+              <p className="text-sm md:text-xs text-zinc-400 italic p-3 bg-white dark:bg-zinc-950 rounded-lg text-center border">
                 No active candidate applicants found for this job posting.
               </p>
             ) : (
@@ -390,7 +390,7 @@ export default function InterviewForm({
                   return (
                     <label
                       key={app.application_id}
-                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-colors ${
+                      className={`flex items-center justify-between p-2 max-md:min-h-10 rounded-lg border text-sm md:text-xs cursor-pointer transition-colors ${
                         isChecked
                           ? "bg-indigo-50/60 dark:bg-indigo-950/30 border-indigo-300 dark:border-indigo-800 font-semibold"
                           : "bg-zinc-50/50 dark:bg-zinc-900/40 border-zinc-200/60 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-900"
@@ -406,7 +406,7 @@ export default function InterviewForm({
                             {app.applicant_name || `Applicant #${app.application_id}`}
                           </span>
                           {app.applicant_email && (
-                            <span className="text-[11px] text-zinc-400 font-normal block truncate">
+                            <span className="text-xs md:text-[11px] text-zinc-400 font-normal block truncate">
                               {app.applicant_email}
                             </span>
                           )}
@@ -414,7 +414,7 @@ export default function InterviewForm({
                       </div>
 
                       {app.application_status && (
-                        <Badge variant="outline" className="text-[10px] shrink-0 font-medium ml-2">
+                        <Badge variant="outline" className="text-xs md:text-[10px] shrink-0 font-medium ml-2">
                           {app.application_status}
                         </Badge>
                       )}
@@ -425,7 +425,7 @@ export default function InterviewForm({
             )}
 
             {errors.application_ids && (
-              <p className="text-[11px] text-rose-500 font-semibold">{errors.application_ids}</p>
+              <p className="text-xs md:text-[11px] text-rose-500 font-semibold">{errors.application_ids}</p>
             )}
           </div>
         </div>
@@ -434,7 +434,7 @@ export default function InterviewForm({
       {/* Duration, Format & Timezone */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="duration" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="duration" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Duration (Mins)
           </Label>
           <Input
@@ -453,53 +453,53 @@ export default function InterviewForm({
               }
             }}
             placeholder="60"
-            className="h-9 text-sm rounded-lg"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base rounded-lg"
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="format" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="format" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Interview Format <span className="text-rose-500">*</span>
           </Label>
           <Select
             value={data.interview_format || ""}
             onValueChange={(val) => onChange("interview_format", val as InterviewFormat)}
           >
-            <SelectTrigger id="format" className="w-full h-9 text-xs font-semibold rounded-lg bg-background border-border">
+            <SelectTrigger id="format" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
               <SelectValue placeholder="-- Select Format --" />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key} className="text-xs">
+                <SelectItem key={key} value={key} className="text-sm md:text-xs">
                   {label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {errors.interview_format && (
-            <p className="text-[11px] text-rose-500">{errors.interview_format}</p>
+            <p className="text-xs md:text-[11px] text-rose-500">{errors.interview_format}</p>
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="timezone" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="timezone" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Timezone
           </Label>
           <Select
             value={data.timezone || "Asia/Manila"}
             onValueChange={(val) => onChange("timezone", val)}
           >
-            <SelectTrigger id="timezone" className="w-full h-9 text-xs font-semibold rounded-lg bg-background border-border">
+            <SelectTrigger id="timezone" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
               <SelectValue placeholder="Select Timezone" />
             </SelectTrigger>
             <SelectContent>
               {TIMEZONE_OPTIONS.map((tz) => (
-                <SelectItem key={tz.value} value={tz.value} className="text-xs">
+                <SelectItem key={tz.value} value={tz.value} className="text-sm md:text-xs">
                   {tz.label}
                 </SelectItem>
               ))}
               {data.timezone && !TIMEZONE_OPTIONS.some((tz) => tz.value === data.timezone) && (
-                <SelectItem value={data.timezone} className="text-xs">
+                <SelectItem value={data.timezone} className="text-sm md:text-xs">
                   {data.timezone}
                 </SelectItem>
               )}
@@ -509,9 +509,9 @@ export default function InterviewForm({
       </div>
 
       {/* Color Legend Bar & Buffer Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl text-xs">
-        <div className="flex flex-wrap items-center gap-3 font-medium text-zinc-600 dark:text-zinc-400 text-[11px]">
-          <span className="font-bold uppercase tracking-wider text-zinc-400 text-[10px]">Legend:</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200/60 dark:border-zinc-800 rounded-xl text-sm md:text-xs">
+        <div className="flex flex-wrap items-center gap-3 font-medium text-zinc-600 dark:text-zinc-400 text-xs md:text-[11px]">
+          <span className="font-bold uppercase tracking-wider text-zinc-400 text-xs md:text-[10px]">Legend:</span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
           </span>
@@ -532,15 +532,16 @@ export default function InterviewForm({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Label htmlFor="buffer-toggle" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+          <Label htmlFor="buffer-toggle" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
             15m Buffer
           </Label>
-          <Switch
-            id="buffer-toggle"
-            size="sm"
-            checked={enableBuffer}
-            onCheckedChange={setEnableBuffer}
-          />
+           <Switch
+             id="buffer-toggle"
+             size="sm"
+             checked={enableBuffer}
+             onCheckedChange={setEnableBuffer}
+             className="max-md:size-10"
+           />
         </div>
       </div>
 
@@ -548,11 +549,11 @@ export default function InterviewForm({
       <div className="space-y-2">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               Scheduled Date & Time <span className="text-rose-500">*</span>
             </Label>
             {dateInterviews.length > 0 && (
-              <span className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
+              <span className="text-xs md:text-[10px] font-bold text-rose-500 flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
                 {dateInterviews.length} on selected date
               </span>
@@ -572,13 +573,13 @@ export default function InterviewForm({
           />
 
           {errors.scheduled_at && (
-            <p className="text-[11px] text-rose-500">{errors.scheduled_at}</p>
+            <p className="text-xs md:text-[11px] text-rose-500">{errors.scheduled_at}</p>
           )}
         </div>
 
         {/* Schedule Conflict Warning */}
         {conflict && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl text-rose-900 dark:text-rose-200 text-xs space-y-2">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-xl text-rose-900 dark:text-rose-200 text-sm md:text-xs space-y-2">
             <div className="flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
@@ -587,7 +588,7 @@ export default function InterviewForm({
                   <strong>{formatTimeRange(conflict.scheduled_at, conflict.duration_minutes)}</strong> ({getInterviewDisplayLabel(conflict)}).
                 </div>
                 {enableBuffer && (
-                  <div className="text-[11px] text-rose-700 dark:text-rose-300">
+                  <div className="text-xs md:text-[11px] text-rose-700 dark:text-rose-300">
                     15-minute buffer is required.
                   </div>
                 )}
@@ -596,7 +597,7 @@ export default function InterviewForm({
 
             {nextAvailableSuggestion && (
               <div className="pt-2 border-t border-rose-200/60 dark:border-rose-900/40 flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold text-rose-900 dark:text-rose-100">
+                <span className="text-sm md:text-xs font-semibold text-rose-900 dark:text-rose-100">
                   Next available:
                 </span>
                 <Button
@@ -604,7 +605,7 @@ export default function InterviewForm({
                   size="sm"
                   variant="outline"
                   onClick={() => onChange("scheduled_at", nextAvailableSuggestion.isoString)}
-                  className="h-7 px-2.5 text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950 shadow-2xs cursor-pointer flex items-center gap-1.5"
+                  className="h-7 max-md:min-h-10 px-2.5 text-sm md:text-xs font-bold rounded-lg bg-white dark:bg-zinc-900 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-950 shadow-2xs cursor-pointer flex items-center gap-1.5"
                 >
                   <span>[ {nextAvailableSuggestion.displayLabel} ]</span>
                 </Button>
@@ -617,7 +618,7 @@ export default function InterviewForm({
         {activeDateStr && dateInterviews.length > 0 && (
           <div className="p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200/60 dark:border-zinc-800 rounded-xl space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs md:text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1.5">
                 <CalendarDays className="h-3.5 w-3.5 text-zinc-400" />
                 {activeDateStr === getTodayYMD() ? `Active Interviews Today (${dateInterviews.length})` : `Active Interviews on ${activeDateStr} (${dateInterviews.length})`}
               </span>
@@ -630,7 +631,7 @@ export default function InterviewForm({
                   <div key={iv.interview_id} className="relative group">
                     <button
                       type="button"
-                      className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 transition-colors"
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1 max-md:min-h-10 rounded-lg bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xs hover:border-indigo-400 transition-colors"
                     >
                       <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />
                       <Clock className="h-3 w-3 text-zinc-400 shrink-0" />
@@ -639,7 +640,7 @@ export default function InterviewForm({
                       </span>
                       <span className="text-zinc-500 font-medium">({label})</span>
                     </button>
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-72 p-3 text-xs space-y-2 bg-zinc-950 text-white rounded-xl shadow-2xl z-50 pointer-events-none border border-zinc-800 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block max-md:block w-72 max-md:w-auto max-md:max-w-[calc(100vw-2rem)] p-3 text-sm md:text-xs space-y-2 bg-zinc-950 text-white rounded-xl shadow-2xl z-50 pointer-events-none border border-zinc-800 animate-in fade-in zoom-in-95 duration-150">
                       <div className="font-bold text-white flex items-center gap-1.5 border-b border-zinc-800 pb-1.5">
                         <User className="h-4 w-4 text-indigo-400" />
                         {label}
@@ -678,7 +679,7 @@ export default function InterviewForm({
       {/* Meeting Link (for ONLINE) */}
       {data.interview_format === "ONLINE" && (
         <div className="space-y-1.5">
-          <Label htmlFor="link" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="link" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Meeting Link (Google Meet / Zoom / Teams)
           </Label>
           <Input
@@ -686,7 +687,7 @@ export default function InterviewForm({
             value={data.meeting_link}
             onChange={(e) => onChange("meeting_link", e.target.value)}
             placeholder="https://meet.google.com/xyz-abc-123"
-            className="h-9 text-sm rounded-lg"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base rounded-lg"
           />
         </div>
       )}
@@ -694,7 +695,7 @@ export default function InterviewForm({
       {/* Meeting Location (for ONSITE) */}
       {data.interview_format === "ONSITE" && (
         <div className="space-y-1.5">
-          <Label htmlFor="location" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="location" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Office Location / Room
           </Label>
           <Input
@@ -702,14 +703,14 @@ export default function InterviewForm({
             value={data.meeting_location}
             onChange={(e) => onChange("meeting_location", e.target.value)}
             placeholder="e.g. 5th Floor Conference Room A, Building 2"
-            className="h-9 text-sm rounded-lg"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base rounded-lg"
           />
         </div>
       )}
 
       {/* Internal Notes */}
       <div className="space-y-1.5">
-        <Label htmlFor="notes" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+        <Label htmlFor="notes" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
           Interviewer Notes <span className="text-zinc-400 font-normal">(Internal)</span>
         </Label>
         <Textarea
@@ -718,7 +719,7 @@ export default function InterviewForm({
           onChange={(e) => onChange("interview_notes", e.target.value)}
           rows={3}
           placeholder="Focus areas or interviewer instructions..."
-          className="text-xs rounded-lg resize-none"
+          className="md:text-xs max-md:text-base rounded-lg resize-none"
         />
       </div>
     </div>

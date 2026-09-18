@@ -51,14 +51,14 @@ export default function SecuritySettings({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-xl flex items-start gap-3">
         <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div>
           <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             Account Password & Security
           </h4>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
             Ensure your account uses a strong, unique password with at least 8 characters.
           </p>
         </div>
@@ -66,13 +66,13 @@ export default function SecuritySettings({
 
       <form onSubmit={handleSubmit} className="space-y-5 max-w-md">
         {localError && (
-          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-xs">
+          <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
             {localError}
           </div>
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="curr-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <Lock className="h-3.5 w-3.5 text-zinc-400" /> Current Password
           </Label>
           <Input
@@ -81,13 +81,13 @@ export default function SecuritySettings({
             value={form.current_password}
             onChange={(e) => setForm((p) => ({ ...p, current_password: e.target.value }))}
             placeholder="••••••••"
-            className="h-10 text-sm rounded-lg"
+            className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="new-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> New Password
           </Label>
           <Input
@@ -96,13 +96,13 @@ export default function SecuritySettings({
             value={form.new_password}
             onChange={(e) => setForm((p) => ({ ...p, new_password: e.target.value }))}
             placeholder="Min. 8 characters"
-            className="h-10 text-sm rounded-lg"
+            className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="conf-pass" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> Confirm New Password
           </Label>
           <Input
@@ -111,7 +111,7 @@ export default function SecuritySettings({
             value={form.confirm_password}
             onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
             placeholder="Re-enter new password"
-            className="h-10 text-sm rounded-lg"
+            className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
             required
           />
         </div>
@@ -122,7 +122,7 @@ export default function SecuritySettings({
           <Button
             type="submit"
             disabled={saving || !validatePasswordStrict(form.new_password || "")}
-            className="h-9 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm disabled:opacity-50"
+            className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm disabled:opacity-50"
           >
             {saving ? (
               <>

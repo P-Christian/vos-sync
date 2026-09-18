@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, ArrowRight, CheckCircle2, Clock, Calendar } from "lucide-react";
+import { Users, ArrowRight, CheckCircle2, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
@@ -48,7 +48,7 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
       return (
         <Badge
           variant="secondary"
-          className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-semibold tracking-wide"
+          className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-xs md:text-[10px] font-semibold tracking-wide"
         >
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Shortlisted
@@ -59,9 +59,8 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
       return (
         <Badge
           variant="secondary"
-          className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 text-[10px] font-semibold tracking-wide"
+          className="bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20 text-xs md:text-[10px] font-semibold tracking-wide"
         >
-          <Calendar className="h-3 w-3 mr-1" />
           Interviewing
         </Badge>
       );
@@ -70,7 +69,7 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
       return (
         <Badge
           variant="secondary"
-          className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20 text-[10px] font-semibold tracking-wide"
+          className="bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20 text-xs md:text-[10px] font-semibold tracking-wide"
         >
 
           Hired
@@ -81,7 +80,7 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
       return (
         <Badge
           variant="secondary"
-          className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-[10px] font-semibold tracking-wide"
+          className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 text-xs md:text-[10px] font-semibold tracking-wide"
         >
           <Clock className="h-3 w-3 mr-1" />
           Under Review
@@ -91,7 +90,7 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
     return (
       <Badge
         variant="secondary"
-        className="bg-primary/10 text-primary border-primary/20 text-[10px] font-semibold tracking-wide"
+        className="bg-primary/10 text-primary border-primary/20 text-xs md:text-[10px] font-semibold tracking-wide"
       >
         New Application
       </Badge>
@@ -118,7 +117,7 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
               variant="ghost"
               size="sm"
               onClick={handleNavigateAll}
-              className="text-xs font-semibold text-primary hover:text-primary/90 h-8 px-2.5 flex items-center gap-1 group"
+              className="text-sm md:text-xs font-semibold text-primary hover:text-primary/90 h-8 max-md:min-h-10 px-2.5 flex items-center gap-1 group"
             >
               Review Candidates
               <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -127,29 +126,29 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
 
           <CardContent className="p-0">
             {applicants.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground text-xs">
+              <div className="py-10 text-center text-muted-foreground text-sm md:text-xs">
                 No recent candidate applications.
               </div>
             ) : (
               <div className="divide-y divide-border/60">
-                <div className="grid grid-cols-12 px-5 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider bg-muted/40">
-                  <span className="col-span-5">Candidate</span>
-                  <span className="col-span-4">Applied For</span>
-                  <span className="col-span-3 text-right">Status</span>
+                <div className="grid grid-cols-12 max-md:hidden px-5 max-md:px-4 py-2.5 text-xs md:text-[11px] font-semibold text-muted-foreground uppercase tracking-wider max-md:tracking-normal bg-muted/40">
+                  <span className="col-span-5 min-w-0 truncate">Candidate</span>
+                  <span className="col-span-4 min-w-0 truncate">Applied For</span>
+                  <span className="col-span-3 text-right min-w-0 truncate">Status</span>
                 </div>
 
                 {applicants.map((candidate) => (
                   <div
                     key={candidate.id}
                     onClick={() => handleNavigateApplicant(candidate.id)}
-                    className="grid grid-cols-12 items-center px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group text-xs"
+                    className="grid grid-cols-12 items-center px-5 py-3.5 hover:bg-muted/40 transition-colors cursor-pointer group text-sm md:text-xs max-md:flex max-md:flex-col max-md:items-start max-md:gap-1 max-md:py-3"
                   >
-                    <div className="col-span-5 flex items-center gap-3 pr-2 min-w-0">
+                    <div className="col-span-5 flex items-center gap-3 pr-2 min-w-0 max-md:w-full max-md:pr-0">
                       <Avatar className="h-8 w-8 border border-border/80 shrink-0">
                         {candidate.avatarUrl && (
                           <AvatarImage src={candidate.avatarUrl} alt={candidate.name} />
                         )}
-                        <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-bold">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs md:text-[11px] font-bold">
                           {getInitials(candidate.name)}
                         </AvatarFallback>
                       </Avatar>
@@ -157,20 +156,20 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
                         <p className="font-semibold text-foreground group-hover:text-primary transition-colors truncate">
                           {candidate.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="text-xs md:text-[11px] text-muted-foreground truncate">
                           {candidate.experience || candidate.email}
                         </p>
                       </div>
                     </div>
 
-                    <div className="col-span-4 pr-2 min-w-0">
+                    <div className="col-span-4 pr-2 min-w-0 max-md:w-full max-md:pr-0 max-md:pl-11">
                       <p className="font-medium text-foreground truncate">{candidate.jobTitle}</p>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs md:text-[10px] text-muted-foreground">
                         {formatAppliedTime(candidate.appliedDate)}
                       </span>
                     </div>
 
-                    <div className="col-span-3 text-right">
+                    <div className="col-span-3 text-right max-md:w-full max-md:text-left max-md:pl-11">
                       {renderStatusBadge(candidate.status)}
                     </div>
                   </div>
@@ -181,12 +180,12 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
         </div>
 
         <div className="p-4 bg-muted/20 border-t border-border/60 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Activity across active postings</span>
+          <span className="text-sm md:text-xs text-muted-foreground">Activity across active postings</span>
           <Button
             variant="outline"
             size="sm"
             onClick={handleNavigateAll}
-            className="text-xs font-semibold h-8 rounded-lg"
+            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
           >
             Review Candidates
           </Button>

@@ -152,31 +152,31 @@ export default function CompanyBasicInfo({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Display Name</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Display Name</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_name || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Legal Company Name</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Legal Company Name</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_legal_name || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Email</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Email</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_email || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Contact</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Contact</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_contact || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Registration Number</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Registration Number</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.registration_no || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">TIN</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">TIN</span>
               <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_tin || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Website</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Website</span>
               {data.company_website ? (
                 <a href={formatWebsiteUrl(data.company_website)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline block truncate max-w-xs">
                   {data.company_website}
@@ -186,40 +186,40 @@ export default function CompanyBasicInfo({
               )}
             </div>
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Social Media Links</span>
+              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Social Media Links</span>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
                 {data.company_facebook && (
-                  <a href={formatWebsiteUrl(data.company_facebook)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate">
+                  <a href={formatWebsiteUrl(data.company_facebook)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
                     <Facebook className="h-3.5 w-3.5 text-blue-600 shrink-0" />
                     <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_facebook)}</span>
                   </a>
                 )}
                 {data.company_linkedin && (
-                  <a href={formatWebsiteUrl(data.company_linkedin)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate">
+                  <a href={formatWebsiteUrl(data.company_linkedin)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
                     <Linkedin className="h-3.5 w-3.5 text-blue-700 shrink-0" />
                     <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_linkedin)}</span>
                   </a>
                 )}
                 {data.company_instagram && (
-                  <a href={formatWebsiteUrl(data.company_instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate">
+                  <a href={formatWebsiteUrl(data.company_instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
                     <Instagram className="h-3.5 w-3.5 text-pink-600 shrink-0" />
                     <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_instagram)}</span>
                   </a>
                 )}
                 {data.company_youtube && (
-                  <a href={formatWebsiteUrl(data.company_youtube)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate">
+                  <a href={formatWebsiteUrl(data.company_youtube)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
                     <Youtube className="h-3.5 w-3.5 text-red-600 shrink-0" />
                     <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_youtube)}</span>
                   </a>
                 )}
                 {data.company_x && (
-                  <a href={formatWebsiteUrl(data.company_x)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate">
+                  <a href={formatWebsiteUrl(data.company_x)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
                     <span className="h-3.5 w-3.5 flex items-center justify-center font-bold text-zinc-900 dark:text-zinc-100 text-xs shrink-0 select-none">𝕏</span>
                     <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_x)}</span>
                   </a>
                 )}
                 {!data.company_facebook && !data.company_linkedin && !data.company_instagram && !data.company_youtube && !data.company_x && (
-                  <p className="text-xs text-zinc-400 col-span-2">—</p>
+                  <p className="text-sm md:text-xs text-zinc-400 col-span-2">—</p>
                 )}
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function CompanyBasicInfo({
         </div>
 
         <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Description</span>
+          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Description</span>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_description || "No description provided."}</p>
         </div>
 
@@ -235,14 +235,14 @@ export default function CompanyBasicInfo({
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-4">
             {data.company_mission && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Mission</span>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_mission}</p>
+                <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Mission</span>
+                <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_mission}</p>
               </div>
             )}
             {data.company_vision && (
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Vision</span>
-                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_vision}</p>
+                <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Vision</span>
+                <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_vision}</p>
               </div>
             )}
           </div>
@@ -250,15 +250,15 @@ export default function CompanyBasicInfo({
 
         {data.company_culture && (
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Culture</span>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_culture}</p>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Culture</span>
+            <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_culture}</p>
           </div>
         )}
 
         {data.company_benefits && (
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Perks & Benefits</span>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_benefits}</p>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Perks & Benefits</span>
+            <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_benefits}</p>
           </div>
         )}
       </div>
@@ -294,7 +294,7 @@ export default function CompanyBasicInfo({
             )}
             
             {/* Hover overlay for cover */}
-            <div className="absolute inset-0 bg-white/40 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-white/40 dark:bg-black/40 opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex items-center justify-center">
               <div className="bg-white/95 dark:bg-zinc-900/95 text-zinc-800 dark:text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-md flex items-center gap-1.5">
                 {uploadingCover ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                 Change Cover Photo
@@ -326,7 +326,7 @@ export default function CompanyBasicInfo({
             )}
 
             {/* Hover overlay for logo */}
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 max-md:opacity-100 transition-opacity flex items-center justify-center">
               {uploadingLogo ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
               ) : (
@@ -346,7 +346,7 @@ export default function CompanyBasicInfo({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="cp-company-name" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-name" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Company Display Name <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -354,12 +354,12 @@ export default function CompanyBasicInfo({
               value={data.company_name ?? ""}
               onChange={(e) => onChange("company_name", e.target.value)}
               placeholder="e.g. Vertex Technologies"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cp-company-legal-name" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-legal-name" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Legal Company Name <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -367,12 +367,12 @@ export default function CompanyBasicInfo({
               value={data.company_legal_name ?? ""}
               onChange={(e) => onChange("company_legal_name", e.target.value)}
               placeholder="e.g. Vertex Technologies Corporation"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cp-company-email" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-email" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Company Email <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -381,12 +381,12 @@ export default function CompanyBasicInfo({
               value={data.company_email ?? ""}
               onChange={(e) => onChange("company_email", e.target.value)}
               placeholder="hr@company.com"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cp-company-contact" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-contact" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Company Contact <span className="text-rose-500">*</span>
             </Label>
             <Input
@@ -394,12 +394,12 @@ export default function CompanyBasicInfo({
               value={data.company_contact ?? ""}
               onChange={(e) => onChange("company_contact", e.target.value)}
               placeholder="09XX-XXX-XXXX"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cp-registration-number" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-registration-number" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Registration Number
             </Label>
             <Input
@@ -407,12 +407,12 @@ export default function CompanyBasicInfo({
               value={data.registration_no ?? ""}
               onChange={(e) => onChange("registration_no", e.target.value)}
               placeholder="e.g. SEC-123456"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="cp-tin" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-tin" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               TIN
             </Label>
             <Input
@@ -420,12 +420,12 @@ export default function CompanyBasicInfo({
               value={data.company_tin ?? ""}
               onChange={(e) => onChange("company_tin", e.target.value)}
               placeholder="e.g. 000-123-456-000"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
           <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="cp-company-website" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-website" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Company Website
             </Label>
             <Input
@@ -433,7 +433,7 @@ export default function CompanyBasicInfo({
               value={data.company_website ?? ""}
               onChange={(e) => onChange("company_website", e.target.value)}
               placeholder="https://company.com"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
 
@@ -445,7 +445,7 @@ export default function CompanyBasicInfo({
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between h-7">
-          <Label htmlFor="cp-company-description" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <Label htmlFor="cp-company-description" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Company Description <span className="text-rose-500">*</span>
           </Label>
           <InlineAITrigger
@@ -461,7 +461,7 @@ export default function CompanyBasicInfo({
           onChange={(e) => onChange("company_description", e.target.value)}
           rows={4}
           placeholder="Tell job seekers about your company, core focus, and value proposition..."
-          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+          className="md:text-xs md:text-sm max-md:text-base leading-relaxed rounded-xl resize-none"
         />
       </div>
 
@@ -469,7 +469,7 @@ export default function CompanyBasicInfo({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center justify-between h-7">
-            <Label htmlFor="cp-company-mission" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-mission" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Mission Statement
             </Label>
             <InlineAITrigger
@@ -485,13 +485,13 @@ export default function CompanyBasicInfo({
             onChange={(e) => onChange("company_mission", e.target.value)}
             rows={4}
             placeholder="e.g. To empower businesses worldwide through transformative intelligent software..."
-            className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+            className="md:text-xs md:text-sm max-md:text-base leading-relaxed rounded-xl resize-none"
           />
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between h-7">
-            <Label htmlFor="cp-company-vision" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-company-vision" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Vision Statement
             </Label>
             <InlineAITrigger
@@ -507,7 +507,7 @@ export default function CompanyBasicInfo({
             onChange={(e) => onChange("company_vision", e.target.value)}
             rows={4}
             placeholder="e.g. To be the premier talent and technology innovation partner in Southeast Asia..."
-            className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+            className="md:text-xs md:text-sm max-md:text-base leading-relaxed rounded-xl resize-none"
           />
         </div>
       </div>
@@ -515,7 +515,7 @@ export default function CompanyBasicInfo({
       {/* Culture & Values */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between h-7">
-          <Label htmlFor="cp-company-culture" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <Label htmlFor="cp-company-culture" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Company Culture & Environment
           </Label>
           <InlineAITrigger
@@ -531,14 +531,14 @@ export default function CompanyBasicInfo({
           onChange={(e) => onChange("company_culture", e.target.value)}
           rows={4}
           placeholder="Describe your work atmosphere, collaboration values, and professional growth environment..."
-          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+          className="md:text-xs md:text-sm max-md:text-base leading-relaxed rounded-xl resize-none"
         />
       </div>
 
       {/* Perks & Benefits */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between h-7">
-          <Label htmlFor="cp-company-benefits" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          <Label htmlFor="cp-company-benefits" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Perks & Benefits
           </Label>
           <InlineAITrigger
@@ -554,7 +554,7 @@ export default function CompanyBasicInfo({
           onChange={(e) => onChange("company_benefits", e.target.value)}
           rows={4}
           placeholder="List verified company benefits (HMO, remote allowances, learning budgets, performance bonuses)..."
-          className="text-xs md:text-sm leading-relaxed rounded-xl resize-none"
+          className="md:text-xs md:text-sm max-md:text-base leading-relaxed rounded-xl resize-none"
         />
       </div>
 
@@ -563,53 +563,53 @@ export default function CompanyBasicInfo({
         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Social Media Links</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="cp-facebook" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Facebook URL</Label>
+            <Label htmlFor="cp-facebook" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">Facebook URL</Label>
             <Input
               id="cp-facebook"
               value={data.company_facebook ?? ""}
               onChange={(e) => onChange("company_facebook", e.target.value)}
               placeholder="https://facebook.com/username"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cp-linkedin" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">LinkedIn URL</Label>
+            <Label htmlFor="cp-linkedin" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">LinkedIn URL</Label>
             <Input
               id="cp-linkedin"
               value={data.company_linkedin ?? ""}
               onChange={(e) => onChange("company_linkedin", e.target.value)}
               placeholder="https://linkedin.com/company/username"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cp-instagram" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Instagram URL</Label>
+            <Label htmlFor="cp-instagram" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">Instagram URL</Label>
             <Input
               id="cp-instagram"
               value={data.company_instagram ?? ""}
               onChange={(e) => onChange("company_instagram", e.target.value)}
               placeholder="https://instagram.com/username"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cp-youtube" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">YouTube URL</Label>
+            <Label htmlFor="cp-youtube" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">YouTube URL</Label>
             <Input
               id="cp-youtube"
               value={data.company_youtube ?? ""}
               onChange={(e) => onChange("company_youtube", e.target.value)}
               placeholder="https://youtube.com/channel/username"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
           <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="cp-x" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">𝕏 (Twitter) URL</Label>
+            <Label htmlFor="cp-x" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">𝕏 (Twitter) URL</Label>
             <Input
               id="cp-x"
               value={data.company_x ?? ""}
               onChange={(e) => onChange("company_x", e.target.value)}
               placeholder="https://x.com/username"
-              className="h-9 text-sm"
+              className="h-9 md:text-sm max-md:h-10 max-md:text-base"
             />
           </div>
         </div>

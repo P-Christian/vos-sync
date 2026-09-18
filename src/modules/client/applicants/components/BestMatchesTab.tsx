@@ -138,7 +138,7 @@ export default function BestMatchesTab({
         <h3 className="font-bold text-zinc-800 dark:text-zinc-100 text-base mb-1">
           {progressStep}
         </h3>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 text-center">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 text-center md:text-xs">
           Evaluating applicant qualifications and generating recruiter recommendations.
         </p>
 
@@ -150,7 +150,7 @@ export default function BestMatchesTab({
           />
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] font-semibold text-zinc-400">
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-400 md:text-[11px]">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           <span>Please wait a moment...</span>
         </div>
@@ -162,7 +162,7 @@ export default function BestMatchesTab({
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center bg-white/40 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200/80 dark:border-zinc-800">
         <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 text-sm">No match data available</h3>
-        <p className="text-xs text-zinc-400 mt-1 max-w-xs">
+        <p className="text-sm text-zinc-400 mt-1 max-w-xs md:text-xs">
           Matches will be calculated as soon as candidates apply to this job.
         </p>
       </div>
@@ -197,7 +197,7 @@ export default function BestMatchesTab({
       {/* ── Left Column: Candidate List (Grid Span 7) ────── */}
       <div className="lg:col-span-7 space-y-3">
         <div className="p-2.5 bg-muted/40 dark:bg-zinc-900/40 border border-border/80 rounded-xl flex items-center justify-between px-3.5">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider md:text-[11px]">
             Best Match Recommendations
           </span>
           <span className="text-xs text-muted-foreground font-semibold">
@@ -271,12 +271,12 @@ export default function BestMatchesTab({
                       </div>
 
                       {/* AI Recruiter Summary Line */}
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-snug md:text-xs">
                         {cMatch.explanation}
                       </p>
 
                       {/* Candidate Meta Info */}
-                      <div className="flex flex-wrap items-center gap-x-3 mt-2 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 mt-2 text-sm text-muted-foreground md:text-xs">
                         <span className="flex items-center gap-1 font-medium">
                           <Briefcase className="h-3.5 w-3.5 text-muted-foreground/70" />
                           {applicantObj.experience_years} years experience
@@ -325,7 +325,7 @@ export default function BestMatchesTab({
 
             <CardHeader className="pb-3 border-b border-border/50 shrink-0">
               <div className="flex items-center justify-between gap-2 mb-3">
-                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-border">
+                <Badge variant="outline" className="text-xs font-bold uppercase tracking-wider border-border md:text-[10px]">
                   {selectedMatch.finalScore >= 85
                     ? "Highly Recommended"
                     : selectedMatch.finalScore >= 70
@@ -362,19 +362,19 @@ export default function BestMatchesTab({
                   <CardTitle className="text-base font-bold text-foreground truncate">
                     {selectedApplicant.applicant_name}
                   </CardTitle>
-                  <p className="text-xs text-muted-foreground truncate">{selectedApplicant.applicant_email}</p>
+                  <p className="text-sm text-muted-foreground truncate md:text-xs">{selectedApplicant.applicant_email}</p>
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent className="flex-1 flex flex-col justify-between pt-4 text-xs space-y-4">
+            <CardContent className="flex-1 flex flex-col justify-between pt-4 text-sm space-y-4 md:text-xs">
               <div className="space-y-4">
                 {/* Recruiter Recommendation Summary */}
                 <div className="p-3.5 bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/30 rounded-xl space-y-1">
-                  <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider md:text-[10px]">
                     Recruiter AI Evaluation
                   </span>
-                  <p className="text-xs text-foreground/90 leading-relaxed font-medium">
+                  <p className="text-sm text-foreground/90 leading-relaxed font-medium md:text-xs">
                     {selectedMatch.explanation}
                   </p>
                 </div>
@@ -382,14 +382,14 @@ export default function BestMatchesTab({
                 {/* Strengths */}
                 {selectedMatch.strengths && selectedMatch.strengths.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block md:text-[10px]">
                       Key Strengths
                     </span>
                     <div className="space-y-1.5">
                       {selectedMatch.strengths.map((str, idx) => (
                         <div key={idx} className="flex items-start gap-2 text-foreground/90">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                          <span className="text-xs leading-snug">{str}</span>
+                          <span className="text-sm leading-snug md:text-xs">{str}</span>
                         </div>
                       ))}
                     </div>
@@ -399,14 +399,14 @@ export default function BestMatchesTab({
                 {/* Weaknesses / Gaps */}
                 {selectedMatch.weaknesses && selectedMatch.weaknesses.length > 0 && (
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider block md:text-[10px]">
                       Development Areas / Gaps
                     </span>
                     <div className="space-y-1.5">
                       {selectedMatch.weaknesses.map((weak, idx) => (
                         <div key={idx} className="flex items-start gap-2 text-foreground/90">
                           <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                          <span className="text-xs leading-snug">{weak}</span>
+                          <span className="text-sm leading-snug md:text-xs">{weak}</span>
                         </div>
                       ))}
                     </div>
@@ -416,7 +416,7 @@ export default function BestMatchesTab({
                 {/* Skill Breakdown details if available */}
                 {selectedRuleMatch && (selectedRuleMatch.matchingSkills.length > 0 || selectedRuleMatch.missingSkills.length > 0) && (
                   <div className="space-y-2 pt-2 border-t border-border/50">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block md:text-[10px]">
                       Technical Skills Match ({selectedRuleMatch.matchingSkills.length})
                     </span>
                     <div className="flex flex-wrap gap-1.5">
@@ -424,7 +424,7 @@ export default function BestMatchesTab({
                         <Badge
                           key={skill}
                           variant="secondary"
-                          className="bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[10px] py-0.5 px-2 rounded-md"
+                          className="bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs py-0.5 px-2 rounded-md md:text-[10px]"
                         >
                           ✓ {skill}
                         </Badge>
@@ -433,7 +433,7 @@ export default function BestMatchesTab({
                         <Badge
                           key={skill}
                           variant="outline"
-                          className="bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 text-[10px] py-0.5 px-2 rounded-md"
+                          className="bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs py-0.5 px-2 rounded-md md:text-[10px]"
                         >
                           • {skill}
                         </Badge>
@@ -449,7 +449,7 @@ export default function BestMatchesTab({
                   onClick={() => onViewDetails(selectedApplicant)}
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-9 rounded-lg font-semibold text-xs gap-1.5"
+                  className="flex-1 h-9 max-md:min-h-10 rounded-lg font-semibold text-sm gap-1.5 md:text-xs"
                 >
                   <Eye className="h-4 w-4" />
                   View Profile
@@ -460,7 +460,7 @@ export default function BestMatchesTab({
                     <Button
                       onClick={() => onScheduleInterview(selectedApplicant)}
                       size="sm"
-                      className="flex-1 h-9 rounded-lg gap-1.5 font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="flex-1 h-9 max-md:min-h-10 rounded-lg gap-1.5 font-semibold text-sm bg-emerald-600 hover:bg-emerald-700 text-white md:text-xs"
                     >
                       <CalendarPlus className="h-4 w-4" />
                       Schedule Interview

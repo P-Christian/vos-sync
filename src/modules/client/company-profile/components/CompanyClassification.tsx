@@ -132,24 +132,24 @@ export default function CompanyClassification({
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Industry</span>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Industry</span>
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedIndustryName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Organization Type</span>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Organization Type</span>
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedOrgTypeName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Size</span>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Size</span>
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedSizeName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Year Established</span>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Year Established</span>
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.year_established || "—"}</p>
           </div>
 
           <div className="space-y-1">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Tags</span>
+            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Tags</span>
             <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_tags || "—"}</p>
           </div>
         </div>
@@ -165,7 +165,7 @@ export default function CompanyClassification({
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <Label htmlFor="cp-industry" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-industry" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>Industry <span className="text-rose-500">*</span></span>
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -177,12 +177,12 @@ export default function CompanyClassification({
             }}
             disabled={loading}
             placeholder="Select industry"
-            className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+            className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
           />
 
           {currentIsOthers && (
             <div className="pt-1.5 space-y-1">
-              <Label htmlFor="cp-custom-industry" className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+              <Label htmlFor="cp-custom-industry" className="text-xs md:text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                 Specify Industry Name <span className="text-rose-500">*</span>
               </Label>
               <Input
@@ -190,14 +190,14 @@ export default function CompanyClassification({
                 value={data.custom_industry_name ?? ""}
                 onChange={(e) => onChange("custom_industry_name", e.target.value)}
                 placeholder="Type your industry name..."
-                className="h-8 text-xs border-emerald-300 focus:border-emerald-500 rounded-lg"
+                className="h-8 md:text-xs max-md:min-h-10 max-md:text-base border-emerald-300 focus:border-emerald-500 rounded-lg"
               />
             </div>
           )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-business-type" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-business-type" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>Organization Type</span>
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -207,12 +207,12 @@ export default function CompanyClassification({
             onValueChange={(v) => onChange("organization_type_id", Number(v))}
             disabled={loading}
             placeholder="Select type"
-            className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+            className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="cp-company-size" className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
+          <Label htmlFor="cp-company-size" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
             <span>Company Size</span>
             {loading && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
           </Label>
@@ -222,13 +222,13 @@ export default function CompanyClassification({
             onValueChange={(v) => onChange("company_size_id", Number(v))}
             disabled={loading}
             placeholder="Select size"
-            className="h-9 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
+            className="h-9 max-md:min-h-10 border-zinc-200 font-normal focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between h-7">
-            <Label htmlFor="cp-year-established" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-year-established" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Year Established
             </Label>
           </div>
@@ -238,13 +238,13 @@ export default function CompanyClassification({
             value={data.year_established ?? ""}
             onChange={(e) => onChange("year_established", e.target.value ? Number(e.target.value) : "")}
             placeholder="e.g. 2026"
-            className="h-9 text-sm"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base"
           />
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
           <div className="flex items-center justify-between h-7">
-            <Label htmlFor="cp-tags" className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <Label htmlFor="cp-tags" className="text-sm md:text-xs font-medium text-zinc-600 dark:text-zinc-400">
               Tags
             </Label>
             <InlineAITrigger
@@ -259,7 +259,7 @@ export default function CompanyClassification({
             value={data.company_tags ?? ""}
             onChange={(e) => onChange("company_tags", e.target.value)}
             placeholder="e.g. Software Development, Cloud Computing, Artificial Intelligence, SaaS"
-            className="h-9 text-sm"
+            className="h-9 md:text-sm max-md:h-10 max-md:text-base"
           />
         </div>
       </div>
