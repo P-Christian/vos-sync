@@ -269,21 +269,21 @@ export default function JobDetailPage({ jobId }: Props) {
             {/* Quick stats grid (Hourly / Fixed info like Upwork) */}
             <div className="grid grid-cols-3 gap-4 py-2">
               <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-sm md:text-xs text-muted-foreground">
                   <DollarSign className="h-4 w-4 shrink-0 text-zinc-500" />
                   <span>Salary Type</span>
                 </div>
                 <p className="text-sm font-semibold text-foreground">{job.salary_type}</p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-sm md:text-xs text-muted-foreground">
                   <Briefcase className="h-4 w-4 shrink-0 text-zinc-500" />
                   <span>Job Type</span>
                 </div>
                 <p className="text-sm font-semibold text-foreground">{JOB_TYPE_LABELS[job.job_type] ?? job.job_type}</p>
               </div>
               <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-sm md:text-xs text-muted-foreground">
                   <Layers className="h-4 w-4 shrink-0 text-zinc-500" />
                   <span>Experience Level</span>
                 </div>
@@ -387,14 +387,14 @@ export default function JobDetailPage({ jobId }: Props) {
               id="job-page-apply-btn"
               onClick={() => setApplyModalOpen(true)}
               disabled={alreadyApplied}
-              className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-xs disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600"
+              className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-medium gap-2 border-0 shadow-xs disabled:bg-zinc-100 disabled:text-zinc-400 dark:disabled:bg-zinc-900 dark:disabled:text-zinc-600 max-md:min-h-11"
             >
               <Send className="h-4 w-4" />
               {alreadyApplied ? "Already Applied" : "Apply for Job"}
             </Button>
             <Button
               variant="outline"
-              className={`w-full h-10 rounded-xl font-medium gap-2 transition-colors ${
+              className={`w-full h-10 rounded-xl font-medium gap-2 transition-colors max-md:min-h-11 ${
                 isBookmarked 
                   ? "border-primary text-primary hover:bg-primary/5" 
                   : "text-foreground border-zinc-200 dark:border-zinc-800"
@@ -406,7 +406,7 @@ export default function JobDetailPage({ jobId }: Props) {
             </Button>
             <Button
               variant="outline"
-              className="w-full h-10 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800"
+              className="w-full h-10 rounded-xl font-medium gap-2 text-foreground border-zinc-200 dark:border-zinc-800 max-md:min-h-11"
               onClick={() => setReferModalOpen(true)}
             >
               <Share2 className="h-4 w-4" />
@@ -433,7 +433,7 @@ export default function JobDetailPage({ jobId }: Props) {
               {/* Location */}
               <div className="space-y-1">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Location</span>
-                <span className="text-xs font-semibold text-foreground">
+                <span className="text-sm md:text-xs font-semibold text-foreground">
                   {[job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") || job.job_location}
                 </span>
               </div>
@@ -442,7 +442,7 @@ export default function JobDetailPage({ jobId }: Props) {
               {job.company_email && (
                 <div className="space-y-1">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Company Email</span>
-                  <div className="flex items-center gap-1.5 text-xs text-foreground font-semibold truncate">
+                  <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-semibold truncate">
                     <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                     <span className="truncate" title={job.company_email}>{job.company_email}</span>
                   </div>
@@ -453,7 +453,7 @@ export default function JobDetailPage({ jobId }: Props) {
               {job.company_contact && (
                 <div className="space-y-1">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Company Contact</span>
-                  <div className="flex items-center gap-1.5 text-xs text-foreground font-semibold">
+                  <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-semibold">
                     <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                     <span>{job.company_contact}</span>
                   </div>
@@ -466,18 +466,18 @@ export default function JobDetailPage({ jobId }: Props) {
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Social Media</span>
                   <div className="flex flex-wrap gap-2">
                     {job.company_facebook && (
-                      <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400">
+                      <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                         <Facebook className="h-4 w-4" />
                       </a>
                     )}
 
                     {job.company_instagram && (
-                      <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400">
+                      <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                         <Instagram className="h-4 w-4" />
                       </a>
                     )}
                     {job.company_youtube && (
-                      <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400">
+                      <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/80 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-11 max-md:grid max-md:place-items-center">
                         <Youtube className="h-4 w-4" />
                       </a>
                     )}
@@ -489,7 +489,7 @@ export default function JobDetailPage({ jobId }: Props) {
 
               <div className="space-y-0.5">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">Job Post Status</span>
-                <span className="text-xs font-semibold text-foreground">Active ({job.number_of_openings} openings)</span>
+                <span className="text-sm md:text-xs font-semibold text-foreground">Active ({job.number_of_openings} openings)</span>
               </div>
             </div>
           </div>
@@ -502,13 +502,13 @@ export default function JobDetailPage({ jobId }: Props) {
                 type="text"
                 readOnly
                 value={typeof window !== "undefined" ? window.location.href : ""}
-                className="w-full h-9 bg-muted/60 border rounded-lg text-xs pl-3 pr-20 text-muted-foreground truncate focus:outline-none"
+                className="w-full h-9 bg-muted/60 border rounded-lg text-base md:text-xs pl-3 pr-20 text-muted-foreground truncate focus:outline-none"
               />
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleCopyLink}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 text-[10px] px-2 rounded-md font-semibold text-primary hover:bg-primary/10"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 text-[10px] px-2 rounded-md font-semibold text-primary hover:bg-primary/10 max-md:min-h-11"
               >
                 {copied ? "Copied" : "Copy Link"}
               </Button>

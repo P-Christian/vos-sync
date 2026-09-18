@@ -174,7 +174,7 @@ export default function GeneralSettings() {
             <div className="space-y-2">
               <Label htmlFor="lang-select">Language / Locale</Label>
               <Select value={locale} onValueChange={setLocale}>
-                <SelectTrigger id="lang-select">
+                <SelectTrigger id="lang-select" className="max-md:min-h-11">
                   <SelectValue placeholder="Select Language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,7 +190,7 @@ export default function GeneralSettings() {
             <div className="space-y-2">
               <Label htmlFor="tz-select">Timezone</Label>
               <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger id="tz-select">
+                <SelectTrigger id="tz-select" className="max-md:min-h-11">
                   <SelectValue placeholder="Select Timezone" />
                 </SelectTrigger>
                 <SelectContent>
@@ -206,7 +206,7 @@ export default function GeneralSettings() {
             <div className="space-y-2">
               <Label htmlFor="date-format-select">Date/Time Format</Label>
               <Select value={dateFormat} onValueChange={setDateFormat}>
-                <SelectTrigger id="date-format-select">
+                <SelectTrigger id="date-format-select" className="max-md:min-h-11">
                   <SelectValue placeholder="Select Date Format" />
                 </SelectTrigger>
                 <SelectContent>
@@ -245,16 +245,16 @@ export default function GeneralSettings() {
                 }}
                 className="justify-start"
               >
-                <ToggleGroupItem value="small">Small</ToggleGroupItem>
-                <ToggleGroupItem value="medium">Medium (Default)</ToggleGroupItem>
-                <ToggleGroupItem value="large">Large</ToggleGroupItem>
+                <ToggleGroupItem value="small" className="max-md:min-h-11">Small</ToggleGroupItem>
+                <ToggleGroupItem value="medium" className="max-md:min-h-11">Medium (Default)</ToggleGroupItem>
+                <ToggleGroupItem value="large" className="max-md:min-h-11">Large</ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-xl border bg-zinc-50/50 dark:bg-zinc-900/10">
               <div className="space-y-0.5">
                 <Label htmlFor="reduced-motion-switch" className="text-sm font-semibold">Reduced Motion</Label>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">Minimize animations and slide transitions.</p>
+                <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">Minimize animations and slide transitions.</p>
               </div>
               <Switch
                 id="reduced-motion-switch"
@@ -288,13 +288,13 @@ export default function GeneralSettings() {
               }}
               className="justify-start"
             >
-              <ToggleGroupItem value="light" className="gap-2">
+              <ToggleGroupItem value="light" className="gap-2 max-md:min-h-11">
                 <Sun className="h-4 w-4" /> Light
               </ToggleGroupItem>
-              <ToggleGroupItem value="dark" className="gap-2">
+              <ToggleGroupItem value="dark" className="gap-2 max-md:min-h-11">
                 <Moon className="h-4 w-4" /> Dark
               </ToggleGroupItem>
-              <ToggleGroupItem value="system" className="gap-2">
+              <ToggleGroupItem value="system" className="gap-2 max-md:min-h-11">
                 <Monitor className="h-4 w-4" /> System
               </ToggleGroupItem>
             </ToggleGroup>
@@ -316,7 +316,7 @@ export default function GeneralSettings() {
                     type="button"
                     onClick={() => updateThemeSettings({ accent: a.key })}
                     className={cn(
-                      "flex items-center justify-between rounded-lg border bg-card px-3 py-2 text-left text-sm transition",
+                      "flex items-center justify-between rounded-lg border bg-card px-3 py-2 text-left text-sm transition max-md:min-h-11",
                       "hover:bg-accent/60",
                       active && "ring-2 ring-ring"
                     )}
@@ -338,7 +338,7 @@ export default function GeneralSettings() {
           <div className="grid gap-3">
             <div className="flex items-center justify-between gap-4">
               <Label>Border Corner Radius</Label>
-              <span className="text-xs text-muted-foreground">{radiusPx}px</span>
+              <span className="text-sm md:text-xs text-muted-foreground">{radiusPx}px</span>
             </div>
             <Slider
               value={[themeSettings.radiusRem]}
@@ -365,15 +365,15 @@ export default function GeneralSettings() {
               }}
               className="justify-start"
             >
-              <ToggleGroupItem value="comfortable">Comfortable</ToggleGroupItem>
-              <ToggleGroupItem value="compact">Compact</ToggleGroupItem>
+              <ToggleGroupItem value="comfortable" className="max-md:min-h-11">Comfortable</ToggleGroupItem>
+              <ToggleGroupItem value="compact" className="max-md:min-h-11">Compact</ToggleGroupItem>
             </ToggleGroup>
           </div>
         </CardContent>
       </Card>
 
       {/* Action Footer */}
-      <div className="flex items-center justify-between pt-4 border-t">
+      <div className="flex items-center justify-between pt-4 border-t max-md:flex-wrap max-md:gap-2">
         <Button
           variant="outline"
           onClick={() => {
@@ -385,7 +385,7 @@ export default function GeneralSettings() {
             setReducedMotion(false);
           }}
           disabled={saving}
-          className="rounded-xl"
+          className="rounded-xl max-md:min-h-11"
         >
           <RefreshCw className="h-4 w-4 mr-2" /> Reset all defaults
         </Button>
@@ -393,7 +393,7 @@ export default function GeneralSettings() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="rounded-xl px-6 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-sm"
+          className="rounded-xl px-6 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold shadow-sm max-md:min-h-11"
         >
           {saving ? (
             <>

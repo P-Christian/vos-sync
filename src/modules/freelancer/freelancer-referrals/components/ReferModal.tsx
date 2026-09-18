@@ -76,7 +76,7 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
 
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-md:max-h-[90dvh] max-md:overflow-y-auto max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
         <DialogHeader>
           <DialogTitle>Refer {jobTitle || "Job Opportunity"}</DialogTitle>
           <DialogDescription>
@@ -97,9 +97,9 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
                   id="link"
                   value={referralLink}
                   readOnly
-                  className="bg-muted/50 text-xs truncate"
+                  className="bg-muted/50 text-sm md:text-xs truncate max-md:h-11"
                 />
-                <Button onClick={handleCopy} size="icon" className="shrink-0">
+                <Button onClick={handleCopy} size="icon" className="shrink-0 max-md:size-11">
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
@@ -115,7 +115,7 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
                 placeholder="friend@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 max-md:h-11"
               />
               <p className="text-[11px] text-muted-foreground">
                 Leave empty to just generate a secure invite link to copy.
@@ -123,10 +123,10 @@ export default function ReferModal({ jobId, jobTitle, open, onClose }: ReferModa
             </div>
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="max-md:min-h-11">
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="max-md:min-h-11">
                 {loading ? "Generating..." : email ? "Send Email Invite" : "Generate Link"}
               </Button>
             </DialogFooter>

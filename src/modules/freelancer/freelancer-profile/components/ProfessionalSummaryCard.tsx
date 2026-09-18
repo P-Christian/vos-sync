@@ -37,7 +37,7 @@ export function ProfessionalSummaryCard() {
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary relative"
+                    className="h-8 w-8 rounded-full text-primary hover:bg-primary/10 hover:text-primary relative max-md:size-11"
                     onClick={() => setIsModalOpen(true)}
                     disabled={isAutofilling}
                 >

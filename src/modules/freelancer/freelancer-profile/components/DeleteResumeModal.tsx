@@ -17,7 +17,7 @@ export function DeleteResumeModal({ isOpen, onClose, onConfirm, fileName }: Dele
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-sm p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-sm p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
                 <DialogHeader className="p-6 border-b shrink-0 bg-destructive/5">
                     <DialogTitle className="text-xl font-semibold text-destructive flex items-center gap-2">
                         <Trash2 className="h-5 w-5" />
@@ -35,12 +35,13 @@ export function DeleteResumeModal({ isOpen, onClose, onConfirm, fileName }: Dele
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 shrink-0 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         variant="destructive"
                         onClick={onConfirm}
+                        className="max-md:min-h-11"
                     >
                         Delete Document
                     </Button>

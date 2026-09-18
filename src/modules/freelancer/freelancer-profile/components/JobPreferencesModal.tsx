@@ -141,7 +141,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
             <div className="w-full max-w-2xl bg-background rounded-xl shadow-lg flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between p-6 border-b">
                     <h2 className="text-xl font-semibold text-foreground">Edit Job Preferences</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="max-md:size-11">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
@@ -154,7 +154,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                 value={preferences.job_type || ""} 
                                 onValueChange={(val) => handleChange("job_type", val)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="max-md:min-h-11">
                                     <SelectValue placeholder="Select job type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -173,7 +173,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                 value={preferences.work_setup || ""} 
                                 onValueChange={(val) => handleChange("work_setup", val)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="max-md:min-h-11">
                                     <SelectValue placeholder="Select work setup" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -187,16 +187,16 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                         <div className="space-y-4">
                             <label className="text-sm font-medium">Preferred Location</label>
                             {locationError && (
-                                <div className="p-2 bg-destructive/10 text-destructive rounded-md text-xs">
+                                <div className="p-2 bg-destructive/10 text-destructive rounded-md text-sm md:text-xs">
                                     {locationError}
                                 </div>
                             )}
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
                                 <Select 
                                     value={selectedProvinceCode} 
                                     onValueChange={handleProvinceChange}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="max-md:min-h-11">
                                         <SelectValue placeholder="Select Province" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -211,7 +211,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                     onValueChange={handleCityChange}
                                     disabled={!selectedProvinceCode || cities.length === 0}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="max-md:min-h-11">
                                         <SelectValue placeholder="Select City/Municipality" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -264,7 +264,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                 value={preferences.currency || "PHP"} 
                                 onValueChange={(val) => handleChange("currency", val)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="max-md:min-h-11">
                                     <SelectValue placeholder="Select currency" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -285,7 +285,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                 value={preferences.availability || ""} 
                                 onValueChange={(val) => handleChange("availability", val)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="max-md:min-h-11">
                                     <SelectValue placeholder="Select availability" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -301,10 +301,10 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 bg-muted/20">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} className="max-md:min-h-11">
                         Cancel
                     </Button>
-                    <Button onClick={handleSave}>
+                    <Button onClick={handleSave} className="max-md:min-h-11">
                         Save Draft
                     </Button>
                 </div>

@@ -154,7 +154,7 @@ export function DashboardSidebar({
                                         asChild 
                                         isActive={isActive}
                                         className={cn(
-                                            "h-10 text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                                            "h-10 max-md:h-11 text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                                             isActive && "bg-sidebar-primary/10 text-sidebar-primary font-medium hover:bg-sidebar-primary/15 hover:text-sidebar-primary"
                                         )}
                                     >

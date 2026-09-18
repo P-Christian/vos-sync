@@ -108,7 +108,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
             <div className="w-full max-w-2xl bg-background rounded-xl shadow-lg flex flex-col max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between p-6 border-b shrink-0">
                     <h2 className="text-xl font-semibold text-foreground">Manage Core Skills</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose} disabled={isSaving}>
+                    <Button variant="ghost" size="icon" onClick={onClose} disabled={isSaving} className="max-md:size-11">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
@@ -129,7 +129,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 rounded-md border border-input bg-transparent text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="w-full pl-9 pr-4 py-2 rounded-md border border-input bg-transparent text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="Type at least 2 characters to search..."
                                 disabled={isSaving}
                             />
@@ -150,7 +150,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
                                     >
                                         <span>{skill.skill_name}</span>
                                         {selectedSkills.some(s => s.id === skill.id) && (
-                                            <span className="text-xs text-muted-foreground">Added</span>
+                                            <span className="text-sm md:text-xs text-muted-foreground">Added</span>
                                         )}
                                     </button>
                                 ))}
@@ -178,7 +178,7 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-6 w-6 rounded-full hover:bg-primary/20 text-primary hover:text-primary shrink-0 ml-1"
+                                            className="h-6 w-6 rounded-full hover:bg-primary/20 text-primary hover:text-primary shrink-0 ml-1 max-md:h-auto max-md:w-auto max-md:p-3.5 max-md:-m-2.5"
                                             onClick={() => handleRemoveSkill(skill.id)}
                                             disabled={isSaving}
                                         >
@@ -192,13 +192,13 @@ export function CoreSkillsModal({ isOpen, onClose, userId, initialSkills }: Core
                 </div>
 
                 <div className="p-6 border-t flex justify-end gap-3 bg-muted/20">
-                    <Button variant="outline" onClick={onClose} disabled={isSaving}>
+                    <Button variant="outline" onClick={onClose} disabled={isSaving} className="max-md:min-h-11">
                         Cancel
                     </Button>
                     <Button 
                         onClick={handleSave} 
                         disabled={isSaving}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 max-md:min-h-11"
                     >
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save Changes

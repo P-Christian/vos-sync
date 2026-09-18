@@ -146,7 +146,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
     return (
         <>
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background">
+            <DialogContent className="max-w-xl max-h-[85vh] flex flex-col p-0 overflow-hidden bg-background max-md:max-w-[calc(100vw-2rem)]">
                 <DialogHeader className="p-6 border-b shrink-0 flex flex-row items-center justify-between">
                     <DialogTitle className="text-xl font-semibold text-foreground">
                         {certificationToEdit ? "Edit Certification" : "Add Certification"}
@@ -164,7 +164,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 setCertificateName(e.target.value);
                                 if (errors.certificateName) setErrors(prev => ({ ...prev, certificateName: "" }));
                             }}
-                            className={`flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
+                            className={`flex h-11 md:h-10 w-full rounded-md border bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
                                 errors.certificateName ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. AWS Certified Solutions Architect"
@@ -180,7 +180,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 setIssuingOrganization(e.target.value);
                                 if (errors.issuingOrganization) setErrors(prev => ({ ...prev, issuingOrganization: "" }));
                             }}
-                            className={`flex h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
+                            className={`flex h-11 md:h-10 w-full rounded-md border bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
                                 errors.issuingOrganization ? "border-destructive focus-visible:ring-destructive" : "border-input"
                             }`}
                             placeholder="e.g. Amazon Web Services"
@@ -194,7 +194,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                 type="date"
                                 value={issueDate}
                                 onChange={(e) => setIssueDate(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             />
                         </div>
                     </div>
@@ -205,14 +205,14 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             type="url"
                             value={credentialUrl}
                             onChange={(e) => setCredentialUrl(e.target.value)}
-                            className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="e.g. https://www.credly.com/badges/..."
                         />
                     </div>
 
                     <div className="space-y-2 pt-2">
                         <label className="text-sm font-medium text-foreground">Certificate Image</label>
-                        <p className="text-xs text-muted-foreground mb-2">Upload an image of your certificate (optional).</p>
+                        <p className="text-sm md:text-xs text-muted-foreground mb-2">Upload an image of your certificate (optional).</p>
                         
                         <input 
                             type="file" 
@@ -246,7 +246,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                                         type="button"
                                         variant="destructive"
                                         size="icon"
-                                        className="h-8 w-8 rounded-full shadow-md"
+                                        className="h-8 w-8 rounded-full shadow-md max-md:size-11"
                                         onClick={() => setImageUuid("")}
                                     >
                                         <X className="h-4 w-4" />
@@ -263,7 +263,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                         <Button 
                             type="button" 
                             variant="destructive" 
-                            className="mr-auto"
+                            className="mr-auto max-md:min-h-11"
                             onClick={handleDeleteClick}
                         >
                             Delete
@@ -275,12 +275,13 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                             type="button" 
                             variant="outline" 
                             onClick={onClose}
+                            className="max-md:min-h-11"
                         >
                             Cancel
                         </Button>
                         <Button 
                             type="button"
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                            className="bg-blue-600 hover:bg-blue-700 text-white max-md:min-h-11"
                             onClick={handleSave}
                             disabled={isUploading}
                         >
@@ -299,10 +300,10 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel className="max-md:min-h-11">Cancel</AlertDialogCancel>
                     <AlertDialogAction 
                         onClick={confirmDelete}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 max-md:min-h-11"
                     >
                         Delete
                     </AlertDialogAction>

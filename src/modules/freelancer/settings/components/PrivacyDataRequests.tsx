@@ -223,7 +223,7 @@ export default function PrivacyDataRequests() {
     <div className="space-y-6">
       {/* 1. Data Portability & Export */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between max-md:flex-col max-md:items-start max-md:gap-2">
           <div className="space-y-1">
             <CardTitle>Data Portability (Export Data)</CardTitle>
             <CardDescription>
@@ -233,7 +233,7 @@ export default function PrivacyDataRequests() {
           <Button 
             onClick={handleCreateExport} 
             disabled={submittingExport}
-            className="rounded-xl bg-primary text-primary-foreground font-semibold"
+            className="rounded-xl bg-primary text-primary-foreground font-semibold max-md:min-h-11"
           >
             {submittingExport ? (
               <>
@@ -248,7 +248,7 @@ export default function PrivacyDataRequests() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Request History</h4>
+            <h4 className="text-sm md:text-xs font-bold uppercase tracking-wider text-zinc-400">Request History</h4>
             {requests.length === 0 ? (
               <div className="text-center py-6 text-sm text-zinc-400 border border-dashed rounded-xl">
                 No active or previous data requests.
@@ -268,7 +268,7 @@ export default function PrivacyDataRequests() {
                             <span className="text-sm font-semibold capitalize">{req.request_type} Request</span>
                             {getStatusBadge(req.status)}
                           </div>
-                          <p className="text-xs text-zinc-400 mt-1">
+                          <p className="text-sm md:text-xs text-zinc-400 mt-1">
                             Requested on: {format(new Date(req.requested_at), "yyyy-MM-dd hh:mm a")}
                           </p>
                         </div>
@@ -281,7 +281,7 @@ export default function PrivacyDataRequests() {
                             size="sm" 
                             onClick={() => handleCancelRequest(req.request_id)}
                             disabled={cancellingId === req.request_id}
-                            className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg max-md:min-h-11"
                           >
                             {cancellingId === req.request_id ? "Cancelling..." : "Cancel"}
                           </Button>
@@ -291,7 +291,7 @@ export default function PrivacyDataRequests() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDownloadMock(linkedArtifact)}
-                            className="rounded-lg gap-1.5"
+                            className="rounded-lg gap-1.5 max-md:min-h-11"
                           >
                             <Download className="h-3.5 w-3.5" /> Download (JSON)
                           </Button>
@@ -320,7 +320,7 @@ export default function PrivacyDataRequests() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 text-rose-800 dark:text-rose-300 text-xs space-y-2">
+          <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 text-rose-800 dark:text-rose-300 text-sm md:text-xs space-y-2">
             <h4 className="font-bold flex items-center gap-1.5"><LockKeyhole className="h-3.5 w-3.5" /> Account Deactivation Consequences:</h4>
             <ul className="list-disc list-inside space-y-1">
               <li>Your public freelancer profile will be hidden and removed from search listings.</li>
@@ -332,7 +332,7 @@ export default function PrivacyDataRequests() {
 
           <form onSubmit={handleDeactivate} className="space-y-4 max-w-md pt-2">
             <div className="space-y-2">
-              <Label htmlFor="deactivate-confirm-input" className="text-xs font-semibold">
+              <Label htmlFor="deactivate-confirm-input" className="text-sm md:text-xs font-semibold">
                 To confirm, type <span className="font-bold text-rose-600">DEACTIVATE</span> in the input below:
               </Label>
               <Input
@@ -340,14 +340,14 @@ export default function PrivacyDataRequests() {
                 placeholder="Type DEACTIVATE"
                 value={deactivateInput}
                 onChange={(e) => setDeactivateInput(e.target.value)}
-                className="h-10 text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
               />
             </div>
             <Button
               type="submit"
               disabled={submittingDeactivate || deactivateInput !== "DEACTIVATE"}
               variant="destructive"
-              className="rounded-xl px-5 font-semibold"
+              className="rounded-xl px-5 font-semibold max-md:min-h-11"
             >
               {submittingDeactivate ? (
                 <>

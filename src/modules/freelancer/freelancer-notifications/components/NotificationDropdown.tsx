@@ -33,7 +33,7 @@ export function NotificationDropdown({ notifications, isLoading, onClose, onMark
   const hasUnread = notifications.some((n) => n.is_read === false || n.is_read === 0);
 
   return (
-    <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-border bg-background shadow-lg z-50 overflow-hidden">
+    <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-border bg-background shadow-lg z-50 overflow-hidden max-md:fixed max-md:inset-x-2 max-md:top-[60px] max-md:mt-0 max-md:w-auto max-md:max-w-none">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/30">
         <h3 className="font-semibold">Notifications</h3>
         {onMarkAllAsRead && hasUnread && (
@@ -49,7 +49,7 @@ export function NotificationDropdown({ notifications, isLoading, onClose, onMark
         )}
       </div>
       
-      <div className="max-h-[400px] overflow-y-auto">
+      <div className="max-h-[400px] overflow-y-auto max-md:max-h-[60dvh]">
 
         {isLoading ? (
           <div className="p-4 text-center text-sm text-muted-foreground">

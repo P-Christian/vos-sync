@@ -64,7 +64,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
                 <DialogHeader>
                     <DialogTitle>Submit Government ID</DialogTitle>
                     <DialogDescription>
@@ -81,7 +81,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                     <div className="grid gap-2">
                         <label className="text-sm font-medium">ID Type</label>
                         <Select value={idType} onValueChange={setIdType}>
-                            <SelectTrigger>
+                            <SelectTrigger className="max-md:min-h-11">
                                 <SelectValue placeholder="Select ID Type" />
                             </SelectTrigger>
                             <SelectContent>
@@ -99,6 +99,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                             type="file" 
                             accept="image/*" 
                             onChange={(e) => setFrontId(e.target.files?.[0] || null)} 
+                            className="max-md:min-h-11"
                         />
                     </div>
                     <div className="grid gap-2">
@@ -107,12 +108,13 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                             type="file" 
                             accept="image/*" 
                             onChange={(e) => setSelfieId(e.target.files?.[0] || null)} 
+                            className="max-md:min-h-11"
                         />
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-                    <Button onClick={handleSubmit} disabled={isSubmitting}>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="max-md:min-h-11">Cancel</Button>
+                    <Button onClick={handleSubmit} disabled={isSubmitting} className="max-md:min-h-11">
                         {isSubmitting ? "Submitting..." : "Submit"}
                     </Button>
                 </DialogFooter>

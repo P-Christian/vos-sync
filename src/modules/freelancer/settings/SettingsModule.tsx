@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSettings } from "@/modules/client/settings/hooks/useSettings";
 import AccountSettings from "./components/AccountSettings";
 import SecuritySettings from "./components/SecuritySettings";
@@ -15,6 +15,7 @@ import {
   Bell,
   AlertCircle,
   CheckCircle,
+  ChevronRight,
   Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,8 @@ export default function SettingsModule() {
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
+  const [canScrollTabsRight, setCanScrollTabsRight] = useState(true);
+  const tabScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadProfile();
@@ -51,6 +54,12 @@ export default function SettingsModule() {
   const handleTabChange = (tab: SettingsTab) => {
     clearMessages();
     setActiveTab(tab);
+  };
+
+  const handleTabsScroll = () => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    setCanScrollTabsRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   };
 
   return (
@@ -73,7 +82,7 @@ export default function SettingsModule() {
             <Settings2 className="h-7 w-7" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Freelancer Settings</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Freelancer Settings</h1>
             <p className="text-sm text-zinc-300 mt-1">
               Manage your profile preferences, credentials, visual settings, and data privacy options.
             </p>
@@ -98,25 +107,40 @@ export default function SettingsModule() {
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
         <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
-                    activeTab === tab.id
-                      ? "border-primary text-primary font-semibold"
-                      : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="relative min-w-0">
+            <div
+              ref={tabScrollRef}
+              onScroll={handleTabsScroll}
+              className="flex items-center gap-2 overflow-x-auto no-scrollbar"
+            >
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                      activeTab === tab.id
+                        ? "border-primary text-primary font-semibold"
+                        : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute right-0 top-[25px] flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border bg-background/95 shadow-sm backdrop-blur transition-opacity md:hidden",
+                canScrollTabsRight ? "opacity-100" : "opacity-0"
+              )}
+            >
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
           </div>
         </CardHeader>
 

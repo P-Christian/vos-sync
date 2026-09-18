@@ -234,7 +234,7 @@ export function ResumeSidebar() {
                 className="hidden" 
             />
             
-            <div className="border border-dashed rounded-xl p-8 text-center bg-card flex flex-col items-center justify-center space-y-4">
+            <div className="border border-dashed rounded-xl p-8 text-center bg-card flex flex-col items-center justify-center space-y-4 max-md:p-6">
                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                     <FileUp className="h-6 w-6 text-primary" />
                 </div>
@@ -245,7 +245,7 @@ export function ResumeSidebar() {
                     </p>
                 </div>
                 <Button 
-                    className="w-full sm:w-auto font-medium" 
+                    className="w-full sm:w-auto font-medium max-md:min-h-11"
                     onClick={handleUploadClick}
                     disabled={isUploading || isAutofilling}
                 >
@@ -259,7 +259,7 @@ export function ResumeSidebar() {
             </div>
 
             <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                     <Star className="h-3 w-3 fill-primary text-primary" />
                     Primary Document
                 </h3>
@@ -277,7 +277,7 @@ export function ResumeSidebar() {
 
             {historyResumes.length > 0 && (
                 <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 space-y-6">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <h3 className="text-sm md:text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         Document History
                     </h3>
                     
@@ -295,17 +295,17 @@ export function ResumeSidebar() {
                 </div>
             )}
 
-            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-row items-center justify-between">
+            <div className="bg-card text-card-foreground border rounded-xl shadow-sm p-6 flex flex-row items-center justify-between max-md:flex-col max-md:items-start max-md:gap-2">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-full text-primary">
                         {visibility === "Private" ? <Lock className="h-5 w-5" /> : visibility === "Recruiters Only" ? <Users className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
                     </div>
                     <div>
                         <p className="text-sm font-medium text-foreground">{visibility}</p>
-                        <p className="text-xs text-muted-foreground">Profile Visibility</p>
+                        <p className="text-sm md:text-xs text-muted-foreground">Profile Visibility</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" className="relative" onClick={() => setIsVisibilityModalOpen(true)}>
+                <Button variant="outline" size="sm" className="relative max-md:min-h-11" onClick={() => setIsVisibilityModalOpen(true)}>
                     Change Visibility
                     {pendingVisibility && (
                         <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary border-2 border-background"></span>
@@ -358,23 +358,23 @@ function ResumeItem({ resume, onDelete, onMakePrimary, isPrimary }: { resume: Vs
                         <p className="text-sm font-medium text-foreground truncate">
                             {resume.file_name || "Resume Document"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm md:text-xs text-muted-foreground">
                             {new Date(resume.uploaded_at).toLocaleDateString()}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0 ml-2">
                     {!isPrimary && onMakePrimary && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-primary" onClick={onMakePrimary}>
+                        <Button variant="ghost" size="sm" className="h-8 text-sm md:text-xs text-muted-foreground hover:text-primary max-md:min-h-11" onClick={onMakePrimary}>
                             Make Primary
                         </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground max-md:size-11" asChild>
                         <a href={downloadUrl} download>
                             <Download className="h-4 w-4" />
                         </a>
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={onDelete}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive max-md:size-11" onClick={onDelete}>
                         <Trash2 className="h-4 w-4" />
                     </Button>
                 </div>
@@ -388,7 +388,7 @@ function ResumeItem({ resume, onDelete, onMakePrimary, isPrimary }: { resume: Vs
                             Completed
                         </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm md:text-xs text-muted-foreground">
                         Our AI has parsed this resume to improve your search visibility by 34%.
                     </p>
                 </>

@@ -52,7 +52,7 @@ export default function AccountSettings({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="space-y-2">
-          <Label htmlFor="fname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="fname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <User className="h-3.5 w-3.5 text-zinc-400" /> First Name <span className="text-rose-500">*</span>
           </Label>
           <Input
@@ -60,13 +60,13 @@ export default function AccountSettings({
             value={formData.user_fname}
             onChange={(e) => handleChange("user_fname", e.target.value)}
             placeholder="First Name"
-            className="h-10 text-sm rounded-lg"
+            className="h-11 md:h-10 text-base md:text-sm rounded-lg"
             required
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="mname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="mname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Middle Name <span className="text-zinc-400 font-normal">(Optional)</span>
           </Label>
           <Input
@@ -74,12 +74,12 @@ export default function AccountSettings({
             value={formData.user_mname}
             onChange={(e) => handleChange("user_mname", e.target.value)}
             placeholder="Middle Name"
-            className="h-10 text-sm rounded-lg"
+            className="h-11 md:h-10 text-base md:text-sm rounded-lg"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="lname" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          <Label htmlFor="lname" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Last Name <span className="text-rose-500">*</span>
           </Label>
           <Input
@@ -87,7 +87,7 @@ export default function AccountSettings({
             value={formData.user_lname}
             onChange={(e) => handleChange("user_lname", e.target.value)}
             placeholder="Last Name"
-            className="h-10 text-sm rounded-lg"
+            className="h-11 md:h-10 text-base md:text-sm rounded-lg"
             required
           />
         </div>
@@ -95,20 +95,20 @@ export default function AccountSettings({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="email" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <Mail className="h-3.5 w-3.5 text-zinc-400" /> Account Email address
           </Label>
           <Input
             id="email"
             value={formData.user_email}
             disabled
-            className="h-10 text-sm rounded-lg bg-zinc-100 dark:bg-zinc-800/50 cursor-not-allowed text-zinc-500"
+            className="h-11 md:h-10 text-base md:text-sm rounded-lg bg-zinc-100 dark:bg-zinc-800/50 cursor-not-allowed text-zinc-500"
           />
-          <span className="text-[11px] text-zinc-400">Primary login email cannot be changed directly.</span>
+          <span className="text-sm md:text-xs text-zinc-400">Primary login email cannot be changed directly.</span>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="contact" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+          <Label htmlFor="contact" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
             <Phone className="h-3.5 w-3.5 text-zinc-400" /> Contact Number
           </Label>
           <Input
@@ -116,7 +116,7 @@ export default function AccountSettings({
             value={formData.user_contact}
             onChange={(e) => handleChange("user_contact", e.target.value)}
             placeholder="Contact Number"
-            className="h-10 text-sm rounded-lg"
+            className="h-11 md:h-10 text-base md:text-sm rounded-lg"
           />
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function AccountSettings({
         <Button
           type="submit"
           disabled={saving}
-          className="h-9 px-6 text-sm rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium shadow-sm transition-all"
+          className="h-9 px-6 text-sm rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium shadow-sm transition-all max-md:min-h-11"
         >
           {saving ? (
             <>
