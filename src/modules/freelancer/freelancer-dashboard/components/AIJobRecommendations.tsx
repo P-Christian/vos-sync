@@ -17,6 +17,7 @@ interface RecommendedJob {
     salary_max?: number;
     job_location: string;
     reasoning: string;
+    match_percentage?: number;
 }
 
 export function AIJobRecommendations() {
@@ -94,7 +95,7 @@ export function AIJobRecommendations() {
                             <Card key={job.job_id} className="bg-card shadow-sm hover:shadow-md transition-all border-l-4 border-l-primary/60 hover:border-l-primary cursor-pointer group">
                                 <CardContent className="p-4">
                                     <div className="flex justify-between items-start gap-4 mb-2">
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex-1">
                                             <h4 className="font-semibold text-base line-clamp-1 group-hover:text-primary transition-colors">
                                                 <Link href={`/vos-sync/freelancer/jobs/${job.job_id}`} className="after:absolute after:inset-0 relative">
                                                     {job.job_title}
@@ -107,6 +108,12 @@ export function AIJobRecommendations() {
                                                 </span>
                                             </div>
                                         </div>
+                                        {typeof job.match_percentage === 'number' && (
+                                            <Badge className="shrink-0 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 font-semibold text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+                                                <Sparkles className="h-3 w-3 text-primary" />
+                                                {job.match_percentage}% Match
+                                            </Badge>
+                                        )}
                                     </div>
                                     
                                     <div className="flex flex-wrap gap-2 mb-3">
