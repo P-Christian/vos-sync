@@ -46,13 +46,14 @@ export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ 
   const json = await res.json();
   const rawData = json.data || [];
   
-  const mappedData: VsSchoolStudent[] = rawData.map((item: any) => {
+  const mappedData: VsSchoolStudent[] = rawData.map((item: Record<string, unknown>) => {
     let courseName: string | undefined = undefined;
     let courseId: number | null = null;
 
     if (item.school_course_id && typeof item.school_course_id === 'object') {
-      courseName = item.school_course_id.course_name;
-      courseId = item.school_course_id.school_course_id ? Number(item.school_course_id.school_course_id) : null;
+      const courseObj = item.school_course_id as Record<string, unknown>;
+      courseName = courseObj.course_name ? String(courseObj.course_name) : undefined;
+      courseId = courseObj.school_course_id ? Number(courseObj.school_course_id) : null;
     } else if (item.school_course_id) {
       courseId = Number(item.school_course_id);
     }

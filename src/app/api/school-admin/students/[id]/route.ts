@@ -30,8 +30,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json();
     const updated = await updateStudentRepo(studentId, { ...body, updated_by: userId });
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to update student' }, { status: 400 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update student';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
 
@@ -46,7 +47,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await removeStudentFromRoster(studentId);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to delete student' }, { status: 400 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to delete student';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

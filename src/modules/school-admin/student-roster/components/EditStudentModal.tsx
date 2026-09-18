@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { VsSchoolStudent } from '../types/student-roster.types';
 import { CreateStudentInput, createStudentSchema } from '../types/student-roster.schema';
 import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
@@ -24,34 +24,18 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   const schoolYearOptions = generateSchoolYearOptions();
 
   const [formData, setFormData] = useState<CreateStudentInput>({
-    first_name: '',
-    middle_name: '',
-    last_name: '',
-    email: '',
-    student_number: '',
-    school_course_id: null,
-    school_year: '2025-2026',
-    gpa: null,
+    first_name: student?.first_name || '',
+    middle_name: student?.middle_name || '',
+    last_name: student?.last_name || '',
+    email: student?.email || '',
+    student_number: student?.student_number || '',
+    school_course_id: student?.school_course_id ? Number(student.school_course_id) : null,
+    school_year: student?.school_year || '2025-2026',
+    gpa: student?.gpa ?? null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (student) {
-      setFormData({
-        first_name: student.first_name || '',
-        middle_name: student.middle_name || '',
-        last_name: student.last_name || '',
-        email: student.email || '',
-        student_number: student.student_number || '',
-        school_course_id: student.school_course_id ? Number(student.school_course_id) : null,
-        school_year: student.school_year || '2025-2026',
-        gpa: student.gpa ?? null,
-      });
-      setErrors({});
-    }
-  }, [student]);
 
   if (!isOpen || !student) return null;
 
@@ -75,8 +59,9 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
       setIsSubmitting(true);
       await onSuccess(student.student_id, result.data);
       onClose();
-    } catch (err: any) {
-      setErrors({ form: err.message || 'Failed to update student' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update student';
+      setErrors({ form: msg });
     } finally {
       setIsSubmitting(false);
     }

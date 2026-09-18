@@ -67,8 +67,9 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
         school_year: schoolYearOptions[2] || '2025-2026',
         gpa: null,
       });
-    } catch (err: any) {
-      setErrors({ form: err.message || 'Failed to submit' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit';
+      setErrors({ form: msg });
     } finally {
       setIsSubmitting(false);
     }

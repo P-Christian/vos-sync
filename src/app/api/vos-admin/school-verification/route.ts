@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     const parseResult = VerificationDecisionSchema.safeParse(body);
 
     if (!parseResult.success) {
-      const errorMsg = parseResult.error.errors.map((e) => e.message).join(", ");
+      const errorMsg = parseResult.error.issues.map((e) => e.message).join(", ");
       return NextResponse.json({ error: `Validation error: ${errorMsg}` }, { status: 400 });
     }
 

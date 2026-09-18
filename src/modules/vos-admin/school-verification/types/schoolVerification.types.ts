@@ -97,7 +97,7 @@ export interface SchoolVerificationRecord {
   latest_verification?: SchoolVerificationAttempt | null;
 }
 
-export interface SchoolVerificationFilters {
+export interface SchoolVerificationFilterState {
   status: string;
   search: string;
   schoolType: string;

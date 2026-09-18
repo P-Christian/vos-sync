@@ -17,7 +17,6 @@ export const StudentRosterPage: React.FC = () => {
   const {
     students,
     courses,
-    totalCount,
     isLoading,
     error,
     selectedSchoolYear,

@@ -18,10 +18,7 @@ import {
   Building2, 
   GraduationCap, 
   Camera, 
-  Upload, 
   Loader2,
-  BookOpen,
-  Sparkles,
   ExternalLink
 } from "lucide-react";
 import SchoolImageCropModal from "./SchoolImageCropModal";
@@ -31,7 +28,7 @@ import { toast } from "sonner";
 
 interface SchoolBasicInfoProps {
   data: Partial<EditableSchoolFields>;
-  onChange: (field: keyof EditableSchoolFields, value: any) => void;
+  onChange: (field: keyof EditableSchoolFields, value: string | boolean | number) => void;
   readOnly?: boolean;
 }
 
@@ -87,8 +84,9 @@ export default function SchoolBasicInfo({
         toast.success("Campus cover photo uploaded. Save changes to keep.");
       }
       setCropModalState(prev => ({ ...prev, isOpen: false }));
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload image");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload image";
+      toast.error(msg);
     } finally {
       setUploadingLogo(false);
       setUploadingCover(false);

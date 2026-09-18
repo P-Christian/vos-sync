@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { VsSchoolCourse, SchoolStatus } from '@/modules/school-admin/types/school-admin.types';
 import { 
   executeCreateSchoolCourse, 
@@ -32,8 +32,9 @@ export function useSchoolCourses(
       setCourses(prev => [created, ...prev]);
       toast.success('Course added successfully.');
       return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to add course.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to add course.';
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -48,8 +49,9 @@ export function useSchoolCourses(
       toast.success('Course updated successfully.');
       setEditingCourse(null);
       return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update course.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update course.';
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -76,8 +78,9 @@ export function useSchoolCourses(
       setCourses(prev => prev.map(c => c.school_course_id === courseId ? updated : c));
       toast.success('Course status updated.');
       return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update status.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update status.';
+      toast.error(msg);
       return false;
     }
   };
@@ -88,8 +91,9 @@ export function useSchoolCourses(
       setCourses(prev => prev.filter(c => c.school_course_id !== courseId));
       toast.success('Course deleted successfully.');
       return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to delete course.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete course.';
+      toast.error(msg);
       return false;
     }
   };

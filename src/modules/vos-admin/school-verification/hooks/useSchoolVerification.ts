@@ -43,8 +43,32 @@ export function useSchoolVerification() {
   }, []);
 
   useEffect(() => {
-    loadRecords();
-  }, [loadRecords]);
+    let isMounted = true;
+    const fetchRecords = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchSchoolVerifications();
+        if (isMounted) {
+          setAllRecords(data);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          const msg = err instanceof Error ? err.message : "Failed to load school verifications";
+          setError(msg);
+          setAllRecords([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchRecords();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Derive KPI counts from all fetched records
   const kpiData: SchoolVerificationKPIs = useMemo(() => {

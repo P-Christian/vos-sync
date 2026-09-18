@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,18 +19,10 @@ interface EditCourseModalProps {
 }
 
 export function EditCourseModal({ course, isOpen, onOpenChange, onSubmit, saving }: EditCourseModalProps) {
-  const [courseName, setCourseName] = useState("");
-  const [courseCode, setCourseCode] = useState("");
-  const [status, setStatus] = useState<SchoolStatus>("Active");
+  const [courseName, setCourseName] = useState(course?.course_name || "");
+  const [courseCode, setCourseCode] = useState(course?.course_code || "");
+  const [status, setStatus] = useState<SchoolStatus>(course?.course_status || "Active");
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (course) {
-      setCourseName(course.course_name || "");
-      setCourseCode(course.course_code || "");
-      setStatus(course.course_status || "Active");
-    }
-  }, [course]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +82,7 @@ export function EditCourseModal({ course, isOpen, onOpenChange, onSubmit, saving
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit_course_status">Status</Label>
-            <Select value={status} onValueChange={(val: any) => setStatus(val)}>
+            <Select value={status} onValueChange={(val: string) => setStatus(val as SchoolStatus)}>
               <SelectTrigger id="edit_course_status">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>

@@ -1,7 +1,7 @@
 // src/modules/school-admin/school-profile/types/school-profile.types.ts
-import { SchoolType, SchoolStatus, VerificationStatus, VsSchool } from '../../types/school-admin.types';
+import { VsSchool } from '../../types/school-admin.types';
 
-export interface SchoolProfileData extends VsSchool {}
+export type SchoolProfileData = VsSchool;
 
 export type EditableSchoolFields = Pick<
   VsSchool,
@@ -26,7 +26,7 @@ export type EditableSchoolFields = Pick<
   | 'is_public'
 >;
 
-export interface UpdateSchoolProfileDTO extends Partial<EditableSchoolFields> {}
+export type UpdateSchoolProfileDTO = Partial<EditableSchoolFields>;
 
 export type SchoolDocumentTypeKey =
   | 'CHED_DEPED_TESDA_RECOGNITION'

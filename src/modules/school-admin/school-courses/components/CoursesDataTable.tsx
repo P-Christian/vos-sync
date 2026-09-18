@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/incompatible-library */
 "use client";
 
 import * as React from "react";
@@ -52,10 +53,6 @@ function SearchInput({
   onSearch,
 }: SearchInputProps) {
   const [value, setValue] = React.useState(initialValue);
-
-  React.useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
 
   const isFirstRender = React.useRef(true);
 
@@ -147,6 +144,7 @@ export function CoursesDataTable<TData, TValue>({
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex flex-1 items-center space-x-2 w-full">
           <SearchInput
+            key={searchValue}
             placeholder={searchPlaceholder}
             initialValue={searchValue}
             onSearch={handleSearch}

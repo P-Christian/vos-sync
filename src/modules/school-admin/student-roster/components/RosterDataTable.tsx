@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/incompatible-library */
 "use client";
 
 import * as React from "react";

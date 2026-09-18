@@ -3,8 +3,7 @@
 
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, X, CheckCircle2, Eye, RefreshCw, Trash2, FileText, Plus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Upload, Loader2, CheckCircle2, Eye, RefreshCw, Trash2, FileText, Plus } from "lucide-react";
 import { SchoolDocumentTypeKey, UploadedSchoolDoc } from "../types/school-profile.types";
 import { toast } from "sonner";
 
@@ -37,23 +36,6 @@ interface SchoolDocumentsProps {
   onDocsChange?: (count: number) => void;
 }
 
-function formatDate(dateStr?: string | null): string {
-  if (!dateStr) return "";
-  try {
-    const raw = dateStr.endsWith("Z") || dateStr.includes("+") ? dateStr : `${dateStr.replace(" ", "T")}Z`;
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "Asia/Manila",
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
 function formatFileSize(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 KB";
   if (bytes >= 1024 * 1024) {
@@ -84,12 +66,12 @@ export default function SchoolDocuments({ schoolId, onDocsChange }: SchoolDocume
     if (!schoolId) return;
     try {
       const res = await fetch(`/api/school-admin/school/documents?schoolId=${schoolId}`);
-      if (!res.ok) {
+      if (res.ok) {
+        const data = await res.json();
+        setDocs(Array.isArray(data) ? data : []);
+      } else {
         setDocs([]);
-        return;
       }
-      const data = await res.json();
-      setDocs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn("Failed to load school verification documents:", err);
       setDocs([]);
@@ -97,8 +79,31 @@ export default function SchoolDocuments({ schoolId, onDocsChange }: SchoolDocume
   }, [schoolId]);
 
   useEffect(() => {
-    fetchDocs();
-  }, [fetchDocs]);
+    let isMounted = true;
+    const load = async () => {
+      if (!schoolId) return;
+      try {
+        const res = await fetch(`/api/school-admin/school/documents?schoolId=${schoolId}`);
+        if (isMounted) {
+          if (res.ok) {
+            const data = await res.json();
+            setDocs(Array.isArray(data) ? data : []);
+          } else {
+            setDocs([]);
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.warn("Failed to load school verification documents:", err);
+          setDocs([]);
+        }
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [schoolId]);
 
   useEffect(() => {
     onDocsChange?.(docs.length);

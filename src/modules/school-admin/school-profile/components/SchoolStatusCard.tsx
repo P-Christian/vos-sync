@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, AlertCircle, ShieldAlert, Clock, GraduationCap } from "lucide-react";
+import { CheckCircle2, AlertCircle, ShieldAlert, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { VerificationStatus } from "@/modules/school-admin/types/school-admin.types";
 import { motion, AnimatePresence } from "framer-motion";

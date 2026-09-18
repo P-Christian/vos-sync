@@ -66,9 +66,7 @@ export const SchoolVerificationDetailModal: React.FC<SchoolVerificationDetailMod
 
   if (!school) return null;
 
-  const primaryAdmin = school.admins?.[0];
   const documents = school.documents || [];
-  const verifications = school.verifications || [];
 
   const address = formatSchoolAddress(school);
 

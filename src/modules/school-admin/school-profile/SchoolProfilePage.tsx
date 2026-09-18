@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/school-admin/school-profile/SchoolProfilePage.tsx
 "use client";
 
@@ -128,8 +127,9 @@ export function SchoolProfilePage({
         setIsEditingInfo(false);
         if (!isEditingAddress) setDraft({});
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update school information.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update school information.";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -171,8 +171,9 @@ export function SchoolProfilePage({
         setIsEditingAddress(false);
         if (!isEditingInfo) setDraft({});
       }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update campus address.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update campus address.";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -187,7 +188,7 @@ export function SchoolProfilePage({
 
   const handleFieldChange = (
     field: keyof EditableSchoolFields,
-    value: any
+    value: string | boolean | number
   ) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
@@ -200,8 +201,9 @@ export function SchoolProfilePage({
       const nextVal = Number(school.is_public) === 1 ? 0 : 1;
       await onUpdate({ is_public: nextVal });
       toast.success(`Profile set to ${nextVal === 1 ? "Public" : "Private"}.`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update visibility.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update visibility.";
+      toast.error(msg);
     } finally {
       setSaving(false);
     }

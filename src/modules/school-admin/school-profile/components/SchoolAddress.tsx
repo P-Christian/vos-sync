@@ -8,7 +8,7 @@ import { EditableSchoolFields } from "../types/school-profile.types";
 
 interface SchoolAddressProps {
   data: Partial<EditableSchoolFields>;
-  onChange: (field: keyof EditableSchoolFields, value: any) => void;
+  onChange: (field: keyof EditableSchoolFields, value: string | boolean | number) => void;
   readOnly?: boolean;
 }
 

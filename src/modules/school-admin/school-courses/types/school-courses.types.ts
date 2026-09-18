@@ -1,4 +1,4 @@
-import { VsSchoolCourse, SchoolStatus } from '../../types/school-admin.types';
+import { SchoolStatus } from '../../types/school-admin.types';
 
 export interface CreateCourseDTO {
   course_name: string;

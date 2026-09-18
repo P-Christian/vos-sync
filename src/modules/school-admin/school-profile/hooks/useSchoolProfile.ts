@@ -27,8 +27,9 @@ export function useSchoolProfile(
       await executeUpdateSchoolProfile(school.school_id, formData);
       toast.success('School profile updated successfully');
       return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update school profile');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update school profile';
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -41,8 +42,9 @@ export function useSchoolProfile(
       const url = await executeUploadSchoolLogo(file);
       toast.success('School logo uploaded successfully.');
       return url;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to upload school logo');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to upload school logo';
+      toast.error(msg);
       return null;
     } finally {
       setUploading(false);
@@ -55,8 +57,9 @@ export function useSchoolProfile(
       const url = await executeUploadSchoolCover(file);
       toast.success('Cover image uploaded successfully.');
       return url;
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to upload cover photo');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to upload cover photo';
+      toast.error(msg);
       return null;
     } finally {
       setUploading(false);

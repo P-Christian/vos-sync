@@ -47,8 +47,9 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(result);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -68,7 +69,8 @@ export async function POST(req: NextRequest) {
       const result = await addSingleStudent(session.schoolId, session.userId, body);
       return NextResponse.json({ success: true, data: result }, { status: 201 });
     }
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to add student(s)' }, { status: 400 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to add student(s)';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }

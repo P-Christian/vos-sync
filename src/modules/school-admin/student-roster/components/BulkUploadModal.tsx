@@ -94,7 +94,7 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       try {
         const text = evt.target?.result as string;
         parseCSVContent(text);
-      } catch (err) {
+      } catch {
         setUploadError('Failed to read file. Please ensure it is a valid CSV format.');
       } finally {
         setIsParsing(false);
@@ -114,8 +114,9 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
       setIsSubmitting(true);
       await onSuccess(validRows);
       onClose();
-    } catch (err: any) {
-      setUploadError(err.message || 'Import failed');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Import failed';
+      setUploadError(msg);
     } finally {
       setIsSubmitting(false);
     }
