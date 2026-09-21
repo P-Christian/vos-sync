@@ -11,7 +11,6 @@ import {
   BookOpen,
   Building,
   CheckCircle2,
-  XCircle,
   FileText,
   Clock,
 } from "lucide-react";
