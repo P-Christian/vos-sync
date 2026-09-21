@@ -104,7 +104,10 @@ export async function POST(req: Request) {
         let userId;
 
         if (existingUser) {
-            if (existingUser.user_status === 'Active') {
+            const existingStatus = String(
+                existingUser.status ?? existingUser.user_status ?? ""
+            ).toUpperCase();
+            if (existingStatus === 'ACTIVE') {
                 return NextResponse.json({ error: "Account already exists and is active. Please log in." }, { status: 400 });
             }
             
@@ -137,7 +140,7 @@ export async function POST(req: Request) {
                     user_contact,
                     role_id: roleId,
                     role: 'SCH_ADMIN',
-                    user_status: 'Pending' // Will be active after OTP
+                    status: "PENDING_VERIFICATION" // Pending admin verification after OTP
                 })
             });
 

@@ -38,7 +38,20 @@ function isMissingDatabaseFlag(value: unknown): boolean {
   return value === undefined || value === null || value === "";
 }
 
-/** One shared, fail-closed predicate for every JWT issuance/request gate. */
+/**
+ * Account statuses that are eligible to authenticate. `ACTIVE` is a fully
+ * verified account, `VERIFIED` is a lifecycle state written by the
+ * school/company verification flows, and `PENDING_VERIFICATION` is an account
+ * that completed signup (including OTP) but still awaits admin verification.
+ * Every other status remains denied. One shared, fail-closed predicate for
+ * every JWT issuance/request gate.
+ */
+export const LOGIN_ELIGIBLE_ACCOUNT_STATUSES: readonly string[] = [
+  "ACTIVE",
+  "VERIFIED",
+  "PENDING_VERIFICATION",
+];
+
 export function canAuthenticate(
   user: AccountAuthenticationState | null | undefined,
   nowMs = Date.now()
@@ -53,7 +66,7 @@ export function canAuthenticate(
   const canonicalStatus = String(user.status ?? "").trim();
   const legacyStatus = String(user.user_status ?? "").trim();
   const accountStatus = (canonicalStatus || legacyStatus).toUpperCase();
-  if (accountStatus !== "ACTIVE") {
+  if (!LOGIN_ELIGIBLE_ACCOUNT_STATUSES.includes(accountStatus)) {
     return false;
   }
   // Legacy admin-created accounts predate OTP enforcement and have no value
