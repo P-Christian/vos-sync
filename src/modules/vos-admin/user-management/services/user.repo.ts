@@ -31,8 +31,8 @@ export async function fetchUsersRepo(
   // Filter conditions
   const filterParams: string[] = [];
 
-  // Exclude client accounts (role_id === 2)
-  filterParams.push(`"role_id":{"_neq":2}`);
+  // Exclude client accounts (role_id === 2) and school accounts (role_id === 4)
+  filterParams.push(`"role_id":{"_nin":[2,4]}`);
 
   // Filter by role_id if specifically requested
   if (roleId && roleId !== 0) {

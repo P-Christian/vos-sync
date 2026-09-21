@@ -1,12 +1,12 @@
 // src/modules/vos-admin/request-management/components/CreateCourseRequestModal.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCourseRequestSchema } from "../types/request.schema";
 import { toast } from "sonner";
-import { useSchools } from "@/modules/vos-admin/school-management";
+import { useSchoolVerification } from "@/modules/vos-admin/school-verification";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,12 @@ interface Props {
 }
 
 export function CreateCourseRequestModal({ open, onOpenChange, onSubmit, defaultSchoolId, hideSchoolSelect }: Props) {
-  const { schools, fetchSchools } = useSchools();
+  const { records, refetch } = useSchoolVerification();
   const [loading, setLoading] = useState(false);
+
+  const schools = useMemo(() => {
+    return records.filter((s) => s.school_status === "Active" || s.verification_status === "VERIFIED");
+  }, [records]);
 
   const form = useForm({
     resolver: zodResolver(createCourseRequestSchema),
@@ -49,14 +53,14 @@ export function CreateCourseRequestModal({ open, onOpenChange, onSubmit, default
 
   useEffect(() => {
     if (open) {
-      if (!hideSchoolSelect) fetchSchools("Active");
+      if (!hideSchoolSelect) refetch();
       form.reset({
         school_id: defaultSchoolId,
         requested_course_name: "",
         requested_course_code: "",
       });
     }
-  }, [open, fetchSchools, form, defaultSchoolId, hideSchoolSelect]);
+  }, [open, refetch, form, defaultSchoolId, hideSchoolSelect]);
 
   const handleValidSubmit = async (data: unknown) => {
     setLoading(true);

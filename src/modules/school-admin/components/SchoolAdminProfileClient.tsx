@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useSchoolAdmin } from "@/modules/school-admin/hooks/useSchoolAdmin";
-import { SchoolAdminProfile } from "@/modules/school-admin/components/SchoolAdminProfile";
-import { SchoolAdminSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
+import { SchoolProfilePage } from "@/modules/school-admin/school-profile/SchoolProfilePage";
+import { SchoolProfileSkeleton } from "@/modules/school-admin/components/SchoolAdminSkeleton";
 
 export function SchoolAdminProfileClient() {
   const { school, loading, fetchMySchool, updateSchool } = useSchoolAdmin();
@@ -13,12 +13,12 @@ export function SchoolAdminProfileClient() {
   }, [fetchMySchool]);
 
   if (loading || !school) {
-    return <SchoolAdminSkeleton />;
+    return <SchoolProfileSkeleton />;
   }
 
   return (
     <div className="flex flex-col min-h-full pb-10">
-      <SchoolAdminProfile school={school} onUpdate={updateSchool} />
+      <SchoolProfilePage school={school} onUpdate={updateSchool} />
     </div>
   );
 }

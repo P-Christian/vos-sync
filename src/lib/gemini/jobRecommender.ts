@@ -29,6 +29,7 @@ export interface NormalizedJob {
 export interface JobRecommendation {
     job_id: number;
     reasoning: string;
+    match_percentage?: number;
     job_title?: string;
     company_name?: string;
     job_type?: string;
@@ -60,13 +61,15 @@ I will provide you with a Freelancer Profile JSON and an array of Available Jobs
 Your task:
 1. Evaluate the overlap between the freelancer's skills/preferences and each job's requirements.
 2. Consider skills match, work setup match (e.g. remote), and salary alignment.
-3. Select up to 3 jobs that are the best fit for the user based on the available data.
-4. Output ONLY a valid JSON array of objects. Do not wrap it in markdown code blocks like \`\`\`json. Just output the raw JSON array.
+3. Calculate a match_percentage score (an integer between 0 and 100) indicating how strongly the job matches the freelancer.
+4. Select up to 3 jobs that are the best fit for the user based on the available data.
+5. Output ONLY a valid JSON array of objects. Do not wrap it in markdown code blocks like \`\`\`json. Just output the raw JSON array.
 
 Return format exactly like this:
 [
   {
     "job_id": 123,
+    "match_percentage": 92,
     "reasoning": "A concise 1-2 sentence explanation of why this job is a great fit based on their specific skills and preferences."
   }
 ]
@@ -83,7 +86,7 @@ ${JSON.stringify(jobs, null, 2)}
     const raw = await callGeminiSafe(prompt);
     if (!raw) return [];
 
-    let recommendations: { job_id: number; reasoning: string }[] = [];
+    let recommendations: { job_id: number; reasoning: string; match_percentage?: number }[] = [];
     try {
         // Clean markdown if Gemini wraps the response
         const cleanText = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
@@ -107,6 +110,7 @@ ${JSON.stringify(jobs, null, 2)}
             return {
                 job_id: rec.job_id,
                 reasoning: rec.reasoning,
+                match_percentage: typeof rec.match_percentage === 'number' ? Math.min(100, Math.max(0, Math.round(rec.match_percentage))) : undefined,
                 job_title: fullJob.job_title,
                 company_name: fullJob.company_name,
                 job_type: fullJob.job_type,

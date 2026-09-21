@@ -8,6 +8,7 @@ import { SettingsAppearance } from "@/app/(vos-sync)/vos-sync/settings/settings-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Settings2, User, Shield, Palette, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SchoolAdminModuleHeader } from "./SchoolAdminModuleHeader";
 
 type SettingsTab = "account" | "security" | "appearance";
 
@@ -54,20 +55,11 @@ export function SchoolAdminSettingsModule() {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-slate-950 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-            <Settings2 className="h-7 w-7 text-indigo-300" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Admin Profile Settings</h1>
-            <p className="text-sm text-zinc-300 mt-1">
-              Manage your personal administrator account details, security credentials, and workspace theme.
-            </p>
-          </div>
-        </div>
-      </div>
+      <SchoolAdminModuleHeader
+        title="Admin Profile Settings"
+        description="Manage your personal administrator account details, security credentials, and workspace theme."
+        icon={Settings2}
+      />
 
       {/* Feedback Messages */}
       {error && (

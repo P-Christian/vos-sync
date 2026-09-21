@@ -66,7 +66,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
       {/* Left: sidebar toggle + searchbar */}
         <div className="flex h-full min-w-0 flex-1 items-center gap-4">
         <SidebarTrigger className="-ml-1 shrink-0" />
-        {!isVosAdminRoute && (
+        {!isVosAdminRoute && !isSchoolAdminRoute && (
           <div className="hidden md:block w-full max-w-2xl min-w-0">
             <UserSearchBar />
           </div>

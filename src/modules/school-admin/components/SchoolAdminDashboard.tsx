@@ -1,5 +1,6 @@
-import { Building2, GraduationCap, Users, AlertCircle } from "lucide-react";
+import { Building2, GraduationCap, Users, AlertCircle, LayoutDashboard } from "lucide-react";
 import { SchoolWithStats } from "../types/school-admin.types";
+import { SchoolAdminModuleHeader } from "./SchoolAdminModuleHeader";
 
 export function SchoolAdminDashboard({ school }: { school: SchoolWithStats }) {
   const isDraft = school.school_status === "Draft";
@@ -7,6 +8,12 @@ export function SchoolAdminDashboard({ school }: { school: SchoolWithStats }) {
 
   return (
     <div className="p-6 space-y-6">
+      <SchoolAdminModuleHeader
+        title="School Admin Dashboard"
+        description="Overview of your institution's profile, active courses, and student roster statistics."
+        icon={LayoutDashboard}
+      />
+
       {isDraft && (
         <div className="flex items-start gap-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 shadow-sm animate-pulse">
           <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
@@ -18,13 +25,6 @@ export function SchoolAdminDashboard({ school }: { school: SchoolWithStats }) {
           </div>
         </div>
       )}
-
-      <header className="mb-4 border-b pb-4">
-        <h1 className="text-3xl font-bold tracking-tight">School Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your school profile and courses.
-        </p>
-      </header>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-xl border bg-card text-card-foreground shadow">
