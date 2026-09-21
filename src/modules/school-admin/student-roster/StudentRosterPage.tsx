@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Plus, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useStudentRoster } from './hooks/useStudentRoster';
 import { RosterFilters } from './components/RosterFilters';
 import { StudentRosterTable } from './components/StudentRosterTable';
@@ -50,20 +51,22 @@ export const StudentRosterPage: React.FC = () => {
         description="Manage your school's student directory, filter by academic course or school year, and track registration status."
         icon={GraduationCap}
         actions={
-          <>
-            <button
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
               onClick={() => setIsBulkModalOpen(true)}
-              className="px-4 py-2 text-sm font-semibold text-slate-100 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg shadow-sm transition-colors flex items-center gap-2"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 hover:text-white shadow-sm"
             >
-              <span>📥</span> Bulk Upload (CSV)
-            </button>
-            <button
+              <Upload className="mr-2 h-4 w-4" />
+              Bulk Upload
+            </Button>
+            <Button
               onClick={() => setIsAddModalOpen(true)}
-              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors flex items-center gap-2"
             >
-              <span>➕</span> Add Student
-            </button>
-          </>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Student
+            </Button>
+          </div>
         }
       />
 

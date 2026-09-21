@@ -29,7 +29,7 @@ export const RosterFilters: React.FC<RosterFiltersProps> = ({
   availableSchoolYears,
 }) => {
   return (
-    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+    <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
       {/* Search Input */}
       <div className="relative w-full md:w-80">
         <input
@@ -37,10 +37,10 @@ export const RosterFilters: React.FC<RosterFiltersProps> = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search name, student #, email..."
-          className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
         />
         <svg
-          className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"
+          className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -60,7 +60,7 @@ export const RosterFilters: React.FC<RosterFiltersProps> = ({
         <select
           value={selectedSchoolYear}
           onChange={(e) => onSchoolYearChange(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">All School Years</option>
           {availableSchoolYears.map((year) => (
@@ -80,7 +80,7 @@ export const RosterFilters: React.FC<RosterFiltersProps> = ({
         <select
           value={selectedCourseId}
           onChange={(e) => onCourseChange(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
+          className="px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring max-w-[200px] truncate"
         >
           <option value="all">All Courses</option>
           {courses.map((course) => (
@@ -94,7 +94,7 @@ export const RosterFilters: React.FC<RosterFiltersProps> = ({
         <select
           value={selectedStatus}
           onChange={(e) => onStatusChange(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         >
           <option value="all">All Statuses</option>
           <option value="Not Sent">Not Sent</option>
