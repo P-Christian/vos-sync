@@ -53,6 +53,23 @@ export async function fetchSchoolDocumentsRepo(schoolIds: number[]): Promise<Rec
   return json.data || [];
 }
 
+export async function fetchSchoolCoursesRepo(schoolIds: number[]): Promise<Record<string, unknown>[]> {
+  if (schoolIds.length === 0) return [];
+  const url = `${DIRECTUS_BASE}/items/vs_school_course?filter[school_id][_in]=${schoolIds.join(",")}&sort=-created_at&limit=-1`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data || [];
+}
+
+export async function fetchCoursesBySchoolRepo(schoolId: number): Promise<Record<string, unknown>[]> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_course?filter[school_id][_eq]=${schoolId}&sort=-created_at&limit=-1`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data || [];
+}
+
 export async function fetchSchoolAdminsRepo(
   schoolIds: number[],
   additionalUserIds: number[] = []
