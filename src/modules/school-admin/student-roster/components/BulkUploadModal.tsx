@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { CreateStudentInput, createStudentSchema } from '../types/student-roster.schema';
+import { Button } from '@/components/ui/button';
+import { Download, FileSpreadsheet, Upload, X } from 'lucide-react';
 
 interface BulkUploadModalProps {
   isOpen: boolean;
@@ -16,6 +19,37 @@ interface ParsedRow {
   error?: string;
 }
 
+const TEMPLATE_HEADERS = [
+  'student_number',
+  'first_name',
+  'middle_name',
+  'last_name',
+  'email',
+  'school_year',
+  'gpa',
+];
+
+const SAMPLE_TEMPLATE_ROWS = [
+  {
+    student_number: '2025-00101',
+    first_name: 'John',
+    middle_name: 'David',
+    last_name: 'Doe',
+    email: 'john.doe@university.edu.ph',
+    school_year: '2025-2026',
+    gpa: 3.5,
+  },
+  {
+    student_number: '2025-00102',
+    first_name: 'Jane',
+    middle_name: 'Marie',
+    last_name: 'Smith',
+    email: 'jane.smith@university.edu.ph',
+    school_year: '2025-2026',
+    gpa: 3.75,
+  },
+];
+
 export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   isOpen,
   onClose,
@@ -29,54 +63,108 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
   if (!isOpen) return null;
 
-  const parseCSVContent = (text: string) => {
-    const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
-    if (lines.length < 2) {
-      setUploadError('File appears to be empty or missing headers.');
-      return;
+  const downloadTemplate = (format: 'csv' | 'xlsx') => {
+    if (format === 'csv') {
+      const headerLine = TEMPLATE_HEADERS.join(',');
+      const rowLines = SAMPLE_TEMPLATE_ROWS.map((r) =>
+        [r.student_number, r.first_name, r.middle_name, r.last_name, r.email, r.school_year, r.gpa].join(',')
+      );
+      const csvString = [headerLine, ...rowLines].join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'student_roster_template.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      const ws = XLSX.utils.json_to_sheet(SAMPLE_TEMPLATE_ROWS, {
+        header: TEMPLATE_HEADERS,
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Student Roster');
+      XLSX.writeFile(wb, 'student_roster_template.xlsx');
     }
+  };
 
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
-    
-    // Header index mapping
-    const firstNameIdx = headers.findIndex((h) => h.includes('first') || h === 'fname');
-    const middleNameIdx = headers.findIndex((h) => h.includes('middle') || h === 'mname');
-    const lastNameIdx = headers.findIndex((h) => h.includes('last') || h === 'lname');
-    const emailIdx = headers.findIndex((h) => h.includes('email'));
-    const studentNumIdx = headers.findIndex((h) => h.includes('number') || h.includes('student_id') || h.includes('student_no'));
-    const schoolYearIdx = headers.findIndex((h) => h.includes('year') || h === 'sy');
-    const gpaIdx = headers.findIndex((h) => h.includes('gpa'));
-
-    if (emailIdx === -1 || firstNameIdx === -1 || lastNameIdx === -1) {
-      setUploadError('CSV must include "first_name", "last_name", and "email" columns.');
+  const processDataRows = (rawJson: Record<string, unknown>[]) => {
+    if (rawJson.length === 0) {
+      setUploadError('File appears to be empty or has no data rows.');
       return;
     }
 
     const rows: ParsedRow[] = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const col = lines[i].split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
-      if (col.length === 0 || (col.length === 1 && !col[0])) continue;
+    rawJson.forEach((row, idx) => {
+      const normalizedRow: Record<string, unknown> = {};
+      Object.keys(row).forEach((k) => {
+        normalizedRow[k.trim().toLowerCase().replace(/\s+/g, '_')] = row[k];
+      });
+
+      const firstName = String(
+        normalizedRow['first_name'] || normalizedRow['firstname'] || normalizedRow['fname'] || ''
+      ).trim();
+      const middleName =
+        normalizedRow['middle_name'] || normalizedRow['middlename'] || normalizedRow['mname']
+          ? String(normalizedRow['middle_name'] || normalizedRow['middlename'] || normalizedRow['mname']).trim()
+          : null;
+      const lastName = String(
+        normalizedRow['last_name'] || normalizedRow['lastname'] || normalizedRow['lname'] || ''
+      ).trim();
+      const email = String(normalizedRow['email'] || normalizedRow['email_address'] || '').trim();
+      const studentNumber =
+        normalizedRow['student_number'] ||
+        normalizedRow['student_no'] ||
+        normalizedRow['student_id'] ||
+        normalizedRow['number']
+          ? String(
+              normalizedRow['student_number'] ||
+                normalizedRow['student_no'] ||
+                normalizedRow['student_id'] ||
+                normalizedRow['number']
+            ).trim()
+          : null;
+      const schoolYear =
+        normalizedRow['school_year'] || normalizedRow['schoolyear'] || normalizedRow['sy'] || normalizedRow['year']
+          ? String(
+              normalizedRow['school_year'] ||
+                normalizedRow['schoolyear'] ||
+                normalizedRow['sy'] ||
+                normalizedRow['year']
+            ).trim()
+          : '2025-2026';
+
+      let gpa: number | null = null;
+      if (
+        normalizedRow['gpa'] !== undefined &&
+        normalizedRow['gpa'] !== '' &&
+        normalizedRow['gpa'] !== null
+      ) {
+        const parsedGpa = parseFloat(String(normalizedRow['gpa']));
+        if (!isNaN(parsedGpa)) gpa = parsedGpa;
+      }
 
       const rawRow: CreateStudentInput = {
-        first_name: col[firstNameIdx] || '',
-        middle_name: middleNameIdx !== -1 ? col[middleNameIdx] || null : null,
-        last_name: col[lastNameIdx] || '',
-        email: col[emailIdx] || '',
-        student_number: studentNumIdx !== -1 ? col[studentNumIdx] || null : null,
-        school_year: schoolYearIdx !== -1 && col[schoolYearIdx] ? col[schoolYearIdx] : '2025-2026',
-        gpa: gpaIdx !== -1 && col[gpaIdx] ? parseFloat(col[gpaIdx]) || null : null,
+        first_name: firstName,
+        middle_name: middleName,
+        last_name: lastName,
+        email: email,
+        student_number: studentNumber,
+        school_year: schoolYear,
+        gpa: gpa,
         school_course_id: null,
       };
 
       const val = createStudentSchema.safeParse(rawRow);
       if (val.success) {
-        rows.push({ rowNumber: i, data: val.data, isValid: true });
+        rows.push({ rowNumber: idx + 1, data: val.data, isValid: true });
       } else {
         const firstErr = val.error.issues[0]?.message || 'Invalid row data';
-        rows.push({ rowNumber: i, data: rawRow, isValid: false, error: firstErr });
+        rows.push({ rowNumber: idx + 1, data: rawRow, isValid: false, error: firstErr });
       }
-    }
+    });
 
     setParsedRows(rows);
   };
@@ -92,15 +180,23 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const text = evt.target?.result as string;
-        parseCSVContent(text);
+        const buffer = evt.target?.result as ArrayBuffer;
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          setUploadError('Unable to read sheets in uploaded file.');
+          return;
+        }
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
+        processDataRows(rawJson);
       } catch {
-        setUploadError('Failed to read file. Please ensure it is a valid CSV format.');
+        setUploadError('Failed to parse file. Please ensure it is a valid CSV or Excel (.xlsx/.xls) file.');
       } finally {
         setIsParsing(false);
       }
     };
-    reader.readAsText(selectedFile);
+    reader.readAsArrayBuffer(selectedFile);
   };
 
   const handleUploadSubmit = async () => {
@@ -125,37 +221,75 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
   const validCount = parsedRows.filter((r) => r.isValid).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="text-lg font-bold text-slate-800">Bulk Upload Roster (CSV)</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1">
-            ✕
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-card text-card-foreground w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/40">
+          <div className="flex items-center gap-2">
+            <Upload className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-bold text-foreground">Bulk Upload Student Roster</h2>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground rounded-lg p-1 transition-colors">
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
           {uploadError && (
-            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+            <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-lg border border-destructive/20">
               {uploadError}
             </div>
           )}
 
+          {/* Download Template Card */}
+          <div className="p-3.5 bg-muted/30 border border-border rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Download className="h-3.5 w-3.5 text-muted-foreground" />
+                Download Formatted Template
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Headers: student_number, first_name, middle_name, last_name, email, school_year, gpa
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadTemplate('csv')}
+                className="text-xs h-8 bg-background border-border"
+              >
+                <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-emerald-500" />
+                CSV (.csv)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadTemplate('xlsx')}
+                className="text-xs h-8 bg-background border-border"
+              >
+                <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5 text-blue-500" />
+                Excel (.xlsx)
+              </Button>
+            </div>
+          </div>
+
           {/* File Picker */}
-          <div className="border-2 border-dashed border-slate-200 hover:border-blue-500 rounded-xl p-6 text-center transition-colors">
+          <div className="border-2 border-dashed border-border hover:border-primary rounded-xl p-6 text-center transition-colors bg-muted/10 hover:bg-muted/20">
             <input
               type="file"
-              accept=".csv"
+              accept=".csv, .xlsx, .xls"
               onChange={handleFileChange}
               className="hidden"
               id="csv-upload-input"
             />
             <label htmlFor="csv-upload-input" className="cursor-pointer space-y-2 block">
-              <div className="text-blue-600 font-semibold text-sm">
-                {file ? file.name : 'Click to select CSV file'}
+              <div className="text-primary font-semibold text-sm">
+                {file ? file.name : 'Click to select CSV or Excel file'}
               </div>
-              <p className="text-xs text-slate-500">
-                CSV header format: first_name, middle_name, last_name, email, student_number, school_year, gpa
+              <p className="text-xs text-muted-foreground">
+                Supported file types: .csv, .xlsx, .xls
               </p>
             </label>
           </div>
@@ -163,14 +297,14 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           {/* Preview Table */}
           {parsedRows.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
                 <span>Import Preview ({parsedRows.length} total rows)</span>
-                <span className="text-emerald-600 font-semibold">{validCount} valid rows ready</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{validCount} valid rows ready</span>
               </div>
 
-              <div className="border border-slate-200 rounded-lg overflow-hidden max-h-48 overflow-y-auto text-xs">
+              <div className="border border-border rounded-lg overflow-hidden max-h-48 overflow-y-auto text-xs bg-background">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50 border-b border-slate-200">
+                  <thead className="bg-muted/50 border-b border-border text-muted-foreground font-semibold">
                     <tr>
                       <th className="p-2">Row</th>
                       <th className="p-2">Name</th>
@@ -180,19 +314,19 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                   </thead>
                   <tbody>
                     {parsedRows.map((r) => (
-                      <tr key={r.rowNumber} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="p-2 font-mono text-slate-400">#{r.rowNumber}</td>
-                        <td className="p-2 font-medium text-slate-800">
+                      <tr key={r.rowNumber} className="border-b border-border hover:bg-muted/30 transition-colors">
+                        <td className="p-2 font-mono text-muted-foreground">#{r.rowNumber}</td>
+                        <td className="p-2 font-medium text-foreground">
                           {r.data.first_name} {r.data.last_name}
                         </td>
-                        <td className="p-2 text-slate-600">{r.data.email}</td>
+                        <td className="p-2 text-muted-foreground">{r.data.email}</td>
                         <td className="p-2">
                           {r.isValid ? (
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-full font-medium">
                               Valid
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium" title={r.error}>
+                            <span className="px-2 py-0.5 bg-destructive/10 text-destructive border border-destructive/20 rounded-full font-medium" title={r.error}>
                               Error: {r.error}
                             </span>
                           )}
@@ -206,22 +340,21 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2">
-          <button
+        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-end gap-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={validCount === 0 || isSubmitting || isParsing}
             onClick={handleUploadSubmit}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-colors"
           >
             {isSubmitting ? 'Importing...' : `Import ${validCount} Students`}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

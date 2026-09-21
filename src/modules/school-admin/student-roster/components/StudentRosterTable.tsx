@@ -32,7 +32,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       header: 'Student #',
       enableHiding: false,
       cell: ({ row }) => (
-        <span className="font-mono text-slate-600 text-xs">
+        <span className="font-mono text-muted-foreground text-xs">
           {row.original.student_number || '—'}
         </span>
       ),
@@ -44,7 +44,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       cell: ({ row }) => {
         const student = row.original;
         return (
-          <span className="font-medium text-slate-900">
+          <span className="font-medium text-foreground">
             {student.last_name}, {student.first_name}
           </span>
         );
@@ -54,19 +54,19 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       accessorKey: 'email',
       header: 'Email',
       enableHiding: false,
-      cell: ({ row }) => <span className="text-slate-600">{row.original.email}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.email}</span>,
     },
     {
       accessorKey: 'course_name',
       header: 'Course',
       enableHiding: false,
-      cell: ({ row }) => <span className="text-slate-700">{row.original.course_name || '—'}</span>,
+      cell: ({ row }) => <span className="text-foreground/90">{row.original.course_name || '—'}</span>,
     },
     {
       accessorKey: 'school_year',
       header: 'School Year',
       enableHiding: false,
-      cell: ({ row }) => <span className="font-mono text-xs text-slate-600">{row.original.school_year}</span>,
+      cell: ({ row }) => <span className="font-mono text-xs text-muted-foreground">{row.original.school_year}</span>,
     },
     {
       accessorKey: 'gpa',
@@ -76,7 +76,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
         const val = row.original.gpa;
         const num = val !== null && val !== undefined ? Number(val) : NaN;
         return (
-          <span className="font-mono text-xs text-slate-600">
+          <span className="font-mono text-xs text-muted-foreground">
             {!isNaN(num) ? num.toFixed(2) : '—'}
           </span>
         );
@@ -90,20 +90,20 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
         const status = row.original.invitation_status;
         if (status === 'Registered') {
           return (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Registered
             </span>
           );
         }
         if (status === 'Invited') {
           return (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
               Invited
             </span>
           );
         }
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
             Not Sent
           </span>
         );
@@ -119,7 +119,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
           <div className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-700">
+                <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                   <span className="sr-only">Open menu</span>
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -137,7 +137,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                       onDelete(student.student_id);
                     }
                   }}
-                  className="cursor-pointer text-xs font-medium text-red-600 focus:text-red-600"
+                  className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive"
                 >
                   Delete
                 </DropdownMenuItem>
@@ -150,7 +150,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
   ];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+    <div className="bg-card border border-border text-card-foreground rounded-xl shadow-sm p-4">
       <RosterDataTable
         columns={columns}
         data={students}

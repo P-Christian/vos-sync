@@ -3,11 +3,13 @@ import {
   SchoolVerificationRecord,
   SchoolDocument,
   SchoolAdminUser,
+  SchoolCourse,
   VerificationDecisionPayload,
 } from "../types";
 import {
   fetchSchoolsRepo,
   fetchSchoolDocumentsRepo,
+  fetchSchoolCoursesRepo,
   fetchSchoolAdminsRepo,
   patchSchoolRepo,
   patchUserRepo,
@@ -28,9 +30,10 @@ export async function getSchoolVerifications(
   const schoolIds = schools.map((s) => Number(s.school_id)).filter(Boolean);
   const verifierIds = schools.map((s) => Number(s.verified_by_user_id)).filter(Boolean);
 
-  const [rawDocs, adminData] = await Promise.all([
+  const [rawDocs, adminData, rawCourses] = await Promise.all([
     fetchSchoolDocumentsRepo(schoolIds),
     fetchSchoolAdminsRepo(schoolIds, verifierIds),
+    fetchSchoolCoursesRepo(schoolIds),
   ]);
 
   // Map documents by school_id
@@ -97,6 +100,25 @@ export async function getSchoolVerifications(
     });
   });
 
+  // Map courses by school_id
+  const courseMap: Record<number, SchoolCourse[]> = {};
+  rawCourses.forEach((c) => {
+    const sid = Number(c.school_id);
+    if (!courseMap[sid]) courseMap[sid] = [];
+    courseMap[sid].push({
+      school_course_id: Number(c.school_course_id || c.id),
+      school_id: sid,
+      course_name: String(c.course_name || ""),
+      course_code: c.course_code ? String(c.course_code) : null,
+      degree_level: c.degree_level ? String(c.degree_level) : null,
+      department: c.department ? String(c.department) : null,
+      description: c.description ? String(c.description) : null,
+      course_status: String(c.course_status || "Active"),
+      created_at: c.created_at ? String(c.created_at) : null,
+      updated_at: c.updated_at ? String(c.updated_at) : null,
+    });
+  });
+
   // Assemble enriched school verification records
   return schools.map((s) => {
     const sid = Number(s.school_id);
@@ -144,6 +166,7 @@ export async function getSchoolVerifications(
       updated_at: s.updated_at ? String(s.updated_at) : null,
       documents: docMap[sid] || [],
       admins: adminMap[sid] || [],
+      courses: courseMap[sid] || [],
     };
   });
 }

@@ -58,6 +58,19 @@ export interface SchoolVerificationAttempt {
   submitter_name?: string | null;
 }
 
+export interface SchoolCourse {
+  school_course_id: number;
+  school_id: number;
+  course_name: string;
+  course_code?: string | null;
+  degree_level?: string | null;
+  department?: string | null;
+  description?: string | null;
+  course_status: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface SchoolVerificationRecord {
   school_id: number;
   school_name: string;
@@ -93,6 +106,7 @@ export interface SchoolVerificationRecord {
   updated_at?: string | null;
   documents?: SchoolDocument[];
   admins?: SchoolAdminUser[];
+  courses?: SchoolCourse[];
   verifications?: SchoolVerificationAttempt[];
   latest_verification?: SchoolVerificationAttempt | null;
 }

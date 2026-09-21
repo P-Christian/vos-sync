@@ -32,9 +32,11 @@ import {
   X,
   AlertTriangle,
   Building,
+  BookOpen,
 } from "lucide-react";
 import { SchoolVerificationRecord, SchoolDocument } from "../types";
 import { SchoolVerificationStatusBadge } from "./SchoolVerificationStatusBadge";
+import { SchoolVerificationCoursesTab } from "./SchoolVerificationCoursesTab";
 import { formatSchoolAddress, formatPHDate } from "../services/schoolVerification.helpers";
 
 interface SchoolVerificationDetailModalProps {
@@ -147,10 +149,14 @@ export const SchoolVerificationDetailModal: React.FC<SchoolVerificationDetailMod
           {/* Body Content with Tabs */}
           <div className="flex-1 overflow-y-auto p-6">
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid grid-cols-4 mb-6 w-full sm:w-[540px] bg-muted/60 p-1 rounded-xl">
+              <TabsList className="grid grid-cols-5 mb-6 w-full sm:w-[680px] bg-muted/60 p-1 rounded-xl">
                 <TabsTrigger value="profile" className="text-xs rounded-lg flex items-center gap-1.5">
                   <Building className="h-3.5 w-3.5" />
                   Profile
+                </TabsTrigger>
+                <TabsTrigger value="courses" className="text-xs rounded-lg flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Courses ({(school.courses || []).length})
                 </TabsTrigger>
                 <TabsTrigger value="documents" className="text-xs rounded-lg flex items-center gap-1.5">
                   <FileCheck2 className="h-3.5 w-3.5" />
@@ -297,7 +303,15 @@ export const SchoolVerificationDetailModal: React.FC<SchoolVerificationDetailMod
                 )}
               </TabsContent>
 
-              {/* Tab 2: Accreditation & Legal Documents */}
+              {/* Tab 2: Academic Courses */}
+              <TabsContent value="courses" className="space-y-6 focus-visible:outline-none">
+                <SchoolVerificationCoursesTab
+                  courses={school.courses}
+                  schoolName={school.school_name}
+                />
+              </TabsContent>
+
+              {/* Tab 3: Accreditation & Legal Documents */}
               <TabsContent value="documents" className="space-y-3 text-xs focus-visible:outline-none">
                 {documents.length === 0 ? (
                   <div className="border border-dashed rounded-xl p-12 text-center text-muted-foreground">
