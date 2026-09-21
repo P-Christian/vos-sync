@@ -196,7 +196,7 @@ export async function registerUser(body: unknown) {
         user_contact: contact,
         role: String(role).toUpperCase(),
         role_id: role_id,
-        user_status: "Active",
+        status: "PENDING_VERIFICATION",
         user_province: province || null,
         user_city: city || null,
         user_brgy: street ? `${street}, ${barangay}` : (barangay || null),

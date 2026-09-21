@@ -105,7 +105,7 @@ export async function POST(req: Request) {
                 user_contact,
                 role_id: roleId,
                 role: 'SCH_ADMIN',
-                status: 'PENDING_VERIFICATION' // ACTIVE after OTP verification
+                status: 'PENDING_VERIFICATION' // Stays pending until admin verification
             })
         });
 

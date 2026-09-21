@@ -84,7 +84,11 @@ function assertCompatibleUser(
     throw conflict("Existing registration record is incompatible.");
   }
   const status = String(user.status ?? "").toUpperCase();
-  if (status !== "PROVISIONING" && status !== "ACTIVE") {
+  if (
+    status !== "PROVISIONING" &&
+    status !== "ACTIVE" &&
+    status !== "PENDING_VERIFICATION"
+  ) {
     throw conflict("Existing registration record has an incompatible status.");
   }
 }
@@ -185,14 +189,16 @@ export class RegistrationProvisioningService {
       throw error;
     }
 
-    const wasAlreadyActive = String(user.status).toUpperCase() === "ACTIVE";
-    if (!wasAlreadyActive) {
+    const wasAlreadyProvisioned = ["ACTIVE", "PENDING_VERIFICATION"].includes(
+      String(user.status).toUpperCase()
+    );
+    if (!wasAlreadyProvisioned) {
       try {
         user = await this.repo.update<ProvisionedRegistrationUser>(
           "vs_user",
           user.user_id,
           {
-            status: "ACTIVE",
+            status: "PENDING_VERIFICATION",
             otp_verified: 1,
             otp_verified_at: new Date().toISOString(),
           }
@@ -221,7 +227,8 @@ export class RegistrationProvisioningService {
       );
     }
 
-    if (!wasAlreadyActive) await this.emitBestEffortEffects(activeUser, options);
+    if (!wasAlreadyProvisioned)
+      await this.emitBestEffortEffects(activeUser, options);
     return activeUser;
   }
 
@@ -240,7 +247,7 @@ export class RegistrationProvisioningService {
         actor_user_id: Number.isSafeInteger(numericUserId)
           ? numericUserId
           : null,
-        reason: "Challenge-backed registration completed",
+        reason: "Challenge-backed registration completed (pending verification)",
       }),
     ];
     if (!options?.deferWelcomeEmail) {
@@ -248,7 +255,7 @@ export class RegistrationProvisioningService {
         sendNotificationEmail(
           user.user_email,
           "Welcome to VOS Sync",
-          "Your verified VOS Sync account is ready."
+          "Your VOS Sync account has been created and is pending admin verification."
         )
       );
     }
