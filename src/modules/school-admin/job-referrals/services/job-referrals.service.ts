@@ -22,6 +22,7 @@ import {
   maskEmail,
   getExpirationDate,
   markdownToHtml,
+  generateRecommendationPdfBuffer,
 } from './job-referrals.helpers';
 import { transporter, MAIL_FROM } from '@/lib/mail/transporter';
 
@@ -162,6 +163,26 @@ export async function createBatchReferralsService(
     console.warn('Could not fetch target job details for email:', err);
   }
 
+  // Fetch school details if available
+  let schoolName = 'Your Academic Institution';
+  try {
+    const schoolRes = await fetch(`${(process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '')}/items/vs_schools/${schoolId}?fields=school_name`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.DIRECTUS_STATIC_TOKEN ? { Authorization: `Bearer ${process.env.DIRECTUS_STATIC_TOKEN}` } : {}),
+      },
+      cache: 'no-store',
+    });
+    if (schoolRes.ok) {
+      const sJson = await schoolRes.json();
+      if (sJson.data?.school_name) {
+        schoolName = sJson.data.school_name;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch school details for email:', err);
+  }
+
   // Format Results and dispatch automated email notifications
   const results: CreatedReferralResult[] = await Promise.all(
     createdDbRecords.map(async (rec, index) => {
@@ -174,6 +195,22 @@ export async function createBatchReferralsService(
       // Dispatch Email
       if (student?.email) {
         try {
+          const studentFullName = `${student.first_name} ${student.last_name}`.trim();
+          let pdfBuffer: Buffer | null = null;
+          if (payload.referral_letter) {
+            try {
+              pdfBuffer = generateRecommendationPdfBuffer({
+                schoolName,
+                studentName: studentFullName,
+                jobTitle,
+                companyName,
+                letterContent: payload.referral_letter,
+              });
+            } catch (pdfErr) {
+              console.warn('[job-referrals] Failed to generate PDF recommendation:', pdfErr);
+            }
+          }
+
           const htmlBody = `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 28px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
               <div style="text-align: center; margin-bottom: 24px;">
@@ -184,7 +221,7 @@ export async function createBatchReferralsService(
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
                 <h2 style="color: #0f172a; margin: 0 0 10px; font-size: 18px;">Congratulations, ${student.first_name}!</h2>
                 <p style="color: #334155; margin: 0; font-size: 14px; line-height: 1.5;">
-                  Your School Administrator has officially endorsed and referred your verified freelancer profile for an active opportunity:
+                  <strong>${schoolName}</strong> has officially endorsed and referred your verified freelancer profile for an active opportunity:
                 </p>
                 <div style="margin-top: 14px; padding: 14px; background: #ffffff; border-radius: 6px; border: 1px solid #cbd5e1;">
                   <p style="margin: 0; font-weight: bold; font-size: 16px; color: #1e293b;">${jobTitle}</p>
@@ -193,7 +230,7 @@ export async function createBatchReferralsService(
               </div>
 
               ${payload.referral_letter ? `
-                <div style="margin-bottom: 24px; padding: 18px 20px; background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #9333ea; border-radius: 8px;">
+                <div style="margin-bottom: 20px; padding: 18px 20px; background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #9333ea; border-radius: 8px;">
                   <div style="display: flex; align-items: center; margin-bottom: 12px;">
                     <p style="margin: 0; font-weight: 700; font-size: 13px; color: #7e22ce; text-transform: uppercase; letter-spacing: 0.5px;">
                       🎓 Official Institutional Recommendation
@@ -205,6 +242,12 @@ export async function createBatchReferralsService(
                     </p>
                   </div>
                 </div>
+
+                ${pdfBuffer ? `
+                  <div style="margin-bottom: 24px; padding: 12px 16px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 8px; font-size: 13px; color: #334155;">
+                    📎 <strong>Official PDF Attached:</strong> An official letterhead copy of your recommendation letter is attached to this email. You can download and attach it when applying for the job.
+                  </div>
+                ` : ''}
               ` : ''}
 
               <div style="text-align: center; margin: 32px 0;">
@@ -216,7 +259,7 @@ export async function createBatchReferralsService(
               <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
 
               <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0; line-height: 1.5;">
-                This endorsement was officially issued by your School Administration on VOS Sync.<br/>
+                This endorsement was officially issued by ${schoolName} on VOS Sync.<br/>
                 This referral link is unique to you and valid for ${expires_in_days} days.<br/>
                 <span style="color: #4f46e5; word-break: break-all; margin-top: 6px; display: inline-block;">${url}</span>
               </p>
@@ -224,10 +267,22 @@ export async function createBatchReferralsService(
           `;
 
           const { sendMail } = await import('@/lib/mail');
+          const cleanSafeName = studentFullName.replace(/[^a-zA-Z0-9_-]/g, '_');
           await sendMail({
             to: student.email,
             subject: `🎓 Official Job Referral: ${jobTitle} at ${companyName}`,
             html: htmlBody,
+            ...(pdfBuffer
+              ? {
+                  attachments: [
+                    {
+                      filename: `Recommendation_Letter_${cleanSafeName}.pdf`,
+                      content: pdfBuffer,
+                      contentType: 'application/pdf',
+                    },
+                  ],
+                }
+              : {}),
           });
         } catch (mailErr) {
           console.warn(`[job-referrals] Failed to send email to ${student.email}:`, mailErr);
