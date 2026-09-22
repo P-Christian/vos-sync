@@ -4,9 +4,10 @@ export const createCourseSchema = z.object({
   course_name: z.string().min(2, 'Course name must be at least 2 characters'),
   course_code: z.string().nullable().or(z.literal('')).optional(),
   degree: z.enum(['Associate', 'Bachelor', 'Master', 'Doctorate'], {
-    required_error: 'Degree level is required',
+    message: 'Degree level is required',
   }),
 });
+
 
 export const updateCourseSchema = z.object({
   course_name: z.string().min(2, 'Course name must be at least 2 characters').optional(),

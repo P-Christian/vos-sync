@@ -45,23 +45,23 @@ export const StudentRosterLeaderboard: React.FC<StudentRosterLeaderboardProps> =
     });
 
     // Assign Dense Rank
+    const rankedList: (VsSchoolStudent & { leaderboard_rank: number })[] = [];
     let currentDenseRank = 1;
-    return sorted.map((student, index) => {
-      if (index > 0) {
-        const prev = sorted[index - 1];
-        if (Number(student.gpa) === Number(prev.gpa)) {
-          // Tied with previous -> shares same rank
-          return { ...student, leaderboard_rank: currentDenseRank };
-        } else {
+
+    for (let i = 0; i < sorted.length; i++) {
+      const student = sorted[i];
+      if (i > 0) {
+        const prev = sorted[i - 1];
+        if (Number(student.gpa) !== Number(prev.gpa)) {
           currentDenseRank += 1;
-          return { ...student, leaderboard_rank: currentDenseRank };
         }
-      } else {
-        currentDenseRank = 1;
-        return { ...student, leaderboard_rank: 1 };
       }
-    });
+      rankedList.push({ ...student, leaderboard_rank: currentDenseRank });
+    }
+
+    return rankedList;
   }, [students]);
+
 
   const displayedStudents = useMemo(() => {
     return rankedStudents.slice(0, limit);
