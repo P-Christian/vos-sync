@@ -179,12 +179,64 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enrich with referral details
+    const referralMap: Record<number, { is_referred: boolean; referral_letter: string | null; school_name: string | null; referrer_name: string | null }> = {};
+    if (appIds.length > 0) {
+      try {
+        const refRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_application_referral?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,referral_id.referral_letter,referrer_user_id.user_id,referrer_user_id.user_fname,referrer_user_id.user_lname&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (refRes.ok) {
+          const refJson = await refRes.json();
+          const refRows: Record<string, any>[] = refJson.data ?? [];
+          
+          const refUserIds = [...new Set(refRows.map(r => r.referrer_user_id?.user_id).filter(Boolean))];
+          const schoolMap: Record<number, string> = {};
+          if (refUserIds.length > 0) {
+            const sRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_in]=${refUserIds.join(",")}&fields=user_id,school_id.school_name&limit=500`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
+            if (sRes.ok) {
+              const sJson = await sRes.json();
+              (sJson.data || []).forEach((row: any) => {
+                const uid = Number(row.user_id);
+                const sName = typeof row.school_id === "object" ? row.school_id?.school_name : null;
+                if (sName) schoolMap[uid] = sName;
+              });
+            }
+          }
+
+          refRows.forEach((r) => {
+            const appId = Number(r.application_id);
+            const refUser = r.referrer_user_id;
+            const refUserId = refUser?.user_id || 0;
+            const sName = schoolMap[refUserId] || null;
+            const refLetter = typeof r.referral_id === "object" ? r.referral_id?.referral_letter : null;
+            const rName = refUser ? `${refUser.user_fname || ""} ${refUser.user_lname || ""}`.trim() : null;
+
+            referralMap[appId] = {
+              is_referred: true,
+              referral_letter: refLetter,
+              school_name: sName,
+              referrer_name: rName,
+            };
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load referral data for freelancer applications:", err);
+      }
+    }
+
     // Merge all data
     const enriched = applications.map((app) => {
       const job = jobsMap[app.job_id as number] ?? {};
       const companyId = job.company_id as number;
       const appId = app.application_id as number;
       const company = companyId ? companyMap[companyId] : null;
+      const refData = referralMap[appId];
+
       return {
         ...app,
         job_title: job.job_title ?? null,
@@ -198,6 +250,10 @@ export async function GET(req: NextRequest) {
         company_details: company ?? null,
         screening_answers: screeningMap[appId] ?? null,
         resume: app.resume_id ? (resumeMap[app.resume_id as number] ?? null) : null,
+        is_referred: !!refData?.is_referred,
+        referral_letter: refData?.referral_letter || null,
+        school_name: refData?.school_name || null,
+        referrer_name: refData?.referrer_name || null,
       };
     });
 

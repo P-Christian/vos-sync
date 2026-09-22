@@ -352,6 +352,7 @@ export async function GET(req: NextRequest) {
       interviewsRes,
       educationRes,
       screeningAnswersRes,
+      appReferralRes,
     ] = await Promise.all([
       fetch(
         `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,user_position,profile_image_url,user_city,user_province&limit=500`,
@@ -403,6 +404,14 @@ export async function GET(req: NextRequest) {
 
       fetch(
         `${DIRECTUS_BASE}/items/vs_job_application_answer?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,question_id&limit=1000`,
+        {
+          headers: getHeaders(),
+          cache: "no-store",
+        }
+      ),
+
+      fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application_referral?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,referral_id.referral_id,referrer_user_id.user_id,referrer_user_id.user_fname,referrer_user_id.user_lname&limit=500`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -544,6 +553,69 @@ export async function GET(req: NextRequest) {
         (resumeMap[row.user_id] || 0) + 1;
     });
 
+    const referralAppRows: {
+      application_id: number;
+      referral_id?: { referral_id?: number } | number;
+      referrer_user_id?: { user_id?: number; user_fname?: string; user_lname?: string } | number;
+    }[] = (await appReferralRes.json().catch(() => ({ data: [] }))).data ?? [];
+
+    const referrerUserIds = [
+      ...new Set(
+        referralAppRows
+          .map((r) =>
+            typeof r.referrer_user_id === "object" ? r.referrer_user_id?.user_id : Number(r.referrer_user_id)
+          )
+          .filter(Boolean)
+      ),
+    ];
+
+    const schoolAdminMap: Record<number, string> = {};
+    if (referrerUserIds.length > 0) {
+      try {
+        const sRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_in]=${referrerUserIds.join(",")}&fields=user_id,school_id.school_name&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (sRes.ok) {
+          const sJson = await sRes.json();
+          (sJson.data || []).forEach((row: any) => {
+            const uid = Number(row.user_id);
+            const sName = typeof row.school_id === "object" ? row.school_id?.school_name : null;
+            if (sName) schoolAdminMap[uid] = sName;
+          });
+        }
+      } catch (err) {
+        console.warn("Could not fetch school admin mapping for applicants:", err);
+      }
+    }
+
+    const appReferralMap: Record<
+      number,
+      {
+        is_referred: boolean;
+        referral_type: "SCHOOL_ADMIN" | "FREELANCER";
+        referrer_name: string;
+        referral_school_name: string | null;
+      }
+    > = {};
+
+    referralAppRows.forEach((row) => {
+      const appId = Number(row.application_id);
+      const refUser = typeof row.referrer_user_id === "object" ? row.referrer_user_id : null;
+      const refUserId = refUser?.user_id || Number(row.referrer_user_id) || 0;
+      const schoolName = schoolAdminMap[refUserId] || null;
+      const referrerName = refUser
+        ? `${refUser.user_fname || ""} ${refUser.user_lname || ""}`.trim()
+        : "Referrer";
+
+      appReferralMap[appId] = {
+        is_referred: true,
+        referral_type: schoolName ? "SCHOOL_ADMIN" : "FREELANCER",
+        referrer_name: referrerName,
+        referral_school_name: schoolName,
+      };
+    });
+
     // ------------------------------
     // Response
     // ------------------------------
@@ -561,6 +633,7 @@ export async function GET(req: NextRequest) {
         resumeMap[application.user_id] ?? 0;
 
       const userEdu = educationMap[application.user_id];
+      const referralInfo = appReferralMap[application.application_id];
 
       return {
         ...application,
@@ -614,6 +687,12 @@ export async function GET(req: NextRequest) {
 
         active_interview_id:
           activeInterviewsMap[application.application_id] ?? null,
+
+        // Referral Data
+        is_referred: !!referralInfo?.is_referred,
+        referral_type: referralInfo?.referral_type,
+        referrer_name: referralInfo?.referrer_name || null,
+        referral_school_name: referralInfo?.referral_school_name || null,
       };
     });
 

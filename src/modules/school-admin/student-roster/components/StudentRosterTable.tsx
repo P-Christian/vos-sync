@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreVertical, Trophy, Medal, Award } from 'lucide-react';
+import { MoreVertical, Trophy, Medal, Award, Send, Pencil, Trash2 } from 'lucide-react';
 import { RosterDataTable } from './RosterDataTable';
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ interface StudentRosterTableProps {
   isLoading: boolean;
   onEdit: (student: VsSchoolStudent) => void;
   onDelete: (studentId: number) => Promise<void>;
+  onInvite?: (student: VsSchoolStudent) => void;
 }
 
 export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
@@ -25,6 +26,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
   isLoading,
   onEdit,
   onDelete,
+  onInvite,
 }) => {
   const columns: ColumnDef<VsSchoolStudent>[] = [
     {
@@ -168,12 +170,22 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuContent align="end" className="w-48">
+                {student.invitation_status !== 'Registered' && onInvite && (
+                  <DropdownMenuItem
+                    onClick={() => onInvite(student)}
+                    className="cursor-pointer text-xs font-semibold text-primary focus:text-primary flex items-center"
+                  >
+                    <Send className="mr-2 h-3.5 w-3.5 text-primary" />
+                    <span>{student.invitation_status === 'Invited' ? 'Resend / Copy Link' : 'Invite Student'}</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => onEdit(student)}
-                  className="cursor-pointer text-xs font-medium"
+                  className="cursor-pointer text-xs font-medium flex items-center"
                 >
-                  Edit Details
+                  <Pencil className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                  <span>Edit Details</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -181,9 +193,10 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                       onDelete(student.student_id);
                     }
                   }}
-                  className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive"
+                  className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive flex items-center"
                 >
-                  Delete
+                  <Trash2 className="mr-2 h-3.5 w-3.5 text-destructive" />
+                  <span>Delete</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

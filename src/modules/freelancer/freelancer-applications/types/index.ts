@@ -69,6 +69,10 @@ export interface ApplicationItem {
     file_name: string;
     file_url: string;
   };
+  is_referred?: boolean;
+  referral_letter?: string | null;
+  school_name?: string | null;
+  referrer_name?: string | null;
 }
 
 export interface ApplicationSummary {

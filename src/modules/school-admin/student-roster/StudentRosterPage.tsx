@@ -11,8 +11,10 @@ import { StudentRosterLeaderboard } from './components/StudentRosterLeaderboard'
 import { AddStudentModal } from './components/AddStudentModal';
 import { EditStudentModal } from './components/EditStudentModal';
 import { BulkUploadModal } from './components/BulkUploadModal';
+import { InviteStudentModal } from './components/InviteStudentModal';
 import { VsSchoolStudent } from './types/student-roster.types';
 import { SchoolAdminModuleHeader } from '@/modules/school-admin/components/SchoolAdminModuleHeader';
+import { toast } from 'sonner';
 
 import { StudentRosterSkeleton } from '@/modules/school-admin/components/SchoolAdminSkeleton';
 
@@ -35,12 +37,36 @@ export const StudentRosterPage: React.FC = () => {
     editStudent,
     bulkUploadStudents,
     deleteStudent,
+    refreshRoster,
   } = useStudentRoster();
 
   const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<VsSchoolStudent | null>(null);
+  const [invitedStudentData, setInvitedStudentData] = useState<{ student: VsSchoolStudent; url: string } | null>(null);
+
+  const handleInviteStudent = async (student: VsSchoolStudent) => {
+    try {
+      const res = await fetch(`/api/school-admin/students/${student.student_id}/invite`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to issue invitation');
+      }
+      const data = await res.json();
+      setInvitedStudentData({
+        student: { ...student, invitation_status: 'Invited' },
+        url: data.invitation_url,
+      });
+      toast.success('Invitation link generated successfully!');
+      if (refreshRoster) refreshRoster();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error generating invitation';
+      toast.error(msg);
+    }
+  };
 
   if (isLoading && students.length === 0) {
     return <StudentRosterSkeleton />;
@@ -129,6 +155,7 @@ export const StudentRosterPage: React.FC = () => {
             isLoading={isLoading}
             onEdit={(student) => setEditingStudent(student)}
             onDelete={deleteStudent}
+            onInvite={handleInviteStudent}
           />
         </TabsContent>
       </Tabs>
@@ -153,6 +180,13 @@ export const StudentRosterPage: React.FC = () => {
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         onSuccess={bulkUploadStudents}
+      />
+
+      <InviteStudentModal
+        isOpen={!!invitedStudentData}
+        onClose={() => setInvitedStudentData(null)}
+        student={invitedStudentData?.student || null}
+        invitationUrl={invitedStudentData?.url || ''}
       />
     </div>
   );
