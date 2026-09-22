@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Trophy, Medal, Award } from 'lucide-react';
 import { RosterDataTable } from './RosterDataTable';
 import {
   DropdownMenu,
@@ -27,6 +27,46 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
   onDelete,
 }) => {
   const columns: ColumnDef<VsSchoolStudent>[] = [
+    {
+      accessorKey: 'rank',
+      header: 'Rank',
+      enableHiding: false,
+      cell: ({ row }) => {
+        const rank = row.original.rank;
+        if (rank === 1) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shadow-xs">
+              <Trophy className="w-3 h-3 text-amber-500 shrink-0" />
+              #1
+            </span>
+          );
+        }
+        if (rank === 2) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-400/15 text-slate-700 dark:text-slate-300 border border-slate-400/30 shadow-xs">
+              <Medal className="w-3 h-3 text-slate-500 shrink-0" />
+              #2
+            </span>
+          );
+        }
+        if (rank === 3) {
+          return (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/30 shadow-xs">
+              <Award className="w-3 h-3 text-orange-500 shrink-0" />
+              #3
+            </span>
+          );
+        }
+        if (typeof rank === 'number' && rank > 3) {
+          return (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-muted text-muted-foreground border border-border/50">
+              #{rank}
+            </span>
+          );
+        }
+        return <span className="text-muted-foreground text-xs font-mono">—</span>;
+      },
+    },
     {
       accessorKey: 'student_number',
       header: 'Student #',
@@ -75,9 +115,13 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       cell: ({ row }) => {
         const val = row.original.gpa;
         const num = val !== null && val !== undefined ? Number(val) : NaN;
+        const rank = row.original.rank;
+        if (isNaN(num)) {
+          return <span className="font-mono text-xs text-muted-foreground">—</span>;
+        }
         return (
-          <span className="font-mono text-xs text-muted-foreground">
-            {!isNaN(num) ? num.toFixed(2) : '—'}
+          <span className={`font-mono text-xs ${rank && rank <= 3 ? 'font-bold text-foreground' : 'text-muted-foreground'}`}>
+            {num.toFixed(2)}
           </span>
         );
       },

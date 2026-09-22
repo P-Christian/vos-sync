@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { VsSchoolCourse, SchoolStatus } from '@/modules/school-admin/types/school-admin.types';
+import { VsSchoolCourse, CourseStatus, SchoolStatus } from '@/modules/school-admin/types/school-admin.types';
+import { CreateCourseDTO, UpdateCourseDTO } from '../types/school-courses.types';
 import { 
   executeCreateSchoolCourse, 
   executeUpdateSchoolCourse, 
@@ -17,7 +18,7 @@ export function useSchoolCourses(
   const [saving, setSaving] = useState(false);
   const [editingCourse, setEditingCourse] = useState<VsSchoolCourse | null>(null);
 
-  const addCourse = async (data: { course_name: string; course_code?: string | null }): Promise<boolean> => {
+  const addCourse = async (data: CreateCourseDTO): Promise<boolean> => {
     setSaving(true);
     try {
       if (onAddCourseProp) {
@@ -41,7 +42,7 @@ export function useSchoolCourses(
     }
   };
 
-  const updateCourse = async (courseId: number, data: { course_name: string; course_code?: string | null; course_status?: SchoolStatus }): Promise<boolean> => {
+  const updateCourse = async (courseId: number, data: UpdateCourseDTO): Promise<boolean> => {
     setSaving(true);
     try {
       const updated = await executeUpdateSchoolCourse(courseId, data);
@@ -58,7 +59,8 @@ export function useSchoolCourses(
     }
   };
 
-  const toggleStatus = async (courseId: number, currentStatus: SchoolStatus): Promise<boolean> => {
+  const toggleStatus = async (courseId: number, currentStatus: CourseStatus | SchoolStatus | string): Promise<boolean> => {
+
     try {
       if (onToggleStatusProp) {
         const success = await onToggleStatusProp(courseId, currentStatus);
