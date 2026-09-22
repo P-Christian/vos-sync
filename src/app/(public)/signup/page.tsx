@@ -623,14 +623,12 @@ function SignupPageContent() {
     const isSchoolStep = step === 'school';
     const isFreelancerStep2 = step === 'freelancer' && freelancerStep === 2 && freelancerSelectedCountry.code === 'PH';
     if ((isClientStep3 || isSchoolStep || isFreelancerStep2) && provinces.length === 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProvinces();
     }
   }, [clientStep, step, freelancerStep, company.companyCountryCode, freelancerSelectedCountry.code, provinces.length, fetchProvinces]);
 
   useEffect(() => {
     if (step === 'client' && company.companyCountryCode === 'PH' && company.companyProvinceCode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchCities(company.companyProvinceCode);
     } else if (step === 'school' && schoolFormData.provinceCode) {
       fetchCities(schoolFormData.provinceCode);
@@ -641,7 +639,6 @@ function SignupPageContent() {
 
   useEffect(() => {
     if (company.companyCityCode && company.companyCountryCode === 'PH' && step === 'client') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchBarangays(company.companyCityCode);
     } else if (step === 'school' && schoolFormData.cityCode) {
       fetchBarangays(schoolFormData.cityCode);
