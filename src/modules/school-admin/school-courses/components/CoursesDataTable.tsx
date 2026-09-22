@@ -87,6 +87,8 @@ interface CoursesDataTableProps<TData, TValue> {
   onSearchChange?: (value: string) => void;
   statusFilter?: string;
   onStatusFilterChange?: (value: string) => void;
+  degreeFilter?: string;
+  onDegreeFilterChange?: (value: string) => void;
   toolbarActions?: React.ReactNode;
 }
 
@@ -97,6 +99,8 @@ export function CoursesDataTable<TData, TValue>({
   onSearchChange,
   statusFilter = "all",
   onStatusFilterChange,
+  degreeFilter = "all",
+  onDegreeFilterChange,
   toolbarActions,
 }: CoursesDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -142,24 +146,36 @@ export function CoursesDataTable<TData, TValue>({
     <div className="space-y-4">
       {/* Header Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex flex-1 items-center space-x-2 w-full">
+        <div className="flex flex-1 flex-wrap items-center gap-2 w-full">
           <SearchInput
             key={searchValue}
             placeholder={searchPlaceholder}
             initialValue={searchValue}
             onSearch={handleSearch}
           />
+          {onDegreeFilterChange && (
+            <Select value={degreeFilter} onValueChange={onDegreeFilterChange}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Degrees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Degrees</SelectItem>
+                <SelectItem value="Associate">Associate</SelectItem>
+                <SelectItem value="Bachelor">Bachelor</SelectItem>
+                <SelectItem value="Master">Master</SelectItem>
+                <SelectItem value="Doctorate">Doctorate</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           {onStatusFilterChange && (
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Inactive">Inactive</SelectItem>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Draft">Draft</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -170,6 +186,7 @@ export function CoursesDataTable<TData, TValue>({
           </div>
         )}
       </div>
+
 
       {/* Table Container */}
       <div className="rounded-md border bg-card">

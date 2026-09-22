@@ -56,12 +56,16 @@ export interface SchoolWithStats extends VsSchool {
 }
 
 
+export type CourseDegree = 'Associate' | 'Bachelor' | 'Master' | 'Doctorate';
+export type CourseStatus = 'Active' | 'Inactive';
+
 export interface VsSchoolCourse {
   school_course_id: number;
   school_id: number;
   course_name: string;
   course_code: string | null;
-  course_status: SchoolStatus;
+  degree?: CourseDegree | null;
+  course_status: CourseStatus | SchoolStatus;
   created_by: number;
   created_at: string;
   updated_by: number | null;

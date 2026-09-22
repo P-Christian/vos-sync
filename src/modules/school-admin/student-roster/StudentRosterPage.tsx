@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GraduationCap, Plus, Upload } from 'lucide-react';
+import { GraduationCap, Plus, Upload, Trophy, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useStudentRoster } from './hooks/useStudentRoster';
 import { RosterFilters } from './components/RosterFilters';
 import { StudentRosterTable } from './components/StudentRosterTable';
+import { StudentRosterLeaderboard } from './components/StudentRosterLeaderboard';
 import { AddStudentModal } from './components/AddStudentModal';
 import { EditStudentModal } from './components/EditStudentModal';
 import { BulkUploadModal } from './components/BulkUploadModal';
@@ -35,6 +37,7 @@ export const StudentRosterPage: React.FC = () => {
     deleteStudent,
   } = useStudentRoster();
 
+  const [activeTab, setActiveTab] = useState<string>('leaderboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<VsSchoolStudent | null>(null);
@@ -91,13 +94,44 @@ export const StudentRosterPage: React.FC = () => {
         availableSchoolYears={availableSchoolYears}
       />
 
-      {/* Roster Data Table */}
-      <StudentRosterTable
-        students={students}
-        isLoading={isLoading}
-        onEdit={(student) => setEditingStudent(student)}
-        onDelete={deleteStudent}
-      />
+      {/* View Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-muted p-1 rounded-xl h-11 border border-border">
+          <TabsTrigger
+            value="leaderboard"
+            className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-2"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-500" />
+            Academic Leaderboard
+          </TabsTrigger>
+          <TabsTrigger
+            value="directory"
+            className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-2"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Student Masterlist
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="leaderboard" className="mt-0 space-y-6 focus-visible:outline-none">
+          <StudentRosterLeaderboard
+            students={students}
+            courses={courses}
+            selectedCourseId={selectedCourseId}
+            selectedSchoolYear={selectedSchoolYear}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="directory" className="mt-0 space-y-6 focus-visible:outline-none">
+          <StudentRosterTable
+            students={students}
+            isLoading={isLoading}
+            onEdit={(student) => setEditingStudent(student)}
+            onDelete={deleteStudent}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Modals */}
       <AddStudentModal

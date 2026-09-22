@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VsSchoolStudent } from '../types/student-roster.types';
 import { CreateStudentInput, createStudentSchema } from '../types/student-roster.schema';
 import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
@@ -33,11 +33,27 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
     student_number: student?.student_number || '',
     school_course_id: student?.school_course_id ? Number(student.school_course_id) : null,
     school_year: student?.school_year || '2025-2026',
-    gpa: student?.gpa ?? null,
+    gpa: student?.gpa !== null && student?.gpa !== undefined ? Number(student.gpa) : null,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (student) {
+      setFormData({
+        first_name: student.first_name || '',
+        middle_name: student.middle_name || '',
+        last_name: student.last_name || '',
+        email: student.email || '',
+        student_number: student.student_number || '',
+        school_course_id: student.school_course_id ? Number(student.school_course_id) : null,
+        school_year: student.school_year || '2025-2026',
+        gpa: student.gpa !== null && student.gpa !== undefined ? Number(student.gpa) : null,
+      });
+      setErrors({});
+    }
+  }, [student, isOpen]);
 
   if (!isOpen || !student) return null;
 
