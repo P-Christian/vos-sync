@@ -5,28 +5,44 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { CourseDegree } from "@/modules/school-admin/types/school-admin.types";
+import { CreateCourseDTO } from "../types/school-courses.types";
 import { createCourseSchema } from "../types/school-courses.schema";
 
 interface AddCourseModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: { course_name: string; course_code?: string | null }) => Promise<boolean>;
+  onSubmit: (data: CreateCourseDTO) => Promise<boolean>;
   saving: boolean;
 }
 
 export function AddCourseModal({ isOpen, onOpenChange, onSubmit, saving }: AddCourseModalProps) {
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
+  const [degree, setDegree] = useState<CourseDegree | "">("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    if (!degree) {
+      setError("Please select a degree level.");
+      return;
+    }
+
     const parsed = createCourseSchema.safeParse({
       course_name: courseName,
       course_code: courseCode || null,
+      degree: degree as CourseDegree,
     });
 
     if (!parsed.success) {
@@ -37,11 +53,13 @@ export function AddCourseModal({ isOpen, onOpenChange, onSubmit, saving }: AddCo
     const success = await onSubmit({
       course_name: courseName.trim(),
       course_code: courseCode.trim() || null,
+      degree: degree as CourseDegree,
     });
 
     if (success) {
       setCourseName("");
       setCourseCode("");
+      setDegree("");
       onOpenChange(false);
     }
   };
@@ -59,7 +77,7 @@ export function AddCourseModal({ isOpen, onOpenChange, onSubmit, saving }: AddCo
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="add_course_name">Course Name</Label>
+            <Label htmlFor="add_course_name">Course Name *</Label>
             <Input 
               id="add_course_name" 
               placeholder="e.g. BS Information Technology" 
@@ -67,6 +85,20 @@ export function AddCourseModal({ isOpen, onOpenChange, onSubmit, saving }: AddCo
               onChange={(e) => setCourseName(e.target.value)}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="add_degree">Degree Level *</Label>
+            <Select value={degree} onValueChange={(val: string) => setDegree(val as CourseDegree)}>
+              <SelectTrigger id="add_degree">
+                <SelectValue placeholder="Select degree level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Associate">Associate</SelectItem>
+                <SelectItem value="Bachelor">Bachelor</SelectItem>
+                <SelectItem value="Master">Master</SelectItem>
+                <SelectItem value="Doctorate">Doctorate</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="add_course_code">Course Code (Optional)</Label>
@@ -91,3 +123,4 @@ export function AddCourseModal({ isOpen, onOpenChange, onSubmit, saving }: AddCo
     </Dialog>
   );
 }
+

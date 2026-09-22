@@ -1,20 +1,30 @@
-import { VsSchoolCourse, SchoolStatus } from '../../types/school-admin.types';
+import { VsSchoolCourse, CourseDegree, CourseStatus, SchoolStatus } from '../../types/school-admin.types';
 
 export function formatCourseCode(code: string | null | undefined): string {
   if (!code) return 'N/A';
   return code.trim().toUpperCase();
 }
 
-export function getCourseStatusBadgeVariant(status: SchoolStatus): 'default' | 'secondary' | 'outline' | 'destructive' {
+export function getCourseStatusBadgeVariant(status: CourseStatus | SchoolStatus | string): 'default' | 'secondary' | 'outline' | 'destructive' {
   switch (status) {
     case 'Active':
       return 'default';
     case 'Inactive':
       return 'secondary';
-    case 'Pending':
+    default:
       return 'outline';
-    case 'Draft':
-      return 'destructive';
+  }
+}
+
+export function getDegreeBadgeVariant(degree?: CourseDegree | null): 'outline' | 'secondary' | 'default' {
+  switch (degree) {
+    case 'Doctorate':
+    case 'Master':
+      return 'default';
+    case 'Bachelor':
+      return 'secondary';
+    case 'Associate':
+      return 'outline';
     default:
       return 'outline';
   }
@@ -23,7 +33,8 @@ export function getCourseStatusBadgeVariant(status: SchoolStatus): 'default' | '
 export function filterCourses(
   courses: VsSchoolCourse[],
   searchQuery: string,
-  statusFilter: string
+  statusFilter: string,
+  degreeFilter?: string
 ): VsSchoolCourse[] {
   return courses.filter((course) => {
     const matchesSearch =
@@ -34,6 +45,10 @@ export function filterCourses(
     const matchesStatus =
       !statusFilter || statusFilter === 'all' || course.course_status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    const matchesDegree =
+      !degreeFilter || degreeFilter === 'all' || course.degree === degreeFilter;
+
+    return matchesSearch && matchesStatus && matchesDegree;
   });
 }
+

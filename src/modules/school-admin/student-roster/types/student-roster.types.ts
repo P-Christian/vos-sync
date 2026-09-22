@@ -20,6 +20,9 @@ export interface VsSchoolStudent {
   updated_at: string | null;
   // Joined field helper
   course_name?: string;
+  // Ranking fields
+  rank?: number | null;
+  cohort_total?: number;
 }
 
 export interface StudentRosterFilter {

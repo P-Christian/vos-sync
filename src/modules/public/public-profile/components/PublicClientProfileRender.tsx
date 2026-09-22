@@ -1,97 +1,352 @@
+/* eslint-disable @next/next/no-img-element */
 import React from "react";
-import { User, Mail, Shield, Globe, Phone, MapPin, ExternalLink } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Building2,
+  MapPin,
+  Mail,
+  Phone,
+  Globe,
+  Facebook,
+  Linkedin,
+  Instagram,
+  Youtube,
+  Users,
+  Briefcase,
+  CalendarDays,
+  Target,
+  Compass,
+  HeartHandshake,
+  Gift,
+  ExternalLink,
+} from "lucide-react";
 import { PublicClientProfile } from "../services/public-profile.service";
 
 interface Props {
   profile: PublicClientProfile;
 }
 
+function formatUrl(url: string | null | undefined): string {
+  if (!url) return "#";
+  const t = url.trim();
+  return t.startsWith("http://") || t.startsWith("https://") ? t : `https://${t}`;
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value?: string | null;
+  href?: string;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 shrink-0 h-7 w-7 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+        <Icon className="h-3.5 w-3.5 text-zinc-500 dark:text-zinc-400" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs md:text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-0.5">
+          {label}
+        </p>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 truncate"
+          >
+            <span className="truncate">{value}</span>
+            <ExternalLink className="w-3 h-3 shrink-0" />
+          </a>
+        ) : (
+          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200 break-words">
+            {value}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function PublicClientProfileRender({ profile }: Props) {
   const comp = profile.company;
-  const name = comp?.company_name || `${profile.user_fname} ${profile.user_lname}`;
-  const avatar = comp?.company_logo || profile.avatar_url;
-  const headline = comp?.company_name ? "Client Partner" : profile.headline;
+  const displayName = comp?.company_name || `${profile.user_fname} ${profile.user_lname}`;
+  const legalName = comp?.company_legal_name;
+  const coverUrl = comp?.company_cover;
+  const logoUrl = comp?.company_logo || profile.avatar_url;
+
+  const hasSocials =
+    comp?.social_links?.facebook ||
+    comp?.social_links?.linkedin ||
+    comp?.social_links?.instagram ||
+    comp?.social_links?.youtube ||
+    comp?.social_links?.x;
 
   return (
-    <div className="mx-auto w-full max-w-[85%] 2xl:max-w-7xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-2xl border bg-card text-card-foreground shadow-sm">
-        <div className="h-32 w-full bg-gradient-to-r from-blue-500/30 via-indigo-500/20 to-transparent"></div>
-        <div className="px-8 pb-8 pt-0 flex flex-col sm:flex-row gap-6 items-start sm:items-end -mt-12 relative z-10">
-          <div className="h-24 w-24 rounded-full border-4 border-background bg-muted flex items-center justify-center shrink-0 overflow-hidden shadow-md">
-            {avatar ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={avatar} alt="Avatar" className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-10 w-10 text-muted-foreground" />
-            )}
+    <div className="mx-auto w-full max-w-4xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
+      {/* Cover + Logo Header Card */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+        {/* Cover */}
+        <div className="relative h-44 sm:h-52 w-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 overflow-hidden">
+          {coverUrl ? (
+            <img
+              src={coverUrl}
+              alt="Company Cover"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-xs text-zinc-400">No cover photo</span>
+            </div>
+          )}
+          <div className="absolute top-4 right-4 z-20">
+            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-0 text-xs font-semibold">
+              Public Profile
+            </Badge>
           </div>
-          <div className="flex-1 space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {name}
+        </div>
+
+        {/* Header Content */}
+        <div className="px-6 pb-6 pt-0 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-10 mb-4">
+            <div className="h-20 w-20 rounded-2xl border-4 border-white dark:border-zinc-900 bg-white dark:bg-zinc-900 shadow-md overflow-hidden flex items-center justify-center shrink-0">
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <Building2 className="h-9 w-9 text-zinc-400" />
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-50 leading-tight">
+              {displayName}
             </h1>
-            <p className="text-lg text-muted-foreground font-medium flex items-center gap-2">
-              <Shield className="h-4 w-4 text-blue-500" />
-              {headline}
-            </p>
+            {legalName && legalName !== displayName && (
+              <p className="text-sm text-zinc-500">
+                {legalName}
+              </p>
+            )}
+            {comp?.industry && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider pt-0.5">
+                {comp.industry}
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Column (Details) */}
-        <div className="md:col-span-2 space-y-8">
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold flex items-center gap-2 border-b pb-2">
-              <User className="h-5 w-5 text-primary" /> Profile Overview
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Column (Overview, Mission/Vision, Culture, Benefits) */}
+        <div className="md:col-span-2 space-y-6">
+          {/* About */}
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              About
             </h2>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {comp?.company_description || "This is a client profile on VOS Sync. Clients can post jobs, search for freelancers, and manage project contracts."}
+            <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {comp?.company_description ||
+                "This client has not added a detailed description yet."}
+            </p>
+          </div>
+
+          {/* Mission & Vision */}
+          {(comp?.company_mission || comp?.company_vision) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {comp?.company_mission && (
+                <div className="space-y-1.5 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Target className="h-3.5 w-3.5 text-blue-600" />
+                    Mission
+                  </p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    {comp.company_mission}
+                  </p>
+                </div>
+              )}
+              {comp?.company_vision && (
+                <div className="space-y-1.5 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Compass className="h-3.5 w-3.5 text-purple-600" />
+                    Vision
+                  </p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                    {comp.company_vision}
+                  </p>
+                </div>
+              )}
             </div>
-          </section>
+          )}
+
+          {/* Culture & Work Environment */}
+          {comp?.company_culture && (
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <HeartHandshake className="h-4 w-4 text-rose-500" />
+                Culture & Values
+              </h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                {comp.company_culture}
+              </p>
+            </div>
+          )}
+
+          {/* Perks & Benefits */}
+          {comp?.company_benefits && (
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Gift className="h-4 w-4 text-amber-500" />
+                Perks & Benefits
+              </h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                {comp.company_benefits}
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Right Column (Contact Details) */}
+        {/* Right Column (Company Details, Contact, Socials) */}
         <div className="space-y-6">
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-            <h3 className="font-semibold text-lg border-b pb-2">Contact Details</h3>
-            
-            <div className="space-y-4 text-sm">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                <span className="truncate">{comp?.company_email || profile.user_email}</span>
-              </div>
-
-              {comp?.company_contact && (
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Phone className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="truncate">{comp.company_contact}</span>
-                </div>
+          {/* Company Details */}
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+              Company Details
+            </h3>
+            <div className="space-y-3">
+              {comp?.industry && (
+                <InfoRow icon={Briefcase} label="Industry" value={comp.industry} />
               )}
-
-              {comp?.company_website && (
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <Globe className="h-4 w-4 shrink-0 text-primary" />
-                  <a
-                    href={comp.company_website.startsWith("http") ? comp.company_website : `https://${comp.company_website}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="truncate hover:text-primary hover:underline transition-colors flex items-center gap-1"
-                  >
-                    Website <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </div>
+              {comp?.organization_type && (
+                <InfoRow
+                  icon={Building2}
+                  label="Organization Type"
+                  value={comp.organization_type}
+                />
               )}
-
+              {comp?.company_size && (
+                <InfoRow icon={Users} label="Company Size" value={comp.company_size} />
+              )}
+              {comp?.year_established && (
+                <InfoRow
+                  icon={CalendarDays}
+                  label="Year Established"
+                  value={String(comp.year_established)}
+                />
+              )}
               {comp?.company_address && (
-                <div className="flex items-start gap-3 text-muted-foreground">
-                  <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
-                  <span className="leading-relaxed">{comp.company_address}</span>
-                </div>
+                <InfoRow icon={MapPin} label="Address" value={comp.company_address} />
               )}
             </div>
           </div>
+
+          {/* Contact Information */}
+          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+              Contact Information
+            </h3>
+            <div className="space-y-3">
+              <InfoRow
+                icon={Mail}
+                label="Email"
+                value={comp?.company_email || profile.user_email}
+                href={`mailto:${comp?.company_email || profile.user_email}`}
+              />
+              {comp?.company_contact && (
+                <InfoRow
+                  icon={Phone}
+                  label="Phone"
+                  value={comp.company_contact}
+                  href={`tel:${comp.company_contact}`}
+                />
+              )}
+              {comp?.company_website && (
+                <InfoRow
+                  icon={Globe}
+                  label="Website"
+                  value={comp.company_website.replace(/^https?:\/\/(www\.)?/, "")}
+                  href={formatUrl(comp.company_website)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Social Links */}
+          {hasSocials && (
+            <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm p-6 space-y-4">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                Social Media
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {comp?.social_links?.facebook && (
+                  <a
+                    href={formatUrl(comp.social_links.facebook)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Facebook className="h-3.5 w-3.5 text-blue-600" />
+                    Facebook
+                  </a>
+                )}
+                {comp?.social_links?.linkedin && (
+                  <a
+                    href={formatUrl(comp.social_links.linkedin)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-blue-600 hover:text-blue-700 transition-colors"
+                  >
+                    <Linkedin className="h-3.5 w-3.5 text-blue-700" />
+                    LinkedIn
+                  </a>
+                )}
+                {comp?.social_links?.instagram && (
+                  <a
+                    href={formatUrl(comp.social_links.instagram)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-pink-500 hover:text-pink-600 transition-colors"
+                  >
+                    <Instagram className="h-3.5 w-3.5 text-pink-600" />
+                    Instagram
+                  </a>
+                )}
+                {comp?.social_links?.youtube && (
+                  <a
+                    href={formatUrl(comp.social_links.youtube)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-red-500 hover:text-red-600 transition-colors"
+                  >
+                    <Youtube className="h-3.5 w-3.5 text-red-600" />
+                    YouTube
+                  </a>
+                )}
+                {comp?.social_links?.x && (
+                  <a
+                    href={formatUrl(comp.social_links.x)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:border-zinc-600 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+                  >
+                    <span className="h-3.5 w-3.5 flex items-center justify-center font-bold text-zinc-900 dark:text-zinc-100 text-xs select-none">
+                      𝕏
+                    </span>
+                    X (Twitter)
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

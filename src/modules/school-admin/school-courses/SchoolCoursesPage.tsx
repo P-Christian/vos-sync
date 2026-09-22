@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ColumnDef } from "@tanstack/react-table";
-import { VsSchoolCourse, SchoolStatus } from "@/modules/school-admin/types/school-admin.types";
+import { VsSchoolCourse, CourseDegree, CourseStatus, SchoolStatus } from "@/modules/school-admin/types/school-admin.types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -18,7 +18,12 @@ import { useSchoolCourses } from "./hooks/useSchoolCourses";
 import { CoursesDataTable } from "./components/CoursesDataTable";
 import { AddCourseModal } from "./components/AddCourseModal";
 import { EditCourseModal } from "./components/EditCourseModal";
-import { formatCourseCode, getCourseStatusBadgeVariant, filterCourses } from "./services/school-courses.helpers";
+import { 
+  formatCourseCode, 
+  getCourseStatusBadgeVariant, 
+  getDegreeBadgeVariant, 
+  filterCourses 
+} from "./services/school-courses.helpers";
 import { SchoolAdminModuleHeader } from "@/modules/school-admin/components/SchoolAdminModuleHeader";
 
 interface SchoolCoursesPageProps {
@@ -46,10 +51,11 @@ export function SchoolCoursesPage({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [degreeFilter, setDegreeFilter] = useState("all");
 
   const filteredData = useMemo(() => {
-    return filterCourses(courses, searchQuery, statusFilter);
-  }, [courses, searchQuery, statusFilter]);
+    return filterCourses(courses, searchQuery, statusFilter, degreeFilter);
+  }, [courses, searchQuery, statusFilter, degreeFilter]);
 
   const columns = useMemo<ColumnDef<VsSchoolCourse>[]>(
     () => [
@@ -70,10 +76,23 @@ export function SchoolCoursesPage({
         ),
       },
       {
+        accessorKey: "degree",
+        header: "Degree Level",
+        cell: ({ row }) => {
+          const degree: CourseDegree | null | undefined = row.original.degree;
+          if (!degree) return <span className="text-muted-foreground text-sm">N/A</span>;
+          return (
+            <Badge variant={getDegreeBadgeVariant(degree)}>
+              {degree}
+            </Badge>
+          );
+        },
+      },
+      {
         accessorKey: "course_status",
         header: "Status",
         cell: ({ row }) => {
-          const status: SchoolStatus = row.original.course_status;
+          const status: CourseStatus | SchoolStatus = row.original.course_status;
           return (
             <Badge variant={getCourseStatusBadgeVariant(status)}>
               {status}
@@ -142,7 +161,7 @@ export function SchoolCoursesPage({
     <div className="w-[90%] max-w-[2000px] mx-auto space-y-6">
       <SchoolAdminModuleHeader
         title="Course Management"
-        description="Manage your institution's course directory, status availability, and offerings."
+        description="Manage your institution's course directory, degree levels, status availability, and offerings."
         icon={BookOpen}
       />
 
@@ -153,6 +172,8 @@ export function SchoolCoursesPage({
         onSearchChange={setSearchQuery}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        degreeFilter={degreeFilter}
+        onDegreeFilterChange={setDegreeFilter}
         toolbarActions={
           <Button onClick={() => setIsAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -180,3 +201,4 @@ export function SchoolCoursesPage({
     </div>
   );
 }
+

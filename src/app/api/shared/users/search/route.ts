@@ -1,5 +1,6 @@
 // src/app/api/shared/users/search/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { UserSearchResult } from "@/modules/shared/search/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,12 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+function resolveAssetUrl(fileId?: string | null): string | undefined {
+  if (!fileId) return undefined;
+  if (fileId.startsWith("http://") || fileId.startsWith("https://")) return fileId;
+  return `${DIRECTUS_BASE}/assets/${fileId}`;
 }
 
 function getUserIdFromToken(token: string): number | null {
@@ -32,104 +39,266 @@ function getUserIdFromToken(token: string): number | null {
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_access_token")?.value;
+    const token =
+      req.headers.get("authorization")?.replace("Bearer ", "") ||
+      req.cookies.get("vos_access_token")?.value;
     const callerId = token ? getUserIdFromToken(token) : null;
-    
-    let callerRole = 0; // Default unknown
 
-    // Fetch caller role if we have an ID
+    let callerRole = 0;
     if (callerId) {
-      const callerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${callerId}?fields=role_id`, {
-        headers: getHeaders(),
-      });
-      if (callerRes.ok) {
-        const callerJson = await callerRes.json();
-        callerRole = callerJson.data?.role_id || 0;
+      try {
+        const callerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${callerId}?fields=role_id`, {
+          headers: getHeaders(),
+        });
+        if (callerRes.ok) {
+          const callerJson = await callerRes.json();
+          callerRole = callerJson.data?.role_id || 0;
+        }
+      } catch (err) {
+        console.warn("Could not retrieve caller role:", err);
       }
     }
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("q") || "";
+    const query = (searchParams.get("q") || "").trim();
 
     if (!query || query.length < 2) {
       return NextResponse.json({ results: [] });
     }
 
-    // Use REST API to bypass strict GraphQL relational alias constraints
-    const url = new URL(`${DIRECTUS_BASE}/items/vs_user`);
-    url.searchParams.append("limit", "10");
-    url.searchParams.append("filter[_and][0][role_id][_in]", "1,2,4");
-    url.searchParams.append("filter[_and][1][_or][0][user_fname][_icontains]", query);
-    url.searchParams.append("filter[_and][1][_or][1][user_lname][_icontains]", query);
-    url.searchParams.append("fields", "user_id,user_fname,user_lname,user_email,role_id,job_seeker_profile.*,vs_job_seeker_profile.*");
+    const encodedQ = encodeURIComponent(query);
 
-    const res = await fetch(url.toString(), {
-      method: "GET",
-      headers: getHeaders(),
-      cache: "no-store",
-    });
+    // 1. Search Freelancers (vs_user where role_id = 1)
+    const freelancerPromise = (async (): Promise<UserSearchResult[]> => {
+      try {
+        const url = `${DIRECTUS_BASE}/items/vs_user?limit=6&filter[role_id][_eq]=1&filter[_or][0][user_fname][_icontains]=${encodedQ}&filter[_or][1][user_lname][_icontains]=${encodedQ}&fields=user_id,user_fname,user_lname,user_email,role_id,profile_image_url,job_seeker_profile.*,vs_job_seeker_profile.*`;
+        const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+        if (!res.ok) return [];
+        const json = await res.json();
+        const users = json.data || [];
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Directus search error:", errText);
-      return NextResponse.json({ error: "Failed to fetch users", details: errText }, { status: 500 });
-    }
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        return users
+          .filter((u: any) => {
+            const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
+            const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
+            const profile = profiles[0];
+            if (!profile) return true; // allow basic profile if registered
 
-    const json = await res.json();
-    const users = json.data || [];
+            const vis = (profile.profile_visibility || "public").toLowerCase();
+            if (vis === "public") return true;
+            if (vis === "recruiters only") return callerRole === 2;
+            return false;
+          })
+          .map((u: any): UserSearchResult => {
+            const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
+            const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
+            const profile = profiles[0];
+            const headline = profile?.professional_headline || "Freelancer";
+            const avatar = resolveAssetUrl(u.profile_image_url);
 
-    // Filter based on role and visibility
-    /* eslint-disable @typescript-eslint/no-explicit-any */
-    const filteredUsers = users.filter((u: any) => {
-      // Must be freelancer, client, or school admin
-      if (u.role_id !== 1 && u.role_id !== 2 && u.role_id !== 4) return false;
-      
-      // If Freelancer
-      if (u.role_id === 1) {
-        const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
-        const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
-        const profile = profiles[0];
-        if (!profile) return false;
+            return {
+              user_id: u.user_id,
+              role_id: 1,
+              name: `${u.user_fname || ""} ${u.user_lname || ""}`.trim() || "Freelancer",
+              user_fname: u.user_fname,
+              user_lname: u.user_lname,
+              user_email: u.user_email,
+              avatar_url: avatar,
+              headline,
+              entity_type: "freelancer",
+              badge_label: "Freelancer",
+            };
+          });
+      } catch (err) {
+        console.error("Freelancer search error:", err);
+        return [];
+      }
+    })();
 
-        const vis = (profile.profile_visibility || "").toLowerCase();
-        if (vis === "public") return true;
-        if (vis === "recruiters only") {
-          return callerRole === 2; // only clients can see
+    // 2. Search Companies (vs_company joined with vs_company_user / created_by_user_id)
+    const companyPromise = (async (): Promise<UserSearchResult[]> => {
+      try {
+        const compUrl = `${DIRECTUS_BASE}/items/vs_company?limit=10&filter[_or][0][company_name][_icontains]=${encodedQ}&filter[_or][1][company_legal_name][_icontains]=${encodedQ}&filter[_or][2][company_description][_icontains]=${encodedQ}&filter[_or][3][company_city][_icontains]=${encodedQ}&filter[_or][4][company_tags][_icontains]=${encodedQ}&fields=company_id,company_name,company_description,company_logo,company_city,company_province,company_tags,created_by_user_id`;
+        const res = await fetch(compUrl, { headers: getHeaders(), cache: "no-store" });
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error("Directus company search error:", errText);
+          return [];
         }
-        return false;
-      }
-      
-      // If Client or School Admin
-      return u.role_id === 2 || u.role_id === 4;
-    });
+        const json = await res.json();
+        const companies = json.data || [];
+        if (companies.length === 0) return [];
 
-    const publicUsers = filteredUsers.map((u: any) => {
-      let headline = "";
-      const rawProfiles = u.job_seeker_profile || u.vs_job_seeker_profile || [];
-      const profiles = Array.isArray(rawProfiles) ? rawProfiles : [rawProfiles];
-      
-      if (u.role_id === 1) {
-        headline = profiles[0]?.professional_headline || "Freelancer";
-      } else if (u.role_id === 2) {
-        headline = "Client";
-      } else if (u.role_id === 4) {
-        headline = "School Admin";
-      }
+        const compIds = companies.map((c: any) => Number(c.company_id)).filter(Boolean);
 
-      return {
-        user_id: u.user_id,
-        user_fname: u.user_fname,
-        user_lname: u.user_lname,
-        user_email: u.user_email,
-        role_id: u.role_id,
-        headline,
-      };
-    });
+        // Fetch company admin users from vs_company_user
+        const compUserMap: Record<number, number> = {};
+        if (compIds.length > 0) {
+          try {
+            const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_in]=${compIds.join(",")}&limit=50&fields=company_id,user_id,is_primary_contact`;
+            const linkRes = await fetch(linkUrl, { headers: getHeaders(), cache: "no-store" });
+            if (linkRes.ok) {
+              const linkJson = await linkRes.json();
+              const links: any[] = linkJson.data || [];
+              links.forEach((l) => {
+                const rawCid = typeof l.company_id === "object" && l.company_id !== null ? l.company_id.company_id : l.company_id;
+                const rawUid = typeof l.user_id === "object" && l.user_id !== null ? l.user_id.user_id : l.user_id;
+                const cid = Number(rawCid);
+                const uid = Number(rawUid);
+                if (cid && uid) {
+                  // Prefer primary contact if already set
+                  if (!compUserMap[cid] || Boolean(l.is_primary_contact)) {
+                    compUserMap[cid] = uid;
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.warn("Could not query vs_company_user:", err);
+          }
+        }
+
+        return companies
+          .map((c: any): UserSearchResult | null => {
+            const userId = compUserMap[Number(c.company_id)] || Number(c.created_by_user_id);
+            if (!userId) return null;
+
+            const headlineParts = [c.company_city, c.company_province].filter(Boolean);
+            const location = headlineParts.join(", ");
+            const headline = c.company_tags || location || c.company_description || "Company";
+
+            return {
+              user_id: userId,
+              role_id: 2,
+              name: c.company_name || "Company",
+              headline,
+              avatar_url: resolveAssetUrl(c.company_logo),
+              entity_type: "client",
+              badge_label: "Company",
+              location: location || undefined,
+            };
+          })
+          .filter((item: UserSearchResult | null): item is UserSearchResult => item !== null);
+      } catch (err) {
+        console.error("Company search error:", err);
+        return [];
+      }
+    })();
+
+    // 3. Search Schools (vs_school joined with vs_school_admin / created_by)
+    const schoolPromise = (async (): Promise<UserSearchResult[]> => {
+      try {
+        const schoolUrl = `${DIRECTUS_BASE}/items/vs_school?search=${encodedQ}&limit=20&fields=school_id,school_name,school_type,school_logo_url,city_municipality,province,school_status,verification_status,is_public,is_active,created_by`;
+        const res = await fetch(schoolUrl, { headers: getHeaders(), cache: "no-store" });
+        let schools: any[] = [];
+        if (res.ok) {
+          const json = await res.json();
+          schools = json.data || [];
+        }
+
+        // Fallback to explicit filter if search param didn't return matches
+        if (schools.length === 0) {
+          const fallbackUrl = `${DIRECTUS_BASE}/items/vs_school?filter[_or][0][school_name][_icontains]=${encodedQ}&filter[_or][1][city_municipality][_icontains]=${encodedQ}&filter[_or][2][province][_icontains]=${encodedQ}&limit=20&fields=school_id,school_name,school_type,school_logo_url,city_municipality,province,school_status,verification_status,is_public,is_active,created_by`;
+          const fbRes = await fetch(fallbackUrl, { headers: getHeaders(), cache: "no-store" });
+          if (fbRes.ok) {
+            const fbJson = await fbRes.json();
+            schools = fbJson.data || [];
+          }
+        }
+
+        // Filter for all 4 conditions: Active, Verified, is_public=1, is_active=1
+        schools = schools.filter((s: any) => {
+          const status = String(s.school_status || "").trim().toLowerCase();
+          const verification = String(s.verification_status || "").trim().toLowerCase();
+          const isPublic = s.is_public === 1 || s.is_public === true || s.is_public === "1" || s.is_public === "true";
+          const isActive = s.is_active === 1 || s.is_active === true || s.is_active === "1" || s.is_active === "true";
+          return status === "active" && verification === "verified" && isPublic && isActive;
+        });
+
+        if (schools.length === 0) return [];
+
+        const schoolIds = schools.map((s: any) => Number(s.school_id)).filter(Boolean);
+
+        // Fetch school admin users from vs_school_admin
+        const schoolUserMap: Record<number, number> = {};
+        if (schoolIds.length > 0) {
+          try {
+            const adminUrl = `${DIRECTUS_BASE}/items/vs_school_admin?filter[school_id][_in]=${schoolIds.join(",")}&limit=50&fields=school_id,user_id,is_active`;
+            const adminRes = await fetch(adminUrl, { headers: getHeaders(), cache: "no-store" });
+            if (adminRes.ok) {
+              const adminJson = await adminRes.json();
+              const admins: any[] = adminJson.data || [];
+              admins.forEach((a) => {
+                const rawSid = typeof a.school_id === "object" && a.school_id !== null ? a.school_id.school_id : a.school_id;
+                const rawUid = typeof a.user_id === "object" && a.user_id !== null ? a.user_id.user_id : a.user_id;
+                const sid = Number(rawSid);
+                const uid = Number(rawUid);
+                if (sid && uid) {
+                  if (!schoolUserMap[sid] || a.is_active === 1 || a.is_active === true) {
+                    schoolUserMap[sid] = uid;
+                  }
+                }
+              });
+            }
+          } catch (err) {
+            console.warn("Could not query vs_school_admin:", err);
+          }
+        }
+
+        return schools
+          .map((s: any): UserSearchResult | null => {
+            const userId = schoolUserMap[Number(s.school_id)] || Number(s.created_by) || Number(s.school_id);
+            if (!userId) return null;
+
+            const headlineParts = [s.school_type, s.city_municipality].filter(Boolean);
+            const headline = headlineParts.join(" • ") || "Educational Institution";
+            const location = [s.city_municipality, s.province].filter(Boolean).join(", ");
+
+            return {
+              user_id: userId,
+              role_id: 4,
+              name: s.school_name || "School",
+              headline,
+              avatar_url: resolveAssetUrl(s.school_logo_url),
+              entity_type: "school-admin",
+              badge_label: "School",
+              location: location || undefined,
+            };
+          })
+          .filter((item: UserSearchResult | null): item is UserSearchResult => item !== null);
+      } catch (err) {
+        console.error("School search error:", err);
+        return [];
+      }
+    })();
     /* eslint-enable @typescript-eslint/no-explicit-any */
 
-    return NextResponse.json({ results: publicUsers });
+    const [freelancers, companies, schools] = await Promise.all([
+      freelancerPromise,
+      companyPromise,
+      schoolPromise,
+    ]);
+
+    // Combine, deduplicate, and limit total results
+    const combined = [...freelancers, ...companies, ...schools];
+    const seen = new Set<string>();
+    const combinedResults = combined
+      .filter((item) => {
+        const key = `${item.entity_type}-${item.user_id}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .slice(0, 15);
+
+    return NextResponse.json({ results: combinedResults });
   } catch (err: unknown) {
     console.error("GET /api/shared/users/search error:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+

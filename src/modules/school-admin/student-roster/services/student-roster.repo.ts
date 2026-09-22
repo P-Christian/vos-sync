@@ -58,12 +58,52 @@ export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ 
       courseId = Number(item.school_course_id);
     }
 
+    const rawGpa = item.gpa !== null && item.gpa !== undefined && item.gpa !== '' ? Number(item.gpa) : null;
+    const gpa = rawGpa !== null && !isNaN(rawGpa) ? rawGpa : null;
+
     return {
       ...item,
-      gpa: item.gpa !== null && item.gpa !== undefined && item.gpa !== '' ? Number(item.gpa) : null,
+      gpa,
       course_name: courseName,
       school_course_id: courseId,
-    };
+    } as VsSchoolStudent;
+  });
+
+  // 1. Sort overall list: lowest GPA at the top, nulls at the bottom
+  mappedData.sort((a, b) => {
+    if (a.gpa !== null && b.gpa !== null) {
+      if (a.gpa !== b.gpa) return a.gpa - b.gpa;
+      return (a.last_name || '').localeCompare(b.last_name || '');
+    }
+    if (a.gpa !== null && b.gpa === null) return -1;
+    if (a.gpa === null && b.gpa !== null) return 1;
+    return (a.last_name || '').localeCompare(b.last_name || '');
+  });
+
+  // 2. Compute Dense Rank across the active result set
+  let currentDenseRank = 1;
+  const withGpaCount = mappedData.filter((s) => s.gpa !== null && s.gpa !== undefined).length;
+
+  mappedData.forEach((student, index) => {
+    if (student.gpa === null || student.gpa === undefined) {
+      student.rank = null;
+      student.cohort_total = withGpaCount;
+      return;
+    }
+
+    if (index > 0) {
+      const prev = mappedData[index - 1];
+      if (prev.gpa !== null && prev.gpa !== undefined && student.gpa === prev.gpa) {
+        student.rank = prev.rank;
+      } else {
+        currentDenseRank += 1;
+        student.rank = currentDenseRank;
+      }
+    } else {
+      currentDenseRank = 1;
+      student.rank = 1;
+    }
+    student.cohort_total = withGpaCount;
   });
 
   return {
