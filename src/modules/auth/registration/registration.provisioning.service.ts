@@ -70,6 +70,10 @@ function isTerminalClientConflict(error: unknown): error is RegistrationError {
   );
 }
 
+function isTerminalSchoolConflict(error: unknown): error is RegistrationError {
+  return error instanceof RegistrationError && error.code === "SCHOOL_CONFLICT";
+}
+
 function assertCompatibleUser(
   user: ProvisionedRegistrationUser,
   challenge: RegistrationChallengeRecord,
@@ -168,15 +172,11 @@ export class RegistrationProvisioningService {
       }
     } catch (error: unknown) {
       if (
-        payload.role === "CLIENT" &&
-        isTerminalClientConflict(error) &&
+        ((payload.role === "CLIENT" && isTerminalClientConflict(error)) ||
+          (payload.role === "SCH_ADMIN" && isTerminalSchoolConflict(error))) &&
         String(user.status).toUpperCase() === "PROVISIONING"
       ) {
         try {
-          // Client email/TIN conflicts are raised before this registration can
-          // own a company. The client provisioner has already compensated any
-          // definite writes, so this provisional user is safe to remove and
-          // the same email can be used in a corrected restart.
           await this.repo.delete("vs_user", user.user_id);
         } catch {
           throw new RegistrationError(
