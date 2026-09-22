@@ -490,6 +490,9 @@ function SignupPageContent() {
     provinceCode: '',
     city: '',
     cityCode: '',
+    schoolBarangayCode: '',
+    schoolBarangay: '',
+    schoolStreet: '',
   });
   const [schoolSelectedCountry, setSchoolSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
   const [schoolShowPassword, setSchoolShowPassword] = useState(false);
@@ -580,6 +583,8 @@ function SignupPageContent() {
     setBarangays([]);
     if (step === 'client') {
       setCompany(prev => ({ ...prev, companyCityCode: '', companyCity: '', companyBarangayCode: '', companyBarangay: '' }));
+    } else if (step === 'school') {
+      setSchoolFormData(prev => ({ ...prev, cityCode: '', city: '', schoolBarangayCode: '', schoolBarangay: '' }));
     }
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities/`, { cache: 'force-cache' });
@@ -598,6 +603,8 @@ function SignupPageContent() {
     setBarangays([]);
     if (step === 'client') {
       setCompany(prev => ({ ...prev, companyBarangayCode: '', companyBarangay: '' }));
+    } else if (step === 'school') {
+      setSchoolFormData(prev => ({ ...prev, schoolBarangayCode: '', schoolBarangay: '' }));
     }
     try {
       const res = await fetch(`https://psgc.gitlab.io/api/cities-municipalities/${cityCode}/barangays/`, { cache: 'force-cache' });
@@ -622,10 +629,13 @@ function SignupPageContent() {
   }, [clientStep, step, freelancerStep, company.companyCountryCode, freelancerSelectedCountry.code, provinces.length, fetchProvinces]);
 
   useEffect(() => {
-    const provinceCode = company.companyProvinceCode || schoolFormData.provinceCode || formData.provinceCode;
-    if (provinceCode && (company.companyCountryCode === 'PH' || step === 'school' || (step === 'freelancer' && freelancerSelectedCountry.code === 'PH'))) {
+    if (step === 'client' && company.companyCountryCode === 'PH' && company.companyProvinceCode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      fetchCities(provinceCode);
+      fetchCities(company.companyProvinceCode);
+    } else if (step === 'school' && schoolFormData.provinceCode) {
+      fetchCities(schoolFormData.provinceCode);
+    } else if (step === 'freelancer' && freelancerSelectedCountry.code === 'PH' && formData.provinceCode) {
+      fetchCities(formData.provinceCode);
     }
   }, [company.companyProvinceCode, schoolFormData.provinceCode, formData.provinceCode, company.companyCountryCode, freelancerSelectedCountry.code, step, fetchCities]);
 
@@ -633,8 +643,10 @@ function SignupPageContent() {
     if (company.companyCityCode && company.companyCountryCode === 'PH' && step === 'client') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchBarangays(company.companyCityCode);
+    } else if (step === 'school' && schoolFormData.cityCode) {
+      fetchBarangays(schoolFormData.cityCode);
     }
-  }, [company.companyCityCode, company.companyCountryCode, step, fetchBarangays]);
+  }, [company.companyCityCode, company.companyCountryCode, schoolFormData.cityCode, step, fetchBarangays]);
 
 
   // ── Selection Handlers ────────────────────────────────────────────────────
@@ -704,7 +716,8 @@ function SignupPageContent() {
     // Reset School Form
     setSchoolFormData({
       firstName: '', lastName: '', contact: '', email: '', password: '', confirmPassword: '',
-      schoolName: '', schoolType: 'University', province: '', provinceCode: '', city: '', cityCode: ''
+      schoolName: '', schoolType: 'University', province: '', provinceCode: '', city: '', cityCode: '',
+      schoolBarangayCode: '', schoolBarangay: '', schoolStreet: ''
     });
     setSchoolTermsAgreed(false);
   };
@@ -2377,6 +2390,10 @@ function SignupPageContent() {
         school_type: schoolFormData.schoolType,
         city_municipality: schoolFormData.city,
         province: schoolFormData.province,
+        ...(inviteToken ? {} : {
+          barangay: schoolFormData.schoolBarangay.trim() || null,
+          school_address_line: schoolFormData.schoolStreet.trim() || null,
+        }),
         token: inviteToken || undefined,
         terms_accepted: true,
         privacy_accepted: true,
@@ -2400,6 +2417,9 @@ function SignupPageContent() {
       setStep('otp');
       window.scrollTo(0, 0);
     } catch (error) {
+      if (error instanceof RegistrationApiError && error.code === 'SCHOOL_CONFLICT') {
+        setSchoolErrors(prev => ({ ...prev, schoolName: error.message }));
+      }
       toast.error('Signup failed', {
         description: error instanceof RegistrationApiError ? error.message : 'Network error. Please try again.',
       });
@@ -2681,18 +2701,41 @@ function SignupPageContent() {
             <div className="space-y-1">
               <label className="block text-sm font-medium">Province <span className="text-destructive">*</span></label>
               <SearchableLocationSelect options={provinces} value={schoolFormData.provinceCode}
-                onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, provinceCode: code, province: name, cityCode: '', city: '' }))}
+                onChange={(code, name) => { setSchoolFormData(prev => ({ ...prev, provinceCode: code, province: name, cityCode: '', city: '', schoolBarangayCode: '', schoolBarangay: '' })); setBarangays([]); if (schoolErrors.province) setSchoolErrors(prev => ({ ...prev, province: '' })); }}
                 placeholder="Search province..." loading={loadingProvinces} error={schoolErrors.province} />
               {schoolErrors.province && <p className="text-xs text-destructive mt-1">{schoolErrors.province}</p>}
             </div>
             <div className="space-y-1">
               <label className="block text-sm font-medium">City / Municipality <span className="text-destructive">*</span></label>
               <SearchableLocationSelect options={cities} value={schoolFormData.cityCode}
-                onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, cityCode: code, city: name }))}
+                onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, cityCode: code, city: name, schoolBarangayCode: '', schoolBarangay: '' }))}
                 placeholder="Search city..." disabled={!schoolFormData.provinceCode} loading={loadingCities} error={schoolErrors.city} />
               {schoolErrors.city && <p className="text-xs text-destructive mt-1">{schoolErrors.city}</p>}
             </div>
           </div>
+
+          {!inviteToken && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Barangay</label>
+                <SearchableLocationSelect
+                  options={barangays}
+                  value={schoolFormData.schoolBarangayCode}
+                  onChange={(code, name) => setSchoolFormData(prev => ({ ...prev, schoolBarangayCode: code, schoolBarangay: name }))}
+                  placeholder={schoolFormData.cityCode ? 'Select barangay...' : 'Select city first...'}
+                  loading={loadingBarangays}
+                  disabled={!schoolFormData.cityCode || loadingBarangays}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium">Street Address</label>
+                <Input value={schoolFormData.schoolStreet}
+                  onChange={e => setSchoolFormData(prev => ({ ...prev, schoolStreet: e.target.value }))}
+                  disabled={loading} placeholder="e.g. 123 Rizal Ave."
+                  className="h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Credentials */}

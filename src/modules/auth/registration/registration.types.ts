@@ -51,6 +51,7 @@ export interface SchoolProvisioningInput {
   school_province: string;
   school_city: string;
   school_brgy?: string | null;
+  school_address_line?: string | null;
   /**
    * The invitation token is server-derived input once the challenge is
    * created. It is encrypted in the sealed payload and never returned as a
