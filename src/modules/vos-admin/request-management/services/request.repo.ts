@@ -102,36 +102,59 @@ export async function fetchCourseRequestById(id: number): Promise<VsCourseReques
   return json.data;
 }
 
+type EmployeeEducationRow = {
+  readonly employee_education_id?: number;
+  readonly id?: number;
+  readonly school_id: number;
+  readonly school_course_id: number | null;
+  readonly course_name_raw?: string | null;
+};
+
 export async function upsertEmployeeEducation(userId: number, schoolId: number, courseId: number | null): Promise<void> {
   // Check if education record exists for this user
   const checkUrl = `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${userId}&fields=*`;
   const checkRes = await fetch(checkUrl, { headers: getHeaders(), cache: "no-store" });
   if (!checkRes.ok) throw new Error("Failed to check existing employee education.");
-  const checkJson = await checkRes.json();
-  
-  const payload: Record<string, unknown> = {
-    user_id: userId,
-    school_id: schoolId,
-    school_course_id: courseId,
-    education_status: 'Verified'
-  };
+  const checkJson: { readonly data?: readonly EmployeeEducationRow[] } = await checkRes.json();
 
-  if (checkJson.data && checkJson.data.length > 0) {
-    const existingRecord = checkJson.data[0];
-    
+  const payload = courseId === null
+    ? {
+        user_id: userId,
+        school_id: schoolId,
+        education_status: 'Verified'
+      }
+    : {
+        user_id: userId,
+        school_id: schoolId,
+        school_course_id: courseId,
+        education_status: 'Verified'
+      };
+
+  const matchedRecord = courseId === null
+    ? checkJson.data?.find((row) => row.school_id === schoolId) ?? null
+    : checkJson.data?.find(
+        (row) => row.school_id === schoolId && row.school_course_id === courseId
+      ) ?? checkJson.data?.find(
+        (row) => row.school_id === schoolId && row.school_course_id === null
+      ) ?? null;
+
+  if (matchedRecord !== null) {
     // Auto-create course request if needed
-    if (courseId === null && existingRecord.course_name_raw && existingRecord.course_name_raw.trim() !== '') {
+    const requestedCourseName = matchedRecord.course_name_raw?.trim();
+    if (courseId === null && requestedCourseName) {
       try {
         // Check if there's already a pending course request for this user and school to prevent duplicates
         const crCheckUrl = `${DIRECTUS_BASE}/items/vs_course_request?filter[requested_by][_eq]=${userId}&filter[school_id][_eq]=${schoolId}&filter[request_status][_eq]=Pending`;
         const crCheckRes = await fetch(crCheckUrl, { headers: getHeaders(), cache: "no-store" });
-        const crCheckJson = crCheckRes.ok ? await crCheckRes.json() : { data: [] };
+        const crCheckJson: { readonly data?: readonly unknown[] } = crCheckRes.ok
+          ? await crCheckRes.json()
+          : { data: [] };
         
         if (!crCheckJson.data || crCheckJson.data.length === 0) {
           await createCourseRequestRepo({
             school_id: schoolId,
             requested_by: userId,
-            requested_course_name: existingRecord.course_name_raw.trim(),
+            requested_course_name: requestedCourseName,
             request_status: 'Pending'
           });
         }
@@ -141,20 +164,26 @@ export async function upsertEmployeeEducation(userId: number, schoolId: number, 
     }
 
     // Update existing
-    const recordId = existingRecord.employee_education_id || existingRecord.id;
+    const recordId = matchedRecord.employee_education_id || matchedRecord.id;
     const updateUrl = `${DIRECTUS_BASE}/items/vs_employee_education/${recordId}`;
-    await fetch(updateUrl, {
+    const updateRes = await fetch(updateUrl, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify(payload)
     });
+    if (!updateRes.ok) {
+      throw new Error(`Failed to update employee education (status ${updateRes.status}).`);
+    }
   } else {
     // Insert new
     const insertUrl = `${DIRECTUS_BASE}/items/vs_employee_education`;
-    await fetch(insertUrl, {
+    const insertRes = await fetch(insertUrl, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify(payload)
     });
+    if (!insertRes.ok) {
+      throw new Error(`Failed to create employee education (status ${insertRes.status}).`);
+    }
   }
 }

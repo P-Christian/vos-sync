@@ -55,7 +55,8 @@ export async function syncEducationFromRoster(
     const target = selectEducationTarget(
       educationRows,
       input.student.school_id,
-      school?.school_name
+      school?.school_name,
+      input.student.school_course_id
     );
     const data = buildEducationData(input.student);
 
