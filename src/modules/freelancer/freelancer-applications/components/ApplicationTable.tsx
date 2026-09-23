@@ -467,6 +467,31 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
                   </div>
                 </div>
 
+                {selectedApp.is_referred && (
+                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🎓</span>
+                      <div>
+                        <h4 className="font-bold text-sm text-purple-700 dark:text-purple-300">
+                          {selectedApp.school_name ? `Endorsed by ${selectedApp.school_name}` : "Official Academic Referral"}
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedApp.referrer_name ? `Submitted via ${selectedApp.referrer_name}, School Administrator` : "Verified Academic Endorsement"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedApp.referral_letter && (
+                      <div className="rounded-lg border border-purple-200/70 dark:border-purple-900/50 bg-background/85 p-3 text-xs sm:text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                        <p className="font-semibold text-purple-600 dark:text-purple-400 mb-1 text-[11px] uppercase tracking-wider">
+                          Recommendation Letter Attached to Application
+                        </p>
+                        {selectedApp.referral_letter}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> Cover Letter

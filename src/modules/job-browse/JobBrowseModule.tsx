@@ -39,6 +39,7 @@ export default function JobBrowseModule() {
     applyModalOpen,
     fetchJobs,
     fetchApplications,
+    markJobAsApplied,
     openDetail,
     closeDetail,
     openApply,
@@ -315,7 +316,13 @@ export default function JobBrowseModule() {
         job={selectedJob}
         open={applyModalOpen}
         onClose={closeApply}
-        onSuccess={() => fetchJobs(true)}
+        onSuccess={() => {
+          if (selectedJob?.job_id) {
+            markJobAsApplied(selectedJob.job_id);
+          }
+          fetchApplications();
+          fetchJobs(true);
+        }}
       />
 
       {/* Register Required Modal */}

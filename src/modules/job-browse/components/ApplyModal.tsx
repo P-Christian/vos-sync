@@ -89,9 +89,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
       loadPrefill(job);
       
       // Check for active referral claim
-      if (referrerName !== null) {
-        setReferrerName(null);
-      }
+      setReferrerName(null);
       fetch(`/api/freelancer/referrals/check-claim?job_id=${job.job_id}`)
         .then((res) => res.json())
         .then((data) => {
@@ -101,7 +99,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
         })
         .catch((err) => console.error("Error checking claim:", err));
     }
-  }, [open, job, loadPrefill, referrerName]);
+  }, [open, job, loadPrefill]);
 
   const handleClose = () => {
     reset();

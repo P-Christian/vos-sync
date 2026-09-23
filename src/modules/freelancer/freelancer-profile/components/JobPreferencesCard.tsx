@@ -83,15 +83,24 @@ export function JobPreferencesCard() {
                                 JPY: "¥"
                             };
                             const symbol = currencySymbols[preferences.currency || "PHP"] || "₱";
-                            const formatAmount = (num: number) => num.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                            return preferences.salary_range_min && preferences.salary_range_max
+                            const formatAmount = (amount?: number | string | null) => {
+                                if (amount == null || amount === "") return "";
+                                const num = typeof amount === "string" ? parseFloat(amount) : amount;
+                                if (isNaN(num)) return String(amount);
+                                return num.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            };
+                            const hasMin = preferences.salary_range_min != null;
+                            const hasMax = preferences.salary_range_max != null;
+
+                            return hasMin && hasMax
                                 ? `${symbol}${formatAmount(preferences.salary_range_min)} - ${symbol}${formatAmount(preferences.salary_range_max)}`
-                                : preferences.salary_range_min 
+                                : hasMin 
                                     ? `From ${symbol}${formatAmount(preferences.salary_range_min)}`
-                                    : preferences.salary_range_max
+                                    : hasMax
                                         ? `Up to ${symbol}${formatAmount(preferences.salary_range_max)}`
                                         : 'Not specified';
                         })()}
+
                     </p>
                 </div>
                 

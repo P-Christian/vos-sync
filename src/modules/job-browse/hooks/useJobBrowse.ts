@@ -187,6 +187,10 @@ export function useJobBrowse() {
     setApplyModalOpen(false);
   }, []);
 
+  const markJobAsApplied = useCallback((jobId: number) => {
+    setAppliedJobIds((prev) => (prev.includes(jobId) ? prev : [...prev, jobId]));
+  }, []);
+
   return {
     jobs,
     totalCount,
@@ -210,6 +214,7 @@ export function useJobBrowse() {
     applyModalOpen,
     fetchJobs,
     fetchApplications,
+    markJobAsApplied,
     openDetail,
     closeDetail,
     openApply,

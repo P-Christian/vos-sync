@@ -176,3 +176,47 @@ export async function deleteStudentRepo(studentId: number): Promise<boolean> {
 
   return true;
 }
+
+export async function getStudentByIdRepo(studentId: number): Promise<VsSchoolStudent | null> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_student/${studentId}?fields=*`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data || null;
+}
+
+export async function findActiveStudentInvitationRepo(studentId: number, schoolId: number): Promise<{ invitation_id: number; token: string; expires_at: string } | null> {
+  const url = `${DIRECTUS_BASE}/items/vs_student_invitation?filter[student_id][_eq]=${studentId}&filter[school_id][_eq]=${schoolId}&filter[is_used][_eq]=0&sort[]=-created_at&limit=1`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data?.[0] || null;
+}
+
+export async function createStudentInvitationRepo(
+  studentId: number,
+  schoolId: number,
+  token: string,
+  expiresAt: string
+): Promise<{ invitation_id: number; token: string; expires_at: string }> {
+  const url = `${DIRECTUS_BASE}/items/vs_student_invitation`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: getHeaders(),
+    body: JSON.stringify({
+      student_id: studentId,
+      school_id: schoolId,
+      token,
+      expires_at: expiresAt,
+      is_used: 0,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Failed to create student invitation: ${errText}`);
+  }
+
+  const json = await res.json();
+  return json.data;
+}

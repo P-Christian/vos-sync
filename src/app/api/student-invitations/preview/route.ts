@@ -37,14 +37,6 @@ interface RateLimitEntry {
  */
 const rateLimits = new Map<string, RateLimitEntry>();
 
-class PreviewConfigurationError extends Error {
-  public readonly name = "PreviewConfigurationError";
-
-  constructor() {
-    super("Student invitation preview is not configured.");
-  }
-}
-
 function previewJson(body: unknown, status = 200): NextResponse {
   return NextResponse.json(body, {
     status,
@@ -84,8 +76,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const now = Date.now();
 
   try {
-    const ipHashSecret = process.env.REGISTRATION_OTP_HMAC_SECRET?.trim();
-    if (!ipHashSecret) throw new PreviewConfigurationError();
+    const ipHashSecret =
+      process.env.REGISTRATION_OTP_HMAC_SECRET?.trim() ||
+      process.env.JWT_SECRET ||
+      "development_default_registration_otp_hmac_secret_key";
 
     const ipHash = hashClientIp(getClientIp(request), ipHashSecret);
     if (exceedsRateLimit(ipHash, now)) {
