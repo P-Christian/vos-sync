@@ -104,6 +104,27 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         }
     }, [schoolId]);
 
+    const schoolOptions = React.useMemo(() => {
+        const opts = schools.map((s) => ({ value: String(s.school_id), label: String(s.school_name) }));
+        if (educationToEdit?.school_id) {
+            const v = String(educationToEdit.school_id);
+            if (!opts.some((o) => o.value === v)) {
+                opts.push({ value: v, label: educationToEdit.school_name || educationToEdit.school_name_raw || "Unknown School" });
+            }
+        }
+        return opts;
+    }, [schools, educationToEdit]);
+
+    const courseOptions = React.useMemo(() => {
+        const opts = courses.map((c) => ({ value: String(c.school_course_id), label: String(c.course_name) }));
+        if (educationToEdit?.school_course_id) {
+            const v = String(educationToEdit.school_course_id);
+            if (!opts.some((o) => o.value === v)) {
+                opts.push({ value: v, label: educationToEdit.course_name || educationToEdit.course_name_raw || "No Course Specified" });
+            }
+        }
+        return opts;
+    }, [courses, educationToEdit]);
 
     const handleSave = async () => {
         if (!isUnverifiedSchool && !schoolId) {
@@ -121,11 +142,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             return;
         }
 
-        if (!isUnverifiedSchool && !courseId) {
-            toast.error("Please select a course/degree. If it's missing, you can request to add it.");
-            return;
-        }
-
         const payload = {
             school_id: isUnverifiedSchool ? null : parseInt(schoolId, 10),
             school_name_raw: isUnverifiedSchool ? rawSchoolName.trim() : null,
@@ -135,8 +151,8 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             start_date: startDate || null,
             end_date: endDate || null,
             updated_at: new Date().toISOString(),
-            school_name: isUnverifiedSchool ? rawSchoolName.trim() : schools.find(s => String(s.school_id) === schoolId)?.school_name,
-            course_name: isUnverifiedSchool ? rawCourseName.trim() : courses.find(c => String(c.school_course_id) === courseId)?.course_name,
+            school_name: isUnverifiedSchool ? rawSchoolName.trim() : schoolOptions.find(o => o.value === schoolId)?.label,
+            course_name: isUnverifiedSchool ? rawCourseName.trim() : courseOptions.find(o => o.value === courseId)?.label,
         };
 
         const updatedList = [...educationList];
@@ -213,7 +229,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 ) : (
                                     <>
                                         <SearchableSelect
-                                            options={schools.map(s => ({ value: String(s.school_id), label: s.school_name }))}
+                                            options={schoolOptions}
                                             value={schoolId}
                                             onValueChange={(val) => { setSchoolId(val); setCourseId(""); }}
                                             placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
@@ -239,7 +255,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                 ) : (
                                     <>
                                         <SearchableSelect
-                                            options={courses.map(c => ({ value: String(c.school_course_id), label: c.course_name }))}
+                                            options={courseOptions}
                                             value={courseId}
                                             onValueChange={setCourseId}
                                             placeholder={loadingCourses ? "Loading courses..." : (schoolId ? "Search courses..." : "Select a school first")}
