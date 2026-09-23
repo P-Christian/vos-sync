@@ -120,10 +120,10 @@ export async function GET(
     type ExpMap = Record<number, number>;
     type ResumeMap = Record<number, boolean>;
 
-    let skillMap: SkillMap = {};
-    let profileMap: ProfileMap = {};
-    let expMap: ExpMap = {};
-    let resumeMap: ResumeMap = {};
+    const skillMap: SkillMap = {};
+    const profileMap: ProfileMap = {};
+    const expMap: ExpMap = {};
+    const resumeMap: ResumeMap = {};
 
     if (registeredUserIds.length > 0) {
       const userIdFilter = registeredUserIds.map((id) => `filter[user_id][_in][]=${id}`).join("&");

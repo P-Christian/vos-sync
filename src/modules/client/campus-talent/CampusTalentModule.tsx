@@ -13,9 +13,7 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
-  Briefcase,
   BookOpen,
-  Award,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

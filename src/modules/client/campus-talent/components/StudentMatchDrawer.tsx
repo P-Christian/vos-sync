@@ -158,30 +158,28 @@ const sectionVariants = {
   },
 };
 
-export default function StudentMatchDrawer({
+function StudentMatchDrawerContent({
   result,
   onClose,
   onInvite,
-}: StudentMatchDrawerProps) {
-  const activeResultRef = React.useRef<CampusMatchResult | null>(result);
-  if (result) {
-    activeResultRef.current = result;
-  }
-  const activeResult = result ?? activeResultRef.current;
-
+}: {
+  result: CampusMatchResult;
+  onClose: () => void;
+  onInvite: (r: CampusMatchResult) => void;
+}) {
   const canInvite =
-    activeResult?.eligibility.eligible &&
-    activeResult.invitationStatus !== "Invited" &&
-    activeResult.invitationStatus !== "Registered";
+    result.eligibility.eligible &&
+    result.invitationStatus !== "Invited" &&
+    result.invitationStatus !== "Registered";
 
-  const curriculumItems = activeResult?.evidence.curriculum ?? [];
-  const verifiedSkills = activeResult?.evidence.verifiedSkills ?? [];
-  const experience = activeResult?.evidence.experience ?? [];
-  const gaps = activeResult?.gaps ?? [];
-  const explanation = activeResult?.explanation ?? null;
+  const curriculumItems = result.evidence.curriculum ?? [];
+  const verifiedSkills = result.evidence.verifiedSkills ?? [];
+  const experience = result.evidence.experience ?? [];
+  const gaps = result.gaps ?? [];
+  const explanation = result.explanation ?? null;
 
-  const initials = activeResult?.studentName
-    ? activeResult.studentName
+  const initials = result.studentName
+    ? result.studentName
         .split(" ")
         .map((n) => n[0])
         .filter(Boolean)
@@ -220,14 +218,12 @@ export default function StudentMatchDrawer({
   };
 
   const verdict = getScoreVerdict(
-    activeResult?.score ?? 0,
-    activeResult?.eligibility.eligible ?? false
+    result.score,
+    result.eligibility.eligible
   );
 
   return (
-    <AnimatePresence>
-      {result && activeResult && (
-        <div key="student-drawer-root" className="fixed inset-0 z-50">
+    <div key="student-drawer-root" className="fixed inset-0 z-50 pointer-events-none">
           {/* Backdrop Overlay */}
           <motion.div
             key="student-drawer-backdrop"
@@ -249,7 +245,7 @@ export default function StudentMatchDrawer({
             className="fixed right-0 top-0 h-full w-full sm:max-w-xl md:max-w-2xl lg:max-w-3xl xl:max-w-[820px] bg-background border-l border-border shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
             role="dialog"
             aria-modal="true"
-            aria-label={`Match details for ${activeResult.studentName}`}
+            aria-label={`Match details for ${result.studentName}`}
             initial={{
               x: "100%",
             }}
@@ -288,10 +284,10 @@ export default function StudentMatchDrawer({
                 <div className="min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="font-bold text-foreground text-xl leading-tight truncate">
-                      {activeResult.studentName}
+                      {result.studentName}
                     </h2>
 
-                    {activeResult.isRegistered && (
+                    {result.isRegistered && (
                       <Badge
                         variant="secondary"
                         className="text-[11px] gap-1 bg-primary/10 text-primary border-primary/20"
@@ -302,16 +298,16 @@ export default function StudentMatchDrawer({
                     )}
 
                     <Badge variant="outline" className="text-[11px] uppercase tracking-wider">
-                      {activeResult.matchModel}
+                      {result.matchModel}
                     </Badge>
 
-                    {activeResult.invitationStatus === "Invited" && (
+                    {result.invitationStatus === "Invited" && (
                       <Badge variant="secondary" className="text-[11px]">
                         Invited
                       </Badge>
                     )}
 
-                    {activeResult.invitationStatus === "Registered" && (
+                    {result.invitationStatus === "Registered" && (
                       <Badge className="text-[11px]">
                         Registered
                       </Badge>
@@ -319,11 +315,11 @@ export default function StudentMatchDrawer({
                   </div>
 
                   <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                    <span className="truncate">{activeResult.email}</span>
-                    {activeResult.studentNumber && (
+                    <span className="truncate">{result.email}</span>
+                    {result.studentNumber && (
                       <>
                         <span>•</span>
-                        <span>ID: {activeResult.studentNumber}</span>
+                        <span>ID: {result.studentNumber}</span>
                       </>
                     )}
                   </div>
@@ -360,10 +356,10 @@ export default function StudentMatchDrawer({
               <motion.div
                 className={cn(
                   "rounded-xl border p-5 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5",
-                  activeResult.eligibility.eligible
-                    ? activeResult.score >= 70
+                  result.eligibility.eligible
+                    ? result.score >= 70
                       ? "border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20"
-                      : activeResult.score >= 50
+                      : result.score >= 50
                       ? "border-amber-500/25 bg-amber-500/5 dark:bg-amber-950/20"
                       : "border-border bg-muted/30"
                     : "border-destructive/30 bg-destructive/5"
@@ -377,8 +373,8 @@ export default function StudentMatchDrawer({
                 }}
               >
                 <ScoreRing
-                  score={activeResult.score}
-                  eligible={activeResult.eligibility.eligible}
+                  score={result.score}
+                  eligible={result.eligibility.eligible}
                 />
 
                 <div className="flex-1 min-w-0 text-center sm:text-left space-y-1.5">
@@ -387,7 +383,7 @@ export default function StudentMatchDrawer({
                       {verdict.label}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      Evidence Level: <strong className="text-foreground">{activeResult.evidenceLevel.replace(/_/g, " ")}</strong>
+                      Evidence Level: <strong className="text-foreground">{result.evidenceLevel.replace(/_/g, " ")}</strong>
                     </span>
                   </div>
 
@@ -417,8 +413,8 @@ export default function StudentMatchDrawer({
                     <GraduationCap className="h-3.5 w-3.5 text-primary" />
                     <span>Degree Course</span>
                   </div>
-                  <p className="font-semibold text-foreground text-sm truncate" title={activeResult.courseName ?? "Unknown"}>
-                    {activeResult.courseName ?? "Unknown Course"}
+                  <p className="font-semibold text-foreground text-sm truncate" title={result.courseName ?? "Unknown"}>
+                    {result.courseName ?? "Unknown Course"}
                   </p>
                 </div>
 
@@ -428,7 +424,7 @@ export default function StudentMatchDrawer({
                     <span>Academic Year</span>
                   </div>
                   <p className="font-semibold text-foreground text-sm">
-                    {activeResult.schoolYear || "Not Specified"}
+                    {result.schoolYear || "Not Specified"}
                   </p>
                 </div>
 
@@ -438,7 +434,7 @@ export default function StudentMatchDrawer({
                     <span>Cumulative GPA</span>
                   </div>
                   <p className="font-semibold text-foreground text-sm">
-                    {activeResult.gpa !== null ? activeResult.gpa.toFixed(2) : "Not Disclosed"}
+                    {result.gpa !== null ? result.gpa.toFixed(2) : "Not Disclosed"}
                   </p>
                 </div>
 
@@ -448,13 +444,13 @@ export default function StudentMatchDrawer({
                     <span>Verification</span>
                   </div>
                   <p className="font-semibold text-foreground text-sm truncate">
-                    {activeResult.isRegistered ? "Verified User" : "School Roster"}
+                    {result.isRegistered ? "Verified User" : "School Roster"}
                   </p>
                 </div>
               </motion.div>
 
               {/* Ineligibility Warning Alert */}
-              {!activeResult.eligibility.eligible && (
+              {!result.eligibility.eligible && (
                 <motion.div
                   className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-2.5"
                   initial="hidden"
@@ -473,7 +469,7 @@ export default function StudentMatchDrawer({
                   </div>
 
                   <div className="space-y-1 pl-6">
-                    {activeResult.eligibility.reasons.map((r, i) => (
+                    {result.eligibility.reasons.map((r, i) => (
                       <p key={i} className="text-xs text-destructive/90">
                         • {r}
                       </p>
@@ -770,7 +766,7 @@ export default function StudentMatchDrawer({
               }}
             >
               <span className="text-xs text-muted-foreground hidden sm:inline">
-                Model: <strong className="text-foreground font-medium">{activeResult.matchModel}</strong>
+                Model: <strong className="text-foreground font-medium">{result.matchModel}</strong>
               </span>
 
               <div className="flex items-center gap-2.5 ml-auto">
@@ -791,7 +787,7 @@ export default function StudentMatchDrawer({
                     }}
                   >
                     <Button
-                      onClick={() => onInvite(activeResult)}
+                      onClick={() => onInvite(result)}
                       className="gap-2 shadow-sm"
                     >
                       <Send className="h-4 w-4" />
@@ -803,6 +799,22 @@ export default function StudentMatchDrawer({
             </motion.div>
           </motion.div>
         </div>
+  );
+}
+
+export default function StudentMatchDrawer({
+  result,
+  onClose,
+  onInvite,
+}: StudentMatchDrawerProps) {
+  return (
+    <AnimatePresence>
+      {result && (
+        <StudentMatchDrawerContent
+          result={result}
+          onClose={onClose}
+          onInvite={onInvite}
+        />
       )}
     </AnimatePresence>
   );

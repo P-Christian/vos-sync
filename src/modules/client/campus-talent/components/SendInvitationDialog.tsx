@@ -83,15 +83,9 @@ export default function SendInvitationDialog({
     }
   }, [target, jobTitle, schoolName, onSent]);
 
-  const activeTargetRef = React.useRef<CampusMatchResult | null>(target);
-  if (target) {
-    activeTargetRef.current = target;
-  }
-  const activeTarget = target ?? activeTargetRef.current;
-
   return (
     <AnimatePresence>
-      {target && activeTarget && (
+      {target && (
         <motion.div
           key="invitation-dialog-overlay"
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
@@ -172,14 +166,14 @@ export default function SendInvitationDialog({
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">To</span>
                   <span className="font-medium text-foreground text-right">
-                    {activeTarget.studentName}
+                    {target.studentName}
                   </span>
                 </div>
 
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground">Email</span>
                   <span className="text-foreground text-right break-all">
-                    {activeTarget.email}
+                    {target.email}
                   </span>
                 </div>
 
@@ -190,11 +184,11 @@ export default function SendInvitationDialog({
                   </span>
                 </div>
 
-                {activeTarget.courseName && (
+                {target.courseName && (
                   <div className="flex justify-between gap-4">
                     <span className="text-muted-foreground">Course</span>
                     <span className="text-foreground text-right">
-                      {activeTarget.courseName}
+                      {target.courseName}
                     </span>
                   </div>
                 )}
