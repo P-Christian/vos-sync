@@ -136,6 +136,7 @@ export function AppSidebar({
                 { label: "Manage Jobs", href: "/vos-sync/client/jobs", icon: Briefcase },
                 { label: "Review Candidates", href: "/vos-sync/client/applicants", icon: FileText },
                 { label: "Talent Search", href: "/vos-sync/client/talent-search", icon: Search },
+                { label: "Campus Talent", href: "/vos-sync/client/campus-talent", icon: GraduationCap },
                 { label: "Interview Schedule", href: "/vos-sync/client/interviews", icon: CalendarDays },
                 { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
                 { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },

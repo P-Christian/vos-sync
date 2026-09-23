@@ -126,6 +126,8 @@ export async function POST(request: NextRequest) {
       error instanceof RegistrationError &&
       (error.code === "COMPANY_EMAIL_CONFLICT" ||
         error.code === "COMPANY_TIN_CONFLICT");
+    const terminalSchoolConflict =
+      error instanceof RegistrationError && error.code === "SCHOOL_CONFLICT";
     let releasedChallenge:
       | Awaited<ReturnType<RegistrationChallengeRepository["releaseVerificationLease"]>>
       | undefined;
@@ -143,7 +145,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (terminalCompanyConflict && lease && releasedChallenge) {
+    if ((terminalCompanyConflict || terminalSchoolConflict) && lease && releasedChallenge) {
       try {
         await challengeRepo.cancelChallenge(
           lease.challenge.challenge_id,

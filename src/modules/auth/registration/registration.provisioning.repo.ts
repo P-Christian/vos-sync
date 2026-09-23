@@ -2,6 +2,10 @@ import { RegistrationError } from "./registration.errors";
 
 type DirectusId = string | number;
 type DirectusFilterValue = string | number | boolean | null;
+// BOUNDED BEST-EFFORT application-level duplicate pre-check over Directus;
+// this is explicitly not a concurrency/race-safe uniqueness guarantee.
+const SCHOOL_IDENTITY_CANDIDATE_LIMIT = 500;
+const SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE = 100;
 
 interface DirectusResponse<T> {
   data?: T;
@@ -53,6 +57,77 @@ export class RegistrationProvisioningRepository {
       { method: "GET", cache: "no-store" }
     );
     return Array.isArray(response.data) ? response.data[0] ?? null : null;
+  }
+
+  async findSchoolIdentityCandidates<T extends Record<string, unknown>>(
+    fields: readonly string[]
+  ): Promise<T[]> {
+    const candidates: T[] = [];
+    let offset = 0;
+
+    while (candidates.length < SCHOOL_IDENTITY_CANDIDATE_LIMIT) {
+      const pageLimit = Math.min(
+        SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE,
+        SCHOOL_IDENTITY_CANDIDATE_LIMIT - candidates.length
+      );
+      const query = new URLSearchParams({
+        fields: fields.join(","),
+        limit: String(pageLimit),
+        offset: String(offset),
+        sort: "school_name,school_id",
+      });
+      query.set("filter[school_name][_nnull]", "true");
+
+      const response = await this.request<DirectusResponse<T[]>>(
+        `/items/vs_school?${query.toString()}`,
+        { method: "GET", cache: "no-store" }
+      );
+      const page = Array.isArray(response.data) ? response.data : [];
+      candidates.push(...page);
+      if (page.length < pageLimit) break;
+      offset += pageLimit;
+    }
+
+    return candidates;
+  }
+
+  async findSchoolIdentityCandidatesForOwner<T extends Record<string, unknown>>(
+    fields: readonly string[],
+    ownerId: DirectusId
+  ): Promise<T[]> {
+    const candidates: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const query = new URLSearchParams({
+        fields: fields.join(","),
+        limit: String(SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE),
+        offset: String(offset),
+        sort: "school_name,school_id",
+      });
+      query.set("filter[school_name][_nnull]", "true");
+      query.set("filter[created_by][_eq]", String(ownerId));
+
+      const response = await this.request<DirectusResponse<T[]>>(
+        `/items/vs_school?${query.toString()}`,
+        { method: "GET", cache: "no-store" }
+      );
+      const page = Array.isArray(response.data) ? response.data : [];
+      candidates.push(...page);
+      if (page.length < SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE) break;
+      offset += SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE;
+    }
+
+    return candidates;
+  }
+
+  async findUserEmailById(userId: DirectusId): Promise<string | null> {
+    const user = await this.findOne<Record<string, unknown>>(
+      "vs_user",
+      { user_id: userId },
+      ["user_email"]
+    );
+    return typeof user?.user_email === "string" ? user.user_email : null;
   }
 
   async create<T extends Record<string, unknown>>(

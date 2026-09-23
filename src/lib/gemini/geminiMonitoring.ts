@@ -14,7 +14,8 @@ export type GeminiFeature =
   | "AUTO_CREATE_JOB"
   | "REFINE_JOB_TEXT"
   | "COMPANY_PROFILE_AI"
-  | "REFINE_COMPANY_TEXT";
+  | "REFINE_COMPANY_TEXT"
+  | "CAMPUS_MATCH_EXPLAINER";
 
 export type GeminiRequestType = "TEXT" | "CHAT" | "EMBEDDING" | "IMAGE";
 export type GeminiProvider = "GEMINI" | "OPENAI" | "ANTHROPIC" | "MISTRAL" | "OLLAMA";

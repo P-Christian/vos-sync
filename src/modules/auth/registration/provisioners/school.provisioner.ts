@@ -1,6 +1,6 @@
 import { RegistrationError } from "../registration.errors";
 import type { SchoolProvisioningInput } from "../registration.types";
-import type { RegistrationProvisioningRepository } from "../registration.provisioning.repo";
+import { RegistrationProvisioningRepository } from "../registration.provisioning.repo";
 import { parseDirectusUtcDateTime } from "../registration.timestamps";
 
 type ProvisioningId = string | number;
@@ -45,6 +45,7 @@ const SCHOOL_FIELDS = [
   "city_municipality",
   "province",
   "barangay",
+  "address_line",
   "school_status",
   "profile_completion_percent",
   "created_by",
@@ -111,8 +112,27 @@ function normalizeEmail(value: unknown): string {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function optionalText(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().replace(/\s+/gu, " ");
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function normalizeSchoolIdentityName(value: string): string | null {
+  const normalized = value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/\s+/gu, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, "");
+  return normalized.length > 0 ? normalized : null;
+}
+
 function sameId(left: unknown, right: unknown): boolean {
   return isProvisioningId(left) && isProvisioningId(right) && String(left) === String(right);
+}
+
+function hasDifferentOwner(record: ProvisioningRecord, userId: ProvisioningId): boolean {
+  return isProvisioningId(record.created_by) && !sameId(record.created_by, userId);
 }
 
 function relationId(value: unknown): ProvisioningId | null {
@@ -178,7 +198,7 @@ function invitationFailure(): RegistrationError {
 
 function schoolConflict(): RegistrationError {
   return new RegistrationError(
-    "This school is already registered in the selected city or municipality.",
+    "A school with this name is already registered.",
     "SCHOOL_CONFLICT",
     409
   );
@@ -244,10 +264,20 @@ function validateSchoolData(data: SchoolProvisioningInput): void {
     (data.school_brgy !== undefined &&
       data.school_brgy !== null &&
       typeof data.school_brgy !== "string") ||
+    (data.school_address_line !== undefined &&
+      data.school_address_line !== null &&
+      typeof data.school_address_line !== "string") ||
     (data.invitation_token !== undefined &&
       data.invitation_token !== null &&
       typeof data.invitation_token !== "string")
   ) {
+    throw new RegistrationError(
+      "School registration data is incomplete.",
+      "PROVISIONING_CONFLICT",
+      409
+    );
+  }
+  if (normalizeSchoolIdentityName(data.school_name) === null) {
     throw new RegistrationError(
       "School registration data is incomplete.",
       "PROVISIONING_CONFLICT",
@@ -296,17 +326,63 @@ function schoolMatchesSelfSignup(
   user: ProvisioningUser,
   data: SchoolProvisioningInput
 ): boolean {
-  const existingBarangay = String(school.barangay ?? "").trim();
-  const requestedBarangay = String(data.school_brgy ?? "").trim();
+  const existingBarangay = optionalText(school.barangay);
+  const requestedBarangay = optionalText(data.school_brgy);
+  const existingAddressLine = optionalText(school.address_line);
+  const requestedAddressLine = optionalText(data.school_address_line);
   return (
     sameId(school.created_by, user.user_id) &&
     normalizeEmail(school.school_email) === normalizeEmail(user.user_email) &&
-    String(school.school_name ?? "").trim() === data.school_name.trim() &&
+    typeof school.school_name === "string" &&
+    normalizeSchoolIdentityName(school.school_name) ===
+      normalizeSchoolIdentityName(data.school_name) &&
     String(school.school_type ?? "").trim() === data.school_type.trim() &&
     String(school.city_municipality ?? "").trim() === data.school_city.trim() &&
     String(school.province ?? "").trim() === data.school_province.trim() &&
-    existingBarangay === requestedBarangay
+    existingBarangay === requestedBarangay &&
+    existingAddressLine === requestedAddressLine
   );
+}
+
+async function findNormalizedSchoolMatches(
+  repo: RegistrationProvisioningRepository,
+  data: SchoolProvisioningInput,
+  ownerId?: ProvisioningId
+): Promise<ProvisioningRecord[]> {
+  const requestedName = normalizeSchoolIdentityName(data.school_name);
+  if (requestedName === null) return [];
+  const candidates = ownerId !== undefined
+    ? await repo.findSchoolIdentityCandidatesForOwner<ProvisioningRecord>(
+        SCHOOL_FIELDS,
+        ownerId
+      )
+    : await repo.findSchoolIdentityCandidates<ProvisioningRecord>(SCHOOL_FIELDS);
+  return candidates.filter(
+    (candidate) =>
+      typeof candidate.school_name === "string" &&
+      normalizeSchoolIdentityName(candidate.school_name) === requestedName
+  );
+}
+
+function resolveCompatibleSelfSignupMatch(
+  matches: readonly ProvisioningRecord[],
+  user: ProvisioningUser,
+  data: SchoolProvisioningInput
+): ProvisioningRecord | null {
+  for (const match of matches) {
+    if (schoolMatchesSelfSignup(match, user, data)) return match;
+  }
+  if (matches.some((match) => hasDifferentOwner(match, user.user_id))) {
+    throw schoolConflict();
+  }
+  if (matches.length > 0) {
+    throw new RegistrationError(
+      "Existing school registration is incompatible.",
+      "PROVISIONING_CONFLICT",
+      409
+    );
+  }
+  return null;
 }
 
 async function findSchoolAdminLink(
@@ -399,15 +475,15 @@ async function resolveSelfSignupSchool(
   data: SchoolProvisioningInput,
   ledger: ProvisioningLedger
 ): Promise<ProvisioningRecord> {
-  const existing = (await repo.findOne(SCHOOL_COLLECTION, {
-    school_name: data.school_name,
-    city_municipality: data.school_city,
-  }, SCHOOL_FIELDS)) as ProvisioningRecord | null;
+  const ownerMatches = await findNormalizedSchoolMatches(repo, data, user.user_id);
+  const existing = resolveCompatibleSelfSignupMatch(ownerMatches, user, data);
+  if (existing) return existing;
 
-  if (existing) {
-    if (schoolMatchesSelfSignup(existing, user, data)) return existing;
-    throw schoolConflict();
-  }
+  resolveCompatibleSelfSignupMatch(
+    await findNormalizedSchoolMatches(repo, data),
+    user,
+    data
+  );
 
   const schoolPayload: ProvisioningRecord = {
     school_name: data.school_name,
@@ -419,7 +495,10 @@ async function resolveSelfSignupSchool(
     profile_completion_percent: 40,
     created_by: user.user_id,
   };
-  if (data.school_brgy) schoolPayload.barangay = data.school_brgy;
+  const barangay = optionalText(data.school_brgy);
+  const addressLine = optionalText(data.school_address_line);
+  if (barangay) schoolPayload.barangay = barangay;
+  if (addressLine) schoolPayload.address_line = addressLine;
 
   try {
     const school = (await repo.create(
@@ -435,23 +514,18 @@ async function resolveSelfSignupSchool(
     ledger.created.push({ collection: SCHOOL_COLLECTION, id: schoolId });
     return school;
   } catch (error: unknown) {
-    // Reconcile an ambiguous create or a concurrent uniqueness conflict. A
-    // same-name school created by another user is still a hard conflict.
-    let reconciled: ProvisioningRecord | null;
+    let matches: ProvisioningRecord[];
     try {
-      reconciled = (await repo.findOne(SCHOOL_COLLECTION, {
-        school_name: data.school_name,
-        city_municipality: data.school_city,
-      }, SCHOOL_FIELDS)) as ProvisioningRecord | null;
+      matches = await findNormalizedSchoolMatches(repo, data, user.user_id);
     } catch {
       ledger.ambiguous = true;
       throw error;
     }
-    if (reconciled && schoolMatchesSelfSignup(reconciled, user, data)) {
+    const reconciled = resolveCompatibleSelfSignupMatch(matches, user, data);
+    if (reconciled) {
       ledger.ambiguous = true;
       return reconciled;
     }
-    if (reconciled) throw schoolConflict();
     if (!isKnownNonAmbiguousFailure(error)) ledger.ambiguous = true;
     throw error;
   }
@@ -744,4 +818,105 @@ export async function provisionSchoolGraph(
     });
     throw provisioningFailure();
   }
+}
+
+/**
+ * Best-effort initiate-time school-name pre-check.
+ *
+ * It reuses the SAME candidate retrieval and the SAME normalizer as the
+ * provisioning-time guard (`resolveSelfSignupSchool`) so the early check and
+ * the enforcing guard can never disagree about what "same name" means.
+ *
+ * A conflict is reported ONLY when ownership is POSITIVELY established as a
+ * different person: a normalized-name candidate whose `created_by` is a valid
+ * provisioning id whose owner email resolves and differs from the registering
+ * email. A missing, invalid, or unresolvable `created_by` never blocks, and an
+ * owner that resolves to the registering email is a same-user retry that
+ * provisioning reconciles idempotently.
+ *
+ * This is explicitly NOT race-safe and never replaces provisioning, which
+ * remains the authoritative duplicate guard.
+ */
+export async function findConflictingSchoolOwnerEmail(
+  repo: RegistrationProvisioningRepository,
+  schoolName: string,
+  registeringEmail: string
+): Promise<string | null> {
+  const requestedName = normalizeSchoolIdentityName(schoolName);
+  if (requestedName === null) return null;
+
+  const registeringEmailNormalized = normalizeEmail(registeringEmail);
+  const candidates = await repo.findSchoolIdentityCandidates<ProvisioningRecord>(
+    SCHOOL_FIELDS
+  );
+
+  for (const candidate of candidates) {
+    if (
+      typeof candidate.school_name !== "string" ||
+      normalizeSchoolIdentityName(candidate.school_name) !== requestedName
+    ) {
+      continue;
+    }
+    if (!isProvisioningId(candidate.created_by)) continue;
+
+    let ownerEmail: string | null;
+    try {
+      ownerEmail = await repo.findUserEmailById(candidate.created_by);
+    } catch {
+      // The owner row may have been deleted by earlier terminal cleanup or the
+      // read may have failed. Ownership is not positively established here, so
+      // skip this candidate and let the user proceed.
+      continue;
+    }
+    const ownerEmailNormalized = normalizeEmail(ownerEmail);
+    if (!ownerEmailNormalized) continue;
+    if (ownerEmailNormalized !== registeringEmailNormalized) {
+      return ownerEmailNormalized;
+    }
+  }
+
+  return null;
+}
+
+export interface SelfSignupSchoolNameCheckOptions {
+  readonly role: string;
+  readonly schoolName: string;
+  readonly email: string;
+  readonly invitationToken?: string | null;
+}
+
+/**
+ * Fail-open initiate-time guard, run before any challenge is created or OTP is
+ * sent. Only self-signup SCH_ADMIN (no invitation token) is ever checked;
+ * invited signup and every other role are untouched.
+ *
+ * Any lookup/network/malformed-record failure is logged and swallowed so a
+ * broken pre-check can never block signup. Only a positively-established
+ * foreign owner raises the existing `SCHOOL_CONFLICT` (409).
+ */
+export async function assertSelfSignupSchoolNameAvailable(
+  options: SelfSignupSchoolNameCheckOptions
+): Promise<void> {
+  if (options.role !== "SCH_ADMIN") return;
+  if (options.invitationToken?.trim()) return;
+
+  let conflictOwnerEmail: string | null;
+  try {
+    const repo = new RegistrationProvisioningRepository();
+    conflictOwnerEmail = await findConflictingSchoolOwnerEmail(
+      repo,
+      options.schoolName,
+      options.email
+    );
+  } catch (error: unknown) {
+    console.error(
+      "[registration.school.provisioner] School-name pre-check failed open",
+      {
+        error: error instanceof Error ? error.name : "UNKNOWN_ERROR",
+      }
+    );
+    return;
+  }
+
+  if (conflictOwnerEmail !== null) throw schoolConflict();
 }
