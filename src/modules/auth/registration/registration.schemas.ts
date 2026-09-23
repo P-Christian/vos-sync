@@ -206,11 +206,32 @@ export const schoolRegistrationInputSchema = passwordMatchesConfirmation(
       province: requiredText("Province is required.", 100),
       city_municipality: requiredText("City/Municipality is required.", 100),
       barangay: optionalText(100),
+      school_address_line: optionalText(255),
       // Invitation tokens are accepted only as input to the server. They are
       // not readable browser state and are not treated as a school/user ID.
       token: optionalToken,
     })
     .strict()
+).superRefine((data, ctx) => {
+  if (!data.token) return;
+  if (data.barangay !== null && data.barangay !== undefined) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["barangay"],
+      message: "Address fields are not accepted for invited school registration.",
+    });
+  }
+  if (
+    data.school_address_line !== null &&
+    data.school_address_line !== undefined
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["school_address_line"],
+      message: "Address fields are not accepted for invited school registration.",
+    });
+  }
+}
 );
 
 export const registrationInputUnionSchema = z.discriminatedUnion("role", [
@@ -318,6 +339,7 @@ const sealedSchoolDataSchema = z
     school_province: canonicalSealedText(100),
     school_city: canonicalSealedText(100),
     school_brgy: sealedNullableText(100),
+    school_address_line: sealedNullableText(255),
     invitation_token: z.string().max(4_096).nullable().optional(),
     // This field, when present, is resolved by the server from the
     // invitation. It is never accepted in browser registration input.

@@ -30,6 +30,7 @@ import {
   maskEmail,
 } from "./registration.crypto";
 import { RegistrationChallengeRepository } from "./registration.challenge.repo";
+import { assertSelfSignupSchoolNameAvailable } from "./provisioners/school.provisioner";
 import {
   assertOtpMailConfiguration,
   sendOTP,
@@ -371,6 +372,19 @@ export class RegistrationService {
     // 4. Advisory duplicate check
     await checkExistingEmail(input.email);
 
+    // 4b. Self-signup school-name pre-check (advisory, fail-open). Runs before
+    // any challenge row is created or OTP generated, so a positively-proven
+    // foreign school owner is rejected at initiate. Provisioning stays the
+    // enforcing guard; this pre-check is best-effort and never race-safe.
+    if (input.role === "SCH_ADMIN") {
+      await assertSelfSignupSchoolNameAvailable({
+        role: input.role,
+        schoolName: input.school_name,
+        email: input.email,
+        invitationToken: input.token,
+      });
+    }
+
     // 5. Hash password (bcrypt runs ONCE at initiation)
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(input.password, saltRounds);
@@ -418,12 +432,16 @@ export class RegistrationService {
         marketing_consent: input.marketing_consent,
       };
     } else if (input.role === "SCH_ADMIN") {
+      const hasInvitationToken = Boolean(input.token);
       schoolData = {
         school_name: input.school_name,
         school_type: input.school_type,
         school_province: input.province,
         school_city: input.city_municipality,
-        school_brgy: input.barangay || null,
+        school_brgy: hasInvitationToken ? null : input.barangay || null,
+        school_address_line: hasInvitationToken
+          ? null
+          : input.school_address_line || null,
         invitation_token: input.token || null,
       };
     }
