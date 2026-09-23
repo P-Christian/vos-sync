@@ -2,12 +2,16 @@ import "server-only";
 
 import { z, type ZodType } from "zod";
 import {
+  createItem,
   dependencyError,
+  fetchMany,
   fetchFirst,
   lookupPath,
   patchCollection,
 } from "./invitation.directus";
 import type {
+  EducationStatus,
+  EmployeeEducationRecord,
   SchoolCourseRecord,
   SchoolRecord,
   SchoolStudentRecord,
@@ -18,6 +22,8 @@ const INVITATION_FIELDS =
   "invitation_id,student_id,school_id,token,expires_at,is_used,used_at,created_at";
 const STUDENT_FIELDS =
   "student_id,school_id,first_name,last_name,email,school_course_id,school_year,registered_user_id,invitation_status";
+const EDUCATION_FIELDS =
+  "employee_education_id,user_id,school_id,school_course_id,school_name_raw,course_name_raw,education_status,start_date,end_date";
 
 const invitationSchema: ZodType<StudentInvitationRecord> = z.object({
   invitation_id: z.number().int(),
@@ -53,6 +59,29 @@ const schoolSchema: ZodType<SchoolRecord> = z.object({
 const courseSchema: ZodType<SchoolCourseRecord> = z.object({
   school_course_id: z.number().int(),
   course_name: z.string(),
+});
+
+function toEducationStatus(value: string | null): EducationStatus | null {
+  switch (value) {
+    case "Verified":
+    case "Pending":
+    case "Unverified":
+      return value;
+    default:
+      return null;
+  }
+}
+
+const employeeEducationSchema: ZodType<EmployeeEducationRecord> = z.object({
+  employee_education_id: z.number().int(),
+  user_id: z.number().int(),
+  school_id: z.number().int().nullable(),
+  school_course_id: z.number().int().nullable(),
+  school_name_raw: z.string().nullable(),
+  course_name_raw: z.string().nullable(),
+  education_status: z.string().nullable().transform(toEducationStatus),
+  start_date: z.string().nullable(),
+  end_date: z.string().nullable(),
 });
 
 /** Find an invitation by its opaque token without consuming it. */
@@ -227,5 +256,49 @@ export function findCourseById(
       fields: "school_course_id,course_name",
     }),
     courseSchema
+  );
+}
+
+export function listEmployeeEducationByUser(
+  userId: number
+): Promise<EmployeeEducationRecord[]> {
+  const query = new URLSearchParams({
+    "filter[user_id][_eq]": String(userId),
+    fields: EDUCATION_FIELDS,
+  });
+  return fetchMany(
+    "education.listByUser",
+    `/items/vs_employee_education?${query.toString()}`,
+    employeeEducationSchema
+  );
+}
+
+export function patchEmployeeEducation(
+  educationId: number,
+  data: Readonly<Record<string, unknown>>
+): Promise<EmployeeEducationRecord | null> {
+  return patchCollection(
+    {
+      operation: "education.patch",
+      collection: "vs_employee_education",
+      filter: { employee_education_id: { _eq: educationId } },
+      data,
+      fields: EDUCATION_FIELDS,
+    },
+    employeeEducationSchema
+  );
+}
+
+export function createEmployeeEducation(
+  data: Readonly<Record<string, unknown>>
+): Promise<EmployeeEducationRecord | null> {
+  return createItem(
+    {
+      operation: "education.create",
+      collection: "vs_employee_education",
+      data,
+      fields: EDUCATION_FIELDS,
+    },
+    employeeEducationSchema
   );
 }
