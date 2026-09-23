@@ -109,7 +109,6 @@ export function buildPreview(input: BuildPreviewInput): StudentInvitationPreview
 
   if (
     !school ||
-    !course ||
     !student.first_name ||
     !student.email ||
     !student.school_year
@@ -122,7 +121,7 @@ export function buildPreview(input: BuildPreviewInput): StudentInvitationPreview
   return {
     state: "valid",
     schoolName: school.school_name,
-    courseName: course.course_name,
+    courseName: course?.course_name ?? "",
     schoolYear: student.school_year,
     studentFirstName: student.first_name,
     studentLastName: student.last_name ?? "",

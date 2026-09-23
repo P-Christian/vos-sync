@@ -75,7 +75,7 @@ function isPreviewResponse(
     case "valid":
       return (
         hasString(value, "schoolName") &&
-        hasString(value, "courseName") &&
+        typeof value.courseName === "string" &&
         hasString(value, "schoolYear") &&
         hasString(value, "studentFirstName") &&
         typeof value.studentLastName === "string" &&
