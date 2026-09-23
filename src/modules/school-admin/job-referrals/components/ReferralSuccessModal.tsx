@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   Copy,
   Check,
-  ExternalLink,
   Share2,
 } from 'lucide-react';
 import { toast } from 'sonner';

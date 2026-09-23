@@ -10,13 +10,11 @@ import { ReferralHistoryDrawer } from './components/ReferralHistoryDrawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Sparkles,
   History,
   GraduationCap,
   Briefcase,
   Users,
   Send,
-  Building2,
 } from 'lucide-react';
 
 function JobReferralsContent() {

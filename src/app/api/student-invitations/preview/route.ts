@@ -37,14 +37,6 @@ interface RateLimitEntry {
  */
 const rateLimits = new Map<string, RateLimitEntry>();
 
-class PreviewConfigurationError extends Error {
-  public readonly name = "PreviewConfigurationError";
-
-  constructor() {
-    super("Student invitation preview is not configured.");
-  }
-}
-
 function previewJson(body: unknown, status = 200): NextResponse {
   return NextResponse.json(body, {
     status,

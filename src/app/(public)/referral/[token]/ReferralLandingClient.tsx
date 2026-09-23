@@ -27,6 +27,8 @@ interface ReferralLandingClientProps {
       user_fname?: string;
       user_lname?: string;
     };
+    is_school_admin?: boolean;
+    school_name?: string;
     status: string;
     expires_at: string;
   };
@@ -101,8 +103,8 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
   };
 
   const job = referral.job_id;
-  const isSchoolAdmin = (referral as any).is_school_admin || !!(referral as any).school_name;
-  const schoolName = (referral as any).school_name;
+  const isSchoolAdmin = referral.is_school_admin || !!referral.school_name;
+  const schoolName = referral.school_name;
 
   const referrerName = referral.referrer_user_id
     ? `${referral.referrer_user_id.user_fname} ${referral.referrer_user_id.user_lname}`.trim()

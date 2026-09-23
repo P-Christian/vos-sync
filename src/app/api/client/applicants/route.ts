@@ -578,7 +578,7 @@ export async function GET(req: NextRequest) {
         );
         if (sRes.ok) {
           const sJson = await sRes.json();
-          (sJson.data || []).forEach((row: any) => {
+          (sJson.data || []).forEach((row: { user_id?: number | string; school_id?: { school_name?: string } | null }) => {
             const uid = Number(row.user_id);
             const sName = typeof row.school_id === "object" ? row.school_id?.school_name : null;
             if (sName) schoolAdminMap[uid] = sName;

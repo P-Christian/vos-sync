@@ -44,14 +44,6 @@ function configurationError(message: string): RegistrationError {
   return new RegistrationError(message, "CONFIGURATION_ERROR", 500);
 }
 
-function readRequiredEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw configurationError(`${name} is not configured.`);
-  }
-  return value;
-}
-
 /**
  * Decode the payload key without deriving or inventing a fallback key. The
  * deployment contract is base64, but accepting an explicit 32-byte value is

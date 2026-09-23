@@ -24,7 +24,6 @@ import {
   markdownToHtml,
   generateRecommendationPdfBuffer,
 } from './job-referrals.helpers';
-import { transporter, MAIL_FROM } from '@/lib/mail/transporter';
 
 export async function getActiveJobsService(): Promise<VsJobPosting[]> {
   return await fetchActiveJobsRepo();

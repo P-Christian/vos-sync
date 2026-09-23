@@ -1,7 +1,7 @@
 // src/modules/school-admin/job-referrals/components/ReferralWizardModal.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useJobReferralsContext } from '../providers/JobReferralsProvider';
 import {
   Dialog,
@@ -21,8 +21,6 @@ import {
   Send,
   Building2,
   Users,
-  Sparkles,
-  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,12 +46,10 @@ export function ReferralWizardModal() {
 
   const [step, setStep] = useState<1 | 2>(1);
 
-  // Reset step when wizard opens
-  useEffect(() => {
-    if (isWizardOpen) {
-      setStep(1);
-    }
-  }, [isWizardOpen]);
+  const handleClose = () => {
+    setStep(1);
+    closeReferralWizard();
+  };
 
   if (!activeJob) return null;
 
@@ -68,7 +64,7 @@ export function ReferralWizardModal() {
   };
 
   return (
-    <Dialog open={isWizardOpen} onOpenChange={(open) => !open && closeReferralWizard()}>
+    <Dialog open={isWizardOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent showCloseButton={false} className="w-[95vw] sm:max-w-4xl md:max-w-5xl lg:max-w-5xl xl:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl">
         {/* Header with Job Summary */}
         <DialogHeader className="p-6 border-b bg-muted/20 space-y-2">
@@ -110,7 +106,7 @@ export function ReferralWizardModal() {
             Refer Students: {activeJob.job_title}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Endorse your institution's verified student talent with custom AI recommendation letters.
+            Endorse your institution&apos;s verified student talent with custom AI recommendation letters.
           </DialogDescription>
         </DialogHeader>
 

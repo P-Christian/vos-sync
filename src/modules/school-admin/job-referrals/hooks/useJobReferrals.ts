@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/school-admin/job-referrals/hooks/useJobReferrals.ts
 import { useState, useEffect, useCallback } from 'react';
 import {

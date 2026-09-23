@@ -189,7 +189,17 @@ export async function GET(req: NextRequest) {
         );
         if (refRes.ok) {
           const refJson = await refRes.json();
-          const refRows: Record<string, any>[] = refJson.data ?? [];
+          const refRows: Array<{
+            application_id?: number | string;
+            referrer_user_id?: {
+              user_id?: number;
+              user_fname?: string;
+              user_lname?: string;
+            } | null;
+            referral_id?: {
+              referral_letter?: string;
+            } | null;
+          }> = refJson.data ?? [];
           
           const refUserIds = [...new Set(refRows.map(r => r.referrer_user_id?.user_id).filter(Boolean))];
           const schoolMap: Record<number, string> = {};
@@ -200,7 +210,7 @@ export async function GET(req: NextRequest) {
             );
             if (sRes.ok) {
               const sJson = await sRes.json();
-              (sJson.data || []).forEach((row: any) => {
+              (sJson.data || []).forEach((row: { user_id?: number | string; school_id?: { school_name?: string } | null }) => {
                 const uid = Number(row.user_id);
                 const sName = typeof row.school_id === "object" ? row.school_id?.school_name : null;
                 if (sName) schoolMap[uid] = sName;
@@ -213,7 +223,7 @@ export async function GET(req: NextRequest) {
             const refUser = r.referrer_user_id;
             const refUserId = refUser?.user_id || 0;
             const sName = schoolMap[refUserId] || null;
-            const refLetter = typeof r.referral_id === "object" ? r.referral_id?.referral_letter : null;
+            const refLetter = typeof r.referral_id === "object" ? (r.referral_id?.referral_letter ?? null) : null;
             const rName = refUser ? `${refUser.user_fname || ""} ${refUser.user_lname || ""}`.trim() : null;
 
             referralMap[appId] = {

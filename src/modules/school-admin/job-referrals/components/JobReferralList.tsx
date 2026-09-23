@@ -5,10 +5,8 @@ import React, { useState, useMemo } from 'react';
 import { useJobReferralsContext } from '../providers/JobReferralsProvider';
 import { JobReferralCard } from './JobReferralCard';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   Search,
-  Filter,
   Briefcase,
   SlidersHorizontal,
 } from 'lucide-react';

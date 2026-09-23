@@ -14,9 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Clock,
-  Send,
-  CheckCircle,
-  XCircle,
   Copy,
   Check,
   Briefcase,

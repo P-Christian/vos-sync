@@ -99,7 +99,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
         })
         .catch((err) => console.error("Error checking claim:", err));
     }
-  }, [open, job?.job_id, loadPrefill]);
+  }, [open, job, loadPrefill]);
 
   const handleClose = () => {
     reset();

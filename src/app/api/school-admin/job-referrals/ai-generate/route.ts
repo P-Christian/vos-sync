@@ -146,6 +146,10 @@ ${candidateProfilesText}
         timeoutMs: 15000,
       });
 
+      if (!aiResponse) {
+        throw new Error('Empty response received from Gemini');
+      }
+
       generatedLetter = aiResponse.trim();
     } catch (aiErr) {
       console.warn('[ai-generate] Gemini service fallback triggered:', aiErr);
