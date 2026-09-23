@@ -11,6 +11,7 @@ import {
   completeOwnedAcceptance,
   StudentInvitationAcceptanceError,
 } from "@/modules/auth/student-invitation/invitation.acceptance";
+import { syncEducationFromRosterBestEffort } from "@/modules/auth/student-invitation/invitation.education";
 import {
   InvitationChallengeError,
   verifyInvitationChallenge,
@@ -105,6 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         invitation,
         student,
       });
+      await syncEducationFromRosterBestEffort({ userId: session.userId, student });
       return verifyJson({ state: "linked" });
     }
     if (invitation.is_used) {
@@ -186,6 +188,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         invitation: latestInvitation,
         student: latestStudent,
       });
+      await syncEducationFromRosterBestEffort({ userId: session.userId, student: latestStudent });
       return verifyJson({ state: "linked" });
     }
     const latestState = getInvitationState(
@@ -252,6 +255,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       invitation: latestInvitation,
       student: link.student,
     });
+    await syncEducationFromRosterBestEffort({ userId: session.userId, student: link.student });
     return linkedResponse;
   } catch (error: unknown) {
     if (error instanceof InvitationChallengeError) {

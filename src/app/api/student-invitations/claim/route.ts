@@ -24,6 +24,7 @@ import {
   getInvitationState,
   isLinkedToSession,
 } from "@/modules/auth/student-invitation/invitation.service";
+import { syncEducationFromRosterBestEffort } from "@/modules/auth/student-invitation/invitation.education";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         invitation,
         student,
       });
+      await syncEducationFromRosterBestEffort({ userId: session.userId, student });
       return claimJson({ state: "linked" });
     }
     if (state === "expired") {
