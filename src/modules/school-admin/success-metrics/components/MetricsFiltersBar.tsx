@@ -22,67 +22,61 @@ export function MetricsFiltersBar() {
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          <Filter className="h-3.5 w-3.5" />
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <span>Filters:</span>
         </div>
 
         {/* Academic Year Filter */}
-        <div className="w-[170px]">
-          <Select
-            value={filter.school_year || 'ALL'}
-            onValueChange={(val) => updateFilter({ school_year: val === 'ALL' ? undefined : val })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="All Academic Years" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Academic Years</SelectItem>
-              {schoolYears.map((year) => (
-                <SelectItem key={year} value={year}>
-                  Cohort {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={filter.school_year || 'ALL'}
+          onValueChange={(val) => updateFilter({ school_year: val === 'ALL' ? undefined : val })}
+        >
+          <SelectTrigger className="h-9 min-w-[160px] text-xs">
+            <SelectValue placeholder="All Academic Years" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Academic Years</SelectItem>
+            {schoolYears.map((year) => (
+              <SelectItem key={year} value={year}>
+                Cohort {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Course Filter */}
-        <div className="w-[210px]">
-          <Select
-            value={filter.school_course_id ? String(filter.school_course_id) : 'ALL'}
-            onValueChange={(val) => updateFilter({ school_course_id: val === 'ALL' ? undefined : Number(val) })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="All Degree Programs" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Degree Programs</SelectItem>
-              {courses.map((course) => (
-                <SelectItem key={course.courseId} value={String(course.courseId)}>
-                  {course.courseName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={filter.school_course_id ? String(filter.school_course_id) : 'ALL'}
+          onValueChange={(val) => updateFilter({ school_course_id: val === 'ALL' ? undefined : Number(val) })}
+        >
+          <SelectTrigger className="h-9 min-w-[180px] max-w-[240px] text-xs">
+            <SelectValue placeholder="All Degree Programs" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Degree Programs</SelectItem>
+            {courses.map((course) => (
+              <SelectItem key={course.courseId} value={String(course.courseId)}>
+                {course.courseName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* Alumni vs Current Student Filter */}
-        <div className="w-[160px]">
-          <Select
-            value={filter.is_alumni !== undefined ? String(filter.is_alumni) : 'ALL'}
-            onValueChange={(val) => updateFilter({ is_alumni: val === 'ALL' ? undefined : val === 'true' })}
-          >
-            <SelectTrigger className="h-9 text-xs">
-              <SelectValue placeholder="All Cohorts" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Cohorts</SelectItem>
-              <SelectItem value="false">Current Students</SelectItem>
-              <SelectItem value="true">Graduates / Alumni</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select
+          value={filter.is_alumni !== undefined ? String(filter.is_alumni) : 'ALL'}
+          onValueChange={(val) => updateFilter({ is_alumni: val === 'ALL' ? undefined : val === 'true' })}
+        >
+          <SelectTrigger className="h-9 min-w-[150px] text-xs">
+            <SelectValue placeholder="All Cohorts" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Cohorts</SelectItem>
+            <SelectItem value="false">Current Students</SelectItem>
+            <SelectItem value="true">Graduates / Alumni</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex items-center gap-2 self-end sm:self-auto">

@@ -5,7 +5,6 @@ import {
 } from '../types/success-metrics.types';
 import {
   fetchJobApplicationsForUsersRepo,
-  fetchJobPostingsDetailsRepo,
   fetchSchoolCoursesRepo,
   fetchSchoolStudentsRepo,
 } from './success-metrics.repo';

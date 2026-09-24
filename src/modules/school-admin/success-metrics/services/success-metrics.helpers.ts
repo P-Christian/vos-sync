@@ -59,7 +59,22 @@ export function calculateKpis(
   courseStats.forEach((c) => {
     if (c.registeredStudents >= 1 && c.placementRate > highestPlacementRate) {
       highestPlacementRate = c.placementRate;
-      topPerformingCourse = c.courseName;
+      if (c.courseCode && c.courseCode.trim()) {
+        topPerformingCourse = c.courseCode.trim();
+      } else {
+        // Generate clean acronym from course name (e.g., "Bachelor of Science in Information Technology" -> "BSIT")
+        const words = c.courseName.replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(Boolean);
+        if (words.length > 1) {
+          const ignore = new Set(['of', 'in', 'and', '&', 'the', 'for', 'to']);
+          const acronym = words
+            .filter((w) => !ignore.has(w.toLowerCase()))
+            .map((w) => w[0].toUpperCase())
+            .join('');
+          topPerformingCourse = acronym || c.courseName;
+        } else {
+          topPerformingCourse = c.courseName;
+        }
+      }
     }
   });
 

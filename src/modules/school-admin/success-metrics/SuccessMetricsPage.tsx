@@ -1,7 +1,7 @@
 // src/modules/school-admin/success-metrics/SuccessMetricsPage.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { SuccessMetricsProvider, useSuccessMetricsContext } from './providers/SuccessMetricsProvider';
 import { MetricsKpiCards } from './components/MetricsKpiCards';
 import { PlacementFunnelChart } from './components/PlacementFunnelChart';
@@ -22,8 +22,8 @@ function SuccessMetricsContent() {
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-9 w-32" />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-lg" />
           ))}
         </div>
