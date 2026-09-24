@@ -65,7 +65,7 @@ const data = {
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target, TrendingUp } from "lucide-react";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
@@ -159,6 +159,7 @@ export function AppSidebar({
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
                 { label: "Student Roster", href: "/vos-sync/school-admin/students", icon: Users },
                 { label: "Job Referrals", href: "/vos-sync/school-admin/job-referrals", icon: Briefcase },
+                { label: "Success Metrics", href: "/vos-sync/school-admin/success-metrics", icon: TrendingUp },
                 // { label: "How It Works", href: "/vos-sync/school-admin/how-it-works", icon: HelpCircle },
                 { label: "Settings", href: "/vos-sync/school-admin/settings", icon: Settings2 },
             ],
