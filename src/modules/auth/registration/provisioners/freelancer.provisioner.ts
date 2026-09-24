@@ -40,6 +40,10 @@ interface GenericProvisioningRepository {
     filter: Record<string, unknown>,
     fields: readonly string[]
   ): Promise<unknown>;
+  findMasterSkillCandidates<T extends Record<string, unknown>>(
+    name: string,
+    limit?: number
+  ): Promise<T[]>;
   create(collection: string, payload: DirectusRecord): Promise<unknown>;
   update(
     collection: string,
@@ -442,9 +446,39 @@ async function ensurePreferences(
   );
 }
 
-async function resolveExistingSkills(
+async function findMasterSkillCandidates(
   repo: GenericProvisioningRepository,
-  skills: string[]
+  name: string
+): Promise<DirectusRecord[]> {
+  try {
+    const candidates =
+      await repo.findMasterSkillCandidates<DirectusRecord>(name);
+    return Array.isArray(candidates) ? candidates : [];
+  } catch (error: unknown) {
+    return provisioningFailure(
+      `${MASTER_SKILLS_COLLECTION}.findMasterSkillCandidates`,
+      error
+    );
+  }
+}
+
+function pickNormalizedSkillMatch(
+  candidates: DirectusRecord[],
+  normalizedName: string
+): DirectusRecord | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate.skill_name !== "string") continue;
+    if (normalizeSkillName(candidate.skill_name) !== normalizedName) continue;
+    if (!isApprovedSkill(candidate)) continue;
+    return candidate;
+  }
+  return undefined;
+}
+
+async function resolveSkills(
+  repo: GenericProvisioningRepository,
+  skills: string[],
+  created: CreatedResource[]
 ): Promise<Array<{ id: RecordId; name: string }>> {
   const resolved: Array<{ id: RecordId; name: string }> = [];
   const seen = new Set<string>();
@@ -455,42 +489,88 @@ async function resolveExistingSkills(
     }
     const name = canonicalSkillName(rawSkill);
     const normalizedName = normalizeSkillName(name);
-    if (!normalizedName || seen.has(normalizedName)) continue;
+    if (!normalizedName) {
+      provisioningConflict("Freelancer skill mapping contains an invalid value.");
+    }
+    if (seen.has(normalizedName)) continue;
     seen.add(normalizedName);
 
-    const skill = await findOne(
-      repo,
-      MASTER_SKILLS_COLLECTION,
-      { skill_name: name },
-      MASTER_SKILL_FIELDS
-    );
-    if (!skill) {
-      provisioningConflict(
-        "A requested freelancer skill is not an approved master skill.",
-        { skill: name }
-      );
+    const candidates = await findMasterSkillCandidates(repo, name);
+    const matched = pickNormalizedSkillMatch(candidates, normalizedName);
+    if (matched) {
+      const skillId = toRecordId(matched.id ?? matched.skill_id);
+      if (skillId === undefined || !isApprovedSkill(matched)) {
+        provisioningConflict(
+          "A requested freelancer skill has an incompatible master mapping.",
+          { skill: name }
+        );
+      }
+
+      if (
+        typeof matched.skill_name === "string" &&
+        normalizeSkillName(matched.skill_name) !== normalizedName
+      ) {
+        provisioningConflict(
+          "A requested freelancer skill has an incompatible master mapping.",
+          { skill: name }
+        );
+      }
+
+      if (!resolved.some((item) => String(item.id) === String(skillId))) {
+        resolved.push({ id: skillId, name });
+      }
+      continue;
     }
 
-    const skillId = toRecordId(skill.id ?? skill.skill_id);
-    if (skillId === undefined || !isApprovedSkill(skill)) {
+    let createdSkill: DirectusRecord;
+    try {
+      createdSkill = await createOrReconcile(
+        repo,
+        MASTER_SKILLS_COLLECTION,
+        { skill_name: name },
+        { skill_name: name },
+        MASTER_SKILL_FIELDS,
+        created,
+        ["id"]
+      );
+    } catch (createError: unknown) {
+      // A concurrent create of a case-variant is rejected by the UNIQUE index
+      // on skill_name. Re-run the case-insensitive lookup once so a lost
+      // response or racing create converges instead of surfacing a false miss.
+      if (createError instanceof AmbiguousProvisioningError) {
+        const reconciled = pickNormalizedSkillMatch(
+          await findMasterSkillCandidates(repo, name),
+          normalizedName
+        );
+        if (reconciled) {
+          const reconciledId = toRecordId(
+            reconciled.id ?? reconciled.skill_id
+          );
+          if (reconciledId !== undefined && isApprovedSkill(reconciled)) {
+            if (
+              !resolved.some(
+                (item) => String(item.id) === String(reconciledId)
+              )
+            ) {
+              resolved.push({ id: reconciledId, name });
+            }
+            continue;
+          }
+        }
+      }
+      throw createError;
+    }
+
+    const createdId = toRecordId(createdSkill.id ?? createdSkill.skill_id);
+    if (createdId === undefined) {
       provisioningConflict(
         "A requested freelancer skill has an incompatible master mapping.",
         { skill: name }
       );
     }
 
-    if (
-      typeof skill.skill_name === "string" &&
-      normalizeSkillName(skill.skill_name) !== normalizedName
-    ) {
-      provisioningConflict(
-        "A requested freelancer skill has an incompatible master mapping.",
-        { skill: name }
-      );
-    }
-
-    if (!resolved.some((item) => String(item.id) === String(skillId))) {
-      resolved.push({ id: skillId, name });
+    if (!resolved.some((item) => String(item.id) === String(createdId))) {
+      resolved.push({ id: createdId, name });
     }
   }
 
@@ -655,9 +735,10 @@ async function compensateCreatedResources(
 }
 
 /**
- * Ensures the permanent freelancer graph exists without creating taxonomy
- * rows. Every lookup uses the graph's natural key so verification retries
- * converge on the same records.
+ * Ensures the permanent freelancer graph exists, creating a missing master
+ * skill and reusing existing ones case-insensitively. Every mutation is
+ * registered in `created` for compensation. Every lookup uses the graph's
+ * natural key so verification retries converge on the same records.
  */
 export async function provisionFreelancerGraph(
   repo: RegistrationProvisioningRepository,
@@ -669,9 +750,10 @@ export async function provisionFreelancerGraph(
   const created: CreatedResource[] = [];
 
   try {
-    const resolvedSkills = await resolveExistingSkills(
+    const resolvedSkills = await resolveSkills(
       genericRepo,
-      data.skills ?? []
+      data.skills ?? [],
+      created
     );
     const provisionedUser = await persistUserLocation(
       genericRepo,

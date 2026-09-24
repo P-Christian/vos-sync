@@ -31,6 +31,9 @@ import {
   getRegistrationSchoolInvitation,
 } from '@/modules/auth/registration/client/registration.api';
 import { useRegistrationChallenge } from '@/modules/auth/registration/client/useRegistrationChallenge';
+import { SkillMultiSelect } from '@/modules/auth/registration/client/SkillMultiSelect';
+import type { SelectedSkill } from '@/modules/auth/registration/client/SkillMultiSelect';
+import { toSkillPayload } from '@/modules/auth/registration/client/skill-selection';
 
 // ─── Types & Country Data ─────────────────────────────────────────────────────
 
@@ -455,12 +458,12 @@ function SignupPageContent() {
     password: '', confirmPassword: '', country: 'Philippines', contact: '',
     province: '', provinceCode: '', city: '', cityCode: '',
     barangay: '', street: '',
-    skills: '', // primary skill/domain
   });
   const [freelancerSelectedCountry, setFreelancerSelectedCountry] = useState<CountryData>(COUNTRIES[0]);
   const [freelancerShowPassword, setFreelancerShowPassword] = useState(false);
   const [freelancerShowConfirmPassword, setFreelancerShowConfirmPassword] = useState(false);
   const [freelancerEmploymentTypes, setFreelancerEmploymentTypes] = useState<string[]>([]);
+  const [freelancerSkills, setFreelancerSkills] = useState<SelectedSkill[]>([]);
   const [freelancerTermsAgreed, setFreelancerTermsAgreed] = useState(false);
   const [freelancerMarketingConsent, setFreelancerMarketingConsent] = useState(true);
   const [freelancerErrors, setFreelancerErrors] = useState<Record<string, string>>({});
@@ -697,7 +700,7 @@ function SignupPageContent() {
     setFormData({
       firstName: '', lastName: '', email: '', jobTitle: '',
       password: '', confirmPassword: '', country: 'Philippines', contact: '',
-      province: '', provinceCode: '', city: '', cityCode: '', barangay: '', street: '', skills: ''
+      province: '', provinceCode: '', city: '', cityCode: '', barangay: '', street: ''
     });
     setFreelancerEmploymentTypes([]);
     setFreelancerResumeFile(null);
@@ -1016,8 +1019,8 @@ function SignupPageContent() {
     if (freelancerEmploymentTypes.length === 0) {
       e.employmentTypes = 'Please select at least one employment type interest';
     }
-    if (!formData.skills.trim()) {
-      e.skills = 'Please enter at least one primary skill';
+    if (freelancerSkills.length === 0) {
+      e.skills = 'Please select or add at least one primary skill';
     }
     if (freelancerResumeFile) {
       const allowedExts = ['.pdf', '.docx'];
@@ -1084,7 +1087,7 @@ function SignupPageContent() {
         barangay: formData.barangay || undefined,
         street: formData.street || undefined,
         employmentTypes: freelancerEmploymentTypes,
-        skills: formData.skills.split(',').map(skill => skill.trim()).filter(Boolean),
+        skills: toSkillPayload(freelancerSkills),
         terms_accepted: true,
         privacy_accepted: true,
         marketing_consent: freelancerMarketingConsent,
@@ -2106,9 +2109,7 @@ function SignupPageContent() {
           <label htmlFor="skills" className="block text-sm font-medium text-foreground">
             Primary Skills / Domain <span className="text-destructive">*</span>
           </label>
-          <Input id="skills" value={formData.skills} onChange={handleFreelancerChange} disabled={loading}
-            placeholder="e.g. React, Node.js, UI/UX Design (comma separated)"
-            className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.skills && 'border-destructive')} />
+          <SkillMultiSelect value={freelancerSkills} onChange={setFreelancerSkills} max={10} disabled={loading} error={Boolean(freelancerErrors.skills)} />
           {freelancerErrors.skills && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.skills}</p>}
         </div>
 
@@ -2145,7 +2146,7 @@ function SignupPageContent() {
       </div>
 
       <Button type="button" onClick={handleFreelancerStep2Next}
-        disabled={loading || !formData.country || (freelancerSelectedCountry.code === 'PH' && (!formData.provinceCode || !formData.cityCode)) || freelancerEmploymentTypes.length === 0 || !formData.skills.trim()}
+        disabled={loading || !formData.country || (freelancerSelectedCountry.code === 'PH' && (!formData.provinceCode || !formData.cityCode)) || freelancerEmploymentTypes.length === 0 || freelancerSkills.length === 0}
         className="w-full py-6 bg-primary hover:bg-primary/90 text-white rounded-full font-medium transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed">
         {loading ? 'Uploading Resume...' : 'Continue'}
       </Button>
