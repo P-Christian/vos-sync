@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Search, AlertCircle, Briefcase } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Search, AlertCircle, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { useJobBrowse } from "./hooks/useJobBrowse";
 import { JobBrowseFilters } from "./components/JobBrowseFilters";
 import { JobBrowseCard } from "./components/JobBrowseCard";
@@ -14,16 +15,16 @@ import { RegisterRequiredModal } from "./components/RegisterRequiredModal";
 import { PublicJobSkeleton } from "@/modules/public/find-jobs/components/PublicJobSkeleton";
 import { PublicJobPosting } from "./types";
 
-
 export default function JobBrowseModule() {
   const {
     jobs,
     totalCount,
     filteredCount,
-    hasMore,
-    loadMore,
+    page,
+    setPage,
+    totalPages,
+    pageSize,
     loading,
-    loadingMore,
     error,
     appliedJobIds,
     search,
@@ -70,73 +71,6 @@ export default function JobBrowseModule() {
       }
     }
   }, [jobs, openDetail]);
-
-  const observerRef = useRef<IntersectionObserver | null>(null);
-
-  // Callback Ref: mounts and observes immediately when DOM node is attached, regardless of AnimatePresence
-  const sentinelCallbackRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-        observerRef.current = null;
-      }
-
-      if (!node || !hasMore || loading || loadingMore) return;
-
-      const scrollContainer = node.closest("main") || null;
-
-      console.log("[JobBrowseModule] 📌 Sentinel mounted into DOM. Target scrollContainer:", scrollContainer?.tagName || "WINDOW");
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            console.log("[JobBrowseModule] 👁️ Sentinel intersected viewport -> calling loadMore()");
-            loadMore();
-          }
-        },
-        {
-          root: scrollContainer,
-          rootMargin: "500px",
-        }
-      );
-
-      observer.observe(node);
-      observerRef.current = observer;
-    },
-    [hasMore, loading, loadingMore, loadMore]
-  );
-
-  // Global capture scroll listener on window/document/main
-  useEffect(() => {
-    if (!hasMore || loading || loadingMore) return;
-
-    const handleScroll = (e: Event) => {
-      const target = (e.target as HTMLElement) || document.documentElement;
-      let nearBottom = false;
-
-      if (target instanceof HTMLElement && target.scrollHeight > target.clientHeight) {
-        const { scrollTop, scrollHeight, clientHeight } = target;
-        if (scrollHeight - (scrollTop + clientHeight) < 600) {
-          nearBottom = true;
-        }
-      }
-
-      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 600) {
-        nearBottom = true;
-      }
-
-      if (nearBottom) {
-        console.log("[JobBrowseModule] 📜 Scroll triggered near bottom -> calling loadMore()");
-        loadMore();
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true, capture: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll, { capture: true });
-    };
-  }, [hasMore, loading, loadingMore, loadMore]);
 
   const handleApply = (job: PublicJobPosting) => {
     if (isGuest) {
@@ -242,7 +176,7 @@ export default function JobBrowseModule() {
           ) : (
             <div className="space-y-6">
               <motion.div
-                key={`freelancer-jobs-grid-${filterJobType}-${filterArrangement}-${filterExperience}`}
+                key={`freelancer-jobs-grid-${page}-${filterJobType}-${filterArrangement}-${filterExperience}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -254,7 +188,7 @@ export default function JobBrowseModule() {
                     key={job.job_id}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: Math.min((idx % 12) * 0.04, 0.3) }}
+                    transition={{ duration: 0.3, delay: Math.min((idx % 15) * 0.03, 0.3) }}
                     whileHover={{ y: -4, transition: { duration: 0.2 } }}
                     className="h-full"
                   >
@@ -268,30 +202,80 @@ export default function JobBrowseModule() {
                 ))}
               </motion.div>
 
-              {/* Seamless preloading sentinel */}
-              {hasMore && (
-                <div ref={sentinelCallbackRef} className="h-14 w-full flex items-center justify-center py-4">
-                  <button
-                    type="button"
-                    onClick={() => loadMore()}
-                    disabled={loadingMore}
-                    className="flex items-center gap-2 text-sm md:text-xs text-muted-foreground hover:text-foreground bg-muted/40 hover:bg-muted px-4 py-2 rounded-full border border-border/50 transition-colors max-md:min-h-11"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <div className="h-3.5 w-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                        <span>Loading more jobs...</span>
-                      </>
-                    ) : (
-                      <span>Loading more jobs...</span>
-                    )}
-                  </button>
-                </div>
-              )}
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/80">
+                  <p className="text-xs text-muted-foreground">
+                    Showing <span className="font-semibold text-foreground">{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredCount)}</span> of{' '}
+                    <span className="font-semibold text-foreground">{filteredCount}</span> jobs
+                    <span className="ml-1 text-muted-foreground">
+                      (Page {page} of {totalPages})
+                    </span>
+                  </p>
 
-              {!hasMore && jobs.length > 0 && (
-                <div className="flex items-center justify-center py-6 text-sm md:text-xs text-muted-foreground">
-                  <span>Showing all {filteredCount} job{filteredCount !== 1 ? "s" : ""}</span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setPage((p) => Math.max(p - 1, 1));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      disabled={page === 1 || loading}
+                      className="h-8 px-2.5 text-xs gap-1"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Previous</span>
+                    </Button>
+
+                    {/* Numerical Page Buttons */}
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((p) => {
+                          return (
+                            p === 1 ||
+                            p === totalPages ||
+                            Math.abs(p - page) <= 1
+                          );
+                        })
+                        .map((p, index, array) => {
+                          const showEllipsis = index > 0 && p - array[index - 1] > 1;
+                          return (
+                            <React.Fragment key={p}>
+                              {showEllipsis && (
+                                <span className="px-1 text-xs text-muted-foreground">...</span>
+                              )}
+                              <Button
+                                variant={page === p ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => {
+                                  setPage(p);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                disabled={loading}
+                                className="h-8 w-8 p-0 text-xs font-medium"
+                              >
+                                {p}
+                              </Button>
+                            </React.Fragment>
+                          );
+                        })}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setPage((p) => Math.min(p + 1, totalPages));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      disabled={page === totalPages || loading}
+                      className="h-8 px-2.5 text-xs gap-1"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
