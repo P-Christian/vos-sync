@@ -305,7 +305,7 @@ export default function JobBrowseModule() {
             markJobAsApplied(selectedJob.job_id);
           }
           fetchApplications();
-          fetchJobs(true);
+          fetchJobs();
         }}
       />
 

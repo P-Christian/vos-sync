@@ -1,7 +1,7 @@
 // src/modules/school-admin/job-referrals/components/JobReferralList.tsx
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useJobReferralsContext } from '../providers/JobReferralsProvider';
 import { JobReferralCard } from './JobReferralCard';
 import { Input } from '@/components/ui/input';
@@ -42,15 +42,9 @@ export function JobReferralList() {
   }, [jobs, search, typeFilter, arrangementFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
 
-  // Guard against currentPage out of bounds if filtered results reduce
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredJobs.length);
 
   const paginatedJobs = useMemo(() => {

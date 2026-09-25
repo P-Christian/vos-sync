@@ -49,7 +49,8 @@ const DATE_FORMATS = [
 ];
 
 export default function GeneralSettings() {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
+  const { switchTheme } = useThemeCurtain();
   const { settings: themeSettings, updateSettings: updateThemeSettings, resetSettings: resetThemeSettings } = useThemeSettings();
 
   // Settings state
