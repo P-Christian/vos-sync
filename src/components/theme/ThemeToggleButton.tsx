@@ -8,19 +8,20 @@ import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useThemeCurtain } from "./useThemeCurtain";
 
 export default function ThemeToggleButton({
-                                              variant = "outline",
-                                              size = "sm",
-                                              className,
-                                              transitionMs = 5000,
-                                          }: {
+    variant = "outline",
+    size = "sm",
+    className,
+}: {
     variant?: "default" | "secondary" | "outline" | "ghost";
     size?: "default" | "sm" | "lg" | "icon";
     className?: string;
     transitionMs?: number;
 }) {
-    const { theme, setTheme, systemTheme } = useTheme();
+    const { theme, systemTheme } = useTheme();
+    const { switchTheme, isTransitioning } = useThemeCurtain();
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => setMounted(true), []);
@@ -29,18 +30,7 @@ export default function ThemeToggleButton({
     const isDark = current === "dark";
 
     const onToggle = () => {
-        const root = document.documentElement;
-
-        // add transition class
-        root.classList.add("theme-switching");
-
-        // toggle theme
-        setTheme(isDark ? "light" : "dark");
-
-        // remove class admitted after transition completes
-        window.setTimeout(() => {
-            root.classList.remove("theme-switching");
-        }, transitionMs);
+        switchTheme(isDark ? "light" : "dark");
     };
 
     if (!mounted) {
@@ -58,6 +48,7 @@ export default function ThemeToggleButton({
             size={size}
             className={cn("gap-2", className)}
             onClick={onToggle}
+            disabled={isTransitioning}
             aria-label="Toggle theme"
         >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
