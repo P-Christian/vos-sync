@@ -5,11 +5,16 @@ import React, { useState, useMemo } from 'react';
 import { useJobReferralsContext } from '../providers/JobReferralsProvider';
 import { JobReferralCard } from './JobReferralCard';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Search,
   Briefcase,
   SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
 
 export function JobReferralList() {
   const { jobs, openReferralWizard, isLoading } = useJobReferralsContext();
@@ -17,6 +22,7 @@ export function JobReferralList() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [arrangementFilter, setArrangementFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filter jobs
   const filteredJobs = useMemo(() => {
@@ -34,6 +40,38 @@ export function JobReferralList() {
       return matchSearch && matchType && matchArrangement;
     });
   }, [jobs, search, typeFilter, arrangementFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / ITEMS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const startIndex = (safeCurrentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredJobs.length);
+
+  const paginatedJobs = useMemo(() => {
+    return filteredJobs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredJobs, startIndex]);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const handleTypeFilterChange = (val: string) => {
+    setTypeFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleArrangementFilterChange = (val: string) => {
+    setArrangementFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setTypeFilter('ALL');
+    setArrangementFilter('ALL');
+    setCurrentPage(1);
+  };
 
   if (isLoading) {
     return (
@@ -55,7 +93,7 @@ export function JobReferralList() {
             <Input
               placeholder="Search active vacancies, companies, roles..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="pl-9 text-sm bg-background"
             />
           </div>
@@ -65,7 +103,7 @@ export function JobReferralList() {
             <div className="flex items-center gap-1.5">
               <select
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onChange={(e) => handleTypeFilterChange(e.target.value)}
                 className="text-xs bg-background border border-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="ALL">All Job Types</option>
@@ -81,7 +119,7 @@ export function JobReferralList() {
             <div className="flex items-center gap-1.5">
               <select
                 value={arrangementFilter}
-                onChange={(e) => setArrangementFilter(e.target.value)}
+                onChange={(e) => handleArrangementFilterChange(e.target.value)}
                 className="text-xs bg-background border border-input rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
                 <option value="ALL">All Work Setups</option>
@@ -97,15 +135,23 @@ export function JobReferralList() {
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
           <span className="flex items-center gap-1.5">
             <Briefcase className="w-3.5 h-3.5 text-primary" />
-            Showing <strong className="text-foreground">{filteredJobs.length}</strong> available vacancies
+            {filteredJobs.length === 0 ? (
+              <span>No vacancies found</span>
+            ) : (
+              <span>
+                Showing <strong className="text-foreground">{startIndex + 1}–{endIndex}</strong> of{' '}
+                <strong className="text-foreground">{filteredJobs.length}</strong> available vacancies
+                {totalPages > 1 && (
+                  <span className="ml-1 text-muted-foreground">
+                    (Page {currentPage} of {totalPages})
+                  </span>
+                )}
+              </span>
+            )}
           </span>
           {(search || typeFilter !== 'ALL' || arrangementFilter !== 'ALL') && (
             <button
-              onClick={() => {
-                setSearch('');
-                setTypeFilter('ALL');
-                setArrangementFilter('ALL');
-              }}
+              onClick={handleResetFilters}
               className="text-primary hover:underline text-xs"
             >
               Reset Filters
@@ -127,9 +173,73 @@ export function JobReferralList() {
         </div>
       ) : (
         <div className="space-y-3.5">
-          {filteredJobs.map((job) => (
+          {paginatedJobs.map((job) => (
             <JobReferralCard key={job.job_id} job={job} onRefer={openReferralWizard} />
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls Footer */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/60">
+          <p className="text-xs text-muted-foreground">
+            Page <span className="font-semibold text-foreground">{currentPage}</span> of{' '}
+            <span className="font-semibold text-foreground">{totalPages}</span>
+          </p>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="h-8 px-2.5 text-xs gap-1"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Previous</span>
+            </Button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((page) => {
+                  return (
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - currentPage) <= 1
+                  );
+                })
+                .map((page, index, array) => {
+                  const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                  return (
+                    <React.Fragment key={page}>
+                      {showEllipsis && (
+                        <span className="px-1 text-xs text-muted-foreground">...</span>
+                      )}
+                      <Button
+                        variant={currentPage === page ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                        className="h-8 w-8 p-0 text-xs font-medium"
+                      >
+                        {page}
+                      </Button>
+                    </React.Fragment>
+                  );
+                })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="h-8 px-2.5 text-xs gap-1"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

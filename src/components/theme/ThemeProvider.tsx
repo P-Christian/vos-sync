@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeCurtainProvider } from "./ThemeCurtainProvider";
 
 export default function ThemeProvider({
                                           children,
@@ -16,7 +17,9 @@ export default function ThemeProvider({
             enableSystem
             disableTransitionOnChange
         >
-            {children}
+            <ThemeCurtainProvider>
+                {children}
+            </ThemeCurtainProvider>
         </NextThemesProvider>
     );
 }

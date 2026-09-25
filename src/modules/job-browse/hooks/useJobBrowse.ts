@@ -2,20 +2,18 @@
 // src/modules/job-browse/hooks/useJobBrowse.ts
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { PublicJobPosting, JobType, WorkArrangement, ExperienceLevel } from "../types";
 
-const INITIAL_JOB_LIMIT = 12;
-const JOB_BATCH_SIZE = 12;
+export const PAGE_SIZE = 15;
 
 export function useJobBrowse() {
   const [jobs, setJobs] = useState<PublicJobPosting[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [filteredCount, setFilteredCount] = useState(0);
-  const [hasMore, setHasMore] = useState(false);
+  const [page, setPage] = useState(1);
   const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
   // Filter state
@@ -40,11 +38,10 @@ export function useJobBrowse() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Keep track of current jobs count in ref for fetch pagination
-  const jobsCountRef = useRef(0);
+  // Reset to page 1 on filter or search changes
   useEffect(() => {
-    jobsCountRef.current = jobs.length;
-  }, [jobs.length]);
+    setPage(1);
+  }, [debouncedSearch, filterJobType, filterArrangement, filterExperience]);
 
   const fetchApplications = useCallback(async () => {
     try {
@@ -62,16 +59,13 @@ export function useJobBrowse() {
     }
   }, []);
 
-  const fetchJobs = useCallback(async (isReset = true) => {
-    if (isReset) {
-      setLoading(true);
-    } else {
-      setLoadingMore(true);
-    }
+  const fetchJobs = useCallback(async (targetPage?: number) => {
+    const currentPage = targetPage ?? page;
+    setLoading(true);
     setError("");
 
-    const offset = isReset ? 0 : jobsCountRef.current;
-    const limit = isReset ? INITIAL_JOB_LIMIT : JOB_BATCH_SIZE;
+    const offset = (currentPage - 1) * PAGE_SIZE;
+    const limit = PAGE_SIZE;
 
     const params = new URLSearchParams({
       limit: String(limit),
@@ -83,90 +77,37 @@ export function useJobBrowse() {
     if (filterArrangement !== "ALL") params.set("work_arrangement", filterArrangement);
     if (filterExperience !== "ALL") params.set("experience_level", filterExperience);
 
-    console.log(
-      `%c[JobBrowse] ${isReset ? "🔄 Initial/Filter Fetch" : "📥 Load More Fetch"}`,
-      "color: #10b981; font-weight: bold;",
-      {
-        type: isReset ? "RESET" : "APPEND",
-        offset,
-        limit,
-        currentLoaded: jobsCountRef.current,
-        search: debouncedSearch,
-        filterJobType,
-        filterArrangement,
-        filterExperience,
-      }
-    );
-
     try {
       const startTime = Date.now();
       const res = await fetch(`/api/freelancer/jobs?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to load jobs.");
 
-      if (isReset) {
-        const elapsed = Date.now() - startTime;
-        if (elapsed < 200) {
-          await new Promise((r) => setTimeout(r, 200 - elapsed));
-        }
-        setJobs(json.jobs ?? []);
-      } else {
-        setJobs((prev) => {
-          const existingIds = new Set(prev.map((j) => j.job_id));
-          const newJobs = (json.jobs ?? []).filter((j: PublicJobPosting) => !existingIds.has(j.job_id));
-          return [...prev, ...newJobs];
-        });
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 150) {
+        await new Promise((r) => setTimeout(r, 150 - elapsed));
       }
 
+      setJobs(json.jobs ?? []);
       const total = json.total ?? json.jobs?.length ?? 0;
       const filterCount = json.filterCount ?? json.jobs?.length ?? 0;
-      const nextHasMore = Boolean(json.hasMore);
 
       setTotalCount(total);
       setFilteredCount(filterCount);
-      setHasMore(nextHasMore);
-
-      console.log(
-        `%c[JobBrowse] ✅ Fetch Succeeded`,
-        "color: #3b82f6; font-weight: bold;",
-        {
-          batchFetched: json.jobs?.length ?? 0,
-          totalInDb: total,
-          matchingFilter: filterCount,
-          hasMore: nextHasMore,
-          newTotalCount: isReset ? (json.jobs?.length ?? 0) : jobsCountRef.current + (json.jobs?.length ?? 0),
-        }
-      );
     } catch (err: unknown) {
       console.error("[JobBrowse] ❌ Fetch Error:", err);
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
-      if (isReset) {
-        setLoading(false);
-      } else {
-        setLoadingMore(false);
-      }
+      setLoading(false);
     }
-  }, [debouncedSearch, filterJobType, filterArrangement, filterExperience]);
+  }, [debouncedSearch, filterJobType, filterArrangement, filterExperience, page]);
 
-  // Initial & filter change fetch
+  // Fetch whenever page or filters change
   useEffect(() => {
-    fetchJobs(true);
+    fetchJobs();
   }, [fetchJobs]);
 
-  // Load more trigger
-  const loadMore = useCallback(() => {
-    if (loading || loadingMore) {
-      console.log("[JobBrowse] ⏳ loadMore skipped: already loading");
-      return;
-    }
-    if (!hasMore) {
-      console.log("[JobBrowse] 🏁 loadMore skipped: no more jobs remaining in DB");
-      return;
-    }
-    console.log("[JobBrowse] 🚀 Triggering loadMore...");
-    fetchJobs(false);
-  }, [fetchJobs, loading, loadingMore, hasMore]);
+  const totalPages = Math.max(1, Math.ceil(filteredCount / PAGE_SIZE));
 
   const openDetail = useCallback((job: PublicJobPosting) => {
     setSelectedJob(job);
@@ -195,10 +136,11 @@ export function useJobBrowse() {
     jobs,
     totalCount,
     filteredCount,
-    hasMore,
-    loadMore,
+    page,
+    setPage,
+    totalPages,
+    pageSize: PAGE_SIZE,
     loading,
-    loadingMore,
     error,
     appliedJobIds,
     search,
