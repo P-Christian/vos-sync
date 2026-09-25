@@ -46,7 +46,9 @@ export function useStudentRoster() {
       setTotalCount(json.total || 0);
 
       if (fetchedStudents.length > 0) {
-        const fetchedYears = fetchedStudents.map((s) => s.school_year).filter(Boolean);
+        const fetchedYears = fetchedStudents.flatMap((student) =>
+          student.school_year ? [student.school_year] : []
+        );
         setAccumulatedYears((prev) => Array.from(new Set([...prev, ...fetchedYears])));
       }
     } catch (err: unknown) {
@@ -83,7 +85,9 @@ export function useStudentRoster() {
           setTotalCount(json.total || 0);
 
           if (fetchedStudents.length > 0) {
-            const fetchedYears = fetchedStudents.map((s) => s.school_year).filter(Boolean);
+            const fetchedYears = fetchedStudents.flatMap((student) =>
+              student.school_year ? [student.school_year] : []
+            );
             setAccumulatedYears((prev) => Array.from(new Set([...prev, ...fetchedYears])));
           }
         }

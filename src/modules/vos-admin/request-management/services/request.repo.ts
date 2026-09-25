@@ -74,7 +74,7 @@ export async function createSchoolRequestRepo(payload: Partial<VsSchoolRequest>)
   return json.data;
 }
 
-export async function createCourseRequestRepo(payload: Partial<VsCourseRequest>): Promise<VsCourseRequest> {
+async function createCourseRequestRepo(payload: Partial<VsCourseRequest>): Promise<VsCourseRequest> {
   const url = `${DIRECTUS_BASE}/items/vs_course_request`;
   const res = await fetch(url, {
     method: "POST",

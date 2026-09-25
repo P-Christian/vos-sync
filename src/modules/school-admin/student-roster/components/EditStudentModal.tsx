@@ -152,7 +152,7 @@ const EditStudentForm: React.FC<EditStudentFormProps> = ({
             School Year *
           </label>
           <select
-            value={formData.school_year}
+            value={formData.school_year ?? ''}
             onChange={(e) => setFormData({ ...formData, school_year: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >

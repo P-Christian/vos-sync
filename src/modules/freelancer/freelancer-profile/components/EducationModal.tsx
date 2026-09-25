@@ -1,14 +1,13 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./local-dialog";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
-import { VsEducation } from "../types/freelancer-profile.types";
+import type { VsEducation } from "../types/freelancer-profile.types";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { CreateCourseRequestModal } from "@/modules/vos-admin/request-management/components/CreateCourseRequestModal";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -19,61 +18,114 @@ interface EducationModalProps {
     educationToEdit?: VsEducation | null;
 }
 
+// Plan 2 Todo 7 lane B: server-derived verification route for a freelancer
+// school-search result. Consumed verbatim from GET /api/freelancer/schools
+// — never computed client-side.
+type FreelancerSchoolVerificationRoute =
+    | "DIRECT_REVIEW"
+    | "AWAITING_ACTIVATION"
+    | "AWAITING_REGISTRATION";
+
+interface FreelancerSchoolSearchResult {
+    school_id: number;
+    school_name: string;
+    city_municipality: string | null;
+    province: string | null;
+    verification_route: FreelancerSchoolVerificationRoute;
+}
+
 export function EducationModal({ isOpen, onClose, userId, educationToEdit }: EducationModalProps) {
     const [schoolId, setSchoolId] = useState<string>("");
     const [courseId, setCourseId] = useState<string>("");
     const [startDate, setStartDate] = useState<string>("");
     const [endDate, setEndDate] = useState<string>("");
     
-    const [schools, setSchools] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
+    const [schools, setSchools] = useState<FreelancerSchoolSearchResult[]>([]);
     const [courses, setCourses] = useState<any[] /* eslint-disable-line @typescript-eslint/no-explicit-any */>([]);
     const [loadingSchools, setLoadingSchools] = useState(false);
     const [loadingCourses, setLoadingCourses] = useState(false);
+    const schoolSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     
     const [isUnverifiedSchool, setIsUnverifiedSchool] = useState(false);
+    const [isUnverifiedCourse, setIsUnverifiedCourse] = useState(false);
     const [rawSchoolName, setRawSchoolName] = useState("");
     const [rawCourseName, setRawCourseName] = useState("");
-    const [showCourseRequest, setShowCourseRequest] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const newDraftKeyRef = useRef<string | null>(null);
 
     const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
     const liveEducation = data?.education || [];
     const educationList = pendingEducation !== null ? pendingEducation : liveEducation;
 
     useEffect(() => {
-        async function fetchSchools() {
-            setLoadingSchools(true);
-            try {
-                const res = await fetch("/api/freelancer/schools");
-                const json = await res.json();
-                if (json.schools) setSchools(json.schools);
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoadingSchools(false);
+        return () => {
+            if (schoolSearchTimerRef.current) {
+                clearTimeout(schoolSearchTimerRef.current);
             }
-        }
+        };
+    }, []);
 
+    const handleSchoolSearch = React.useCallback((term: string) => {
+        if (schoolSearchTimerRef.current) {
+            clearTimeout(schoolSearchTimerRef.current);
+        }
+        const query = term.trim();
+        if (!query) {
+            setSchools([]);
+            setLoadingSchools(false);
+            return;
+        }
+        setLoadingSchools(true);
+        schoolSearchTimerRef.current = setTimeout(() => {
+            fetch(`/api/freelancer/schools?search=${encodeURIComponent(query)}`)
+                .then(async (res) => {
+                    const json: unknown = await res.json();
+                    if (
+                        json &&
+                        typeof json === "object" &&
+                        Array.isArray((json as { schools?: unknown }).schools)
+                    ) {
+                        setSchools((json as { schools: FreelancerSchoolSearchResult[] }).schools);
+                    } else {
+                        setSchools([]);
+                    }
+                })
+                .catch((e) => {
+                    console.error(e);
+                    setSchools([]);
+                })
+                .finally(() => {
+                    setLoadingSchools(false);
+                });
+        }, 300);
+    }, []);
+
+    useEffect(() => {
         if (isOpen) {
-            fetchSchools();
+            setSchools([]);
+            setLoadingSchools(false);
             if (educationToEdit) {
                 if (educationToEdit.school_id) {
                     setSchoolId(String(educationToEdit.school_id));
                     setIsUnverifiedSchool(false);
                     setRawSchoolName("");
-                    setRawCourseName("");
                 } else {
                     setSchoolId("");
                     setIsUnverifiedSchool(true);
                     setRawSchoolName(educationToEdit.school_name_raw || "");
-                    setRawCourseName(educationToEdit.course_name_raw || "");
                 }
+                setIsUnverifiedCourse(Boolean(educationToEdit.school_id && !educationToEdit.school_course_id && educationToEdit.course_name_raw));
+                setRawCourseName(educationToEdit.course_name_raw || "");
                 setCourseId(educationToEdit.school_course_id ? String(educationToEdit.school_course_id) : "");
                 setStartDate(educationToEdit.start_date ? educationToEdit.start_date.split("T")[0] : "");
                 setEndDate(educationToEdit.end_date ? educationToEdit.end_date.split("T")[0] : "");
             } else {
+                if (newDraftKeyRef.current === null) {
+                    newDraftKeyRef.current = crypto.randomUUID();
+                }
                 setSchoolId("");
                 setIsUnverifiedSchool(false);
+                setIsUnverifiedCourse(false);
                 setRawSchoolName("");
                 setRawCourseName("");
                 setCourseId("");
@@ -115,6 +167,14 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         return opts;
     }, [schools, educationToEdit]);
 
+    const selectedVerificationRoute: FreelancerSchoolVerificationRoute | null = React.useMemo(() => {
+        if (isUnverifiedSchool || !schoolId) return null;
+        const selected = schools.find((s) => String(s.school_id) === schoolId);
+        return selected?.verification_route ?? null;
+    }, [isUnverifiedSchool, schoolId, schools]);
+
+    const showDirectReviewPanel = selectedVerificationRoute === "DIRECT_REVIEW";
+
     const courseOptions = React.useMemo(() => {
         const opts = courses.map((c) => ({ value: String(c.school_course_id), label: String(c.course_name) }));
         if (educationToEdit?.school_course_id) {
@@ -137,17 +197,24 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             return;
         }
 
-        if (isUnverifiedSchool && !rawCourseName.trim()) {
+        if ((isUnverifiedSchool || isUnverifiedCourse) && !rawCourseName.trim()) {
             toast.error("Please enter the course/degree name.");
+            return;
+        }
+
+        const draftKey = educationToEdit?.course_request_draft_key ?? newDraftKeyRef.current;
+        if (!educationToEdit && !draftKey) {
+            toast.error("Unable to prepare this education draft. Please reopen the form.");
             return;
         }
 
         const payload = {
             school_id: isUnverifiedSchool ? null : parseInt(schoolId, 10),
             school_name_raw: isUnverifiedSchool ? rawSchoolName.trim() : null,
-            course_name_raw: isUnverifiedSchool ? rawCourseName.trim() : null,
-            education_status: isUnverifiedSchool ? 'Pending' : 'Verified',
-            school_course_id: (!isUnverifiedSchool && courseId) ? parseInt(courseId, 10) : null,
+            course_name_raw: (isUnverifiedSchool || isUnverifiedCourse) ? rawCourseName.trim() : null,
+            education_status: 'Pending' as const,
+            course_request_draft_key: draftKey,
+            school_course_id: (!isUnverifiedSchool && !isUnverifiedCourse && courseId) ? parseInt(courseId, 10) : null,
             start_date: startDate || null,
             end_date: endDate || null,
             updated_at: new Date().toISOString(),
@@ -171,6 +238,9 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
         }
 
         setEducationDraft(updatedList);
+        if (!educationToEdit) {
+            newDraftKeyRef.current = null;
+        }
         onClose();
     };
 
@@ -186,19 +256,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const handleDeleteClick = () => {
         setShowDeleteModal(true);
     };
-
-
-
-    const handleCourseRequestSubmit = async (data: any /* eslint-disable-line @typescript-eslint/no-explicit-any */) => {
-        const payload = { ...data, school_id: parseInt(schoolId, 10) };
-        const res = await fetch("/api/freelancer/course-requests", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-        return res.ok;
-    };
-
     if (!isOpen) return null;
 
     return (
@@ -231,13 +288,24 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                         <SearchableSelect
                                             options={schoolOptions}
                                             value={schoolId}
-                                            onValueChange={(val) => { setSchoolId(val); setCourseId(""); }}
+                                            onValueChange={(val) => { setSchoolId(val); setCourseId(""); setIsUnverifiedCourse(false); setRawCourseName(""); }}
+                                            onSearchChange={handleSchoolSearch}
+                                            serverFiltered
                                             placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
-                                            disabled={loadingSchools}
                                         />
                                         <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
-                                            Can&apos;t find your school? <button type="button" onClick={() => { setIsUnverifiedSchool(true); setSchoolId(""); setCourseId(""); }} className="text-primary font-medium hover:underline">Request to add school</button>
+                                            Can&apos;t find your school? <button type="button" onClick={() => { setIsUnverifiedSchool(true); setIsUnverifiedCourse(false); setSchoolId(""); setCourseId(""); }} className="text-primary font-medium hover:underline">Request to add school</button>
                                         </div>
+                                        {showDirectReviewPanel && (
+                                            <div
+                                                data-testid="school-verification-panel"
+                                                role="status"
+                                                className="rounded-md border border-input bg-muted/40 px-4 py-3"
+                                            >
+                                                <p className="text-sm font-medium text-foreground">School verification available</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">This school can review your education request. Your education will remain Pending until the school approves it.</p>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -246,12 +314,19 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Course / Degree (Optional)</label>
                             <div className="flex gap-2 flex-col">
-                                {isUnverifiedSchool ? (
+                                {isUnverifiedSchool || isUnverifiedCourse ? (
+                                    <>
                                     <Input 
                                         value={rawCourseName} 
                                         onChange={(e) => setRawCourseName(e.target.value)} 
                                         placeholder="Enter course or degree" 
                                     />
+                                    {isUnverifiedCourse && (
+                                        <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
+                                            Found your course? <button type="button" onClick={() => { setIsUnverifiedCourse(false); setRawCourseName(""); }} className="text-primary font-medium hover:underline">Select from list</button>
+                                        </div>
+                                    )}
+                                    </>
                                 ) : (
                                     <>
                                         <SearchableSelect
@@ -263,7 +338,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                         />
                                         {schoolId && (
                                             <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
-                                                Can&apos;t find your course? <button type="button" onClick={() => setShowCourseRequest(true)} className="text-primary font-medium hover:underline">Request to add it</button>
+                                                Can&apos;t find your course? <button type="button" onClick={() => { setIsUnverifiedCourse(true); setCourseId(""); }} className="text-primary font-medium hover:underline">Enter it manually</button>
                                             </div>
                                         )}
                                     </>
@@ -323,16 +398,6 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-
-            {schoolId && (
-                <CreateCourseRequestModal 
-                    open={showCourseRequest} 
-                    onOpenChange={setShowCourseRequest} 
-                    onSubmit={handleCourseRequestSubmit} 
-                    defaultSchoolId={parseInt(schoolId, 10)}
-                    hideSchoolSelect={true}
-                />
-            )}
         </>
     );
 }

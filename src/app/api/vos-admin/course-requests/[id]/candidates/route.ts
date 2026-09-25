@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
-import { z } from "zod";
-import { getSchoolRequests } from "@/modules/vos-admin/request-management";
+import {
+  CourseRequestDecisionError,
+  getCourseRequestCandidates,
+} from "@/modules/vos-admin/request-management";
 
 import { cookies } from "next/headers";
 
@@ -40,19 +42,10 @@ async function verifyAdminRole(
   }
 }
 
-// Plan 2 Todo 4: the school-request LIST status filter is exactly
-// 'ALL' | RequestStatus (FOUR statuses). Line 133 (Final contract override)
-// supersedes any five-status/SchoolRequestStatus wording elsewhere.
-const listStatusSchema = z.enum([
-  "ALL",
-  "Pending",
-  "Approved",
-  "Rejected",
-  "RoutedToSchool",
-]);
-
-
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const auth = await verifyAdminRole(req);
     if (!auth) {
@@ -73,24 +66,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(req.url);
-    const statusResult = listStatusSchema.safeParse(
-      searchParams.get("status") || "ALL"
-    );
-    if (!statusResult.success) {
-      const [firstIssue] = statusResult.error.issues;
+    const { id: paramId } = await params;
+    const id = parseInt(paramId, 10);
+    if (isNaN(id)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
+    // Candidates come from the request's persisted school. Query parameters
+    // are never consulted, so no school override is possible.
+    const result = await getCourseRequestCandidates(id);
+    return NextResponse.json(result);
+  } catch (error: unknown) {
+    if (error instanceof CourseRequestDecisionError) {
       return NextResponse.json(
-        { error: firstIssue?.message ?? "Unknown list status." },
-        { status: 400 }
+        { error: error.message },
+        { status: error.status }
       );
     }
-
-    const requests = await getSchoolRequests(statusResult.data);
-    return NextResponse.json({ requests });
-  } catch {
     // Sanitized dependency failure: never leak storage internals.
     return NextResponse.json(
-      { error: "Service temporarily unavailable" },
+      { error: "Course catalog storage is temporarily unavailable." },
       { status: 503 }
     );
   }

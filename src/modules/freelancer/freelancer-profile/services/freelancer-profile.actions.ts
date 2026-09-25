@@ -2,7 +2,29 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 import { generateProfessionalSummaryWithGemini } from "@/lib/gemini/resumeParser";
+
+const JWT_SECRET = new TextEncoder().encode(
+    process.env.JWT_SECRET || "default_super_secret_key_for_development"
+);
+
+async function getAuthenticatedUserId(): Promise<number> {
+    if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") return 1;
+    const token = (await cookies()).get("vos_access_token")?.value;
+    if (!token) throw new Error("Unauthorized.");
+
+    try {
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        const userId = Number(payload.sub || payload.user_id || payload.id);
+        if (!Number.isSafeInteger(userId) || userId <= 0) throw new Error("Unauthorized.");
+        return userId;
+    } catch (error: unknown) {
+        if (error instanceof Error && error.message === "Unauthorized.") throw error;
+        throw new Error("Unauthorized.", { cause: error });
+    }
+}
 
 export async function updateProfessionalSummaryAction(summary: string, profileId?: number, userId?: number) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -278,10 +300,11 @@ export async function uploadMediaAction(formData: FormData) {
     }
 }
 
-export async function addEducationAction(userId: number, payload: any) {
+export async function addEducationAction(_userId: number, payload: any) {
     const { addEducationService } = await import("./freelancer-profile.service");
     
     try {
+        const userId = await getAuthenticatedUserId();
         await addEducationService(userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
@@ -291,10 +314,11 @@ export async function addEducationAction(userId: number, payload: any) {
     }
 }
 
-export async function updateEducationAction(id: number, userId: number, payload: any) {
+export async function updateEducationAction(id: number, _userId: number, payload: any) {
     const { updateEducationService } = await import("./freelancer-profile.service");
     
     try {
+        const userId = await getAuthenticatedUserId();
         await updateEducationService(id, userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
@@ -304,10 +328,11 @@ export async function updateEducationAction(id: number, userId: number, payload:
     }
 }
 
-export async function deleteEducationAction(id: number, userId: number) {
+export async function deleteEducationAction(id: number, _userId: number) {
     const { deleteEducationService } = await import("./freelancer-profile.service");
     
     try {
+        const userId = await getAuthenticatedUserId();
         await deleteEducationService(id, userId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
         return { success: true };
@@ -383,7 +408,7 @@ export async function updateProfileVisibilityAction(userId: number, profileId: n
 }
 
 export async function saveAllProfileChangesAction(payload: any) {
-    const { userId, profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications, jobPreferences } = payload;
+    const { profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications, jobPreferences } = payload;
     
     // Import all services
     const { 
@@ -397,6 +422,7 @@ export async function saveAllProfileChangesAction(payload: any) {
     const { upsertJobSeekerProfileInDirectus } = await import("./freelancer-profile.repo");
 
     try {
+        const userId = await getAuthenticatedUserId();
         if (personalInfo) {
             await updatePersonalInfoService(userId, personalInfo);
         }
@@ -444,8 +470,7 @@ export async function saveAllProfileChangesAction(payload: any) {
         const { getFreelancerProfile } = await import("./freelancer-profile.service");
         const { updateJobSeekerProfileCompletion } = await import("./freelancer-profile.repo");
         
-        const cookieStore = await import("next/headers").then(m => m.cookies());
-        const token = cookieStore.get("vos_access_token")?.value;
+        const token = (await cookies()).get("vos_access_token")?.value;
         
         if (token) {
             const updatedProfile = await getFreelancerProfile(token);

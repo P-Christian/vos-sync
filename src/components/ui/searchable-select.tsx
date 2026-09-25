@@ -23,6 +23,8 @@ export interface SearchableSelectProps {
     options: { value: string; label: string }[];
     value?: string;
     onValueChange: (value: string) => void;
+    onSearchChange?: (term: string) => void;
+    serverFiltered?: boolean;
     placeholder?: string;
     disabled?: boolean;
     className?: string;
@@ -32,6 +34,8 @@ export function SearchableSelect({
     options,
     value,
     onValueChange,
+    onSearchChange,
+    serverFiltered = false,
     placeholder = "Select option...",
     disabled = false,
     className,
@@ -58,10 +62,11 @@ export function SearchableSelect({
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
+                <Command shouldFilter={!serverFiltered}>
                     <CommandInput
               className="text-base md:text-sm"
               placeholder={`Search ${placeholder.toLowerCase()}...`}
+              onValueChange={onSearchChange}
             />
                     <CommandList>
                         <CommandEmpty>No results found.</CommandEmpty>
