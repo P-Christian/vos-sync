@@ -31,7 +31,7 @@ export function CourseComparisonChart({ courseStats }: CourseComparisonChartProp
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold text-foreground">Placement by Academic Program</CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs text-muted-foreground">
               Comparing registered students against hired graduates across degree programs
             </CardDescription>
           </div>
@@ -46,12 +46,12 @@ export function CourseComparisonChart({ courseStats }: CourseComparisonChartProp
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 15, right: 20, left: -10, bottom: 25 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
                 <XAxis
                   dataKey="name"
                   tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.8 }}
+                  axisLine={{ stroke: 'var(--border)' }}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                   interval={0}
                   angle={-20}
                   textAnchor="end"
@@ -59,17 +59,18 @@ export function CourseComparisonChart({ courseStats }: CourseComparisonChartProp
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: 'currentColor', fontSize: 11, opacity: 0.8 }}
+                  tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
                   allowDecimals={false}
                 />
                 <Tooltip
+                  cursor={{ fill: 'var(--muted)', opacity: 0.2, rx: 6 }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const d = payload[0].payload;
                       return (
-                        <div className="rounded-lg border bg-popover p-2.5 shadow-md">
+                        <div className="rounded-lg border border-border bg-popover p-3 shadow-lg">
                           <p className="text-xs font-semibold text-popover-foreground">{d.fullName}</p>
-                          <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
+                          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                             <p className="flex justify-between gap-4">
                               <span>Registered Students:</span>
                               <span className="font-semibold text-foreground">{d.Registered}</span>
@@ -82,8 +83,8 @@ export function CourseComparisonChart({ courseStats }: CourseComparisonChartProp
                               <span>Interview Pipeline:</span>
                               <span className="font-semibold text-blue-600 dark:text-blue-400">{d.Pipeline}</span>
                             </p>
-                            <p className="flex justify-between gap-4 border-t pt-1 font-medium">
-                              <span>Placement Rate:</span>
+                            <p className="flex justify-between gap-4 border-t border-border pt-1.5 font-medium">
+                              <span className="text-foreground">Placement Rate:</span>
                               <span className="font-bold text-foreground">{d.Rate}%</span>
                             </p>
                           </div>
@@ -99,8 +100,9 @@ export function CourseComparisonChart({ courseStats }: CourseComparisonChartProp
                   iconType="circle"
                   iconSize={8}
                   wrapperStyle={{ fontSize: 11, paddingBottom: 8 }}
+                  formatter={(value) => <span className="text-xs font-medium text-muted-foreground">{value}</span>}
                 />
-                <Bar dataKey="Registered" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={18} />
+                <Bar dataKey="Registered" fill="#64748b" radius={[4, 4, 0, 0]} barSize={18} />
                 <Bar dataKey="Hired" fill="#10b981" radius={[4, 4, 0, 0]} barSize={18} />
                 <Bar dataKey="Pipeline" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={18} />
               </BarChart>
