@@ -159,6 +159,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       enableHiding: false,
       cell: ({ row }) => {
         const student = row.original;
+        const isLinked = student.employee_education_id !== null && student.employee_education_id !== undefined;
         return (
           <div className="text-right">
             <DropdownMenu>
@@ -175,16 +176,26 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                 >
                   Edit Details
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (confirm(`Remove ${student.first_name} ${student.last_name} from roster?`)) {
-                      onDelete(student.student_id);
-                    }
-                  }}
-                  className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive"
-                >
-                  Delete
-                </DropdownMenuItem>
+                {isLinked ? (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-xs font-medium text-muted-foreground"
+                    title="Education-linked rows cannot be deleted"
+                  >
+                    Delete (Linked)
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (confirm(`Remove ${student.first_name} ${student.last_name} from roster?`)) {
+                        onDelete(student.student_id);
+                      }
+                    }}
+                    className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive"
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

@@ -33,6 +33,10 @@ export interface StudentRosterFilter {
   school_course_id?: number | string;
   invitation_status?: StudentInvitationStatus | string;
   search_query?: string;
+  // Server-side Current/Alumni separation. `false` =
+  // Current Students view, `true` = Alumni view. Callers that omit it get
+  // the Current default from the service layer — never an unfiltered mix.
+  is_alumni?: boolean;
   page?: number;
   limit?: number;
 }

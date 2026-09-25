@@ -22,6 +22,10 @@ interface StudentRosterLeaderboardProps {
   isLoading?: boolean;
 }
 
+function isAlumniValue(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
 export const StudentRosterLeaderboard: React.FC<StudentRosterLeaderboardProps> = ({
   students,
   courses,
@@ -31,10 +35,14 @@ export const StudentRosterLeaderboard: React.FC<StudentRosterLeaderboardProps> =
 }) => {
   const [limit, setLimit] = useState<number>(10);
 
-  // Filter students who have a valid numerical GPA and rank them using dense ranking
+  // Filter CURRENT students with a valid numerical GPA. Alumni are never
+  // ranked here — the Current/Alumni separation is enforced server-side and
+  // this client filter is defense-in-depth for mixed payloads.
   const rankedStudents = useMemo(() => {
     const valid = students.filter(
-      (s) => s.gpa !== null && s.gpa !== undefined && !isNaN(Number(s.gpa))
+      (s) =>
+        !isAlumniValue(s.is_alumni as unknown) &&
+        (s.gpa !== null && s.gpa !== undefined && !isNaN(Number(s.gpa)))
     );
 
     // Sort ascending: lowest GPA value is the highest rank (#1)
@@ -124,6 +132,8 @@ export const StudentRosterLeaderboard: React.FC<StudentRosterLeaderboardProps> =
               <span>{selectedCourseName}</span>
               <span>•</span>
               <span>{selectedYearLabel}</span>
+              <span>•</span>
+              <span>Current Students</span>
               <span>•</span>
               <span>Sorted by GPA (Lowest is Top)</span>
             </p>

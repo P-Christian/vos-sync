@@ -30,6 +30,8 @@ export const StudentRosterPage: React.FC = () => {
     setSelectedStatus,
     searchQuery,
     setSearchQuery,
+    alumniView,
+    setAlumniView,
     availableSchoolYears,
     addStudent,
     editStudent,
@@ -94,6 +96,26 @@ export const StudentRosterPage: React.FC = () => {
         availableSchoolYears={availableSchoolYears}
       />
 
+      {/* Current / Alumni server-filtered views */}
+      <div className="flex items-center gap-2" role="tablist" aria-label="Roster population">
+        <button
+          type="button"
+          data-testid="roster-view-current"
+          onClick={() => setAlumniView('current')}
+          className={`rounded-lg px-4 py-2 text-xs font-semibold border transition-colors ${alumniView === 'current' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:text-foreground'}`}
+        >
+          Current Students
+        </button>
+        <button
+          type="button"
+          data-testid="roster-view-alumni"
+          onClick={() => setAlumniView('alumni')}
+          className={`rounded-lg px-4 py-2 text-xs font-semibold border transition-colors ${alumniView === 'alumni' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:text-foreground'}`}
+        >
+          Alumni
+        </button>
+      </div>
+
       {/* View Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-xl h-11 border border-border">
@@ -146,7 +168,6 @@ export const StudentRosterPage: React.FC = () => {
         student={editingStudent}
         onClose={() => setEditingStudent(null)}
         onSuccess={editStudent}
-        courses={courses}
       />
 
       <BulkUploadModal

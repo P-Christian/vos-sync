@@ -1,54 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as jose from 'jose';
-import { removeStudentFromRoster } from '@/modules/school-admin/student-roster/services';
-import { updateStudentRepo } from '@/modules/school-admin/student-roster/services/student-roster.repo';
+import { removeStudentFromRoster, updateStudentAcademics } from '@/modules/school-admin/student-roster/services';
+import { resolveSchoolAdminContext, RosterHttpError } from '@/modules/school-admin/student-roster/services/roster-auth';
 
-const COOKIE_NAME = 'vos_access_token';
-const JWT_SECRET = process.env.JWT_SECRET || 'default_super_secret_key_for_development';
-
-async function verifyAuth(req: NextRequest) {
-  const token = req.cookies.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jose.jwtVerify(token, secret);
-    return Number(payload.user_id || payload.sub) || null;
-  } catch {
-    return null;
+function toErrorStatus(error: unknown, fallback: number): { status: number; message: string } {
+  if (error instanceof RosterHttpError) {
+    return { status: error.status, message: error.message };
   }
+  const msg = error instanceof Error ? error.message : 'Request failed';
+  return { status: fallback, message: msg };
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await verifyAuth(req);
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await resolveSchoolAdminContext(req);
 
     const { id } = await params;
-    const studentId = parseInt(id, 10);
-    if (isNaN(studentId)) return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    if (!/^\d+$/.test(id)) return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    const studentId = Number(id);
+    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
+      return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    }
 
     const body = await req.json();
-    const updated = await updateStudentRepo(studentId, { ...body, updated_by: userId });
+    const updated = await updateStudentAcademics(session.schoolId, studentId, body);
     return NextResponse.json({ success: true, data: updated });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to update student';
-    return NextResponse.json({ error: msg }, { status: 400 });
+    const { status, message } = toErrorStatus(error, 400);
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await verifyAuth(req);
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await resolveSchoolAdminContext(req);
 
     const { id } = await params;
-    const studentId = parseInt(id, 10);
-    if (isNaN(studentId)) return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    if (!/^\d+$/.test(id)) return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    const studentId = Number(id);
+    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
+      return NextResponse.json({ error: 'Invalid student ID' }, { status: 400 });
+    }
 
-    await removeStudentFromRoster(studentId);
+    await removeStudentFromRoster(session.schoolId, studentId);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to delete student';
-    return NextResponse.json({ error: msg }, { status: 400 });
+    const { status, message } = toErrorStatus(error, 400);
+    return NextResponse.json({ error: message }, { status });
   }
 }

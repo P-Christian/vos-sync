@@ -12,8 +12,41 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
+export function isAlumniRow(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
+function mapStudentRow(item: Record<string, unknown>): VsSchoolStudent {
+  let courseName: string | undefined = undefined;
+  let courseId: number | null = null;
+
+  if (item.school_course_id && typeof item.school_course_id === 'object') {
+    const courseObj = item.school_course_id as Record<string, unknown>;
+    courseName = courseObj.course_name ? String(courseObj.course_name) : undefined;
+    courseId = courseObj.school_course_id ? Number(courseObj.school_course_id) : null;
+  } else if (item.school_course_id) {
+    courseId = Number(item.school_course_id);
+  }
+
+  const rawGpa = item.gpa !== null && item.gpa !== undefined && item.gpa !== '' ? Number(item.gpa) : null;
+  const gpa = rawGpa !== null && !isNaN(rawGpa) ? rawGpa : null;
+
+  return {
+    ...item,
+    gpa,
+    course_name: courseName,
+    school_course_id: courseId,
+  } as VsSchoolStudent;
+}
+
 export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ data: VsSchoolStudent[]; total: number }> {
   const queryParams: string[] = [`filter[school_id][_eq]=${filter.school_id}`];
+
+  if (filter.is_alumni === true) {
+    queryParams.push('filter[is_alumni][_eq]=true');
+  } else if (filter.is_alumni === false) {
+    queryParams.push('filter[is_alumni][_eq]=false');
+  }
   
   if (filter.school_year) {
     queryParams.push(`filter[school_year][_eq]=${encodeURIComponent(filter.school_year)}`);
@@ -45,29 +78,8 @@ export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ 
 
   const json = await res.json();
   const rawData = json.data || [];
-  
-  const mappedData: VsSchoolStudent[] = rawData.map((item: Record<string, unknown>) => {
-    let courseName: string | undefined = undefined;
-    let courseId: number | null = null;
 
-    if (item.school_course_id && typeof item.school_course_id === 'object') {
-      const courseObj = item.school_course_id as Record<string, unknown>;
-      courseName = courseObj.course_name ? String(courseObj.course_name) : undefined;
-      courseId = courseObj.school_course_id ? Number(courseObj.school_course_id) : null;
-    } else if (item.school_course_id) {
-      courseId = Number(item.school_course_id);
-    }
-
-    const rawGpa = item.gpa !== null && item.gpa !== undefined && item.gpa !== '' ? Number(item.gpa) : null;
-    const gpa = rawGpa !== null && !isNaN(rawGpa) ? rawGpa : null;
-
-    return {
-      ...item,
-      gpa,
-      course_name: courseName,
-      school_course_id: courseId,
-    } as VsSchoolStudent;
-  });
+  const mappedData: VsSchoolStudent[] = rawData.map((item: Record<string, unknown>) => mapStudentRow(item));
 
   // 1. Sort overall list: lowest GPA at the top, nulls at the bottom
   mappedData.sort((a, b) => {
@@ -80,29 +92,34 @@ export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ 
     return (a.last_name || '').localeCompare(b.last_name || '');
   });
 
-  // 2. Compute Dense Rank across the active result set
+  // 2. Compute Dense Rank over CURRENT rows only — alumni are never ranked.
+  const rankable = mappedData.filter((s) => !isAlumniRow(s.is_alumni));
   let currentDenseRank = 1;
-  const withGpaCount = mappedData.filter((s) => s.gpa !== null && s.gpa !== undefined).length;
+  const withGpaCount = rankable.filter((s) => s.gpa !== null && s.gpa !== undefined).length;
 
-  mappedData.forEach((student, index) => {
+  const rankById = new Map<number, number | null>();
+  rankable.forEach((student, index) => {
     if (student.gpa === null || student.gpa === undefined) {
-      student.rank = null;
-      student.cohort_total = withGpaCount;
+      rankById.set(student.student_id, null);
       return;
     }
 
     if (index > 0) {
-      const prev = mappedData[index - 1];
+      const prev = rankable[index - 1];
       if (prev.gpa !== null && prev.gpa !== undefined && student.gpa === prev.gpa) {
-        student.rank = prev.rank;
+        rankById.set(student.student_id, rankById.get(prev.student_id) ?? null);
       } else {
         currentDenseRank += 1;
-        student.rank = currentDenseRank;
+        rankById.set(student.student_id, currentDenseRank);
       }
     } else {
       currentDenseRank = 1;
-      student.rank = 1;
+      rankById.set(student.student_id, 1);
     }
+  });
+
+  mappedData.forEach((student) => {
+    student.rank = rankById.has(student.student_id) ? rankById.get(student.student_id) ?? null : null;
     student.cohort_total = withGpaCount;
   });
 
@@ -110,6 +127,19 @@ export async function fetchStudentsRepo(filter: StudentRosterFilter): Promise<{ 
     data: mappedData,
     total: mappedData.length,
   };
+}
+
+export async function fetchStudentByIdRepo(studentId: number): Promise<VsSchoolStudent | null> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_student/${studentId}?fields=*,school_course_id.school_course_id,school_course_id.course_name`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to fetch student: ${res.statusText}`);
+  }
+
+  const json = await res.json();
+  if (!json.data) return null;
+  return mapStudentRow(json.data as Record<string, unknown>);
 }
 
 export async function createStudentRepo(student: Partial<VsSchoolStudent>): Promise<VsSchoolStudent> {
