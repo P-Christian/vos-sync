@@ -570,6 +570,59 @@ skills = (skillsJson.data as Skill[] ?? []).map(
       }
     }
 
+    // ---------------------------------------------------
+    // REFERRAL & INSTITUTIONAL ENDORSEMENT
+    // ---------------------------------------------------
+    let isReferred = false;
+    let referralType: "SCHOOL_ADMIN" | "FREELANCER" | undefined = undefined;
+    let referrerName: string | null = null;
+    let referralSchoolName: string | null = null;
+    let referralLetter: string | null = null;
+
+    try {
+      const appRefRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application_referral?filter[application_id][_eq]=${application.application_id}&fields=*,referral_id.*,referrer_user_id.user_id,referrer_user_id.user_fname,referrer_user_id.user_lname&limit=1`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (appRefRes.ok) {
+        const appRefJson = await appRefRes.json();
+        const refRow = appRefJson.data?.[0];
+        if (refRow) {
+          isReferred = true;
+          const rUser = refRow.referrer_user_id;
+          const refUserId = rUser?.user_id || Number(rUser) || 0;
+          referrerName = rUser && typeof rUser === "object"
+            ? `${rUser.user_fname || ""} ${rUser.user_lname || ""}`.trim()
+            : null;
+
+          // Check if school admin
+          if (refUserId > 0) {
+            const sRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_eq]=${refUserId}&fields=school_id.school_name&limit=1`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
+            if (sRes.ok) {
+              const sJson = await sRes.json();
+              const sRec = sJson.data?.[0];
+              if (sRec?.school_id) {
+                referralSchoolName = typeof sRec.school_id === "object" ? sRec.school_id.school_name : null;
+                referralType = "SCHOOL_ADMIN";
+              }
+            }
+          }
+
+          if (!referralType) referralType = "FREELANCER";
+
+          // Check for referral note/letter in vs_job_referral
+          if (refRow.referral_id && typeof refRow.referral_id === "object") {
+            referralLetter = refRow.referral_id.referral_letter || null;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to check referral status for applicant detail:", err);
+    }
+
     const portfolioFromSocials = socialLinks.find(
       (s) => s.platform_name?.toLowerCase().includes("portfolio") || s.platform?.toLowerCase().includes("portfolio")
     )?.profile_url;
@@ -638,6 +691,13 @@ skills = (skillsJson.data as Skill[] ?? []).map(
       work_experience: workExperience,
 
       active_interview_id: activeInterviewId,
+
+      // Referral
+      is_referred: isReferred,
+      referral_type: referralType,
+      referrer_name: referrerName,
+      referral_school_name: referralSchoolName,
+      referral_letter: referralLetter,
     };
  
     return NextResponse.json({

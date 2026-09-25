@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { useThemeSettings } from "@/components/theme/useThemeSettings";
+import { useThemeCurtain } from "@/components/theme/useThemeCurtain";
 import { ACCENTS, DEFAULT_THEME_SETTINGS, clamp } from "@/components/theme/theme-settings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -48,7 +49,8 @@ const DATE_FORMATS = [
 ];
 
 export default function GeneralSettings() {
-  const { theme, setTheme } = useTheme();
+  const { theme } = useTheme();
+  const { switchTheme } = useThemeCurtain();
   const { settings: themeSettings, updateSettings: updateThemeSettings, resetSettings: resetThemeSettings } = useThemeSettings();
 
   // Settings state
@@ -284,7 +286,7 @@ export default function GeneralSettings() {
               type="single"
               value={theme ?? "system"}
               onValueChange={(v) => {
-                if (v) setTheme(v);
+                if (v) switchTheme(v as "light" | "dark" | "system");
               }}
               className="justify-start"
             >

@@ -45,6 +45,13 @@ export interface Applicant {
   education_school?: string;
   education_course?: string;
   screening_answers_count?: number;
+
+  // Referral Metadata
+  is_referred?: boolean;
+  referral_type?: 'SCHOOL_ADMIN' | 'FREELANCER';
+  referrer_name?: string | null;
+  referral_school_name?: string | null;
+  referral_letter?: string | null;
 }
 
 export interface WorkExperienceItem {
@@ -168,6 +175,13 @@ export interface CandidateDetail {
   certifications: CertificationItem[];
 
   social_links: SocialLink[];
+
+  // Referral Metadata
+  is_referred?: boolean;
+  referral_type?: 'SCHOOL_ADMIN' | 'FREELANCER';
+  referrer_name?: string | null;
+  referral_school_name?: string | null;
+  referral_letter?: string | null;
 }
 
 export const STATUS_LABELS: Record<

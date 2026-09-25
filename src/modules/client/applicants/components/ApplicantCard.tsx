@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
 import { getApplicantAvatarUrl, getInitials, timeAgo } from "../utils/applicantUtils";
+import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
   APPLIED: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400",
@@ -135,6 +136,28 @@ export default function ApplicantCard({
                     <Briefcase className="h-3 w-3 text-muted-foreground/70" />
                     {applicant.job_title}
                   </span>
+                )}
+
+                {applicant.is_referred && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[11px] font-semibold py-0.5 px-2 gap-1 rounded-full",
+                      applicant.referral_type === "SCHOOL_ADMIN"
+                        ? "bg-purple-500/10 text-purple-600 border-purple-500/30 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                        : "bg-blue-500/10 text-blue-600 border-blue-500/30 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
+                    )}
+                  >
+                    {applicant.referral_type === "SCHOOL_ADMIN" ? (
+                      <>
+                        🎓 {applicant.referral_school_name ? `Endorsed by ${applicant.referral_school_name}` : "School Endorsed"}
+                      </>
+                    ) : (
+                      <>
+                        👥 Peer Referral
+                      </>
+                    )}
+                  </Badge>
                 )}
               </div>
 

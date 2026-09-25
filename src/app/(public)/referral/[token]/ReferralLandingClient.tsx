@@ -27,6 +27,8 @@ interface ReferralLandingClientProps {
       user_fname?: string;
       user_lname?: string;
     };
+    is_school_admin?: boolean;
+    school_name?: string;
     status: string;
     expires_at: string;
   };
@@ -101,9 +103,15 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
   };
 
   const job = referral.job_id;
+  const isSchoolAdmin = referral.is_school_admin || !!referral.school_name;
+  const schoolName = referral.school_name;
+
   const referrerName = referral.referrer_user_id
-    ? `${referral.referrer_user_id.user_fname} ${referral.referrer_user_id.user_lname}`
-    : "A VOS Sync User";
+    ? `${referral.referrer_user_id.user_fname} ${referral.referrer_user_id.user_lname}`.trim()
+    : "Your Academic Institution";
+
+  // Clean HTML from job description if present
+  const cleanDescription = job.job_description ? job.job_description.replace(/<\/?[^>]+(>|$)/g, "") : "";
 
   if (claimCompleted) {
     return (
@@ -116,12 +124,14 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Referral Successfully Connected!</CardTitle>
           <CardDescription>
-            The referral from {referrerName} has been linked to your VOS Sync account.
+            {isSchoolAdmin && schoolName
+              ? `The official academic endorsement from ${schoolName} (via ${referrerName}) has been linked to your account.`
+              : `The referral from ${referrerName} has been linked to your VOS Sync account.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-muted-foreground">
-            You are now ready to apply for the position. The referral attribution is secured and will be locked in when you submit your application.
+            You are now ready to apply for the position. Your verified recommendation will be attached directly to your job application.
           </p>
           <div className="inline-flex flex-col p-4 bg-muted/30 rounded-lg text-left max-w-md w-full">
             <h4 className="font-semibold text-foreground text-sm flex items-center gap-1.5">
@@ -150,9 +160,19 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
             <User className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-sm font-semibold text-primary block">Referral Invitation</span>
+            <span className="text-sm font-semibold text-primary block">
+              {isSchoolAdmin ? "🎓 Academic Endorsement & Referral" : "Referral Invitation"}
+            </span>
             <span className="text-sm text-muted-foreground">
-              Sent by <strong className="text-foreground">{referrerName}</strong>
+              {isSchoolAdmin && schoolName ? (
+                <>
+                  Endorsed by <strong className="text-foreground">{schoolName}</strong> ({referrerName}, School Admin)
+                </>
+              ) : (
+                <>
+                  Sent by <strong className="text-foreground">{referrerName}</strong>
+                </>
+              )}
             </span>
           </div>
         </div>
@@ -182,14 +202,14 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
         <div className="space-y-2">
           <h3 className="font-semibold text-lg">Job Overview</h3>
           <div className="text-muted-foreground text-sm line-clamp-4 leading-relaxed whitespace-pre-line">
-            {job.job_description}
+            {cleanDescription}
           </div>
         </div>
 
         <div className="p-4 rounded-xl border bg-muted/30 border-muted-foreground/10 space-y-4">
           <h4 className="font-semibold text-sm text-foreground">Consent & Privacy Agreement</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            By accepting, you consent to associate this referral with your VOS Sync account. If you submit a job application for this position, the referrer ({referrerName}) will be attributed for the introduction. 
+            By accepting, you consent to associate this referral with your VOS Sync account. If you submit a job application for this position, the referrer ({isSchoolAdmin && schoolName ? `${schoolName} / ${referrerName}` : referrerName}) will be attributed for the introduction. 
             No private files, resumes, or application responses are shared with the referrer. Only the completion status of the application may be shown to them.
           </p>
           <div className="flex items-center space-x-2 pt-2">

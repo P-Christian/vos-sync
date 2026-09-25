@@ -522,7 +522,10 @@ export default function JobDetailPage({ jobId }: Props) {
         job={job}
         open={applyModalOpen}
         onClose={() => setApplyModalOpen(false)}
-        onSuccess={() => router.push("/vos-sync/freelancer/applications")}
+        onSuccess={() => {
+          setAlreadyApplied(true);
+          router.push("/vos-sync/freelancer/applications");
+        }}
       />
 
       {/* Refer Modal */}

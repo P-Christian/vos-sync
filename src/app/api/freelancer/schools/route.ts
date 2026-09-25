@@ -7,12 +7,10 @@ import {
   searchClassifiedSchools,
 } from "@/modules/vos-admin/school-verification/services/schoolRouteSearch.repo";
 
-// Plan 2 Todo 4: public freelancer search. Returns minimal school identity
-// plus the server-derived verification_route across all three selectable
-// states (DIRECT_REVIEW | AWAITING_ACTIVATION | AWAITING_REGISTRATION).
-// Rejected/suspended/inactive/contradictory rows are excluded server-side and
-// no admin PII (created_by and friends) ever leaves this endpoint. Freelancer
-// free text creates no school row: this surface is read-only.
+// Public search returns minimal school identity plus the server-derived
+// verification route. Rejected, suspended, inactive, or contradictory rows
+// are excluded server-side, and administrative identity fields never leave
+// this read-only endpoint.
 const searchTermSchema = z
   .string()
   .trim()

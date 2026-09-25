@@ -118,12 +118,36 @@ export async function createReferralRecord(userId: number, jobId: number, recipi
 export async function getReferralByToken(token: string) {
   const hash = crypto.createHash("sha256").update(token).digest("hex");
   const res = await fetch(
-    `${DIRECTUS_BASE}/items/vs_job_referral?filter[token_hash][_eq]=${hash}&fields=*,job_id.*,referrer_user_id.user_fname,referrer_user_id.user_lname&limit=1`,
+    `${DIRECTUS_BASE}/items/vs_job_referral?filter[token_hash][_eq]=${hash}&fields=*,job_id.*,referrer_user_id.user_id,referrer_user_id.user_fname,referrer_user_id.user_lname&limit=1`,
     { headers: getHeaders(), cache: "no-store" }
   );
   if (!res.ok) return null;
   const json = await res.json();
-  return json.data && json.data.length > 0 ? json.data[0] : null;
+  const referral = json.data && json.data.length > 0 ? json.data[0] : null;
+  if (!referral) return null;
+
+  // If referrer is a school admin, resolve their school name
+  if (referral.referrer_user_id?.user_id) {
+    try {
+      const adminRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_eq]=${referral.referrer_user_id.user_id}&fields=school_id.school_name,school_id.school_id,school_id.school_logo&limit=1`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (adminRes.ok) {
+        const adminJson = await adminRes.json();
+        const schoolAdminRec = adminJson.data?.[0];
+        if (schoolAdminRec?.school_id) {
+          const s = typeof schoolAdminRec.school_id === "object" ? schoolAdminRec.school_id : {};
+          referral.school_name = s.school_name || null;
+          referral.is_school_admin = true;
+        }
+      }
+    } catch (err) {
+      console.warn("Could not check school admin attribution for referral:", err);
+    }
+  }
+
+  return referral;
 }
 
 export async function claimReferralRecord(referralId: number, candidateUserId: number, jobId: number, consentVersion: string) {

@@ -7,6 +7,7 @@ import { Check, Monitor, Moon, Sun } from "lucide-react";
 
 import { ACCENTS, DEFAULT_THEME_SETTINGS, clamp } from "@/components/theme/theme-settings";
 import { useThemeSettings } from "@/components/theme/useThemeSettings";
+import { useThemeCurtain } from "@/components/theme/useThemeCurtain";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -27,7 +28,8 @@ function AccentSwatch({ hsl }: { hsl: string }) {
 }
 
 export function SettingsAppearance() {
-    const { theme, setTheme } = useTheme();
+    const { theme } = useTheme();
+    const { switchTheme } = useThemeCurtain();
     const { settings, updateSettings, resetSettings } = useThemeSettings();
 
     // For preview swatches we want a light-mode triplet; good enough for settings UI.
@@ -62,7 +64,7 @@ export function SettingsAppearance() {
                                 value={theme ?? "system"}
                                 onValueChange={(v) => {
                                     if (!v) return;
-                                    setTheme(v);
+                                    switchTheme(v as "light" | "dark" | "system");
                                 }}
                                 className="justify-start"
                             >
