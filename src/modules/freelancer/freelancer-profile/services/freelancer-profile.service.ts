@@ -4,16 +4,10 @@ import * as jose from "jose";
 import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
 import type { FreelancerProfile } from "../types/freelancer-profile.types";
 import { addEducationSchema, updateEducationSchema } from "./freelancer-profile.schema";
-import {
-    createOrFetchPendingEducation,
-    updatePendingEducation,
-    type PendingEducationWrite,
-} from "./education-persistence.repo";
+import { createOrFetchPendingEducation, updatePendingEducation, type PendingEducationWrite } from "./education-persistence.repo";
 import { ensureEducationAttendanceRequest } from "./attendance-request.repo";
-import {
-  assertEducationWriteAllowed,
-  shouldCreateAttendanceRequest,
-} from "../../../education-verification";
+import { deletePendingEducationAndRequests } from "./education-deletion.repo";
+import { assertEducationWriteAllowed, shouldCreateAttendanceRequest } from "../../../education-verification";
 
 const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 
@@ -167,8 +161,7 @@ export async function updateEducationService(id: number, userId: number, payload
 
 export async function deleteEducationService(id: number, userId: number) {
     assertEducationWriteAllowed();
-    const { deleteEducationFromDirectus } = await import("./freelancer-profile.repo");
-    return await deleteEducationFromDirectus(id);
+    await deletePendingEducationAndRequests(id, userId);
 }
 
 export async function addCertificationService(userId: number, payload: any) {

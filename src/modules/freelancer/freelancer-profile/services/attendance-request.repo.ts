@@ -2,6 +2,9 @@ import "server-only";
 
 import { z } from "zod";
 
+import { classifySchoolRoute } from "@/modules/school-request-routing/records";
+import { releaseGroupedSchoolRequest } from "@/modules/school-request-routing/transitions";
+
 import type { PersistedPendingEducation } from "./education-persistence.repo";
 
 const REQUEST_FIELDS = [
@@ -12,6 +15,9 @@ const REQUEST_FIELDS = [
   "matched_school_id",
   "routed_by",
   "routed_at",
+  "reviewed_by",
+  "reviewed_at",
+  "admin_remarks",
   "employee_education_id",
   "active_employee_education_id",
   "created_at",
@@ -20,8 +26,8 @@ const REQUEST_FIELDS = [
 const schoolSchema = z.object({
   school_id: z.coerce.number().int().positive(),
   school_name: z.string().trim().min(1),
-  verification_status: z.literal("VERIFIED"),
-  school_status: z.literal("Active"),
+  verification_status: z.string(),
+  school_status: z.string(),
 });
 
 const requestSchema = z.object({
@@ -32,6 +38,9 @@ const requestSchema = z.object({
   matched_school_id: z.coerce.number().int().positive().nullable().optional(),
   routed_by: z.coerce.number().int().positive().nullable().optional(),
   routed_at: z.string().nullable().optional(),
+  reviewed_by: z.coerce.number().int().positive().nullable().optional(),
+  reviewed_at: z.string().nullable().optional(),
+  admin_remarks: z.string().nullable().optional(),
   employee_education_id: z.coerce.number().int().positive(),
   active_employee_education_id: z.coerce.number().int().positive().nullable(),
   created_at: z.string().optional(),
@@ -78,9 +87,17 @@ async function fetchCanonicalSchool(schoolId: number): Promise<z.infer<typeof sc
   if (!response.ok) throw new AttendanceRequestError("The selected school is unavailable.");
   const parsed = z.object({ data: schoolSchema }).safeParse(await response.json());
   if (!parsed.success || parsed.data.data.school_id !== schoolId) {
-    throw new AttendanceRequestError("The selected school is not Verified and Active.");
+    throw new AttendanceRequestError("The selected school is unavailable.");
   }
   return parsed.data.data;
+}
+
+async function isReviewReadySchool(schoolId: number): Promise<boolean> {
+  try {
+    return (await classifySchoolRoute(schoolId)) === "DIRECT_REVIEW";
+  } catch {
+    return false;
+  }
 }
 
 async function fetchActiveRequest(
@@ -104,6 +121,97 @@ async function fetchActiveRequest(
   return parsed.data.data[0] ?? null;
 }
 
+function sameEducationLink(
+  request: PersistedAttendanceRequest,
+  education: PersistedPendingEducation
+): boolean {
+  return (
+    request.requested_by === education.user_id &&
+    request.employee_education_id === education.employee_education_id &&
+    request.active_employee_education_id === education.employee_education_id
+  );
+}
+
+function needsSchoolRepoint(
+  request: PersistedAttendanceRequest,
+  education: PersistedPendingEducation
+): boolean {
+  if (!sameEducationLink(request, education)) return false;
+  if (education.school_id !== null) {
+    return request.matched_school_id !== education.school_id;
+  }
+  if (request.matched_school_id !== null && request.matched_school_id !== undefined) return true;
+  const expectedRaw = (education.school_name_raw ?? "").trim();
+  return request.requested_school_name.trim() !== expectedRaw;
+}
+
+async function patchLinkedRequest(
+  requestId: number,
+  data: Record<string, unknown>
+): Promise<PersistedAttendanceRequest> {
+  const { baseUrl, headers } = config();
+  const response = await fetch(
+    `${baseUrl}/items/vs_school_request/${requestId}?fields=${encodeURIComponent(REQUEST_FIELDS)}`,
+    { method: "PATCH", headers, body: JSON.stringify(data), cache: "no-store" }
+  );
+  if (!response.ok) throw new AttendanceRequestError("Attendance request could not be saved.");
+  const parsed = z.object({ data: requestSchema }).safeParse(await response.json());
+  if (!parsed.success) throw new AttendanceRequestError("Attendance request state is ambiguous.");
+  return parsed.data.data;
+}
+
+async function repointLinkedRequest(
+  request: PersistedAttendanceRequest,
+  education: PersistedPendingEducation
+): Promise<PersistedAttendanceRequest> {
+  if (!sameEducationLink(request, education)) {
+    throw new AttendanceRequestError("Attendance request linkage is invalid.");
+  }
+  if (education.school_id === null) {
+    const rawName = (education.school_name_raw ?? "").trim();
+    if (!rawName) throw new AttendanceRequestError("A school name is required.");
+    return patchLinkedRequest(request.school_request_id, {
+      requested_school_name: rawName,
+      matched_school_id: null,
+      request_status: "Pending",
+      routed_by: null,
+      routed_at: null,
+      reviewed_by: null,
+      reviewed_at: null,
+      admin_remarks: null,
+    });
+  }
+  const school = await fetchCanonicalSchool(education.school_id);
+  let classification: string | null = null;
+  try {
+    classification = await classifySchoolRoute(school.school_id);
+  } catch {
+    classification = null;
+  }
+  if (classification === "DIRECT_REVIEW") {
+    return patchLinkedRequest(request.school_request_id, {
+      requested_school_name: school.school_name,
+      matched_school_id: school.school_id,
+      request_status: "RoutedToSchool",
+      routed_by: null,
+      routed_at: phTimestamp(),
+      reviewed_by: null,
+      reviewed_at: null,
+      admin_remarks: null,
+    });
+  }
+  return patchLinkedRequest(request.school_request_id, {
+    requested_school_name: school.school_name,
+    matched_school_id: school.school_id,
+    request_status: "Pending",
+    routed_by: null,
+    routed_at: null,
+    reviewed_by: null,
+    reviewed_at: null,
+    admin_remarks: null,
+  });
+}
+
 function requireLinkedRequest(
   request: PersistedAttendanceRequest,
   education: PersistedPendingEducation
@@ -124,15 +232,26 @@ function requireLinkedRequest(
     throw new AttendanceRequestError("Attendance request route actor is invalid.");
   }
   if (education.school_id !== null) {
-    if (request.request_status !== "RoutedToSchool") {
-      throw new AttendanceRequestError("Attendance request route state is invalid.");
+    if (request.request_status === "RoutedToSchool") {
+      if (request.matched_school_id !== education.school_id) {
+        throw new AttendanceRequestError("Attendance request school linkage is invalid.");
+      }
+      if (typeof request.routed_at !== "string" || request.routed_at.length === 0) {
+        throw new AttendanceRequestError("Attendance request route time is invalid.");
+      }
+      return request;
     }
-    if (request.matched_school_id !== education.school_id) {
-      throw new AttendanceRequestError("Attendance request school linkage is invalid.");
+    if (
+      request.request_status === "Pending" &&
+      request.matched_school_id === education.school_id &&
+      (request.routed_at === null || request.routed_at === undefined) &&
+      (request.reviewed_by === null || request.reviewed_by === undefined) &&
+      (request.reviewed_at === null || request.reviewed_at === undefined) &&
+      (request.admin_remarks === null || request.admin_remarks === undefined)
+    ) {
+      return request;
     }
-    if (typeof request.routed_at !== "string" || request.routed_at.length === 0) {
-      throw new AttendanceRequestError("Attendance request route time is invalid.");
-    }
+    throw new AttendanceRequestError("Attendance request route state is invalid.");
   } else {
     if (request.request_status !== "Pending") {
       throw new AttendanceRequestError("Attendance request route state is invalid.");
@@ -151,11 +270,106 @@ function requireLinkedRequest(
   return request;
 }
 
+function isParkedShape(
+  request: PersistedAttendanceRequest,
+  education: PersistedPendingEducation
+): boolean {
+  return (
+    education.school_id !== null &&
+    request.request_status === "Pending" &&
+    request.matched_school_id === education.school_id &&
+    (request.routed_at === null || request.routed_at === undefined) &&
+    (request.reviewed_by === null || request.reviewed_by === undefined) &&
+    (request.reviewed_at === null || request.reviewed_at === undefined) &&
+    (request.admin_remarks === null || request.admin_remarks === undefined)
+  );
+}
+
+export type ParkedAttendanceReconcileSummary = {
+  readonly scanned: number;
+  readonly released: number;
+  readonly skipped: number;
+  readonly failed: number;
+};
+
+export async function reconcileParkedAttendanceRequests(
+  options?: { readonly limit?: number }
+): Promise<ParkedAttendanceReconcileSummary> {
+  const limit = Math.min(Math.max(options?.limit ?? 50, 1), 200);
+  const { baseUrl, headers } = config();
+  const query = new URLSearchParams({
+    fields: "school_request_id,matched_school_id",
+    limit: String(limit),
+    sort: "created_at",
+  });
+  query.set("filter[request_status][_eq]", "Pending");
+  const response = await fetch(`${baseUrl}/items/vs_school_request?${query.toString()}`, {
+    headers,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new AttendanceRequestError("Attendance request storage is temporarily unavailable.");
+  }
+  const listed = z
+    .object({
+      data: z.array(
+        z.object({
+          school_request_id: z.coerce.number().int().positive(),
+          matched_school_id: z.coerce.number().int().positive().nullable().optional(),
+        })
+      ),
+    })
+    .safeParse(await response.json());
+  if (!listed.success) {
+    throw new AttendanceRequestError("Attendance request state is ambiguous.");
+  }
+  const parsed = listed;
+  const parked = parsed.data.data.filter(
+    (row) => row.matched_school_id !== null && row.matched_school_id !== undefined
+  );
+  let released = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const row of parked) {
+    try {
+      const outcome = await releaseGroupedSchoolRequest({
+        requestId: row.school_request_id,
+        targetSchoolId: row.matched_school_id as number,
+      });
+      if (outcome.kind === "mutated") released += 1;
+      else skipped += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { scanned: parked.length, released, skipped, failed };
+}
+
 export async function ensureEducationAttendanceRequest(
   education: PersistedPendingEducation
 ): Promise<PersistedAttendanceRequest> {
   const existing = await fetchActiveRequest(education.employee_education_id);
-  if (existing) return requireLinkedRequest(existing, education);
+  if (existing) {
+    if (needsSchoolRepoint(existing, education)) {
+      const repointed = await repointLinkedRequest(existing, education);
+      return requireLinkedRequest(repointed, education);
+    }
+    if (isParkedShape(existing, education) && education.school_id !== null) {
+      try {
+        const outcome = await releaseGroupedSchoolRequest({
+          requestId: existing.school_request_id,
+          targetSchoolId: education.school_id,
+        });
+        if (outcome.kind === "mutated" || outcome.kind === "converged") {
+          const refetched = await fetchActiveRequest(education.employee_education_id);
+          if (refetched) return requireLinkedRequest(refetched, education);
+        }
+      } catch {
+        // Best-effort self-heal only; the parked row below is still valid.
+      }
+    }
+    return requireLinkedRequest(existing, education);
+  }
 
   const school = education.school_id === null
     ? null
@@ -164,14 +378,15 @@ export async function ensureEducationAttendanceRequest(
   if (!requestedSchoolName) {
     throw new AttendanceRequestError("A school name is required.");
   }
+  const reviewReady = school === null ? false : await isReviewReadySchool(school.school_id);
 
   const payload = {
     requested_by: education.user_id,
     requested_school_name: requestedSchoolName,
-    request_status: school ? "RoutedToSchool" : "Pending",
+    request_status: reviewReady ? "RoutedToSchool" : "Pending",
     matched_school_id: school?.school_id ?? null,
     routed_by: null,
-    routed_at: school ? phTimestamp() : null,
+    routed_at: reviewReady ? phTimestamp() : null,
     employee_education_id: education.employee_education_id,
     active_employee_education_id: education.employee_education_id,
   };

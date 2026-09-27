@@ -4,13 +4,14 @@ import "server-only";
  * Server-only rollout gate for the attendance-gated education flow.
  *
  * Tri-state contract for `EDUCATION_VERIFICATION_MODE`:
- * - absent or empty (after trim) -> `legacy` (default preserves old behavior).
- * - `legacy` -> legacy behavior; `attendance` -> all-claim attendance-request
+ * - absent or empty (after trim) -> `attendance` (default).
+ * - `legacy` (opt-in) -> legacy behavior; `attendance` -> all-claim attendance-request
  *   creation with legacy VOS school approval disabled; `frozen` -> reads stay
  *   available while education/request decision writes return sanitized 503.
  * - Any other value throws at startup; never silently defaults to a
  *   permissive mode. Matching is exact lowercase (surrounding whitespace is
  *   trimmed); case variants such as `LEGACY` are rejected.
+ * - The mode is read on every call and never memoized.
  *
  * Frozen-only rollback rule: after attendance-mode data exists, roll back
  * with `frozen`, never with `legacy`.
@@ -33,7 +34,7 @@ export class EducationVerificationModeError extends Error {
 function parseEducationVerificationMode(rawValue: string | undefined): EducationVerificationMode {
   const trimmed = rawValue?.trim() ?? "";
   if (trimmed === "") {
-    return "legacy";
+    return "attendance";
   }
   if (trimmed === "legacy" || trimmed === "attendance" || trimmed === "frozen") {
     return trimmed;

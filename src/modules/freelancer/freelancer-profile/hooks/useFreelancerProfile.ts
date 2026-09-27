@@ -3,6 +3,69 @@
 import { useState, useCallback, useEffect } from "react";
 import { FreelancerProfile, VsUserSkillMap, VsEducation, VsWorkExperience, VsCertification, VsUserSocialLink, DraftAction, VsJobPreferences } from "../types/freelancer-profile.types";
 
+export function adoptEducationDraftIds(
+    live: readonly VsEducation[],
+    draft: readonly VsEducation[]
+): VsEducation[] {
+    const liveByKey = new Map<string, VsEducation>();
+    for (const row of live) {
+        if (typeof row.course_request_draft_key === "string" && row.course_request_draft_key.length > 0) {
+            liveByKey.set(row.course_request_draft_key, row);
+        }
+    }
+    return draft.map((item) => {
+        const key = item.course_request_draft_key;
+        if ((!item.id || item.id <= 0) && typeof key === "string" && key.length > 0) {
+            const match = liveByKey.get(key);
+            if (match && match.id !== undefined && match.id > 0) {
+                return { ...item, id: match.id };
+            }
+        }
+        return item;
+    });
+}
+
+export function generateEducationDiff(
+    live: VsEducation[] = [],
+    draft: VsEducation[] | null = []
+): DraftAction<VsEducation>[] | null {
+    if (draft === null) return null;
+    const adopted = adoptEducationDraftIds(live, draft);
+    const actions: DraftAction<VsEducation>[] = [];
+    const liveIds = new Set(live.map((item) => item.id));
+    const adoptedIds = new Set(adopted.map((item) => item.id));
+    const draftKeys = new Set(
+        adopted
+            .map((item) => item.course_request_draft_key)
+            .filter((key): key is string => typeof key === "string" && key.length > 0)
+    );
+    const emittedDeletes = new Set<number>();
+
+    live.forEach((item) => {
+        if (item.id === undefined) return;
+        const missingById = !adoptedIds.has(item.id);
+        const key = item.course_request_draft_key;
+        const missingByKey = typeof key === "string" && key.length > 0 && !draftKeys.has(key);
+        if ((missingById || missingByKey) && !emittedDeletes.has(item.id)) {
+            emittedDeletes.add(item.id);
+            actions.push({ type: 'DELETE', id: item.id });
+        }
+    });
+
+    adopted.forEach((item) => {
+        if (!item.id || item.id <= 0) {
+            const { id: droppedTempId, ...rest } = item;
+            actions.push({ type: 'ADD', payload: { ...rest, tempId: String(droppedTempId) } });
+        } else if (liveIds.has(item.id)) {
+            const liveItem = live.find((l) => l.id === item.id);
+            if (JSON.stringify(liveItem) !== JSON.stringify(item)) {
+                actions.push({ type: 'UPDATE', id: item.id, payload: item });
+            }
+        }
+    });
+    return actions.length > 0 ? actions : null;
+}
+
 export function useFreelancerProfile() {
     const [data, setData] = useState<FreelancerProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -155,7 +218,7 @@ export function useFreelancerProfile() {
                 professionalSummary: pendingProfessionalSummary,
                 skills: pendingSkills !== null ? pendingSkills.map(s => (s.skill ? s.skill.id : (typeof s.skill_id === 'object' ? (s.skill_id as any)?.id : s.skill_id))) : null,
                 initialSkillIds: data.skills ? data.skills.map(s => (s.skill ? s.skill.id : (typeof s.skill_id === 'object' ? (s.skill_id as any)?.id : s.skill_id))) : [],
-                education: generateDiff(data.education, pendingEducation),
+                education: generateEducationDiff(data.education, pendingEducation),
                 workExperience: generateDiff(data.work_experience, pendingWorkExperience),
                 certifications: generateDiff(data.certifications, pendingCertifications),
                 jobPreferences: pendingJobPreferences

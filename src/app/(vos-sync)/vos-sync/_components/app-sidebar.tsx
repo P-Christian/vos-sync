@@ -159,6 +159,7 @@ export function AppSidebar({
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
                 { label: "Student Roster", href: "/vos-sync/school-admin/students", icon: Users },
                 { label: "School Requests", href: "/vos-sync/school-admin/school-requests", icon: ClipboardCheck },
+                { label: "Course Requests", href: "/vos-sync/school-admin/course-requests", icon: FileText },
                 { label: "Job Referrals", href: "/vos-sync/school-admin/job-referrals", icon: Briefcase },
                 { label: "Success Metrics", href: "/vos-sync/school-admin/success-metrics", icon: TrendingUp },
                 // { label: "How It Works", href: "/vos-sync/school-admin/how-it-works", icon: HelpCircle },

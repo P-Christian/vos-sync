@@ -174,6 +174,9 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     }, [isUnverifiedSchool, schoolId, schools]);
 
     const showDirectReviewPanel = selectedVerificationRoute === "DIRECT_REVIEW";
+    const showQueuedPanel =
+        selectedVerificationRoute === "AWAITING_ACTIVATION" ||
+        selectedVerificationRoute === "AWAITING_REGISTRATION";
 
     const courseOptions = React.useMemo(() => {
         const opts = courses.map((c) => ({ value: String(c.school_course_id), label: String(c.course_name) }));
@@ -304,6 +307,16 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                             >
                                                 <p className="text-sm font-medium text-foreground">School verification available</p>
                                                 <p className="mt-1 text-sm text-muted-foreground">This school can review your education request. Your education will remain Pending until the school approves it.</p>
+                                            </div>
+                                        )}
+                                        {showQueuedPanel && (
+                                            <div
+                                                data-testid="school-queued-panel"
+                                                role="status"
+                                                className="rounded-md border border-input bg-muted/40 px-4 py-3"
+                                            >
+                                                <p className="text-sm font-medium text-foreground">School not yet active</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">This school is not yet accepting verifications. Your request will be queued and routed automatically once the school is active.</p>
                                             </div>
                                         )}
                                     </>

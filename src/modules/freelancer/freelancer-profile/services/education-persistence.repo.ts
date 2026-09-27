@@ -117,14 +117,94 @@ async function fetchRows(query: URLSearchParams): Promise<PersistedPendingEducat
   return parseRows(await response.json());
 }
 
-async function fetchByDraftKey(
-  userId: number,
-  draftKey: string
-): Promise<PersistedPendingEducation | null> {
+async function fetchAnyStatusByDraftKey(draftKey: string): Promise<AnyStatusEducation | null> {
+  const { baseUrl, headers } = config();
   const query = new URLSearchParams({ fields: EDUCATION_FIELDS, limit: "2" });
-  query.set("filter[user_id][_eq]", String(userId));
   query.set("filter[course_request_draft_key][_eq]", draftKey);
-  return (await fetchRows(query))[0] ?? null;
+  const response = await fetch(`${baseUrl}/items/vs_employee_education?${query.toString()}`, {
+    headers,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new EducationPersistenceError("Education storage is temporarily unavailable.");
+  }
+  const parsed = z
+    .object({ data: z.array(educationAnyStatusSchema).max(2) })
+    .safeParse(await response.json());
+  if (!parsed.success) {
+    throw new EducationPersistenceError("Education storage returned an invalid result.");
+  }
+  const rows = parsed.data.data;
+  if (rows.length > 1) {
+    throw new EducationPersistenceError("This education draft key is already in use.");
+  }
+  return rows[0] ?? null;
+}
+
+function toPersistedPending(row: AnyStatusEducation): PersistedPendingEducation {
+  return {
+    employee_education_id: row.employee_education_id,
+    user_id: row.user_id,
+    school_id: row.school_id,
+    school_name_raw: row.school_name_raw,
+    course_name_raw: row.course_name_raw,
+    education_status: "Pending",
+    school_course_id: row.school_course_id,
+    course_request_draft_key: row.course_request_draft_key,
+    start_date: row.start_date,
+    end_date: row.end_date,
+  };
+}
+
+function requireOwnedPending(row: AnyStatusEducation, userId: number): void {
+  if (row.user_id !== userId || row.education_status !== "Pending") {
+    throw new EducationPersistenceError("This education draft key is already in use.");
+  }
+}
+
+async function reclaimOwnedPendingEducation(
+  userId: number,
+  row: AnyStatusEducation,
+  input: PendingEducationWrite & { readonly course_request_draft_key: string }
+): Promise<PersistedPendingEducation> {
+  requireOwnedPending(row, userId);
+  if (sameClaimAnyStatus(row, input)) return toPersistedPending(row);
+  return updatePendingEducation(row.employee_education_id, userId, input);
+}
+
+export async function createOrFetchPendingEducation(
+  userId: number,
+  input: PendingEducationWrite & { readonly course_request_draft_key: string }
+): Promise<PersistedPendingEducation> {
+  await requireValidCourseClaim(input);
+  const existing = await fetchAnyStatusByDraftKey(input.course_request_draft_key);
+  if (existing) return reclaimOwnedPendingEducation(userId, existing, input);
+
+  const { baseUrl, headers } = config();
+  try {
+    const response = await fetch(
+      `${baseUrl}/items/vs_employee_education?fields=${encodeURIComponent(EDUCATION_FIELDS)}`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify(pendingPayload(userId, input)),
+        cache: "no-store",
+      }
+    );
+    if (response.ok) {
+      const parsed = z.object({ data: educationRowSchema }).safeParse(await response.json());
+      if (parsed.success) {
+        if (sameClaim(parsed.data.data, input)) return parsed.data.data;
+        return updatePendingEducation(parsed.data.data.employee_education_id, userId, input);
+      }
+    }
+  } catch (error: unknown) {
+    if (error instanceof EducationPersistenceError) throw error;
+  }
+
+  const recovered = await fetchAnyStatusByDraftKey(input.course_request_draft_key);
+  if (recovered) return reclaimOwnedPendingEducation(userId, recovered, input);
+  throw new EducationPersistenceError("Education could not be saved.");
 }
 
 function sameClaim(row: PersistedPendingEducation, input: PendingEducationWrite): boolean {
@@ -151,48 +231,6 @@ function pendingPayload(userId: number, input: PendingEducationWrite): Record<st
     start_date: input.start_date,
     end_date: input.end_date,
   };
-}
-
-function requireSameClaim(
-  row: PersistedPendingEducation,
-  input: PendingEducationWrite
-): PersistedPendingEducation {
-  if (!sameClaim(row, input)) {
-    throw new EducationPersistenceError("This education draft key is already in use.");
-  }
-  return row;
-}
-
-export async function createOrFetchPendingEducation(
-  userId: number,
-  input: PendingEducationWrite & { readonly course_request_draft_key: string }
-): Promise<PersistedPendingEducation> {
-  await requireValidCourseClaim(input);
-  const existing = await fetchByDraftKey(userId, input.course_request_draft_key);
-  if (existing) return requireSameClaim(existing, input);
-
-  const { baseUrl, headers } = config();
-  try {
-    const response = await fetch(
-      `${baseUrl}/items/vs_employee_education?fields=${encodeURIComponent(EDUCATION_FIELDS)}`,
-      {
-        method: "POST",
-        headers,
-        body: JSON.stringify(pendingPayload(userId, input)),
-        cache: "no-store",
-      }
-    );
-    if (response.ok) {
-      const parsed = z.object({ data: educationRowSchema }).safeParse(await response.json());
-      if (parsed.success) return requireSameClaim(parsed.data.data, input);
-    }
-  } catch (error: unknown) {
-    if (error instanceof EducationPersistenceError) throw error;
-  }
-
-  const recovered = await fetchByDraftKey(userId, input.course_request_draft_key);
-  if (recovered) return requireSameClaim(recovered, input);
-  throw new EducationPersistenceError("Education could not be saved.");
 }
 
 const educationAnyStatusSchema = z.object({
