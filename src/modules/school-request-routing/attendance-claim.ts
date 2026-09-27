@@ -13,7 +13,6 @@ import type {
   SchoolRequestRecord,
   TransitionOutcome,
 } from "./types";
-import { normalizeSchoolIdentity } from "@/modules/education-verification/validation";
 
 function normalizeOptionalText(value: string | number | null | undefined): string | null {
   if (value === null || value === undefined) return null;
@@ -70,10 +69,7 @@ function assertEducationIdentity(
   if (
     education.user_id !== request.requested_by ||
     education.education_status !== "Pending" ||
-    (education.school_id !== expectedSchoolId &&
-      (education.school_id !== null ||
-        education.school_name_raw === null ||
-        normalizeSchoolIdentity(education.school_name_raw) !== normalizeSchoolIdentity(request.requested_school_name)))
+    education.school_id !== expectedSchoolId
   ) {
     throw routingError("CORRELATION_CONFLICT", "The linked education is not consistent with the routed request.");
   }

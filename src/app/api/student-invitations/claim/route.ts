@@ -24,7 +24,10 @@ import {
   getInvitationState,
   isLinkedToSession,
 } from "@/modules/auth/student-invitation/invitation.service";
-import { syncEducationFromRosterBestEffort } from "@/modules/auth/student-invitation/invitation.education";
+import {
+  StudentInvitationEducationError,
+  synchronizeRosterEducation,
+} from "@/modules/auth/student-invitation/invitation.education";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -160,12 +163,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           409
         );
       }
+      await synchronizeRosterEducation({ userId: session.userId, student });
       await completeOwnedAcceptance({
         sessionUserId: session.userId,
         invitation,
         student,
       });
-      await syncEducationFromRosterBestEffort({ userId: session.userId, student });
       return claimJson({ state: "linked" });
     }
     if (state === "expired") {
@@ -226,6 +229,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
     return claimJson({ mode: "otp_sent", ...challenge });
   } catch (error: unknown) {
+    if (error instanceof StudentInvitationEducationError) {
+      return claimJson(
+        {
+          error:
+            error.statusCode === 503
+              ? "Invitation service is unavailable."
+              : error.statusCode === 400
+                ? "Invalid request."
+                : "Invitation cannot be accepted.",
+          code: error.code,
+        },
+        error.statusCode
+      );
+    }
     if (error instanceof StudentInvitationAcceptanceError) {
       return claimJson(
         {

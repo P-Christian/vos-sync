@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { TalentProfile, MatchBreakdown } from "../types";
 import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon, getImageUrl } from "../utils/talentUtils";
 import { getCachedExplanation, setCachedExplanation } from "@/lib/gemini/useExplanationCache";
+import { orderEducation } from "@/modules/client/education/order-education";
 
 interface TalentProfileDrawerProps {
   open: boolean;
@@ -126,6 +127,14 @@ export default function TalentProfileDrawer({
   const initials = profile ? getInitials(profile.name) : "";
   const scoreClass = matchScore !== undefined ? matchScoreColor(matchScore) : "";
   const avatarSrc = profile ? getImageUrl(profile.profile_image_url) : "";
+  const orderedEducation = profile
+    ? orderEducation(profile.education, {
+        status: (edu) => edu.education_status ?? null,
+        endDate: (edu) => edu.end_date,
+        startDate: (edu) => edu.start_date,
+        id: (edu) => edu.id,
+      })
+    : [];
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -485,7 +494,7 @@ export default function TalentProfileDrawer({
                         Education
                       </h4>
                       <div className="space-y-3">
-                        {profile.education.map((edu) => (
+                        {orderedEducation.map((edu) => (
                           <div key={edu.id} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
                             <p className="font-semibold text-sm text-zinc-900 dark:text-white">{edu.school_name ?? "—"}</p>
                             {edu.course_name && (

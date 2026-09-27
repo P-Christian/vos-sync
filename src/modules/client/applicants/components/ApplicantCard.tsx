@@ -21,6 +21,7 @@ import {
   Mail,
   Briefcase,
   Clock,
+  GraduationCap,
   CalendarPlus,
   ChevronRight,
   MessageSquare,
@@ -188,6 +189,32 @@ export default function ApplicantCard({
                   Applied {timeAgo(applicant.applied_at)}
                 </span>
               </div>
+
+              {/* Education preview: first ordered record plus remainder */}
+              {(applicant.education_count ?? applicant.education?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground/80 md:text-xs">
+                  {(() => {
+                    const preview = (applicant.education ?? [])[0];
+                    const total = applicant.education_count ?? applicant.education?.length ?? 0;
+                    const label = preview
+                      ? [preview.school_name, preview.course_name].filter(Boolean).join(" · ") || "Education on file"
+                      : [applicant.education_school, applicant.education_course].filter(Boolean).join(" · ") || "Education on file";
+                    return (
+                      <>
+                        <span className="flex items-center gap-1 min-w-0">
+                          <GraduationCap className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                          <span className="truncate">{label}</span>
+                        </span>
+                        {total > 1 && (
+                          <span className="px-2 py-0.5 rounded-full text-xs text-muted-foreground/70">
+                            +{total - 1} more
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </div>
 

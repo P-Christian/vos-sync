@@ -48,15 +48,31 @@ const requestSchema = z.object({
 
 export type PersistedAttendanceRequest = z.infer<typeof requestSchema>;
 
+export type AttendanceRequestErrorCode =
+  | "AMBIGUOUS"
+  | "LINKAGE_INVALID"
+  | "INVALID_INPUT"
+  | "STALE_CONFLICT"
+  | "DEPENDENCY_FAILURE";
+
 export class AttendanceRequestError extends Error {
   public readonly name = "AttendanceRequestError";
+  public readonly code: AttendanceRequestErrorCode;
+
+  constructor(message: string, code: AttendanceRequestErrorCode = "DEPENDENCY_FAILURE") {
+    super(message);
+    this.code = code;
+  }
 }
 
 function config(): { readonly baseUrl: string; readonly headers: Record<string, string> } {
   const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/u, "");
   const token = process.env.DIRECTUS_STATIC_TOKEN;
   if (!baseUrl || !token) {
-    throw new AttendanceRequestError("Attendance request storage is not configured.");
+    throw new AttendanceRequestError(
+      "Attendance request storage is not configured.",
+      "DEPENDENCY_FAILURE"
+    );
   }
   return {
     baseUrl,
@@ -84,10 +100,18 @@ async function fetchCanonicalSchool(schoolId: number): Promise<z.infer<typeof sc
     headers,
     cache: "no-store",
   });
-  if (!response.ok) throw new AttendanceRequestError("The selected school is unavailable.");
+  if (!response.ok) {
+    throw new AttendanceRequestError(
+      "The selected school is unavailable.",
+      "DEPENDENCY_FAILURE"
+    );
+  }
   const parsed = z.object({ data: schoolSchema }).safeParse(await response.json());
   if (!parsed.success || parsed.data.data.school_id !== schoolId) {
-    throw new AttendanceRequestError("The selected school is unavailable.");
+    throw new AttendanceRequestError(
+      "The selected school is unavailable.",
+      "DEPENDENCY_FAILURE"
+    );
   }
   return parsed.data.data;
 }
@@ -112,11 +136,14 @@ async function fetchActiveRequest(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new AttendanceRequestError("Attendance request storage is temporarily unavailable.");
+    throw new AttendanceRequestError(
+      "Attendance request storage is temporarily unavailable.",
+      "DEPENDENCY_FAILURE"
+    );
   }
   const parsed = z.object({ data: z.array(requestSchema).max(1) }).safeParse(await response.json());
   if (!parsed.success) {
-    throw new AttendanceRequestError("Attendance request state is ambiguous.");
+    throw new AttendanceRequestError("Attendance request state is ambiguous.", "AMBIGUOUS");
   }
   return parsed.data.data[0] ?? null;
 }
@@ -146,18 +173,60 @@ function needsSchoolRepoint(
 }
 
 async function patchLinkedRequest(
-  requestId: number,
+  request: PersistedAttendanceRequest,
+  education: PersistedPendingEducation,
   data: Record<string, unknown>
 ): Promise<PersistedAttendanceRequest> {
+  // Guarded repoint: the write applies only when the row still carries the
+  // request id, education link, owner, observed status, and active link. A
+  // concurrent transition makes the filter match zero rows, which loses
+  // closed instead of overwriting the winner.
   const { baseUrl, headers } = config();
-  const response = await fetch(
-    `${baseUrl}/items/vs_school_request/${requestId}?fields=${encodeURIComponent(REQUEST_FIELDS)}`,
-    { method: "PATCH", headers, body: JSON.stringify(data), cache: "no-store" }
+  const query = new URLSearchParams({ fields: REQUEST_FIELDS });
+  const response = await fetch(`${baseUrl}/items/vs_school_request?${query.toString()}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({
+      data,
+      query: {
+        filter: {
+          school_request_id: { _eq: request.school_request_id },
+          employee_education_id: { _eq: education.employee_education_id },
+          requested_by: { _eq: education.user_id },
+          request_status: { _eq: request.request_status },
+          active_employee_education_id: { _eq: education.employee_education_id },
+        },
+      },
+    }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new AttendanceRequestError(
+      "Attendance request could not be saved.",
+      "DEPENDENCY_FAILURE"
+    );
+  }
+  const parsed = z.object({ data: z.array(requestSchema).max(1) }).safeParse(await response.json());
+  if (!parsed.success) {
+    throw new AttendanceRequestError("Attendance request state is ambiguous.", "AMBIGUOUS");
+  }
+  const updated = parsed.data.data[0];
+  if (updated) return updated;
+  const refetched = await fetchActiveRequest(education.employee_education_id);
+  if (refetched && refetched.school_request_id === request.school_request_id) {
+    try {
+      return requireLinkedRequest(refetched, education);
+    } catch {
+      throw new AttendanceRequestError(
+        "Attendance request changed before it could be saved.",
+        "STALE_CONFLICT"
+      );
+    }
+  }
+  throw new AttendanceRequestError(
+    "Attendance request changed before it could be saved.",
+    "STALE_CONFLICT"
   );
-  if (!response.ok) throw new AttendanceRequestError("Attendance request could not be saved.");
-  const parsed = z.object({ data: requestSchema }).safeParse(await response.json());
-  if (!parsed.success) throw new AttendanceRequestError("Attendance request state is ambiguous.");
-  return parsed.data.data;
 }
 
 async function repointLinkedRequest(
@@ -165,12 +234,17 @@ async function repointLinkedRequest(
   education: PersistedPendingEducation
 ): Promise<PersistedAttendanceRequest> {
   if (!sameEducationLink(request, education)) {
-    throw new AttendanceRequestError("Attendance request linkage is invalid.");
+    throw new AttendanceRequestError(
+      "Attendance request linkage is invalid.",
+      "LINKAGE_INVALID"
+    );
   }
   if (education.school_id === null) {
     const rawName = (education.school_name_raw ?? "").trim();
-    if (!rawName) throw new AttendanceRequestError("A school name is required.");
-    return patchLinkedRequest(request.school_request_id, {
+    if (!rawName) {
+      throw new AttendanceRequestError("A school name is required.", "INVALID_INPUT");
+    }
+    return patchLinkedRequest(request, education, {
       requested_school_name: rawName,
       matched_school_id: null,
       request_status: "Pending",
@@ -189,7 +263,7 @@ async function repointLinkedRequest(
     classification = null;
   }
   if (classification === "DIRECT_REVIEW") {
-    return patchLinkedRequest(request.school_request_id, {
+    return patchLinkedRequest(request, education, {
       requested_school_name: school.school_name,
       matched_school_id: school.school_id,
       request_status: "RoutedToSchool",
@@ -200,7 +274,7 @@ async function repointLinkedRequest(
       admin_remarks: null,
     });
   }
-  return patchLinkedRequest(request.school_request_id, {
+  return patchLinkedRequest(request, education, {
     requested_school_name: school.school_name,
     matched_school_id: school.school_id,
     request_status: "Pending",
@@ -221,7 +295,10 @@ function requireLinkedRequest(
     request.employee_education_id !== education.employee_education_id ||
     request.active_employee_education_id !== education.employee_education_id
   ) {
-    throw new AttendanceRequestError("Attendance request linkage is invalid.");
+    throw new AttendanceRequestError(
+      "Attendance request linkage is invalid.",
+      "LINKAGE_INVALID"
+    );
   }
   // Defect (1): a reused request must still match the persisted education's
   // canonical state. Any drift fails closed — never returned as valid.
@@ -229,15 +306,24 @@ function requireLinkedRequest(
   // System auto-route is the only writer on this path, so routed_by must
   // always be the null system-route marker (never a VOS Admin action).
   if (request.routed_by !== null && request.routed_by !== undefined) {
-    throw new AttendanceRequestError("Attendance request route actor is invalid.");
+    throw new AttendanceRequestError(
+      "Attendance request route actor is invalid.",
+      "LINKAGE_INVALID"
+    );
   }
   if (education.school_id !== null) {
     if (request.request_status === "RoutedToSchool") {
       if (request.matched_school_id !== education.school_id) {
-        throw new AttendanceRequestError("Attendance request school linkage is invalid.");
+        throw new AttendanceRequestError(
+          "Attendance request school linkage is invalid.",
+          "LINKAGE_INVALID"
+        );
       }
       if (typeof request.routed_at !== "string" || request.routed_at.length === 0) {
-        throw new AttendanceRequestError("Attendance request route time is invalid.");
+        throw new AttendanceRequestError(
+          "Attendance request route time is invalid.",
+          "LINKAGE_INVALID"
+        );
       }
       return request;
     }
@@ -251,20 +337,35 @@ function requireLinkedRequest(
     ) {
       return request;
     }
-    throw new AttendanceRequestError("Attendance request route state is invalid.");
+    throw new AttendanceRequestError(
+      "Attendance request route state is invalid.",
+      "LINKAGE_INVALID"
+    );
   } else {
     if (request.request_status !== "Pending") {
-      throw new AttendanceRequestError("Attendance request route state is invalid.");
+      throw new AttendanceRequestError(
+        "Attendance request route state is invalid.",
+        "LINKAGE_INVALID"
+      );
     }
     if (request.matched_school_id !== null && request.matched_school_id !== undefined) {
-      throw new AttendanceRequestError("Attendance request school linkage is invalid.");
+      throw new AttendanceRequestError(
+        "Attendance request school linkage is invalid.",
+        "LINKAGE_INVALID"
+      );
     }
     if (request.routed_at !== null && request.routed_at !== undefined) {
-      throw new AttendanceRequestError("Attendance request route time is invalid.");
+      throw new AttendanceRequestError(
+        "Attendance request route time is invalid.",
+        "LINKAGE_INVALID"
+      );
     }
     const expectedRaw = (education.school_name_raw ?? "").trim();
     if (!expectedRaw || request.requested_school_name.trim() !== expectedRaw) {
-      throw new AttendanceRequestError("Attendance request school identity is invalid.");
+      throw new AttendanceRequestError(
+        "Attendance request school identity is invalid.",
+        "LINKAGE_INVALID"
+      );
     }
   }
   return request;
@@ -308,7 +409,10 @@ export async function reconcileParkedAttendanceRequests(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new AttendanceRequestError("Attendance request storage is temporarily unavailable.");
+    throw new AttendanceRequestError(
+      "Attendance request storage is temporarily unavailable.",
+      "DEPENDENCY_FAILURE"
+    );
   }
   const listed = z
     .object({
@@ -321,7 +425,7 @@ export async function reconcileParkedAttendanceRequests(
     })
     .safeParse(await response.json());
   if (!listed.success) {
-    throw new AttendanceRequestError("Attendance request state is ambiguous.");
+    throw new AttendanceRequestError("Attendance request state is ambiguous.", "AMBIGUOUS");
   }
   const parsed = listed;
   const parked = parsed.data.data.filter(
@@ -376,7 +480,7 @@ export async function ensureEducationAttendanceRequest(
     : await fetchCanonicalSchool(education.school_id);
   const requestedSchoolName = school?.school_name ?? education.school_name_raw?.trim();
   if (!requestedSchoolName) {
-    throw new AttendanceRequestError("A school name is required.");
+    throw new AttendanceRequestError("A school name is required.", "INVALID_INPUT");
   }
   const reviewReady = school === null ? false : await isReviewReadySchool(school.school_id);
 
@@ -411,5 +515,8 @@ export async function ensureEducationAttendanceRequest(
 
   const recovered = await fetchActiveRequest(education.employee_education_id);
   if (recovered) return requireLinkedRequest(recovered, education);
-  throw new AttendanceRequestError("Attendance request could not be saved.");
+  throw new AttendanceRequestError(
+    "Attendance request could not be saved.",
+    "DEPENDENCY_FAILURE"
+  );
 }

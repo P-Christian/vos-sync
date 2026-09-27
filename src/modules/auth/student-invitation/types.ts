@@ -19,6 +19,8 @@ export interface SchoolStudentRecord {
   readonly school_year: string | null;
   readonly registered_user_id: number | null;
   readonly invitation_status: "Not Sent" | "Invited" | "Registered";
+  /** Exact link to the verified education row; null while unlinked. */
+  readonly employee_education_id: number | null;
 }
 
 export interface SchoolRecord {

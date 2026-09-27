@@ -26,6 +26,22 @@ export async function fetchCourseRequestRows(
   );
 }
 
+export async function fetchActiveCourseRequestRows(
+  educationId: number
+): Promise<readonly CourseRequestRecord[]> {
+  const query = new URLSearchParams({
+    "filter[employee_education_id][_eq]": String(educationId),
+    "filter[request_status][_neq]": "Rejected",
+    fields: COURSE_REQUEST_FIELDS,
+    limit: "2",
+  });
+  return fetchRows(
+    "courseRequest.fetchActive",
+    `/items/vs_course_request?${query.toString()}`,
+    courseRequestSchema
+  );
+}
+
 export async function fetchCourseRequestExact(
   requestId: number
 ): Promise<CourseRequestRecord> {

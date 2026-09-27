@@ -11,7 +11,10 @@ import {
   completeOwnedAcceptance,
   StudentInvitationAcceptanceError,
 } from "@/modules/auth/student-invitation/invitation.acceptance";
-import { syncEducationFromRosterBestEffort } from "@/modules/auth/student-invitation/invitation.education";
+import {
+  StudentInvitationEducationError,
+  synchronizeRosterEducation,
+} from "@/modules/auth/student-invitation/invitation.education";
 import {
   InvitationChallengeError,
   verifyInvitationChallenge,
@@ -101,12 +104,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!isLinkedToSession(student, session.userId)) {
         return conflictJson("INVITATION_OWNERSHIP_CONFLICT");
       }
+      await synchronizeRosterEducation({ userId: session.userId, student });
       await completeOwnedAcceptance({
         sessionUserId: session.userId,
         invitation,
         student,
       });
-      await syncEducationFromRosterBestEffort({ userId: session.userId, student });
       return verifyJson({ state: "linked" });
     }
     if (invitation.is_used) {
@@ -183,12 +186,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!isLinkedToSession(latestStudent, session.userId)) {
         return conflictJson("INVITATION_OWNERSHIP_CONFLICT");
       }
+      await synchronizeRosterEducation({ userId: session.userId, student: latestStudent });
       await completeOwnedAcceptance({
         sessionUserId: session.userId,
         invitation: latestInvitation,
         student: latestStudent,
       });
-      await syncEducationFromRosterBestEffort({ userId: session.userId, student: latestStudent });
       return verifyJson({ state: "linked" });
     }
     const latestState = getInvitationState(
@@ -250,14 +253,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    const sync = await synchronizeRosterEducation({ userId: session.userId, student: link.student });
     await completeOwnedAcceptance({
       sessionUserId: session.userId,
       invitation: latestInvitation,
-      student: link.student,
+      student: sync.student,
     });
-    await syncEducationFromRosterBestEffort({ userId: session.userId, student: link.student });
     return linkedResponse;
   } catch (error: unknown) {
+    if (error instanceof StudentInvitationEducationError) {
+      return verifyJson(
+        {
+          error:
+            error.statusCode === 503
+              ? "Invitation service is unavailable."
+              : error.statusCode === 400
+                ? "Invalid request."
+                : "Invitation cannot be accepted.",
+          code: error.code,
+        },
+        error.statusCode
+      );
+    }
     if (error instanceof InvitationChallengeError) {
       return verifyJson(
         {

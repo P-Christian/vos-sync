@@ -210,6 +210,10 @@ function calculateProfileCompletion(
 }
 
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import {
+  groupApplicantEducation,
+  type ApplicantEducationBulkRow,
+} from "@/modules/client/applicants/utils/applicantListEducation";
 
 // GET — List all applicants for company jobs
 
@@ -395,7 +399,7 @@ export async function GET(req: NextRequest) {
       ),
 
       fetch(
-        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,school_name_raw,course_name_raw&limit=1000`,
+        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,employee_education_id,school_id.school_name,school_name_raw,school_course_id.course_name,course_name_raw,education_status,start_date,end_date&limit=1000`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -464,7 +468,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const educationRows: { user_id: number; school_name_raw?: string | null; course_name_raw?: string | null }[] =
+    const educationRows: ApplicantEducationBulkRow[] =
       educationRes.ok
         ? (await educationRes.json()).data ?? []
         : [];
@@ -495,7 +499,7 @@ export async function GET(req: NextRequest) {
 
     const activeInterviewsMap: Record<number, number> = {};
 
-    const educationMap: Record<number, { school_name_raw?: string | null; course_name_raw?: string | null }> = {};
+    const educationMap = groupApplicantEducation(educationRows);
 
     const screeningCountMap: Record<number, number> = {};
 
@@ -503,13 +507,6 @@ export async function GET(req: NextRequest) {
       if (activeInterviewIdSet.has(row.interview_id)) {
         activeInterviewsMap[row.application_id] = row.interview_id;
       }
-    });
-
-    educationRows.forEach((row) => {
-      educationMap[row.user_id] = {
-        school_name_raw: row.school_name_raw,
-        course_name_raw: row.course_name_raw,
-      };
     });
 
     screeningAnswerRows.forEach((row) => {
@@ -632,7 +629,8 @@ export async function GET(req: NextRequest) {
       const resumeCount =
         resumeMap[application.user_id] ?? 0;
 
-      const userEdu = educationMap[application.user_id];
+      const userEdu = educationMap[application.user_id] ?? [];
+      const primaryEdu = userEdu[0];
       const referralInfo = appReferralMap[application.application_id];
 
       return {
@@ -672,8 +670,11 @@ export async function GET(req: NextRequest) {
           ? [user.user_city, user.user_province].filter(Boolean).join(", ")
           : "",
 
-        education_school: userEdu?.school_name_raw ?? "",
-        education_course: userEdu?.course_name_raw ?? "",
+        education: userEdu,
+        education_count: userEdu.length,
+
+        education_school: primaryEdu?.school_name ?? "",
+        education_course: primaryEdu?.course_name ?? "",
 
         screening_answers_count: screeningCountMap[application.application_id] ?? 0,
 

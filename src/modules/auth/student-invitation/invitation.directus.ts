@@ -158,6 +158,37 @@ export async function patchCollection<T>(
   }
 }
 
+export interface DirectusItemDelete {
+  readonly operation: string;
+  readonly collection: string;
+  readonly id: string | number;
+}
+
+/**
+ * Delete one row by primary key. Directus answers 204 with no body; a
+ * missing row still resolves because compensation only needs the row gone.
+ */
+export async function deleteItem(remove: DirectusItemDelete): Promise<void> {
+  const { operation, collection, id } = remove;
+  if (!DIRECTUS_BASE) throw dependencyError(`${operation}.configuration`);
+
+  try {
+    const response = await fetch(
+      `${DIRECTUS_BASE}/items/${collection}/${id}`,
+      {
+        method: "DELETE",
+        headers: getHeaders(),
+        cache: "no-store",
+      }
+    );
+    if (!response.ok && response.status !== 404) {
+      throw dependencyError(operation, response.status);
+    }
+  } catch (error: unknown) {
+    if (error instanceof StudentInvitationRepositoryError) throw error;
+    throw dependencyError(operation, undefined, error);
+  }
+}
 export async function createItem<T>(
   create: DirectusCollectionCreate,
   schema: ZodType<T>

@@ -21,7 +21,6 @@ import type {
   SystemReleaseOutcome,
   TransitionOutcome,
 } from "./types";
-import { normalizeSchoolIdentity } from "@/modules/education-verification/validation";
 
 function hasNoAuditOrRemarks(request: SchoolRequestRecord): boolean {
   return (
@@ -48,15 +47,9 @@ function assertPendingEducation(education: EducationRecord, request: SchoolReque
   if (education.user_id !== request.requested_by || education.education_status !== "Pending") {
     throw routingError("CORRELATION_CONFLICT", "The linked education no longer belongs to this Pending request.");
   }
-  if (education.school_id === targetSchoolId) return;
-  if (
-    education.school_id === null &&
-    education.school_name_raw !== null &&
-    normalizeSchoolIdentity(education.school_name_raw) === normalizeSchoolIdentity(request.requested_school_name)
-  ) {
-    return;
+  if (education.school_id !== targetSchoolId) {
+    throw routingError("CORRELATION_CONFLICT", "The linked education is not canonically bound to the target school.");
   }
-  throw routingError("CORRELATION_CONFLICT", "The linked education identity contradicts the target school.");
 }
 
 function routeReplay(request: SchoolRequestRecord, input: RouteSchoolInput): boolean {

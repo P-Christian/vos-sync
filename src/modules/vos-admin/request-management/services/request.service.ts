@@ -15,22 +15,15 @@ import {
   getEducationVerificationMode,
   type ActiveSchoolCourse,
 } from "../../../education-verification";
-import { normalizeSchoolIdentity } from "../../../education-verification/validation";
 import {
-  fetchEducation as fetchRoutingEducation,
   fetchSchoolRequest as fetchRoutingSchoolRequest,
   groupSchoolRequest as groupSchoolRequestPrimitive,
   rejectSchoolRequest as rejectSchoolRequestPrimitive,
   routeSchoolRequest as routeSchoolRequestPrimitive,
   SchoolRequestRoutingError,
-  type SchoolRequestRecord,
 } from "../../../school-request-routing";
-import { fetchRows as fetchRoutingRows, patchRows as patchRoutingRows } from "../../../school-request-routing/directus";
-import { SCHOOL_REQUEST_FIELDS, EDUCATION_FIELDS } from "../../../school-request-routing/records";
-import { educationSchema as routingEducationSchema, schoolRequestSchema as routingSchoolRequestSchema } from "../../../school-request-routing/schemas";
 import {
   fetchRows,
-  patchRows,
 } from "../../../education-verification/directus";
 import type { ReviewCourseRequestDecision } from "../types/request.schema";
 import { 
@@ -38,14 +31,17 @@ import {
   VsCourseRequest, 
   ReviewAction 
 } from '../types/request.types';
-import { 
-  fetchSchoolRequestsRepo, 
-  fetchCourseRequestsRepo, 
-  reviewSchoolRequestRepo, 
+import {
+  fetchSchoolRequestsRepo,
+  fetchCourseRequestsRepo,
+  reviewSchoolRequestRepo,
   fetchSchoolRequestById,
   fetchCourseRequestById,
-  upsertEmployeeEducation,
 } from './request.repo';
+import {
+  resolveLegacyApprovalTarget,
+  verifyLegacyApprovalTarget,
+} from './legacy-school-approval';
 
 export async function getSchoolRequests(status?: string): Promise<VsSchoolRequest[]> {
   return fetchSchoolRequestsRepo(status);
@@ -115,21 +111,15 @@ export async function reviewSchoolRequest(id: number, data: ReviewAction, adminI
     payload.admin_remarks = data.admin_remarks;
   }
 
-  await reviewSchoolRequestRepo(id, payload);
-
-  // If approved, upsert the employee education record with the matched school and a null course
+  // Legacy approval verifies exactly the linked Pending education: the link
+  // is resolved before this mutation, so a missing or foreign link fails
+  // closed before the request patch writes anything.
   if (data.action === 'Approved' && data.matched_school_id) {
-    const originalRequest = await fetchSchoolRequestById(id);
-    if (originalRequest && originalRequest.requested_by) {
-      // requested_by comes back populated or as ID depending on fields, handle both:
-      const userId = typeof originalRequest.requested_by === 'object' 
-        ? (originalRequest.requested_by as {user_id: number}).user_id 
-        : originalRequest.requested_by;
-      
-      if (userId) {
-        await upsertEmployeeEducation(Number(userId), data.matched_school_id, null);
-      }
-    }
+    const target = await resolveLegacyApprovalTarget(id);
+    await reviewSchoolRequestRepo(id, payload);
+    await verifyLegacyApprovalTarget(target, data.matched_school_id);
+  } else {
+    await reviewSchoolRequestRepo(id, payload);
   }
 
   // Re-fetch the updated request to ensure we have the populated `requested_by` fields for the UI
@@ -349,91 +339,6 @@ async function fetchCourseRequestLink(requestId: number): Promise<CourseRequestL
   }
 }
 
-function normalizeCourseName(value: string): string {
-  return value.replace(/\s+/gu, " ").trim().toLocaleLowerCase("en-US");
-}
-
-/**
- * Todo 3's exact-one guarded bind for legacy course requests whose
- * employee_education_id is still null: exactly one Pending education owned by
- * the requester at the request's school may be bound, via a guarded
- * update-multiple PATCH that fails closed on stale or ambiguous state.
- */
-async function bindLegacyEducationLink(request: CourseRequestLink): Promise<CourseRequestLink> {
-  if (request.employee_education_id !== null) return request;
-  let candidates: readonly LinkedEducation[];
-  try {
-    const query = new URLSearchParams({
-      "filter[user_id][_eq]": String(request.requested_by),
-      "filter[school_id][_eq]": String(request.school_id),
-      "filter[education_status][_eq]": "Pending",
-      fields: LINKED_EDUCATION_FIELDS,
-      limit: "2",
-    });
-    candidates = await fetchRows(
-      "courseRequest.bindEducationCandidates",
-      `/items/vs_employee_education?${query.toString()}`,
-      linkedEducationSchema,
-    );
-  } catch (error: unknown) {
-    throw toDecisionError(error, "Education storage is temporarily unavailable.");
-  }
-  if (candidates.length === 0) {
-    throw decisionError(
-      "CORRELATION_CONFLICT",
-      "The legacy course request has no exact linked education.",
-      409,
-    );
-  }
-  if (candidates.length > 1 || candidates[0] === undefined) {
-    throw decisionError("AMBIGUOUS", "Candidate educations for this request are ambiguous.", 409);
-  }
-  const education = candidates[0];
-  if (
-    education.course_name_raw !== null &&
-    normalizeCourseName(education.course_name_raw) !== normalizeCourseName(request.requested_course_name)
-  ) {
-    throw decisionError(
-      "CORRELATION_CONFLICT",
-      "The candidate education does not match the requested course.",
-      409,
-    );
-  }
-  try {
-    const updated = await patchRows(
-      {
-        operation: "courseRequest.bindEducation",
-        collection: "vs_course_request",
-        filter: {
-          course_request_id: { _eq: request.course_request_id },
-          employee_education_id: { _null: true },
-          request_status: { _eq: "Pending" },
-          matched_school_course_id: { _null: true },
-          reviewed_by: { _null: true },
-          reviewed_at: { _null: true },
-          routed_by: { _null: true },
-          routed_at: { _null: true },
-        },
-        data: { employee_education_id: education.employee_education_id },
-        fields: COURSE_REQUEST_LINK_FIELDS,
-      },
-      courseRequestLinkSchema,
-    );
-    if (updated) return updated;
-  } catch (error: unknown) {
-    throw toDecisionError(error, "Course request storage is temporarily unavailable.");
-  }
-  // Zero rows: the guard went stale. Converge on an exact replay, else conflict.
-  const readBack = await fetchCourseRequestLink(request.course_request_id);
-  if (
-    readBack.request_status === "Pending" &&
-    readBack.employee_education_id === education.employee_education_id
-  ) {
-    return readBack;
-  }
-  throw decisionError("CLAIM_CONFLICT", "The course request changed before its education could be bound.", 409);
-}
-
 async function fetchLinkedEducation(educationId: number): Promise<LinkedEducation> {
   try {
     const query = new URLSearchParams({
@@ -463,19 +368,20 @@ async function approveCourseRequest(
   courseId: number,
   adminId: number,
 ): Promise<VsCourseRequest> {
-  // 1. Pending VOS-owned source state (legacy null links bind first), with one
-  // exception: an exact replay of an already-converged approval converges
-  // through the idempotent finalize instead of conflicting.
-  const bound = await bindLegacyEducationLink(await fetchCourseRequestLink(requestId));
-  const linkedEducationId = bound.employee_education_id;
+  // 1. Exact-link Pending VOS-owned source state, with one exception: an
+  // exact replay of an already-converged approval converges through the
+  // idempotent finalize instead of conflicting. A null education link is a
+  // typed conflict before any claim, education, or roster write.
+  const link = await fetchCourseRequestLink(requestId);
+  const linkedEducationId = link.employee_education_id;
   if (linkedEducationId === null) {
     throw decisionError("CORRELATION_CONFLICT", "The course request has no linked education.", 409);
   }
   if (
-    bound.request_status === "Approved" &&
-    bound.matched_school_course_id === courseId &&
-    bound.reviewed_by !== null &&
-    bound.reviewed_at !== null
+    link.request_status === "Approved" &&
+    link.matched_school_course_id === courseId &&
+    link.reviewed_by !== null &&
+    link.reviewed_at !== null
   ) {
     try {
       await finalizeCourseRequest({ requestId, consumer: "vos", action: "Approved", courseId });
@@ -484,14 +390,14 @@ async function approveCourseRequest(
     }
     return readBackCourseRequest(requestId);
   }
-  if (bound.request_status !== "Pending") {
+  if (link.request_status !== "Pending") {
     throw decisionError(
       "STATE_CONFLICT",
-      `Only Pending course requests accept VOS decisions (current: ${bound.request_status}).`,
+      `Only Pending course requests accept VOS decisions (current: ${link.request_status}).`,
       409,
     );
   }
-  const request = bound;
+  const request = link;
   const educationId: number = linkedEducationId;
 
   // 2. The exact education must exist, belong to the requester/school, and be Pending
@@ -765,202 +671,28 @@ function requirePositiveSchoolId(value: number, field: string): void {
   }
 }
 
-type LegacyBindCandidate = {
-  readonly employee_education_id: number;
-  readonly user_id: number;
-  readonly school_id: number | null;
-  readonly school_name_raw: string | null;
-  readonly education_status: "Pending" | "Verified" | "Unverified";
-};
-
-const LEGACY_BIND_PAGE_SIZE = 100;
-
-async function fetchLegacyBindCandidateSet(requesterId: number): Promise<readonly LegacyBindCandidate[]> {
-  const collected: LegacyBindCandidate[] = [];
-  let offset = 0;
-  for (;;) {
-    const query = new URLSearchParams({
-      "filter[user_id][_eq]": String(requesterId),
-      "filter[school_id][_null]": "true",
-      "filter[education_status][_eq]": "Pending",
-      fields: EDUCATION_FIELDS,
-      limit: String(LEGACY_BIND_PAGE_SIZE),
-      offset: String(offset),
-    });
-    const page = await fetchRoutingRows(
-      "schoolRequest.bindEducationCandidates",
-      `/items/vs_employee_education?${query.toString()}`,
-      routingEducationSchema,
-    );
-    for (const row of page) collected.push(row);
-    if (page.length < LEGACY_BIND_PAGE_SIZE) break;
-    offset += LEGACY_BIND_PAGE_SIZE;
-  }
-  return collected;
-}
-
-function normalizeRequestedIdentity(requestedSchoolName: string): string {
-  try {
-    return normalizeSchoolIdentity(requestedSchoolName);
-  } catch {
-    throw new SchoolRequestRoutingError("INVALID_INPUT", "The requested school identity is blank.", 400);
-  }
-}
-
-function candidateMatchesIdentity(candidate: LegacyBindCandidate, normalized: string): boolean {
-  const raw = candidate.school_name_raw;
-  if (raw === null || raw.trim().length === 0) return false;
-  return normalizeSchoolIdentity(raw) === normalized;
-}
-
-async function revalidateBoundEducation(
-  request: SchoolRequestRecord,
-  boundId: number,
-  normalized: string,
-): Promise<VsSchoolRequest> {
-  const education = await fetchRoutingEducation(boundId);
-  const raw = education.school_name_raw;
-  const consistent =
-    education.user_id === request.requested_by &&
-    education.education_status === "Pending" &&
-    education.school_id === null &&
-    raw !== null &&
-    raw.trim().length > 0 &&
-    normalizeSchoolIdentity(raw) === normalized;
-  if (!consistent) {
-    throw new SchoolRequestRoutingError(
-      "CORRELATION_CONFLICT",
-      "The bound education failed revalidation; the request stays bound and Pending.",
-      409,
-    );
-  }
-  const again = await fetchLegacyBindCandidateSet(request.requested_by);
-  const survivors = again.filter((candidate) => candidateMatchesIdentity(candidate, normalized));
-  if (survivors.length !== 1 || survivors[0]?.employee_education_id !== boundId) {
-    throw new SchoolRequestRoutingError(
-      "CORRELATION_CONFLICT",
-      "The education candidate set changed; the request stays bound and Pending.",
-      409,
-    );
-  }
-  return fetchSchoolRequestById(request.school_request_id);
-}
-
-export async function bindLegacySchoolRequestEducation(requestId: number): Promise<VsSchoolRequest> {
-  requireSchoolRoutingWrite();
-  requirePositiveSchoolId(requestId, "School request id");
+// Route and group decisions run only on an exact education link: the
+// historical and active education ids must agree and be positive. Raw
+// school names stay display and audit fields and never authorize a
+// mutation, so a null or disagreeing link fails closed before any write.
+async function requireExactSchoolRequestLink(requestId: number): Promise<number> {
   const request = await fetchRoutingSchoolRequest(requestId);
-  if (request.request_status !== "Pending") {
-    if (request.request_status === "Rejected" && (request.active_employee_education_id ?? null) === null) {
-      throw new SchoolRequestRoutingError(
-        "CORRELATION_CONFLICT",
-        "The school request was rejected and its active key cleared; upstream may file a new request.",
-        409,
-      );
-    }
-    throw new SchoolRequestRoutingError(
-      "STALE_CONFLICT",
-      "Only Pending school requests accept an education bind.",
-      409,
-    );
-  }
-  const state = classifySchoolRequestLink(request);
-  if (state === "historical-only" || state === "active-only" || state === "mismatched") {
+  if (classifySchoolRequestLink(request) !== "equal-linked") {
     throw new SchoolRequestRoutingError(
       "CORRELATION_CONFLICT",
-      "The school request education links disagree.",
+      "The school request has no exact linked education.",
       409,
     );
   }
-  const normalized = normalizeRequestedIdentity(request.requested_school_name);
-  if (state === "equal-linked") {
-    const boundId = request.employee_education_id;
-    if (boundId === null) {
-      throw new SchoolRequestRoutingError("CORRELATION_CONFLICT", "The school request education link is missing.", 409);
-    }
-    return revalidateBoundEducation(request, boundId, normalized);
-  }
-  const candidates = await fetchLegacyBindCandidateSet(request.requested_by);
-  const matched = candidates.filter((candidate) => candidateMatchesIdentity(candidate, normalized));
-  if (matched.length === 0) {
+  const linked = request.employee_education_id;
+  if (linked === null || !Number.isInteger(linked) || linked <= 0) {
     throw new SchoolRequestRoutingError(
       "CORRELATION_CONFLICT",
-      "The legacy school request has no exact linked education.",
+      "The school request education link is missing.",
       409,
     );
   }
-  if (matched.length > 1) {
-    throw new SchoolRequestRoutingError(
-      "CORRELATION_CONFLICT",
-      "Candidate educations for this request are ambiguous.",
-      409,
-    );
-  }
-  const candidate = matched[0];
-  if (candidate === undefined) {
-    throw new SchoolRequestRoutingError("CORRELATION_CONFLICT", "The education candidate set is empty.", 409);
-  }
-  let bound: SchoolRequestRecord | null;
-  try {
-    bound = await patchRoutingRows(
-      {
-        operation: "schoolRequest.bindLegacyEducation",
-        collection: "vs_school_request",
-        filter: {
-          school_request_id: { _eq: requestId },
-          request_status: { _eq: "Pending" },
-          employee_education_id: { _null: true },
-          active_employee_education_id: { _null: true },
-        },
-        data: {
-          employee_education_id: candidate.employee_education_id,
-          active_employee_education_id: candidate.employee_education_id,
-        },
-        fields: SCHOOL_REQUEST_FIELDS,
-      },
-      routingSchoolRequestSchema,
-    );
-  } catch (error: unknown) {
-    if (error instanceof SchoolRequestRoutingError) {
-      if (error.code === "DEPENDENCY_FAILURE" || error.code === "NOT_FOUND") {
-        throw error;
-      }
-      throw new SchoolRequestRoutingError(
-        "CLAIM_CONFLICT",
-        "The education bind conflicted with a concurrent change.",
-        409,
-      );
-    }
-    throw error;
-  }
-  if (bound === null) {
-    const current = await fetchRoutingSchoolRequest(requestId);
-    if (current.request_status === "Rejected" && current.active_employee_education_id === null) {
-      throw new SchoolRequestRoutingError(
-        "CORRELATION_CONFLICT",
-        "The school request was rejected and its active key cleared; upstream may file a new request.",
-        409,
-      );
-    }
-    const currentState = classifySchoolRequestLink(current);
-    if (
-      currentState === "equal-linked" &&
-      current.request_status === "Pending" &&
-      current.employee_education_id === candidate.employee_education_id
-    ) {
-      const boundId = current.employee_education_id;
-      if (boundId === null) {
-        throw new SchoolRequestRoutingError("STALE_CONFLICT", "The school request changed before its education could be bound.", 409);
-      }
-      return revalidateBoundEducation(current, boundId, normalized);
-    }
-    throw new SchoolRequestRoutingError(
-      "STALE_CONFLICT",
-      "The school request changed before its education could be bound.",
-      409,
-    );
-  }
-  return revalidateBoundEducation(bound, candidate.employee_education_id, normalized);
+  return linked;
 }
 
 export async function routeSchoolRequestDecision(
@@ -972,7 +704,7 @@ export async function routeSchoolRequestDecision(
   requirePositiveSchoolId(requestId, "School request id");
   requirePositiveSchoolId(targetSchoolId, "Matched school id");
   requirePositiveSchoolId(adminId, "VOS Admin id");
-  await bindLegacySchoolRequestEducation(requestId);
+  await requireExactSchoolRequestLink(requestId);
   await routeSchoolRequestPrimitive({ requestId, targetSchoolId, actorId: adminId });
   return fetchSchoolRequestById(requestId);
 }
@@ -986,7 +718,7 @@ export async function groupSchoolRequestDecision(
   requirePositiveSchoolId(requestId, "School request id");
   requirePositiveSchoolId(targetSchoolId, "Matched school id");
   requirePositiveSchoolId(adminId, "VOS Admin id");
-  await bindLegacySchoolRequestEducation(requestId);
+  await requireExactSchoolRequestLink(requestId);
   await groupSchoolRequestPrimitive({ requestId, targetSchoolId });
   return fetchSchoolRequestById(requestId);
 }
