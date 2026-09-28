@@ -178,9 +178,10 @@ export type SchoolDecisionResult =
   | { readonly requestStatus: "Rejected"; readonly rejected: SchoolRejectedResult };
 
 /**
- * The three attended outcomes, modeled as a discriminated union:
- *  - `completed`  canonical course present -> education verified, no follow-on.
- *  - `followUp`   course unresolved       -> education Pending + one course request.
+ * The attended outcomes, modeled as a discriminated union:
+ *  - `completed`  approval verifies the education immediately, no follow-on.
+ *  - `followUp`   legacy shape, unreachable: the server never returns a
+ *    follow-on course request and approval never leaves the education Pending.
  *  - (Finalizing is represented by `SchoolAttendanceOutcome.kind === "finalizing"`.)
  */
 export type SchoolApprovalResolution =
@@ -521,9 +522,9 @@ export function parseSchoolReconcilePayload(json: unknown): readonly SchoolAppro
 }
 
 /**
- * Classify the approved result. Canonical course => education Verified and no
- * follow-on; unresolved course => education Pending with exactly one follow-on
- * request. Any other pairing is impossible and throws via assertNever.
+ * Classify the approved result. Approval verifies the education immediately
+ * and creates no follow-on, so the only coherent pairing is Verified with a
+ * null course request. Any other pairing is impossible and throws.
  */
 export function classifyApprovalResolution(result: SchoolApprovedResult): SchoolApprovalResolution {
   switch (result.educationStatus) {
@@ -542,20 +543,10 @@ export function classifyApprovalResolution(result: SchoolApprovedResult): School
         reviewedAt: result.reviewedAt,
       };
     case "Pending":
-      if (result.courseRequestId === null) {
-        throw new SchoolDecisionParseError(
-          503,
-          "Approved response left a pending education without a follow-on course request.",
-        );
-      }
-      return {
-        kind: "followUp",
-        requestId: result.requestId,
-        rosterStudentId: result.rosterStudentId,
-        courseRequestId: result.courseRequestId,
-        reviewedBy: result.reviewedBy,
-        reviewedAt: result.reviewedAt,
-      };
+      throw new SchoolDecisionParseError(
+        503,
+        "Approved response left the education pending; approval verifies immediately.",
+      );
     default:
       return assertNeverSchoolAdminVariant(result.educationStatus);
   }
@@ -680,7 +671,7 @@ export function feedbackForSchoolAttendanceOutcome(
         case "followUp":
           return {
             tone: "success",
-            message: "Attendance approved; a follow-on course request was created.",
+            message: "Attendance approved; the education is now verified.",
           };
         default:
           return assertNeverSchoolAdminVariant(outcome.resolution);

@@ -355,13 +355,13 @@ export function assertNeverSchoolVariant(value: never): never {
 }
 
 /** Every VOS school decision variant (mirrors PATCH /api/vos-admin/school-requests/[id]/review). */
-export type SchoolDecisionAction = 'Route' | 'Group' | 'Reject';
+export type SchoolDecisionAction = 'Route' | 'Group' | 'Rejected';
 
 /** Discriminated decision input accepted by the school review endpoint. */
 export type SchoolRequestDecision =
   | { action: 'Route'; matched_school_id: number; admin_remarks?: string }
   | { action: 'Group'; matched_school_id: number; admin_remarks?: string }
-  | { action: 'Reject'; admin_remarks: string };
+  | { action: 'Rejected'; admin_remarks: string };
 
 /**
  * Client-safe school routing candidate (structural subset of
@@ -509,8 +509,8 @@ export function buildSchoolDecisionBody(decision: SchoolRequestDecision): Record
       if (decision.admin_remarks !== undefined) body.admin_remarks = decision.admin_remarks;
       return body;
     }
-    case 'Reject':
-      return { action: 'Reject', admin_remarks: decision.admin_remarks };
+    case 'Rejected':
+      return { action: 'Rejected', admin_remarks: decision.admin_remarks };
     default:
       return assertNeverSchoolVariant(decision);
   }
@@ -522,7 +522,7 @@ export function schoolDecisionVerb(action: SchoolDecisionAction): string {
       return 'routed';
     case 'Group':
       return 'grouped';
-    case 'Reject':
+    case 'Rejected':
       return 'rejected';
     default:
       return assertNeverSchoolVariant(action);

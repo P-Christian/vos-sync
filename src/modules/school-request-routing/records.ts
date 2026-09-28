@@ -91,7 +91,12 @@ function activeSchoolFlag(value: boolean | number): boolean {
   return value === true || value === 1;
 }
 
-export async function classifySchoolRoute(schoolId: number): Promise<SchoolRouteClassification | null> {
+export async function fetchSchoolRoute(schoolId: number): Promise<
+  Readonly<{
+    school: SchoolRecord;
+    classification: SchoolRouteClassification | null;
+  }>
+> {
   const [school, admins] = await Promise.all([fetchSchool(schoolId), fetchActiveSchoolAdmins(schoolId)]);
   const hasActiveAdmin = admins.length > 0;
   if (
@@ -100,14 +105,22 @@ export async function classifySchoolRoute(schoolId: number): Promise<SchoolRoute
     activeSchoolFlag(school.is_active) &&
     hasActiveAdmin
   ) {
-    return "DIRECT_REVIEW";
+    return { school, classification: "DIRECT_REVIEW" };
   }
-  if (!activeSchoolFlag(school.is_active)) return null;
-  if (["REJECTED", "SUSPENDED", "INACTIVE"].includes(school.verification_status)) return null;
-  if (["Inactive", "Suspended"].includes(school.school_status)) return null;
-  if (hasActiveAdmin) return "AWAITING_ACTIVATION";
+  if (!activeSchoolFlag(school.is_active)) return { school, classification: null };
+  if (["REJECTED", "SUSPENDED", "INACTIVE"].includes(school.verification_status)) {
+    return { school, classification: null };
+  }
+  if (["Inactive", "Suspended"].includes(school.school_status)) {
+    return { school, classification: null };
+  }
+  if (hasActiveAdmin) return { school, classification: "AWAITING_ACTIVATION" };
   if (school.verification_status === "DRAFT" && school.school_status === "Draft") {
-    return "AWAITING_REGISTRATION";
+    return { school, classification: "AWAITING_REGISTRATION" };
   }
-  return null;
+  return { school, classification: null };
+}
+
+export async function classifySchoolRoute(schoolId: number): Promise<SchoolRouteClassification | null> {
+  return (await fetchSchoolRoute(schoolId)).classification;
 }

@@ -56,6 +56,8 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
     const { data, pendingEducation, setEducationDraft } = useFreelancerProfileContext();
     const liveEducation = data?.education || [];
     const educationList = pendingEducation !== null ? pendingEducation : liveEducation;
+    const isVerifiedEdit = educationToEdit?.education_status === "Verified";
+    const isApprovedCourse = isVerifiedEdit && educationToEdit.course_verification?.status === "Approved";
 
     useEffect(() => {
         return () => {
@@ -215,7 +217,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
             school_id: isUnverifiedSchool ? null : parseInt(schoolId, 10),
             school_name_raw: isUnverifiedSchool ? rawSchoolName.trim() : null,
             course_name_raw: (isUnverifiedSchool || isUnverifiedCourse) ? rawCourseName.trim() : null,
-            education_status: 'Pending' as const,
+            education_status: educationToEdit?.education_status ?? 'Pending' as const,
             course_request_draft_key: draftKey,
             school_course_id: (!isUnverifiedSchool && !isUnverifiedCourse && courseId) ? parseInt(courseId, 10) : null,
             start_date: startDate || null,
@@ -281,10 +283,13 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                             value={rawSchoolName} 
                                             onChange={(e) => setRawSchoolName(e.target.value)} 
                                             placeholder="Enter school name" 
+                                            disabled={isVerifiedEdit}
                                         />
-                                        <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
-                                            Found your school? <button type="button" onClick={() => { setIsUnverifiedSchool(false); setRawSchoolName(""); }} className="text-primary font-medium hover:underline">Select from list</button>
-                                        </div>
+                                        {!isVerifiedEdit && (
+                                            <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
+                                                Found your school? <button type="button" onClick={() => { setIsUnverifiedSchool(false); setRawSchoolName(""); }} className="text-primary font-medium hover:underline">Select from list</button>
+                                            </div>
+                                        )}
                                     </>
                                 ) : (
                                     <>
@@ -295,10 +300,13 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                             onSearchChange={handleSchoolSearch}
                                             serverFiltered
                                             placeholder={loadingSchools ? "Loading schools..." : "Search for your school..."}
+                                            disabled={isVerifiedEdit}
                                         />
-                                        <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
-                                            Can&apos;t find your school? <button type="button" onClick={() => { setIsUnverifiedSchool(true); setIsUnverifiedCourse(false); setSchoolId(""); setCourseId(""); }} className="text-primary font-medium hover:underline">Request to add school</button>
-                                        </div>
+                                        {!isVerifiedEdit && (
+                                            <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
+                                                Can&apos;t find your school? <button type="button" onClick={() => { setIsUnverifiedSchool(true); setIsUnverifiedCourse(false); setSchoolId(""); setCourseId(""); }} className="text-primary font-medium hover:underline">Request to add school</button>
+                                            </div>
+                                        )}
                                         {showDirectReviewPanel && (
                                             <div
                                                 data-testid="school-verification-panel"
@@ -322,6 +330,11 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                     </>
                                 )}
                             </div>
+                            {isVerifiedEdit && (
+                                <p data-testid="verified-school-lock" className="text-sm text-muted-foreground">
+                                    School is locked after attendance verification. You can still update the dates.
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -333,8 +346,9 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                         value={rawCourseName} 
                                         onChange={(e) => setRawCourseName(e.target.value)} 
                                         placeholder="Enter course or degree" 
+                                        disabled={isApprovedCourse}
                                     />
-                                    {isUnverifiedCourse && (
+                                    {isUnverifiedCourse && !isApprovedCourse && (
                                         <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
                                             Found your course? <button type="button" onClick={() => { setIsUnverifiedCourse(false); setRawCourseName(""); }} className="text-primary font-medium hover:underline">Select from list</button>
                                         </div>
@@ -347,9 +361,9 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                             value={courseId}
                                             onValueChange={setCourseId}
                                             placeholder={loadingCourses ? "Loading courses..." : (schoolId ? "Search courses..." : "Select a school first")}
-                                            disabled={!schoolId || loadingCourses}
+                                            disabled={!schoolId || loadingCourses || isApprovedCourse}
                                         />
-                                        {schoolId && (
+                                        {schoolId && !isApprovedCourse && (
                                             <div className="text-sm md:text-xs text-muted-foreground mt-1 text-right">
                                                 Can&apos;t find your course? <button type="button" onClick={() => { setIsUnverifiedCourse(true); setCourseId(""); }} className="text-primary font-medium hover:underline">Enter it manually</button>
                                             </div>
@@ -357,6 +371,15 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                                     </>
                                 )}
                             </div>
+                            {isApprovedCourse ? (
+                                <p data-testid="approved-course-lock" className="text-sm text-muted-foreground">
+                                    This course is approved and cannot be changed. Add a new education record to use a different course.
+                                </p>
+                            ) : isVerifiedEdit ? (
+                                <p data-testid="verified-course-review-note" className="text-sm text-muted-foreground">
+                                    Changing this course will submit it for review while keeping your attendance verified.
+                                </p>
+                            ) : null}
                         </div>
                         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
                             <div className="space-y-2">
@@ -397,7 +420,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Education</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete this education record? This action cannot be undone.
+                                    Are you sure you want to delete this education record? This permanently removes the education, its verified attendance record, and any linked requests. This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

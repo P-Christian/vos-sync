@@ -5,14 +5,16 @@ export type CourseRequestTerminalStatus = "Approved" | "Rejected";
 
 /**
  * Actionable inbox row: own-school `RoutedToSchool` with a complete manual
- * route audit and null claim fields. Name-only submitter label; no contact,
- * profile, document, or raw Directus fields ever cross this boundary.
+ * route audit and null claim fields. Name-only submitter label and the
+ * submission timestamp (`created_at` as `submittedAt`); no contact, profile,
+ * document, or raw Directus fields ever cross this boundary.
  */
 export interface CourseRequestActionableRow {
   readonly courseRequestId: number;
   readonly requestStatus: "RoutedToSchool";
   readonly requestedCourseName: string;
   readonly submitterName: string;
+  readonly submittedAt: string;
   readonly routedBy: number;
   readonly routedAt: string;
   readonly matchedSchoolCourseId: null;
@@ -30,6 +32,7 @@ export interface CourseRequestFinalizingRow {
   readonly requestStatus: "RoutedToSchool";
   readonly requestedCourseName: string;
   readonly submitterName: string;
+  readonly submittedAt: string;
   readonly routedBy: number;
   readonly routedAt: string;
   readonly matchedSchoolCourseId: number;

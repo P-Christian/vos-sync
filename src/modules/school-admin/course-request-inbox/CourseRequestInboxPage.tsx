@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { BookOpenCheck, Inbox, Plus, RefreshCw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,8 +36,8 @@ import { classifyInboxLoadFailure } from "./services/course-request-inbox.helper
  * Consumes the course-request API through the typed `useCourseRequests` hook
  * without widening its contract:
  *  - renders ONLY the allowlisted inbox DTO fields (name-only submitter
- *    label, requested course text, manual route audit, persisted finalizing
- *    lock, Active candidate fields) for the caller's own school;
+ *    label, requested course text, submission and arrival dates, persisted
+ *    finalizing lock, Active candidate fields) for the caller's own school;
  *  - actionable rows open a searchable Active-course approval dialog or a
  *    trimmed-nonblank rejection dialog; finalizing rows expose ONLY Resume of
  *    the persisted locked course and original reviewer;
@@ -67,7 +68,12 @@ function showFeedbackToast(feedback: CourseRequestFeedback): void {
   }
 }
 
-export function CourseRequestInboxPage() {
+interface CourseRequestInboxPageProps {
+  /** Rendered directly below the header card, above the scope line. */
+  readonly belowHeader?: ReactNode;
+}
+
+export function CourseRequestInboxPage({ belowHeader }: CourseRequestInboxPageProps) {
   const {
     inbox,
     routed,
@@ -152,20 +158,6 @@ export function CourseRequestInboxPage() {
     [resumeCourseRequest, settleOutcome],
   );
 
-  if (error !== null) {
-    const failure = classifyInboxLoadFailure(error);
-    if (failure === "forbidden" || failure === "unauthenticated") {
-      return <CourseRequestInboxAccessPanel kind={failure} message={error} />;
-    }
-    return <CourseRequestInboxErrorBanner message={error} loading={loading} onRetry={() => void loadInbox()} />;
-  }
-
-  // Initial and first-load state: no data and no failure yet.
-  if (inbox === null) {
-    return <CourseRequestInboxSkeleton />;
-  }
-
-  const schoolId = inbox.schoolId;
   const isEmpty = routed.length === 0 && finalizing.length === 0;
 
   const headerActions = (
@@ -194,86 +186,109 @@ export function CourseRequestInboxPage() {
     </div>
   );
 
+  // Every render state shares one root: the header card and the injected tab
+  // strip stay mounted, and only this content changes with the state.
+  let content: ReactNode;
+  if (error !== null) {
+    const failure = classifyInboxLoadFailure(error);
+    content =
+      failure === "forbidden" || failure === "unauthenticated" ? (
+        <CourseRequestInboxAccessPanel kind={failure} message={error} />
+      ) : (
+        <CourseRequestInboxErrorBanner message={error} loading={loading} onRetry={() => void loadInbox()} />
+      );
+  } else if (inbox === null) {
+    // Initial and first-load state: no data and no failure yet.
+    content = <CourseRequestInboxSkeleton />;
+  } else {
+    content = (
+      <>
+        <p className="text-xs text-muted-foreground" data-testid="course-request-scope">
+          {routed.length} request(s) to review - {finalizing.length} still being completed
+          {loading ? " - updating" : ""}
+        </p>
+
+        {isEmpty ? (
+          <CourseRequestInboxEmpty />
+        ) : (
+          <>
+            <section className="space-y-3" data-testid="course-request-routed">
+              <div className="flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Routed to your school</h2>
+                <Badge variant="secondary">{routed.length}</Badge>
+              </div>
+              {routed.length === 0 ? (
+                <p className="text-sm text-muted-foreground" data-testid="course-request-routed-empty">
+                  No requests need your review right now.
+                </p>
+              ) : (
+                <CourseRequestInboxTable
+                  rows={routed}
+                  variant="routed"
+                  courses={courses}
+                  feedbackByRow={feedbackByRow}
+                  busyByRow={busyByRow}
+                  onApprove={(row) => {
+                    rememberTrigger();
+                    setApproveRow(row);
+                  }}
+                  onReject={(row) => {
+                    rememberTrigger();
+                    setRejectRow(row);
+                  }}
+                  onResume={(row) => void handleResume(row)}
+                />
+              )}
+            </section>
+
+            {finalizing.length > 0 ? (
+              <section className="space-y-3" data-testid="course-request-finalizing">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 text-amber-600" />
+                  <h2 className="text-sm font-semibold">Approvals to finish</h2>
+                  <Badge variant="secondary">{finalizing.length}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  For these requests, a course was saved but the approval did not finish. Press
+                  Resume to finish them. You cannot change the saved course or reject these requests.
+                </p>
+                <CourseRequestInboxTable
+                  rows={finalizing}
+                  variant="finalizing"
+                  courses={courses}
+                  feedbackByRow={feedbackByRow}
+                  busyByRow={busyByRow}
+                  onApprove={(row) => {
+                    rememberTrigger();
+                    setApproveRow(row);
+                  }}
+                  onReject={(row) => {
+                    rememberTrigger();
+                    setRejectRow(row);
+                  }}
+                  onResume={(row) => void handleResume(row)}
+                />
+              </section>
+            ) : null}
+          </>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="w-[90%] max-w-[2000px] mx-auto space-y-6" data-testid="course-request-inbox">
       <SchoolAdminModuleHeader
         title="Course Requests"
-        description="Review course requests routed to your school. Approve with an Active school course to complete the linked education, or reject with a reason."
+        description="Review course requests sent to your school. Approve a request with one of your courses, or reject it with a reason."
         icon={BookOpenCheck}
         actions={headerActions}
       />
 
-      <p className="text-xs text-muted-foreground" data-testid="course-request-scope">
-        School #{schoolId} - {routed.length} routed request(s), {finalizing.length} finalizing
-        {loading ? " - refreshing" : ""}
-      </p>
+      {belowHeader}
 
-      {isEmpty ? (
-        <CourseRequestInboxEmpty />
-      ) : (
-        <>
-          <section className="space-y-3" data-testid="course-request-routed">
-            <div className="flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Routed to your school</h2>
-              <Badge variant="secondary">{routed.length}</Badge>
-            </div>
-            {routed.length === 0 ? (
-              <p className="text-sm text-muted-foreground" data-testid="course-request-routed-empty">
-                No routed course requests need a decision.
-              </p>
-            ) : (
-              <CourseRequestInboxTable
-                rows={routed}
-                variant="routed"
-                courses={courses}
-                feedbackByRow={feedbackByRow}
-                busyByRow={busyByRow}
-                onApprove={(row) => {
-                  rememberTrigger();
-                  setApproveRow(row);
-                }}
-                onReject={(row) => {
-                  rememberTrigger();
-                  setRejectRow(row);
-                }}
-                onResume={(row) => void handleResume(row)}
-              />
-            )}
-          </section>
-
-          {finalizing.length > 0 ? (
-            <section className="space-y-3" data-testid="course-request-finalizing">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4 text-amber-600" />
-                <h2 className="text-sm font-semibold">Finalizing recovery</h2>
-                <Badge variant="secondary">{finalizing.length}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                These approvals committed their course lock but finalization is not confirmed yet.
-                Only Resume of the persisted locked course and original reviewer is available: the
-                course cannot be changed and the request cannot be rejected.
-              </p>
-              <CourseRequestInboxTable
-                rows={finalizing}
-                variant="finalizing"
-                courses={courses}
-                feedbackByRow={feedbackByRow}
-                busyByRow={busyByRow}
-                onApprove={(row) => {
-                  rememberTrigger();
-                  setApproveRow(row);
-                }}
-                onReject={(row) => {
-                  rememberTrigger();
-                  setRejectRow(row);
-                }}
-                onResume={(row) => void handleResume(row)}
-              />
-            </section>
-          ) : null}
-        </>
-      )}
+      {content}
 
       {approveRow !== null ? (
         <ApproveCourseRequestDialog
@@ -311,6 +326,10 @@ export function CourseRequestInboxPage() {
         onOpenChange={setCourseModalOpen}
         onSubmit={createCourse}
         saving={createBusy}
+        existingCourses={courses.map((course) => ({
+          course_name: course.courseName,
+          degree: course.degree ?? null,
+        }))}
       />
     </div>
   );

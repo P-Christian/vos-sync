@@ -1,5 +1,6 @@
 import "server-only";
 
+import { normalizeSchoolIdentity as normalizeCanonicalSchoolIdentity } from "@/modules/school-identity";
 import { primitiveError } from "./errors";
 
 export function requirePositiveInteger(value: number, field: string): number {
@@ -18,9 +19,9 @@ export function requireNonBlank(value: string, field: string): string {
 }
 
 export function normalizeSchoolIdentity(value: string): string {
-  return requireNonBlank(value, "school identity")
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase("en-US");
+  return normalizeCanonicalSchoolIdentity(
+    requireNonBlank(value, "school identity")
+  );
 }
 
 export function assertNever(value: never): never {

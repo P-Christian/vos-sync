@@ -322,13 +322,19 @@ export async function POST(req: NextRequest) {
     // vs_school_admin link is the placeholder identity (spec: Placeholder
     // creation and ownership). is_active is set so the row classifies as
     // AWAITING_REGISTRATION; created_by records the VOS Admin actor.
+    //
+    // vs_school requires non-null school_type/city_municipality/province, and
+    // school_type is an enum (University | College | Technical/Vocational |
+    // Other). A placeholder is unclassified, so 'Other' plus empty-string
+    // locations - which compare equal to null in the reuse check above.
     const createRes = await fetch(`${base}/items/vs_school`, {
       method: "POST",
       headers: directusHeaders(),
       body: JSON.stringify({
         school_name: schoolName,
-        city_municipality: city,
-        province,
+        school_type: "Other",
+        city_municipality: city ?? "",
+        province: province ?? "",
         school_status: "Draft",
         verification_status: "DRAFT",
         is_active: true,
@@ -338,6 +344,11 @@ export async function POST(req: NextRequest) {
     });
     const createJson = (await createRes.json()) as unknown;
     if (!createRes.ok) {
+      console.error(
+        "POST /api/vos-admin/schools placeholder create failed:",
+        createRes.status,
+        JSON.stringify(createJson)
+      );
       return NextResponse.json(
         { error: "Service temporarily unavailable" },
         { status: 503 }
@@ -360,6 +371,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    console.error("POST /api/vos-admin/schools failed:", error);
     // Sanitized dependency failure: never leak storage internals.
     return NextResponse.json(
       { error: "Service temporarily unavailable" },

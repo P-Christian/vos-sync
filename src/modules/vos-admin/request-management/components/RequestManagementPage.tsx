@@ -1,38 +1,41 @@
 // src/modules/vos-admin/request-management/components/RequestManagementPage.tsx
 //
-// Plan 2 Todo 7 lane A: mode-selected VOS Request Management.
-// The school filter is `'ALL' | RequestStatus` (FOUR) PLUS the derived
-// `WAITING` filter. `WAITING` issues `?status=Pending` (the API has no waiting
-// value — waiting is derived) and filters client-side to grouped `Pending`
-// rows. The Course Requests tab stays four-valued and UNCHANGED.
+// School-demand dashboard for unresolved school requests. The hook loads the
+// Pending rows once; the pure selectors under `dashboard/` split them into the
+// unrouted queue and the exact-school-id awaiting-account groups. One tab
+// selection drives both the tab strip and the KPI cards, so exactly one demand
+// section renders at a time. Group rows only summarize: the grouped table hands
+// one exact group to the detail sheet, and every decision remains scoped to one
+// concrete `school_request_id`.
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useRequests } from "../hooks/useRequests";
-import type { RequestStatus } from "../types/request.types";
-import { isWaitingSchoolRequest } from "./RequestStatusBadge";
-import { SchoolRequestsTab } from "./SchoolRequestsTab";
-import type { SchoolRequestsMode } from "./SchoolRequestsTab";
-import { CourseRequestsTab } from "./CourseRequestsTab";
+import {
+  deriveSchoolDemandKpis,
+  type AwaitingSchoolGroup,
+} from "../dashboard/school-demand.selectors";
+import { SchoolDemandKpis, type SchoolDemandKpiFilter } from "./SchoolDemandKpis";
+import { UnroutedSchoolRequestsSection } from "./UnroutedSchoolRequestsSection";
+import { SchoolDemandTable } from "./SchoolDemandTable";
+import { SchoolDemandDetailSheet } from "./SchoolDemandDetailSheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { SchoolDraftOutcome } from "../types/request.types";
+import type { SchoolRequestsMode } from "./school-requests/school-request-mode";
 
-/** Client-side mirror of the server-only EducationVerificationMode. Kept local
- *  (not imported) because the gate module is `server-only` and this is a
+/** Client-side mirror of the server-only education verification mode. Kept
+ *  local (not imported) because the gate module is `server-only` and this is a
  *  client component; the server page passes the value down as a prop. */
 export type RequestManagementMode = SchoolRequestsMode;
 
-/** School filter: the four stored statuses + ALL, plus the derived WAITING. */
-export type SchoolStatusFilter = "ALL" | RequestStatus | "WAITING";
-
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === "object" && value !== null;
 }
 
 function readStringField(record: Record<string, unknown>, key: string): string | null {
   const value = record[key];
-  return typeof value === 'string' ? value : null;
+  return typeof value === "string" ? value : null;
 }
 
 /** Collapse internal whitespace and trim; empty collapses to null. */
@@ -42,6 +45,34 @@ function normalizeIdentityPart(value: string | null): string | null {
   return collapsed === "" ? null : collapsed;
 }
 
+/** The three server-classified routes a draft outcome may carry. */
+function isSchoolDraftRoute(value: unknown): value is SchoolDraftOutcome["verification_route"] {
+  return value === "DIRECT_REVIEW" || value === "AWAITING_ACTIVATION" || value === "AWAITING_REGISTRATION";
+}
+
+/** Explicit fetch-boundary guard for the POST /api/vos-admin/schools success payload. */
+function parseSchoolDraftOutcome(json: unknown): SchoolDraftOutcome | null {
+  if (!isRecord(json)) return null;
+  const school = json.school;
+  if (!isRecord(school)) return null;
+  const schoolId = school.school_id;
+  if (typeof schoolId !== "number" || !Number.isInteger(schoolId)) return null;
+  const schoolName = readStringField(school, "school_name");
+  if (schoolName === null || schoolName.trim() === "") return null;
+  const verificationRoute = school.verification_route;
+  if (!isSchoolDraftRoute(verificationRoute)) return null;
+  const reused = json.reused;
+  if (typeof reused !== "boolean") return null;
+  return {
+    school_id: schoolId,
+    school_name: schoolName,
+    city_municipality: readStringField(school, "city_municipality"),
+    province: readStringField(school, "province"),
+    verification_route: verificationRoute,
+    reused,
+  };
+}
+
 interface Props {
   mode: RequestManagementMode;
 }
@@ -49,15 +80,10 @@ interface Props {
 export function RequestManagementPage({ mode }: Props) {
   const {
     schoolRequests,
-    courseRequests,
+    loading,
+    error,
     fetchSchoolRequests,
-    fetchCourseRequests,
     reviewSchoolRequest,
-    courseClaims,
-    courseFeedback,
-    courseDecisionBusy,
-    decideCourseRequest,
-    resumeCourseClaim,
     decideSchoolRequest,
     searchSchoolsForRouting,
     schoolsForRouting,
@@ -67,44 +93,52 @@ export function RequestManagementPage({ mode }: Props) {
     schoolDecisionBusy,
   } = useRequests();
 
-  const [schoolStatusFilter, setSchoolStatusFilter] = useState<SchoolStatusFilter>("Pending");
-  const [courseStatusFilter, setCourseStatusFilter] = useState("Pending");
+  const [activeTab, setActiveTab] = useState<SchoolDemandKpiFilter>("unrouted");
+  const [detailGroup, setDetailGroup] = useState<AwaitingSchoolGroup | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  // Mount-time clock for the pure selector: age is whole days, so re-renders
+  // need no newer clock, and render stays free of impure calls.
+  const [now] = useState(() => Date.now());
 
-  // WAITING has no server value: issue the Pending query, filter client-side.
-  const schoolFetchStatus: "ALL" | RequestStatus =
-    schoolStatusFilter === "WAITING" ? "Pending" : schoolStatusFilter;
-
+  // The dashboard's single fetch site: only Pending unresolved demand loads.
   useEffect(() => {
-    fetchSchoolRequests(schoolFetchStatus);
-  }, [fetchSchoolRequests, schoolFetchStatus]);
-
-  useEffect(() => {
-    fetchCourseRequests(courseStatusFilter);
-  }, [fetchCourseRequests, courseStatusFilter]);
-
-  const visibleSchoolRequests = useMemo(
-    () =>
-      schoolStatusFilter === "WAITING"
-        ? schoolRequests.filter((row) => isWaitingSchoolRequest(row))
-        : schoolRequests,
-    [schoolRequests, schoolStatusFilter],
-  );
+    void fetchSchoolRequests("Pending");
+  }, [fetchSchoolRequests]);
 
   const refetchSchools = useCallback(() => {
-    fetchSchoolRequests(schoolFetchStatus);
-  }, [fetchSchoolRequests, schoolFetchStatus]);
+    void fetchSchoolRequests("Pending");
+  }, [fetchSchoolRequests]);
+
+  // Age comes from the newest rows; recomputed only when the rows change.
+  const kpis = useMemo(() => deriveSchoolDemandKpis(schoolRequests, now), [schoolRequests, now]);
+
+  // Radix reports the selected value as a plain string; only the two known
+  // filter values are accepted so the state stays a `SchoolDemandKpiFilter`.
+  const handleTabChange = useCallback((value: string) => {
+    if (value === "unrouted" || value === "awaiting-school") setActiveTab(value);
+  }, []);
+
+  const handleFilterSelect = useCallback((filter: SchoolDemandKpiFilter) => {
+    setActiveTab(filter);
+  }, []);
+
+  const openDetail = useCallback((group: AwaitingSchoolGroup) => {
+    setDetailGroup(group);
+    setDetailOpen(true);
+  }, []);
 
   /**
-   * Repurposed "Add School Request": guarded normalized Draft-placeholder
-   * creation via POST /api/vos-admin/schools (Todo 4). Accepts both the
-   * legacy Add-modal shape ({requested_school_name,...}) and the decision
-   * dialog shape ({school_name,...}); both are normalized (trim + collapse
-   * internal whitespace) before sending. Blank names are rejected locally.
+   * Guarded normalized draft-school creation via POST /api/vos-admin/schools.
+   * Accepts both the legacy Add-modal shape ({requested_school_name,...}) and the
+   * decision-dialog shape ({school_name,...}); both are normalized (trim + collapse
+   * internal whitespace) before sending. Blank names are rejected locally. The
+   * success payload is parsed with an explicit guard so callers can select the
+   * created or reused school; any failure resolves null after toasting.
    */
-  const createSchoolPlaceholder = useCallback(async (data: unknown): Promise<boolean> => {
+  const createSchoolPlaceholder = useCallback(async (data: unknown): Promise<SchoolDraftOutcome | null> => {
     if (!isRecord(data)) {
       toast.error("School name must not be empty.");
-      return false;
+      return null;
     }
     const rawName = readStringField(data, "school_name") ?? readStringField(data, "requested_school_name");
     const rawCity = readStringField(data, "city_municipality");
@@ -112,7 +146,7 @@ export function RequestManagementPage({ mode }: Props) {
     const school_name = rawName === null ? null : normalizeIdentityPart(rawName);
     if (school_name === null) {
       toast.error("School name must not be empty.");
-      return false;
+      return null;
     }
     const body: Record<string, string> = { school_name };
     const city_municipality = normalizeIdentityPart(rawCity);
@@ -126,58 +160,79 @@ export function RequestManagementPage({ mode }: Props) {
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const json = (await res.json()) as unknown;
+        const json: unknown = await res.json();
         const message =
-          isRecord(json) && typeof json.error === "string" ? json.error : "Failed to create school placeholder.";
+          isRecord(json) && typeof json.error === "string" ? json.error : "The school draft could not be created.";
         toast.error(message);
-        return false;
+        return null;
       }
-      toast.success("Draft school placeholder created.");
+      const json: unknown = await res.json();
+      const outcome = parseSchoolDraftOutcome(json);
+      if (outcome === null) {
+        toast.error("The school draft response was malformed.");
+        return null;
+      }
+      toast.success(outcome.reused ? "Existing school found for this name." : "Draft school created.");
       refetchSchools();
-      return true;
+      return outcome;
     } catch {
       toast.error("School storage is temporarily unavailable.");
-      return false;
+      return null;
     }
   }, [refetchSchools]);
 
   return (
-    <div className="h-full flex-1 overflow-y-auto p-4 sm:p-8 bg-secondary/10">
+    <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10 motion-reduce:[&_.animate-pulse]:animate-none motion-reduce:[&_.animate-spin]:animate-none motion-reduce:[&_.animate-in]:animate-none">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Request Management</h1>
-        <p className="text-muted-foreground mt-1">Review and manage missing school and course requests.</p>
+        <p className="text-muted-foreground mt-1">
+          School requests that are not resolved yet. Match a request to a school, or set the school
+          up if it is not in the system.
+        </p>
       </div>
 
-      <Tabs defaultValue="schools" className="w-full">
-        <TabsList className="bg-white/50 dark:bg-zinc-900/50 border dark:border-zinc-800 shadow-sm">
-          <TabsTrigger value="schools">School Requests</TabsTrigger>
-          <TabsTrigger value="courses">Course Requests</TabsTrigger>
+      <section aria-labelledby="school-demand-kpis-heading">
+        <h2 id="school-demand-kpis-heading" className="sr-only">
+          Unresolved demand summary
+        </h2>
+        <SchoolDemandKpis kpis={kpis} onFilterSelect={handleFilterSelect} currentFilter={activeTab} />
+      </section>
+
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList
+          aria-label="Unresolved school demand sections"
+          className="bg-muted p-1 rounded-xl h-11 border border-border max-md:h-auto max-md:w-full"
+        >
+          <TabsTrigger
+            value="unrouted"
+            className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-2 max-md:min-h-11 max-md:whitespace-normal max-md:px-2 max-md:text-center motion-reduce:transition-none"
+          >
+            Unrouted requests
+            <span
+              className="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium tabular-nums text-primary"
+              data-testid="unrouted-request-count"
+            >
+              {kpis.unroutedCount}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="awaiting-school"
+            className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-2 max-md:min-h-11 max-md:whitespace-normal max-md:px-2 max-md:text-center motion-reduce:transition-none"
+          >
+            Schools awaiting account
+            <span className="inline-flex shrink-0 items-center rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium tabular-nums text-warning">
+              {kpis.awaitingSchoolCount}
+            </span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="schools" className="mt-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Missing Schools</h2>
-            <Select value={schoolStatusFilter} onValueChange={(value) => setSchoolStatusFilter(value as SchoolStatusFilter)}>
-              <SelectTrigger className="w-[180px] bg-white dark:bg-zinc-900 dark:border-zinc-800" data-testid="school-status-filter">
-                <SelectValue placeholder="Filter Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pending">Pending Only</SelectItem>
-                <SelectItem value="WAITING">Waiting for school</SelectItem>
-                <SelectItem value="RoutedToSchool">Routed to School</SelectItem>
-                <SelectItem value="Approved">Approved Only</SelectItem>
-                <SelectItem value="Rejected">Rejected Only</SelectItem>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <SchoolRequestsTab
-            requests={visibleSchoolRequests}
+        <TabsContent value="unrouted" className="mt-0 focus-visible:outline-none">
+          <UnroutedSchoolRequestsSection
+            rows={schoolRequests}
             mode={mode}
-            // Repurposed (Plan 2 Todo 7): "Add School Request" now creates a
-            // guarded normalized Draft placeholder (POST /api/vos-admin/schools),
-            // not a raw school request. The Add-modal shape is normalized inside
-            // createSchoolPlaceholder, which already refetches on success.
+            loading={loading}
+            error={error}
+            onRetry={refetchSchools}
             onCreate={createSchoolPlaceholder}
             onCreatePlaceholder={createSchoolPlaceholder}
             onReview={reviewSchoolRequest}
@@ -192,32 +247,46 @@ export function RequestManagementPage({ mode }: Props) {
           />
         </TabsContent>
 
-        <TabsContent value="courses" className="mt-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Missing Courses</h2>
-            <Select value={courseStatusFilter} onValueChange={setCourseStatusFilter}>
-              <SelectTrigger className="w-[180px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
-                <SelectValue placeholder="Filter Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pending">Pending Only</SelectItem>
-                <SelectItem value="Approved">Approved Only</SelectItem>
-                <SelectItem value="Rejected">Rejected Only</SelectItem>
-                <SelectItem value="RoutedToSchool">Routed to School</SelectItem>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <CourseRequestsTab
-            requests={courseRequests}
-            claims={courseClaims}
-            feedback={courseFeedback}
-            busy={courseDecisionBusy}
-            onDecide={decideCourseRequest}
-            onResume={resumeCourseClaim}
-          />
+        <TabsContent value="awaiting-school" className="mt-0 focus-visible:outline-none">
+          <section aria-labelledby="awaiting-account-heading" aria-busy={loading} className="space-y-4">
+            <div className="space-y-1">
+              <h2 id="awaiting-account-heading" className="sr-only">
+                Schools awaiting account
+              </h2>
+              <p className="max-w-3xl text-sm text-muted-foreground">
+                These requests have already been matched to a school that does not have an account
+                yet. Each row shows how many requests are waiting for that school; open one to work
+                on a single request.
+              </p>
+            </div>
+            <SchoolDemandTable
+              rows={schoolRequests}
+              isLoading={loading}
+              error={error}
+              onRetry={refetchSchools}
+              onViewRequests={openDetail}
+            />
+          </section>
         </TabsContent>
       </Tabs>
+
+      <SchoolDemandDetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        group={detailGroup}
+        mode={mode}
+        onSearchSchools={searchSchoolsForRouting}
+        searchErrorFor={(id) => schoolSearchError[id] ?? null}
+        feedbackFor={(id) => schoolFeedback[id]}
+        decisionBusyFor={(id) => schoolDecisionBusy[id] ?? false}
+        candidatesFor={(id) => schoolsForRouting[id] ?? []}
+        candidatesLoadingFor={(id) => schoolSearchLoading[id] ?? false}
+        candidatesErrorFor={(id) => schoolSearchError[id] ?? null}
+        onReview={reviewSchoolRequest}
+        onDecide={decideSchoolRequest}
+        onCreatePlaceholder={createSchoolPlaceholder}
+        onDecided={refetchSchools}
+      />
     </div>
   );
 }

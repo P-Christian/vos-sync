@@ -65,7 +65,7 @@ export function useSchoolAdmin() {
       const res = await fetch('/api/school-admin/school/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, course_status: 'Active' }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to create course.');

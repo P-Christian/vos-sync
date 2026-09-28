@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { VsSchoolCourse, CourseDegree, CourseStatus } from "@/modules/school-admin/types/school-admin.types";
+import { CourseStatus, VsSchoolCourse } from "@/modules/school-admin/types/school-admin.types";
 import { UpdateCourseDTO } from "../types/school-courses.types";
 import { updateCourseSchema } from "../types/school-courses.schema";
+import {
+  selectionFromExistingCourse,
+  selectionToCourseInput,
+  type CourseSelection,
+  type ExistingCourse,
+} from "../catalog/course-catalog";
+import { CourseCatalogPicker } from "./CourseCatalogPicker";
 
 interface EditCourseModalProps {
   course: VsSchoolCourse | null;
@@ -17,47 +29,56 @@ interface EditCourseModalProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (courseId: number, data: UpdateCourseDTO) => Promise<boolean>;
   saving: boolean;
+  existingCourses: readonly ExistingCourse[];
 }
 
 interface EditCourseFormProps {
   course: VsSchoolCourse;
+  existingCourses: readonly ExistingCourse[];
   onCancel: () => void;
   onSubmit: (courseId: number, data: UpdateCourseDTO) => Promise<boolean>;
   saving: boolean;
 }
 
-function EditCourseForm({ course, onCancel, onSubmit, saving }: EditCourseFormProps) {
-  const [courseName, setCourseName] = useState(course.course_name || "");
-  const [courseCode, setCourseCode] = useState(course.course_code || "");
-  const [degree, setDegree] = useState<CourseDegree | "">((course.degree as CourseDegree) || "");
-  const [status, setStatus] = useState<CourseStatus>((course.course_status as CourseStatus) || "Active");
+function EditCourseForm({
+  course,
+  existingCourses,
+  onCancel,
+  onSubmit,
+  saving,
+}: EditCourseFormProps) {
+  const [selection, setSelection] = useState<CourseSelection>(() =>
+    selectionFromExistingCourse({
+      course_name: course.course_name,
+      degree: course.degree ?? null,
+      course_code: course.course_code ?? null,
+    })
+  );
+  const [status, setStatus] = useState<CourseStatus>(
+    (course.course_status as CourseStatus) || "Active"
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
 
-    if (!degree) {
-      setError("Please select a degree level.");
+    const input = selectionToCourseInput(selection);
+    if (input === null) {
+      setError("Choose a degree level and a program, or enter a course name.");
       return;
     }
 
-    const parsed = updateCourseSchema.safeParse({
-      course_name: courseName,
-      course_code: courseCode || null,
-      degree: degree as CourseDegree,
-      course_status: status,
-    });
-
+    const parsed = updateCourseSchema.safeParse({ ...input, course_status: status });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message || "Validation failed");
       return;
     }
 
     const success = await onSubmit(course.school_course_id, {
-      course_name: courseName.trim(),
-      course_code: courseCode.trim() || null,
-      degree: degree as CourseDegree,
+      course_name: input.course_name,
+      course_code: input.course_code,
+      degree: input.degree,
       course_status: status,
     });
 
@@ -67,47 +88,24 @@ function EditCourseForm({ course, onCancel, onSubmit, saving }: EditCourseFormPr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+    <form onSubmit={handleSubmit} className="space-y-4 pt-2" data-testid="edit-course-form">
       {error && (
         <div className="text-sm font-medium text-destructive bg-destructive/10 p-2 rounded-md">
           {error}
         </div>
       )}
-      <div className="space-y-2">
-        <Label htmlFor="edit_course_name">Course Name *</Label>
-        <Input 
-          id="edit_course_name" 
-          value={courseName}
-          onChange={(e) => setCourseName(e.target.value)}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="edit_degree">Degree Level *</Label>
-        <Select value={degree} onValueChange={(val: string) => setDegree(val as CourseDegree)}>
-          <SelectTrigger id="edit_degree">
-            <SelectValue placeholder="Select degree level" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Associate">Associate</SelectItem>
-            <SelectItem value="Bachelor">Bachelor</SelectItem>
-            <SelectItem value="Master">Master</SelectItem>
-            <SelectItem value="Doctorate">Doctorate</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="edit_course_code">Course Code (Optional)</Label>
-        <Input 
-          id="edit_course_code" 
-          value={courseCode}
-          onChange={(e) => setCourseCode(e.target.value)}
-        />
-      </div>
+
+      <CourseCatalogPicker
+        value={selection}
+        onChange={setSelection}
+        existingCourses={existingCourses}
+        disabled={saving}
+      />
+
       <div className="space-y-2">
         <Label htmlFor="edit_course_status">Status</Label>
         <Select value={status} onValueChange={(val: string) => setStatus(val as CourseStatus)}>
-          <SelectTrigger id="edit_course_status">
+          <SelectTrigger id="edit_course_status" data-testid="edit-course-status">
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
@@ -116,11 +114,12 @@ function EditCourseForm({ course, onCancel, onSubmit, saving }: EditCourseFormPr
           </SelectContent>
         </Select>
       </div>
+
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} data-testid="edit-course-submit">
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Save Changes
         </Button>
@@ -129,10 +128,17 @@ function EditCourseForm({ course, onCancel, onSubmit, saving }: EditCourseFormPr
   );
 }
 
-export function EditCourseModal({ course, isOpen, onOpenChange, onSubmit, saving }: EditCourseModalProps) {
+export function EditCourseModal({
+  course,
+  isOpen,
+  onOpenChange,
+  onSubmit,
+  saving,
+  existingCourses,
+}: EditCourseModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Course</DialogTitle>
         </DialogHeader>
@@ -140,6 +146,7 @@ export function EditCourseModal({ course, isOpen, onOpenChange, onSubmit, saving
           <EditCourseForm
             key={course.school_course_id}
             course={course}
+            existingCourses={existingCourses}
             onCancel={() => onOpenChange(false)}
             onSubmit={onSubmit}
             saving={saving}
@@ -149,5 +156,3 @@ export function EditCourseModal({ course, isOpen, onOpenChange, onSubmit, saving
     </Dialog>
   );
 }
-
-

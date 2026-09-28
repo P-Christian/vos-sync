@@ -21,8 +21,7 @@ import type {
 } from "@/modules/school-admin/hooks/useSchoolRequests";
 import {
   describeApprovalOutcome,
-  describeCanonicalCourse,
-  formatCanonicalSchool,
+  describeCourse,
   formatEducationRange,
   validateAcademicsInput,
 } from "../services/school-request-inbox.helpers";
@@ -31,38 +30,32 @@ import {
  * Attendance decision dialogs.
  *
  * The approval dialog collects ONLY the three optional academic values that
- * the closed-world PATCH body accepts (student number, GPA 0..5, school or
+ * the decision endpoint accepts (student number, GPA 0..5, school or
  * completion year). It never renders or submits identity, school, education,
  * course, or classification fields. The rejection dialog requires a trimmed
  * nonblank reason and blocks whitespace-only input before any network call.
  */
 
 function SubmissionSummary({ row }: { readonly row: SchoolInboxRow }) {
-  const course = describeCanonicalCourse(row);
+  const course = describeCourse(row);
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 rounded-lg border bg-muted/20 p-4 text-sm">
       <div>
-        <dt className="text-xs text-muted-foreground">Submitter</dt>
+        <dt className="text-xs text-muted-foreground">Student</dt>
         <dd
           className="font-medium"
           data-testid="dialog-submitter"
         >
-          {row.submitterName.trim().length > 0 ? row.submitterName : "Unknown submitter"}
+          {row.submitterName.trim().length > 0 ? row.submitterName : "Name not available"}
         </dd>
       </div>
       <div>
-        <dt className="text-xs text-muted-foreground">Requested school</dt>
+        <dt className="text-xs text-muted-foreground">School</dt>
         <dd data-testid="dialog-requested-school">{row.requestedSchoolName}</dd>
       </div>
       <div>
-        <dt className="text-xs text-muted-foreground">Canonical school</dt>
-        <dd data-testid="dialog-canonical-school">{formatCanonicalSchool(row)}</dd>
-      </div>
-      <div>
-        <dt className="text-xs text-muted-foreground">Canonical course</dt>
-        <dd data-testid="dialog-course">
-          {course.resolved ? course.label : "Not linked - follow-on course request required"}
-        </dd>
+        <dt className="text-xs text-muted-foreground">Course</dt>
+        <dd data-testid="dialog-course">{course.label}</dd>
       </div>
       <div className="sm:col-span-2">
         <dt className="text-xs text-muted-foreground">Education dates</dt>
@@ -108,7 +101,7 @@ export function ApproveAttendanceDialog({
     if (shouldClose) {
       onOpenChange(false);
     } else {
-      setError("The approval did not commit. Review the feedback on this request and retry.");
+      setError("The approval was not saved. Check the message on this request and try again.");
     }
   };
 
@@ -118,8 +111,8 @@ export function ApproveAttendanceDialog({
         <DialogHeader>
           <DialogTitle>Approve attendance request</DialogTitle>
           <DialogDescription>
-            Confirm that this freelancer attended your school, then optionally record academics.
-            The decision is persisted with your reviewer claim.
+            Confirm that this student attended your school. You can also add their student number,
+            GPA, and school year.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate className="space-y-4 pt-1">
@@ -127,12 +120,7 @@ export function ApproveAttendanceDialog({
 
           <div
             data-testid="approve-outcome"
-            data-variant={outcome.variant}
-            className={
-              outcome.variant === "completesNow"
-                ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
-                : "rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
-            }
+            className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
           >
             <p className="font-semibold">{outcome.title}</p>
             <p className="mt-1">{outcome.body}</p>
@@ -140,8 +128,7 @@ export function ApproveAttendanceDialog({
 
           <div className="rounded-lg border p-4 space-y-4">
             <p className="text-xs text-muted-foreground">
-              Optional. These academics are written once to the roster row at approval; a resumed
-              approval cannot change them.
+              Optional. These details are saved once when you approve and cannot be changed later.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -244,7 +231,7 @@ export function RejectAttendanceDialog({
     if (shouldClose) {
       onOpenChange(false);
     } else {
-      setError("The rejection did not commit. Review the feedback on this request and retry.");
+      setError("The rejection was not saved. Check the message on this request and try again.");
     }
   };
 
@@ -254,8 +241,8 @@ export function RejectAttendanceDialog({
         <DialogHeader>
           <DialogTitle>Reject attendance request</DialogTitle>
           <DialogDescription>
-            Rejection is terminal: no roster entry is created and the linked education is not
-            changed. A corrected education can create a new request later.
+            Rejecting does not change the student&apos;s education record. A corrected request can
+            be sent later.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -263,7 +250,7 @@ export function RejectAttendanceDialog({
 
           <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>Only reject when you cannot certify that this freelancer attended your school.</p>
+            <p>Only reject if you cannot confirm that this student attended your school.</p>
           </div>
 
           <div className="space-y-2">
@@ -271,7 +258,7 @@ export function RejectAttendanceDialog({
             <Textarea
               id="attendance_reject_reason"
               data-testid="reject-remarks"
-              placeholder="Explain why this attendance request is rejected."
+              placeholder="Explain why you are rejecting this request."
               value={remarks}
               onChange={(event) => setRemarks(event.target.value)}
               aria-invalid={error !== null}

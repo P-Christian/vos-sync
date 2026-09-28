@@ -19,6 +19,9 @@ import { toast } from 'sonner';
 import { StudentRosterSkeleton } from '@/modules/school-admin/components/SchoolAdminSkeleton';
 
 export const StudentRosterPage: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>('leaderboard');
+  const isAlumni = activeTab === 'alumni';
+
   const {
     students,
     courses,
@@ -32,17 +35,13 @@ export const StudentRosterPage: React.FC = () => {
     setSelectedStatus,
     searchQuery,
     setSearchQuery,
-    alumniView,
-    setAlumniView,
     availableSchoolYears,
     addStudent,
     editStudent,
     bulkUploadStudents,
     deleteStudent,
     refreshRoster,
-  } = useStudentRoster();
-
-  const [activeTab, setActiveTab] = useState<string>('leaderboard');
+  } = useStudentRoster({ isAlumni });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<VsSchoolStudent | null>(null);
@@ -122,26 +121,6 @@ export const StudentRosterPage: React.FC = () => {
         availableSchoolYears={availableSchoolYears}
       />
 
-      {/* Current / Alumni server-filtered views */}
-      <div className="flex items-center gap-2" role="tablist" aria-label="Roster population">
-        <button
-          type="button"
-          data-testid="roster-view-current"
-          onClick={() => setAlumniView('current')}
-          className={`rounded-lg px-4 py-2 text-xs font-semibold border transition-colors ${alumniView === 'current' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:text-foreground'}`}
-        >
-          Current Students
-        </button>
-        <button
-          type="button"
-          data-testid="roster-view-alumni"
-          onClick={() => setAlumniView('alumni')}
-          className={`rounded-lg px-4 py-2 text-xs font-semibold border transition-colors ${alumniView === 'alumni' ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border hover:text-foreground'}`}
-        >
-          Alumni
-        </button>
-      </div>
-
       {/* View Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-muted p-1 rounded-xl h-11 border border-border">
@@ -159,6 +138,13 @@ export const StudentRosterPage: React.FC = () => {
             <Users className="w-3.5 h-3.5" />
             Student Masterlist
           </TabsTrigger>
+          <TabsTrigger
+            value="alumni"
+            className="rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs flex items-center gap-2"
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-500" />
+            Alumni
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leaderboard" className="mt-0 space-y-6 focus-visible:outline-none">
@@ -172,6 +158,16 @@ export const StudentRosterPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="directory" className="mt-0 space-y-6 focus-visible:outline-none">
+          <StudentRosterTable
+            students={students}
+            isLoading={isLoading}
+            onEdit={(student) => setEditingStudent(student)}
+            onDelete={deleteStudent}
+            onInvite={handleInviteStudent}
+          />
+        </TabsContent>
+
+        <TabsContent value="alumni" className="mt-0 space-y-6 focus-visible:outline-none">
           <StudentRosterTable
             students={students}
             isLoading={isLoading}

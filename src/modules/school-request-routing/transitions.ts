@@ -6,13 +6,22 @@ import { routingError } from "./errors";
 import {
   classifySchoolRoute,
   fetchEducation,
+  fetchSchoolRoute,
   fetchSchoolRequest,
   SCHOOL_REQUEST_FIELDS,
 } from "./records";
-import { parseRouteAudit } from "./route-audit";
 import { schoolRequestSchema } from "./schemas";
+import {
+  assertPendingEducation,
+  groupReplay,
+  hasNoAuditOrRemarks,
+  rejectReplay,
+  requireEducationLink,
+  routeReplay,
+  skippedRelease,
+  systemReplay,
+} from "./transition-guards";
 import type {
-  EducationRecord,
   GroupSchoolInput,
   RejectSchoolRequestInput,
   RouteSchoolInput,
@@ -21,63 +30,6 @@ import type {
   SystemReleaseOutcome,
   TransitionOutcome,
 } from "./types";
-
-function hasNoAuditOrRemarks(request: SchoolRequestRecord): boolean {
-  return (
-    request.matched_school_id === null &&
-    request.routed_by === null &&
-    request.routed_at === null &&
-    request.reviewed_by === null &&
-    request.reviewed_at === null &&
-    request.admin_remarks === null
-  );
-}
-
-function requireEducationLink(request: SchoolRequestRecord): number {
-  if (
-    request.employee_education_id === null ||
-    request.active_employee_education_id !== request.employee_education_id
-  ) {
-    throw routingError("CORRELATION_CONFLICT", "The active and historical education links do not agree.");
-  }
-  return request.employee_education_id;
-}
-
-function assertPendingEducation(education: EducationRecord, request: SchoolRequestRecord, targetSchoolId: number): void {
-  if (education.user_id !== request.requested_by || education.education_status !== "Pending") {
-    throw routingError("CORRELATION_CONFLICT", "The linked education no longer belongs to this Pending request.");
-  }
-  if (education.school_id !== targetSchoolId) {
-    throw routingError("CORRELATION_CONFLICT", "The linked education is not canonically bound to the target school.");
-  }
-}
-
-function routeReplay(request: SchoolRequestRecord, input: RouteSchoolInput): boolean {
-  if (
-    request.request_status !== "RoutedToSchool" ||
-    request.matched_school_id !== input.targetSchoolId ||
-    request.routed_by !== input.actorId ||
-    request.reviewed_by !== null ||
-    request.reviewed_at !== null ||
-    request.admin_remarks !== null
-  ) {
-    return false;
-  }
-  parseRouteAudit(request);
-  return true;
-}
-
-function groupReplay(request: SchoolRequestRecord, input: GroupSchoolInput): boolean {
-  return (
-    request.request_status === "Pending" &&
-    request.matched_school_id === input.targetSchoolId &&
-    request.routed_by === null &&
-    request.routed_at === null &&
-    request.reviewed_by === null &&
-    request.reviewed_at === null &&
-    request.admin_remarks === null
-  );
-}
 
 async function patchRequest(
   operation: string,
@@ -103,14 +55,14 @@ export async function routeSchoolRequest(input: RouteSchoolInput): Promise<Trans
     throw routingError("STALE_CONFLICT", "The school request is no longer routable.");
   }
   const educationId = requireEducationLink(request);
-  const [classification, education] = await Promise.all([
-    classifySchoolRoute(input.targetSchoolId),
+  const [schoolRoute, education] = await Promise.all([
+    fetchSchoolRoute(input.targetSchoolId),
     fetchEducation(educationId),
   ]);
-  if (classification !== "DIRECT_REVIEW") {
+  if (schoolRoute.classification !== "DIRECT_REVIEW") {
     throw routingError("TARGET_INELIGIBLE", "The target school is not a review-ready Verified and Active school.");
   }
-  assertPendingEducation(education, request, input.targetSchoolId);
+  assertPendingEducation(education, request, schoolRoute.school);
   const updated = await patchRequest(
     "schoolRequest.route",
     {
@@ -153,14 +105,17 @@ export async function groupSchoolRequest(input: GroupSchoolInput): Promise<Trans
     throw routingError("STALE_CONFLICT", "The school request is no longer groupable.");
   }
   const educationId = requireEducationLink(request);
-  const [classification, education] = await Promise.all([
-    classifySchoolRoute(input.targetSchoolId),
+  const [schoolRoute, education] = await Promise.all([
+    fetchSchoolRoute(input.targetSchoolId),
     fetchEducation(educationId),
   ]);
-  if (classification !== "AWAITING_ACTIVATION" && classification !== "AWAITING_REGISTRATION") {
+  if (
+    schoolRoute.classification !== "AWAITING_ACTIVATION" &&
+    schoolRoute.classification !== "AWAITING_REGISTRATION"
+  ) {
     throw routingError("TARGET_INELIGIBLE", "The target school is not a server-classified waiting school.");
   }
-  assertPendingEducation(education, request, input.targetSchoolId);
+  assertPendingEducation(education, request, schoolRoute.school);
   const updated = await patchRequest(
     "schoolRequest.group",
     {
@@ -181,32 +136,6 @@ export async function groupSchoolRequest(input: GroupSchoolInput): Promise<Trans
   const current = await fetchSchoolRequest(input.requestId);
   if (groupReplay(current, input)) return { kind: "converged", request: current };
   throw routingError("STALE_CONFLICT", "The school request changed before grouping completed.");
-}
-
-function systemReplay(request: SchoolRequestRecord, targetSchoolId: number): boolean {
-  if (
-    request.request_status !== "RoutedToSchool" ||
-    request.matched_school_id !== targetSchoolId ||
-    request.reviewed_by !== null ||
-    request.reviewed_at !== null
-  ) {
-    return false;
-  }
-  const audit = parseRouteAudit(request);
-  return audit.kind === "system" && audit.matched_school_id === targetSchoolId;
-}
-
-function skippedRelease(request: SchoolRequestRecord, targetSchoolId: number): SystemReleaseOutcome {
-  if (request.request_status !== "Pending") {
-    return { kind: "skipped", reason: "terminal", request };
-  }
-  if (request.matched_school_id !== targetSchoolId) {
-    return { kind: "skipped", reason: "retargeted", request };
-  }
-  if (request.reviewed_by !== null || request.reviewed_at !== null) {
-    return { kind: "skipped", reason: "already-claimed", request };
-  }
-  return { kind: "skipped", reason: "concurrent-change", request };
 }
 
 export async function releaseGroupedSchoolRequest(input: SystemReleaseInput): Promise<SystemReleaseOutcome> {
@@ -247,18 +176,6 @@ export async function releaseGroupedSchoolRequest(input: SystemReleaseInput): Pr
   const current = await fetchSchoolRequest(input.requestId);
   if (systemReplay(current, input.targetSchoolId)) return { kind: "converged", request: current };
   return skippedRelease(current, input.targetSchoolId);
-}
-
-function rejectReplay(request: SchoolRequestRecord, input: RejectSchoolRequestInput): boolean {
-  return (
-    request.request_status === "Rejected" &&
-    request.admin_remarks === input.remarks.trim() &&
-    request.reviewed_by === input.actorId &&
-    request.reviewed_at !== null &&
-    request.active_employee_education_id === null &&
-    request.routed_by === null &&
-    request.routed_at === null
-  );
 }
 
 export async function rejectSchoolRequest(input: RejectSchoolRequestInput): Promise<TransitionOutcome> {

@@ -1,13 +1,15 @@
 // src/modules/vos-admin/request-management/components/SchoolRequestDecisionModal.tsx
 //
-// Plan 2 Todo 6: school-request-only correction dialog (attendance lane).
-// PRESENTATIONAL and PROPS-BASED — mirrors CourseRequestDecisionModal exactly:
-// the dialog never fetches and never mutates; the hook (Todo 7) supplies
-// server-classified candidates and performs Route/Group/Reject/placeholder
-// mutations. The legacy ReviewModal stays intact behind `legacy` mode.
+// School-request-only correction dialog (attendance lane). The dialog never
+// fetches and never mutates server state itself: the hook supplies
+// server-classified candidates and the composing controller performs every
+// Route/Group/Reject mutation. Local state is limited to dialog controls (tab,
+// selection, armed confirm) plus the sibling draft dialog, which returns a
+// created draft as an already-selected option. The legacy ReviewModal stays
+// intact behind `legacy` mode.
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,11 +18,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import type { VsSchoolRequest } from "../types/request.types";
+import { CreateSchoolDraftModal } from "./CreateSchoolDraftModal";
+import type { SchoolDraftOutcome, VsSchoolRequest } from "../types/request.types";
 
 export type SchoolDecisionTab = "correct" | "reject";
 
@@ -48,7 +50,7 @@ export interface SchoolRoutingCandidate {
   readonly verification_route: SchoolVerificationRoute;
 }
 
-/** Guarded Draft-placeholder input: name required, location optional. */
+/** Guarded draft-school input: name required, location optional. */
 export interface SchoolPlaceholderInput {
   readonly school_name: string;
   readonly city_municipality?: string;
@@ -66,22 +68,26 @@ interface Props {
   candidatesLoading: boolean;
   candidatesError: string | null;
   onRetryCandidates?: () => void;
-  /** Forward a search term to the server-classified search (Todo 7 wires this). */
+  /** Forward a debounced, non-blank search term to the server-classified search. */
   onSearch: (query: string) => void;
-  /** True while a decision/placeholder mutation is in flight; all controls lock. */
+  /** True while a decision mutation is in flight; all controls lock. */
   mutating: boolean;
   onRoute: (schoolId: number) => Promise<boolean>;
   onGroup: (schoolId: number) => Promise<boolean>;
   onReject: (adminRemarks: string) => Promise<boolean>;
-  onCreatePlaceholder: (input: SchoolPlaceholderInput) => Promise<boolean>;
+  onCreatePlaceholder: (input: SchoolPlaceholderInput) => Promise<SchoolDraftOutcome | null>;
 }
+
+/** Debounce before a typed term reaches the server-classified search. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 function submitterLabel(request: VsSchoolRequest): string {
   const by = request.requested_by;
   if (typeof by === "object" && by !== null) {
-    return `${by.user_fname} ${by.user_lname} (User #${by.user_id})`;
+    const name = `${by.user_fname} ${by.user_lname}`.trim();
+    return name === "" ? "An applicant" : name;
   }
-  return `User #${by}`;
+  return "Unknown applicant";
 }
 
 function requestedIdentity(request: VsSchoolRequest): string {
@@ -122,16 +128,12 @@ export function SchoolRequestDecisionModal({
   onCreatePlaceholder,
 }: Props) {
   const [tab, setTab] = useState<SchoolDecisionTab>(initialTab);
-  const [query, setQuery] = useState("");
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | undefined>(undefined);
   const [remarks, setRemarks] = useState("");
   const [confirmArmed, setConfirmArmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [placeholderName, setPlaceholderName] = useState("");
-  const [placeholderCity, setPlaceholderCity] = useState("");
-  const [placeholderProvince, setPlaceholderProvince] = useState("");
-  const [placeholderArmed, setPlaceholderArmed] = useState(false);
-  const [placeholderDone, setPlaceholderDone] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [createdCandidate, setCreatedCandidate] = useState<SchoolRoutingCandidate | null>(null);
 
   const requestKey = request?.school_request_id ?? null;
   const [lastSessionKey, setLastSessionKey] = useState<string | null>(null);
@@ -140,31 +142,47 @@ export function SchoolRequestDecisionModal({
     setLastSessionKey(sessionKey);
     if (sessionKey !== null) {
       setTab(initialTab);
-      setQuery("");
       setSelectedSchoolId(undefined);
       setRemarks("");
       setConfirmArmed(false);
       setSubmitting(false);
-      setPlaceholderName("");
-      setPlaceholderCity("");
-      setPlaceholderProvince("");
-      setPlaceholderArmed(false);
-      setPlaceholderDone(false);
+      setDraftOpen(false);
+      setCreatedCandidate(null);
     }
   }
 
+  const searchTimerRef = useRef<number | null>(null);
+  const clearSearchTimer = useCallback(() => {
+    if (searchTimerRef.current !== null) {
+      window.clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+  }, []);
+  useEffect(() => clearSearchTimer, [clearSearchTimer]);
+  useEffect(() => {
+    if (!open) clearSearchTimer();
+  }, [open, clearSearchTimer]);
+
+  // The just-created draft stays selectable even before the refreshed server
+  // search returns it; a server copy of the same school id wins the merge.
+  const mergedCandidates = useMemo(() => {
+    if (createdCandidate === null) return candidates;
+    if (candidates.some((c) => c.school_id === createdCandidate.school_id)) return candidates;
+    return [createdCandidate, ...candidates];
+  }, [candidates, createdCandidate]);
+
   const selected = useMemo(
-    () => candidates.find((c) => String(c.school_id) === selectedSchoolId) ?? null,
-    [candidates, selectedSchoolId],
+    () => mergedCandidates.find((c) => String(c.school_id) === selectedSchoolId) ?? null,
+    [mergedCandidates, selectedSchoolId],
   );
 
   const options = useMemo(
     () =>
-      candidates.map((c) => ({
+      mergedCandidates.map((c) => ({
         value: String(c.school_id),
         label: candidateLabel(c),
       })),
-    [candidates],
+    [mergedCandidates],
   );
 
   const busy = mutating || submitting;
@@ -172,15 +190,23 @@ export function SchoolRequestDecisionModal({
   const selectedAction = selected === null ? null : selected.verification_route === "DIRECT_REVIEW" ? "Route" : "Group";
   const correctDisabled = busy || candidatesLoading || candidatesError !== null || selected === null;
   const rejectDisabled = busy || remarks.trim() === "";
-  const placeholderValid = placeholderName.trim() !== "";
 
   const resetArmed = () => setConfirmArmed(false);
 
-  const handleSearch = () => {
-    if (busy) return;
-    setSelectedSchoolId(undefined);
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setDraftOpen(false);
+    onOpenChange(next);
+  };
+
+  const handleSearchChange = (term: string) => {
+    clearSearchTimer();
     resetArmed();
-    onSearch(query);
+    const trimmed = term.trim();
+    if (trimmed === "") return;
+    searchTimerRef.current = window.setTimeout(() => {
+      searchTimerRef.current = null;
+      onSearch(trimmed);
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   const handleCorrectConfirm = async () => {
@@ -193,7 +219,7 @@ export function SchoolRequestDecisionModal({
           : await onGroup(selected.school_id);
       if (ok) {
         resetArmed();
-        onOpenChange(false);
+        handleOpenChange(false);
       }
     } finally {
       setSubmitting(false);
@@ -207,310 +233,236 @@ export function SchoolRequestDecisionModal({
       const ok = await onReject(remarks);
       if (ok) {
         resetArmed();
-        onOpenChange(false);
+        handleOpenChange(false);
       }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handlePlaceholderConfirm = async () => {
-    if (!placeholderValid) return;
-    setSubmitting(true);
-    try {
-      const ok = await onCreatePlaceholder({
-        school_name: placeholderName.trim(),
-        ...(placeholderCity.trim() !== "" ? { city_municipality: placeholderCity.trim() } : {}),
-        ...(placeholderProvince.trim() !== "" ? { province: placeholderProvince.trim() } : {}),
-      });
-      if (ok) {
-        setPlaceholderArmed(false);
-        setPlaceholderDone(true);
-        // Refresh the classified search so the new AWAITING_REGISTRATION
-        // placeholder becomes selectable for Group.
-        onSearch(placeholderName.trim());
-      }
-    } finally {
-      setSubmitting(false);
-    }
+  const handleDraftSubmit = async (input: SchoolPlaceholderInput): Promise<SchoolDraftOutcome | null> => {
+    const outcome = await onCreatePlaceholder(input);
+    if (outcome === null) return null;
+    setCreatedCandidate({
+      school_id: outcome.school_id,
+      school_name: outcome.school_name,
+      city_municipality: outcome.city_municipality,
+      province: outcome.province,
+      verification_route: outcome.verification_route,
+    });
+    setSelectedSchoolId(String(outcome.school_id));
+    resetArmed();
+    setDraftOpen(false);
+    // Refresh the server search for the created name so the persisted state agrees.
+    onSearch(outcome.school_name);
+    return outcome;
   };
 
   if (!request) return null;
 
   return (
-    <Dialog open={open} onOpenChange={busy ? () => undefined : onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Review School Request</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={busy ? () => undefined : handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review school request</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="rounded-md border p-3 text-sm" data-testid="school-decision-identity">
-            <div className="font-medium">Requested school: {requestedIdentity(request)}</div>
-            <div className="mt-1 text-muted-foreground">Submitted by {submitterLabel(request)}</div>
-          </div>
+          <div className="min-w-0 space-y-4 py-4">
+            <div className="min-w-0 rounded-md border p-3 text-sm" data-testid="school-decision-identity">
+              <div className="break-words font-medium">Requested school: {requestedIdentity(request)}</div>
+              <div className="mt-1 break-words text-muted-foreground">Submitted by {submitterLabel(request)}</div>
+            </div>
 
-          <div className="flex gap-2" role="tablist" aria-label="Decision type">
-            {(["correct", "reject"] as const).map((t) => (
-              <Button
-                key={t}
-                type="button"
-                variant={tab === t ? "default" : "outline"}
-                size="sm"
-                disabled={busy}
-                onClick={() => {
-                  setTab(t);
-                  resetArmed();
-                }}
-                data-testid={`school-decision-tab-${t}`}
-              >
-                {t === "correct" ? "Route / Group" : "Reject"}
-              </Button>
-            ))}
-          </div>
-
-          {tab === "correct" && (
-            <div className="space-y-2" data-testid="school-decision-correct">
-              <Label htmlFor="school-decision-search">Search selectable schools</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="school-decision-search"
-                  placeholder="Search by school name, city, or province..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleSearch();
-                    }
-                  }}
+            <div className="flex gap-2" role="tablist" aria-label="Decision type">
+              {(["correct", "reject"] as const).map((t) => (
+                <Button
+                  key={t}
+                  type="button"
+                  variant={tab === t ? "default" : "outline"}
+                  size="sm"
                   disabled={busy}
-                  data-testid="school-decision-search"
-                />
-                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={handleSearch} data-testid="school-decision-search-submit">
-                  Search
+                  onClick={() => {
+                    setTab(t);
+                    resetArmed();
+                  }}
+                  data-testid={`school-decision-tab-${t}`}
+                >
+                  {t === "correct" ? "Route / Group" : "Reject"}
                 </Button>
-              </div>
+              ))}
+            </div>
 
-              {candidatesLoading ? (
-                <p className="text-sm text-muted-foreground" data-testid="school-decision-loading">
-                  Loading schools...
-                </p>
-              ) : candidatesError !== null ? (
-                <div className="space-y-2" data-testid="school-decision-error">
-                  <p className="text-sm text-red-600">{candidatesError}</p>
-                  {onRetryCandidates && (
-                    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onRetryCandidates} data-testid="school-decision-retry">
-                      Retry
-                    </Button>
-                  )}
-                </div>
-              ) : candidates.length === 0 ? (
-                <div className="space-y-2" data-testid="school-decision-empty">
-                  <p className="text-sm text-muted-foreground">
-                    No selectable schools found. Create a guarded Draft placeholder below, then
-                    group this request to it.
+            {tab === "correct" && (
+              <div className="space-y-2" data-testid="school-decision-correct">
+                <Label>Select a school</Label>
+                <SearchableSelect
+                  options={options}
+                  value={selectedSchoolId}
+                  onValueChange={(value) => {
+                    setSelectedSchoolId(value);
+                    resetArmed();
+                  }}
+                  onSearchChange={handleSearchChange}
+                  serverFiltered
+                  placeholder="Select a school"
+                  searchPlaceholder="Search by school name"
+                  ariaLabel="Select a school"
+                  disabled={busy}
+                />
+
+                {candidatesLoading ? (
+                  <p className="text-sm text-muted-foreground" data-testid="school-decision-loading">
+                    Loading schools...
                   </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {candidates.length > 1 && (
-                    <p className="text-sm text-amber-700" data-testid="school-decision-ambiguous">
-                      Multiple schools match — select the exact school. Nothing is applied until
-                      you confirm.
+                ) : candidatesError !== null ? (
+                  <div className="space-y-2" data-testid="school-decision-error">
+                    <p className="text-sm text-red-600">{candidatesError}</p>
+                    {onRetryCandidates && (
+                      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onRetryCandidates} data-testid="school-decision-retry">
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                ) : candidates.length === 0 ? (
+                  <div className="space-y-2" data-testid="school-decision-empty">
+                    <p className="text-sm text-muted-foreground">
+                      No matching school found. If the school is not in the system yet, add it as a draft.
                     </p>
-                  )}
-                  <SearchableSelect
-                    options={options}
-                    value={selectedSchoolId}
-                    onValueChange={(value) => {
-                      setSelectedSchoolId(value);
-                      resetArmed();
-                    }}
-                    placeholder="Select a school..."
-                    disabled={busy}
-                  />
-                </div>
-              )}
+                  </div>
+                ) : null}
 
-              {selected !== null && (
-                <p className="text-sm text-muted-foreground" data-testid="school-decision-selected-route">
-                  {selected.verification_route === "DIRECT_REVIEW"
-                    ? "This school can review now — confirming will Route this request."
-                    : "This school cannot review yet — confirming will Group this request as waiting."}
-                </p>
-              )}
+                {!candidatesLoading && candidatesError === null && candidates.length > 1 ? (
+                  <p className="text-sm text-amber-700" data-testid="school-decision-ambiguous">
+                    Multiple schools match — select the exact school. Nothing is applied until
+                    you confirm.
+                  </p>
+                ) : null}
 
-              {!confirmArmed ? (
+                {selected !== null && (
+                  <p className="break-words text-sm text-muted-foreground" data-testid="school-decision-selected-route">
+                    {selected.verification_route === "DIRECT_REVIEW"
+                      ? "This school has an account and can review requests now. Confirming will send this request to them."
+                      : "This school does not have an account yet. Confirming will keep this request waiting for them."}
+                  </p>
+                )}
+
+                {!confirmArmed ? (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={correctDisabled}
+                    onClick={() => setConfirmArmed(true)}
+                    data-testid="school-decision-correct-start"
+                  >
+                    {busy
+                      ? "Processing..."
+                      : selectedAction === null
+                        ? "Select a school"
+                        : selectedAction === "Route"
+                          ? "Send to school"
+                          : "Keep waiting for school"}
+                  </Button>
+                ) : (
+                  selected !== null &&
+                  selectedAction !== null && (
+                    <div className="space-y-2" data-testid="school-decision-correct-confirm">
+                      <p className="break-words text-sm font-medium">
+                        {selectedAction === "Route"
+                          ? `Send this request to ${selected.school_name}?`
+                          : `Keep this request waiting for ${selected.school_name}?`}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={resetArmed}>
+                          Back
+                        </Button>
+                        <Button
+                          type="button"
+                          className="flex-1"
+                          disabled={correctDisabled}
+                          onClick={handleCorrectConfirm}
+                          data-testid="school-decision-correct-confirm-submit"
+                        >
+                          {busy ? "Processing..." : "Confirm"}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                )}
+
                 <Button
                   type="button"
-                  className="w-full"
-                  disabled={correctDisabled}
-                  onClick={() => setConfirmArmed(true)}
-                  data-testid="school-decision-correct-start"
+                  variant="link"
+                  className="h-auto w-full justify-start whitespace-normal p-0 text-left text-sm"
+                  disabled={busy}
+                  onClick={() => setDraftOpen(true)}
+                  data-testid="school-decision-placeholder-start"
                 >
-                  {busy ? "Processing..." : selectedAction === null ? "Select a school" : selectedAction === "Route" ? "Route to school" : "Group as waiting"}
+                  Requested school not in the list? Create a draft.
                 </Button>
-              ) : (
-                selected !== null &&
-                selectedAction !== null && (
-                  <div className="space-y-2" data-testid="school-decision-correct-confirm">
-                    <p className="text-sm font-medium">
-                      Confirm {selectedAction === "Route" ? "routing" : "grouping"} this request to{" "}
-                      {selected.school_name}?
-                    </p>
+              </div>
+            )}
+
+            {tab === "reject" && (
+              <div className="space-y-2" data-testid="school-decision-reject">
+                <Label>Reason for rejection (required)</Label>
+                <p className="text-sm text-muted-foreground">Provide a reason for rejecting this request.</p>
+                <Textarea
+                  placeholder="Reason for rejection..."
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  disabled={busy}
+                  data-testid="school-decision-remarks"
+                />
+                {remarks.trim() === "" && (
+                  <p className="text-sm text-red-600" data-testid="school-decision-reject-validation">
+                    A reason for rejection is required.
+                  </p>
+                )}
+                {!confirmArmed ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="w-full"
+                    disabled={rejectDisabled}
+                    onClick={() => setConfirmArmed(true)}
+                    data-testid="school-decision-reject-start"
+                  >
+                    {busy ? "Processing..." : "Reject request"}
+                  </Button>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Confirm rejecting this request?</p>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={resetArmed}>
                         Back
                       </Button>
                       <Button
                         type="button"
+                        variant="destructive"
                         className="flex-1"
-                        disabled={correctDisabled}
-                        onClick={handleCorrectConfirm}
-                        data-testid="school-decision-correct-confirm-submit"
+                        disabled={rejectDisabled}
+                        onClick={handleReject}
+                        data-testid="school-decision-reject-confirm"
                       >
-                        {busy ? "Processing..." : `Confirm ${selectedAction}`}
-                      </Button>
-                    </div>
-                  </div>
-                )
-              )}
-
-              <div className="space-y-2 rounded-md border p-3" data-testid="school-decision-placeholder">
-                <Label>Create Draft placeholder (when no match exists)</Label>
-                <p className="text-sm text-muted-foreground">
-                  Guarded VOS-Admin creation only. The new placeholder is Awaiting registration —
-                  after creation, select it above to Group this request.
-                </p>
-                {placeholderDone && (
-                  <p className="text-sm text-emerald-700" data-testid="school-decision-placeholder-done">
-                    Placeholder created. Search results refreshed — select the new school above to
-                    group this request.
-                  </p>
-                )}
-                <Input
-                  placeholder="School name (required)"
-                  value={placeholderName}
-                  onChange={(e) => setPlaceholderName(e.target.value)}
-                  disabled={busy}
-                  data-testid="school-decision-placeholder-name"
-                />
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="City / municipality (optional)"
-                    value={placeholderCity}
-                    onChange={(e) => setPlaceholderCity(e.target.value)}
-                    disabled={busy}
-                    data-testid="school-decision-placeholder-city"
-                  />
-                  <Input
-                    placeholder="Province (optional)"
-                    value={placeholderProvince}
-                    onChange={(e) => setPlaceholderProvince(e.target.value)}
-                    disabled={busy}
-                    data-testid="school-decision-placeholder-province"
-                  />
-                </div>
-                {!placeholderArmed ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    disabled={busy || !placeholderValid}
-                    onClick={() => setPlaceholderArmed(true)}
-                    data-testid="school-decision-placeholder-start"
-                  >
-                    Create Draft placeholder
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">
-                      Confirm creating a Draft placeholder for “{placeholderName.trim()}”?
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1"
-                        disabled={busy}
-                        onClick={() => setPlaceholderArmed(false)}
-                      >
-                        Back
-                      </Button>
-                      <Button
-                        type="button"
-                        className="flex-1"
-                        disabled={busy || !placeholderValid}
-                        onClick={handlePlaceholderConfirm}
-                        data-testid="school-decision-placeholder-confirm"
-                      >
-                        {busy ? "Processing..." : "Confirm creation"}
+                        {busy ? "Processing..." : "Confirm rejection"}
                       </Button>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {tab === "reject" && (
-            <div className="space-y-2" data-testid="school-decision-reject">
-              <Label>Admin Remarks (Required)</Label>
-              <p className="text-sm text-muted-foreground">Provide a reason for rejecting this request.</p>
-              <Textarea
-                placeholder="Reason for rejection..."
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                disabled={busy}
-                data-testid="school-decision-remarks"
-              />
-              {remarks.trim() === "" && (
-                <p className="text-sm text-red-600" data-testid="school-decision-reject-validation">
-                  Remarks are required to reject this request.
-                </p>
-              )}
-              {!confirmArmed ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  className="w-full"
-                  disabled={rejectDisabled}
-                  onClick={() => setConfirmArmed(true)}
-                  data-testid="school-decision-reject-start"
-                >
-                  {busy ? "Processing..." : "Reject request"}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Confirm rejecting this request?</p>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" className="flex-1" disabled={busy} onClick={resetArmed}>
-                      Back
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      className="flex-1"
-                      disabled={rejectDisabled}
-                      onClick={handleReject}
-                      data-testid="school-decision-reject-confirm"
-                    >
-                      {busy ? "Processing..." : "Confirm rejection"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => handleOpenChange(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <CreateSchoolDraftModal open={draftOpen} onOpenChange={setDraftOpen} onSubmit={handleDraftSubmit} />
+    </>
   );
 }

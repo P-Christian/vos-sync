@@ -6,30 +6,20 @@ const educationSchema = z.object({
   employee_education_id: z.coerce.number().int().positive(),
 });
 
-const requestSchema = z.object({
-  school_request_id: z.coerce.number().int().positive(),
-  requested_by: z.coerce.number().int().positive(),
-  request_status: z.enum(["Pending", "Approved", "Rejected", "RoutedToSchool"]),
-  employee_education_id: z.coerce.number().int().positive(),
-  active_employee_education_id: z.coerce.number().int().positive().nullable(),
-});
-
-const courseRequestSchema = z.object({
-  course_request_id: z.coerce.number().int().positive(),
+const linkRowSchema = z.object({
   requested_by: z
     .union([
       z.coerce.number().int().positive(),
       z.object({ user_id: z.coerce.number().int().positive() }),
     ])
     .transform((value) => (typeof value === "number" ? value : value.user_id)),
-  request_status: z.enum(["Pending", "Approved", "Rejected", "RoutedToSchool"]),
-  employee_education_id: z.coerce.number().int().positive(),
 });
+
+const idRowSchema = z.object({ id: z.coerce.number().int().positive() });
 
 export type EducationDeletionErrorCode =
   | "NOT_FOUND"
   | "LINKAGE_INVALID"
-  | "STATE_CONFLICT"
   | "DEPENDENCY_FAILURE";
 
 export class EducationDeletionError extends Error {
@@ -46,10 +36,7 @@ function config(): { readonly baseUrl: string; readonly headers: Record<string, 
   const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/u, "");
   const token = process.env.DIRECTUS_STATIC_TOKEN;
   if (!baseUrl || !token) {
-    throw new EducationDeletionError(
-      "Education storage is not configured.",
-      "DEPENDENCY_FAILURE"
-    );
+    throw new EducationDeletionError("Education storage is not configured.", "DEPENDENCY_FAILURE");
   }
   return {
     baseUrl,
@@ -61,10 +48,94 @@ function config(): { readonly baseUrl: string; readonly headers: Record<string, 
   };
 }
 
-async function deleteItem(
-  collection: "vs_school_request" | "vs_course_request" | "vs_employee_education",
-  id: number,
+const NOT_FOUND_MESSAGE = "This education record was not found on your profile.";
+const STORAGE_MESSAGE = "Education could not be deleted.";
+const INCONSISTENT_MESSAGE =
+  "This education's linked records are inconsistent, so it could not be removed.";
+
+type LinkCollection = "vs_school_request" | "vs_course_request";
+
+function parseRows(
+  payload: unknown,
   message: string
+): readonly Record<string, unknown>[] {
+  const parsed = z
+    .object({ data: z.array(z.record(z.string(), z.unknown())) })
+    .safeParse(payload);
+  if (!parsed.success) {
+    throw new EducationDeletionError(message, "DEPENDENCY_FAILURE");
+  }
+  return parsed.data.data;
+}
+
+async function fetchRows(
+  collection: LinkCollection | "vs_school_student",
+  query: URLSearchParams
+): Promise<readonly Record<string, unknown>[]> {
+  const { baseUrl, headers } = config();
+  const response = await fetch(`${baseUrl}/items/${collection}?${query.toString()}`, {
+    headers,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new EducationDeletionError(STORAGE_MESSAGE, "DEPENDENCY_FAILURE");
+  }
+  return parseRows(await response.json().catch(() => null), STORAGE_MESSAGE);
+}
+
+function requireIds(
+  rows: readonly Record<string, unknown>[],
+  field: string,
+  message: string
+): number[] {
+  const ids: number[] = [];
+  for (const row of rows) {
+    const parsed = idRowSchema.safeParse({ id: row[field] });
+    if (!parsed.success) {
+      throw new EducationDeletionError(message, "DEPENDENCY_FAILURE");
+    }
+    ids.push(parsed.data.id);
+  }
+  return ids;
+}
+
+async function assertOwnedLinks(
+  collection: LinkCollection,
+  query: URLSearchParams,
+  userId: number
+): Promise<void> {
+  const rows = await fetchRows(collection, query);
+  for (const row of rows) {
+    const owner = linkRowSchema.safeParse({ requested_by: row.requested_by });
+    if (!owner.success || owner.data.requested_by !== userId) {
+      throw new EducationDeletionError(INCONSISTENT_MESSAGE, "LINKAGE_INVALID");
+    }
+  }
+}
+
+async function hasOwnedEducation(educationId: number, userId: number): Promise<boolean> {
+  const { baseUrl, headers } = config();
+  const query = new URLSearchParams({ fields: "employee_education_id", limit: "2" });
+  query.set("filter[employee_education_id][_eq]", String(educationId));
+  query.set("filter[user_id][_eq]", String(userId));
+  const response = await fetch(`${baseUrl}/items/vs_employee_education?${query.toString()}`, {
+    headers,
+    cache: "no-store",
+  });
+  if (!response.ok) return false;
+  const parsed = z
+    .object({ data: z.array(educationSchema).max(1) })
+    .safeParse(await response.json().catch(() => null));
+  return parsed.success && parsed.data.data.length === 1;
+}
+
+async function deleteItem(
+  collection:
+    | "vs_school_student"
+    | "vs_school_request"
+    | "vs_course_request"
+    | "vs_employee_education",
+  id: number
 ): Promise<void> {
   const { baseUrl, headers } = config();
   const response = await fetch(`${baseUrl}/items/${collection}/${id}`, {
@@ -72,146 +143,61 @@ async function deleteItem(
     headers,
     cache: "no-store",
   });
-  if (!response.ok) throw new EducationDeletionError(message, "DEPENDENCY_FAILURE");
+  if (!response.ok && response.status !== 404) {
+    throw new EducationDeletionError(STORAGE_MESSAGE, "DEPENDENCY_FAILURE");
+  }
 }
 
-function isRemovableLinkStatus(status: string): boolean {
-  return status === "Pending" || status === "Rejected";
-}
-
-async function hasOwnedPendingEducation(
-  educationId: number,
-  userId: number
-): Promise<boolean> {
-  const { baseUrl, headers } = config();
-  const educationQuery = new URLSearchParams({ fields: "employee_education_id", limit: "2" });
-  educationQuery.set("filter[employee_education_id][_eq]", String(educationId));
-  educationQuery.set("filter[user_id][_eq]", String(userId));
-  educationQuery.set("filter[education_status][_eq]", "Pending");
-  const educationResponse = await fetch(
-    `${baseUrl}/items/vs_employee_education?${educationQuery.toString()}`,
-    { headers, cache: "no-store" }
-  );
-  const education = educationResponse.ok
-    ? z.object({ data: z.array(educationSchema).max(1) }).safeParse(await educationResponse.json())
-    : null;
-  return education?.success === true && education.data.data.length === 1;
-}
-
-export async function deletePendingEducationAndRequests(
+export async function deleteOwnedEducationWithLinks(
   educationId: number,
   userId: number
 ): Promise<void> {
-  const { baseUrl, headers } = config();
-  if (!(await hasOwnedPendingEducation(educationId, userId))) {
-    throw new EducationDeletionError("Education was not found.", "NOT_FOUND");
+  config();
+  if (!(await hasOwnedEducation(educationId, userId))) {
+    throw new EducationDeletionError(NOT_FOUND_MESSAGE, "NOT_FOUND");
   }
 
-  // Both the historical link and the live link name this education, so either
-  // side scopes the blast radius. A sibling education's rows never match.
-  const requestQuery = new URLSearchParams({
-    fields:
-      "school_request_id,requested_by,request_status,employee_education_id,active_employee_education_id",
+  const rosterQuery = new URLSearchParams({ limit: "-1", fields: "student_id" });
+  rosterQuery.set("filter[employee_education_id][_eq]", String(educationId));
+
+  const schoolRequestQuery = new URLSearchParams({
     limit: "-1",
+    fields: "school_request_id,requested_by",
   });
-  requestQuery.set("filter[_or][0][employee_education_id][_eq]", String(educationId));
-  requestQuery.set("filter[_or][1][active_employee_education_id][_eq]", String(educationId));
-  const requestResponse = await fetch(
-    `${baseUrl}/items/vs_school_request?${requestQuery.toString()}`,
-    { headers, cache: "no-store" }
-  );
-  const requests = requestResponse.ok
-    ? z.object({ data: z.array(requestSchema) }).safeParse(await requestResponse.json())
-    : null;
-  if (!requests?.success) {
-    throw new EducationDeletionError(
-      "Attendance request linkage is invalid.",
-      "DEPENDENCY_FAILURE"
-    );
-  }
-  if (requests.data.data.some((request) => request.requested_by !== userId)) {
-    throw new EducationDeletionError(
-      "Attendance request linkage is invalid.",
-      "LINKAGE_INVALID"
-    );
-  }
-  // Only quiescent links travel with the education. A link that has advanced
-  // to Approved or RoutedToSchool refuses the whole deletion, so an in-flight
-  // review is never silently dropped. Pending and Rejected links are removed
-  // with the education.
-  const advanced = requests.data.data.filter(
-    (request) => !isRemovableLinkStatus(request.request_status)
-  );
-  if (advanced.length > 0) {
-    throw new EducationDeletionError(
-      "The education cannot be deleted while a linked request is already in progress.",
-      "STATE_CONFLICT"
-    );
-  }
+  schoolRequestQuery.set("filter[_or][0][employee_education_id][_eq]", String(educationId));
+  schoolRequestQuery.set("filter[_or][1][active_employee_education_id][_eq]", String(educationId));
 
-  // Course links carry the same delete guard on the same education id, so
-  // they are enumerated and classified BEFORE anything is deleted. A course
-  // row that has advanced to Approved or RoutedToSchool refuses the whole
-  // deletion, and deleting the school links first would leave a partial
-  // state the education delete can no longer complete. Pending and Rejected
-  // course links are removed with the education; a fresh course request can
-  // be filed afterwards because the unique slot is free again.
-  const courseQuery = new URLSearchParams({
-    fields: "course_request_id,requested_by,request_status,employee_education_id",
+  const courseRequestQuery = new URLSearchParams({
     limit: "-1",
+    fields: "course_request_id,requested_by",
   });
-  courseQuery.set("filter[employee_education_id][_eq]", String(educationId));
-  const courseResponse = await fetch(
-    `${baseUrl}/items/vs_course_request?${courseQuery.toString()}`,
-    { headers, cache: "no-store" }
-  );
-  const courseRequests = courseResponse.ok
-    ? z.object({ data: z.array(courseRequestSchema) }).safeParse(await courseResponse.json())
-    : null;
-  if (!courseRequests?.success) {
-    throw new EducationDeletionError(
-      "Attendance request linkage is invalid.",
-      "DEPENDENCY_FAILURE"
-    );
-  }
-  if (courseRequests.data.data.some((request) => request.requested_by !== userId)) {
-    throw new EducationDeletionError(
-      "Attendance request linkage is invalid.",
-      "LINKAGE_INVALID"
-    );
-  }
-  const settledCourse = courseRequests.data.data.filter(
-    (request) => !isRemovableLinkStatus(request.request_status)
-  );
-  if (settledCourse.length > 0) {
-    throw new EducationDeletionError(
-      "The education cannot be deleted while a linked course request has already been decided or routed.",
-      "STATE_CONFLICT"
-    );
-  }
+  courseRequestQuery.set("filter[employee_education_id][_eq]", String(educationId));
 
-  for (const request of requests.data.data) {
-    await deleteItem(
-      "vs_school_request",
-      request.school_request_id,
-      "Attendance request could not be deleted."
-    );
+  await assertOwnedLinks("vs_school_request", schoolRequestQuery, userId);
+  await assertOwnedLinks("vs_course_request", courseRequestQuery, userId);
+
+  const rosterIds = requireIds(
+    await fetchRows("vs_school_student", rosterQuery),
+    "student_id",
+    STORAGE_MESSAGE
+  );
+  const schoolRequestIds = requireIds(
+    await fetchRows("vs_school_request", schoolRequestQuery),
+    "school_request_id",
+    STORAGE_MESSAGE
+  );
+  const courseRequestIds = requireIds(
+    await fetchRows("vs_course_request", courseRequestQuery),
+    "course_request_id",
+    STORAGE_MESSAGE
+  );
+
+  for (const id of rosterIds) await deleteItem("vs_school_student", id);
+  for (const id of schoolRequestIds) await deleteItem("vs_school_request", id);
+  for (const id of courseRequestIds) await deleteItem("vs_course_request", id);
+
+  if (!(await hasOwnedEducation(educationId, userId))) {
+    throw new EducationDeletionError(NOT_FOUND_MESSAGE, "NOT_FOUND");
   }
-  for (const request of courseRequests.data.data) {
-    await deleteItem(
-      "vs_course_request",
-      request.course_request_id,
-      "Course request could not be deleted."
-    );
-  }
-  // Re-check ownership and Pending status immediately before the final
-  // delete, so an education that a concurrent verification just advanced can
-  // no longer be removed in the window between the entry guard and this row.
-  if (!(await hasOwnedPendingEducation(educationId, userId))) {
-    throw new EducationDeletionError(
-      "The education changed before deletion.",
-      "STATE_CONFLICT"
-    );
-  }
-  await deleteItem("vs_employee_education", educationId, "Education could not be deleted.");
+  await deleteItem("vs_employee_education", educationId);
 }

@@ -11,9 +11,9 @@ import type {
  *
  * Every helper reads ONLY the fields of the parsed inbox DTO. Nothing
  * here may introduce a new data source: the inbox renders the name-only
- * submitter label, the requested course text, the manual route audit
- * (`routedBy`/`routedAt`), the persisted finalizing lock
- * (`matchedSchoolCourseId`/`reviewedBy`), and the allowlisted Active course
+ * submitter label, the requested course text, the submission timestamp
+ * (`submittedAt`), the school-arrival timestamp (`routedAt`), the persisted
+ * finalizing lock (`matchedSchoolCourseId`), and the allowlisted Active course
  * candidates. Identity, contacts, profiles, documents, raw education, roster,
  * and school ownership are never part of any value produced here.
  */
@@ -24,7 +24,7 @@ function hasText(value: string | null | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-/** Safe date+time label for the routed timestamp. Missing/invalid input renders the placeholder. */
+/** Safe date+time label for submission and arrival timestamps. Missing/invalid input renders the placeholder. */
 export function formatInboxDateTime(value: string | null | undefined): string {
   if (!hasText(value)) return INBOX_UNKNOWN;
   const parsed = new Date(value);
@@ -41,11 +41,6 @@ export function formatInboxDateTime(value: string | null | undefined): string {
 /** Short request reference for the DOM; the raw row id is allowlisted DTO data. */
 export function requestReference(row: CourseRequestInboxRow): string {
   return `#${String(row.courseRequestId)}`;
-}
-
-/** Manual route audit label: who routed the request and when. */
-export function formatRouteAudit(row: CourseRequestInboxRow): string {
-  return `Routed by #${String(row.routedBy)} on ${formatInboxDateTime(row.routedAt)}`;
 }
 
 /** Human label for one Active course candidate. Reads only the five DTO fields. */
@@ -83,13 +78,13 @@ export function findCandidateById(
 export interface LockedCourseDisplay {
   readonly label: string;
   readonly code: string | null;
-  readonly resolved: boolean;
 }
 
 /**
  * Persisted locked-course display for a finalizing row. The lock id is always
  * allowlisted DTO data; when the candidate is no longer Active (or absent from
- * the current candidate list) only the id is shown - a name is never guessed.
+ * the current candidate list) only a neutral label is shown - a course name is
+ * never guessed, and no raw course id is ever displayed.
  */
 export function describeLockedCourse(
   row: CourseRequestFinalizingRow,
@@ -97,22 +92,12 @@ export function describeLockedCourse(
 ): LockedCourseDisplay {
   const candidate = findCandidateById(courses, row.matchedSchoolCourseId);
   if (candidate === undefined) {
-    return { label: `Course #${String(row.matchedSchoolCourseId)}`, code: null, resolved: false };
+    return { label: "Previously selected course", code: null };
   }
   return {
     label: candidate.courseName,
     code: hasText(candidate.courseCode) ? candidate.courseCode : null,
-    resolved: true,
   };
-}
-
-/** Finalizing lock sentence: persisted course plus the ORIGINAL reviewer. */
-export function describeFinalizingLock(
-  row: CourseRequestFinalizingRow,
-  courses: readonly CourseRequestCandidate[],
-): string {
-  const locked = describeLockedCourse(row, courses);
-  return `Locked to ${locked.label}; original reviewer #${String(row.reviewedBy)}.`;
 }
 
 /** True when the row is an unclaimed actionable decision. */

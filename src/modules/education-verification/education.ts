@@ -109,13 +109,16 @@ async function reconcileSchoolAttendance(
     const target: EducationTarget = {
       schoolId: input.canonicalSchoolId,
       courseId: education.school_course_id,
-      status: "Pending",
+      status: "Verified",
     };
     if (isTargetState(education, target)) return education;
     return guardedEducationPatch(
       education,
       guard,
-      { school_id: input.canonicalSchoolId },
+      {
+        school_id: input.canonicalSchoolId,
+        education_status: "Verified",
+      },
       target
     );
   }
@@ -207,9 +210,9 @@ export async function reconcileLinkedEducation(
     const desiredCourse = input.canonicalCourseId;
     if (
       education.education_status === "Verified" &&
-      desiredCourse !== null &&
       education.school_id === input.canonicalSchoolId &&
-      education.school_course_id === desiredCourse
+      (desiredCourse === null ||
+        education.school_course_id === desiredCourse)
     ) {
       return education;
     }

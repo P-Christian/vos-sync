@@ -22,7 +22,7 @@ import type {
 import {
   candidateOptions,
   findCandidateById,
-  formatRouteAudit,
+  formatInboxDateTime,
   requestReference,
   validateRejectRemarks,
 } from "../services/course-request-inbox.helpers";
@@ -47,24 +47,28 @@ function SubmissionSummary({ row }: SubmissionSummaryProps) {
   return (
     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 rounded-lg border bg-muted/20 p-4 text-sm">
       <div>
-        <dt className="text-xs text-muted-foreground">Submitter</dt>
+        <dt className="text-xs text-muted-foreground">Submitted by</dt>
         <dd className="font-medium" data-testid="dialog-submitter">
           {row.submitterName.trim().length > 0 ? row.submitterName : "Unknown submitter"}
         </dd>
       </div>
       <div>
-        <dt className="text-xs text-muted-foreground">Request</dt>
+        <dt className="text-xs text-muted-foreground">Reference</dt>
         <dd className="font-mono text-xs" data-testid="dialog-request-ref">
           {requestReference(row)}
         </dd>
       </div>
       <div className="sm:col-span-2">
-        <dt className="text-xs text-muted-foreground">Requested course</dt>
+        <dt className="text-xs text-muted-foreground">Course requested</dt>
         <dd data-testid="dialog-requested-course">{row.requestedCourseName}</dd>
       </div>
-      <div className="sm:col-span-2">
-        <dt className="text-xs text-muted-foreground">Manual route audit</dt>
-        <dd data-testid="dialog-route-audit">{formatRouteAudit(row)}</dd>
+      <div>
+        <dt className="text-xs text-muted-foreground">Submitted</dt>
+        <dd data-testid="dialog-submitted">{formatInboxDateTime(row.submittedAt)}</dd>
+      </div>
+      <div>
+        <dt className="text-xs text-muted-foreground">Sent to your school</dt>
+        <dd data-testid="dialog-route-audit">{formatInboxDateTime(row.routedAt)}</dd>
       </div>
     </dl>
   );
@@ -99,14 +103,14 @@ export function ApproveCourseRequestDialog({
     event.preventDefault();
     setError(null);
     if (selectedCandidate === undefined) {
-      setError("Select an Active course before approving.");
+      setError("Select a course before approving.");
       return;
     }
     const shouldClose = await onConfirm(row, selectedCandidate.schoolCourseId);
     if (shouldClose) {
       onOpenChange(false);
     } else {
-      setError("The approval did not settle. Review the feedback on this request and retry.");
+      setError("The approval did not finish. Check the message on this request, then try again.");
     }
   };
 
@@ -116,8 +120,8 @@ export function ApproveCourseRequestDialog({
         <DialogHeader>
           <DialogTitle>Approve course request</DialogTitle>
           <DialogDescription>
-            Select the Active school course this request should be completed with. The decision
-            records your reviewer claim and locks the selected course to this request.
+            Choose the course your school will use for this request. Approving finishes the request
+            with the course you select.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate className="space-y-4 pt-1">
@@ -128,25 +132,24 @@ export function ApproveCourseRequestDialog({
               data-testid="approve-no-candidates"
               className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
             >
-              <p className="font-semibold">No Active courses are available</p>
+              <p className="font-semibold">No courses available</p>
               <p className="mt-1">
-                This school has no Active course candidates right now. Add an Active course (for
-                example through the Add Course flow) before approving this request.
+                Your school has no available courses right now. Add a course first, then come back
+                to approve this request.
               </p>
             </div>
           ) : (
             <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
-              <p className="font-semibold">Completes the persisted request</p>
+              <p className="font-semibold">What happens when you approve</p>
               <p className="mt-1">
-                Approving links the selected course to the existing roster row and verifies the
-                linked education only after the roster carries that course. The request stays
-                RoutedToSchool until the decision is finalized.
+                The course you select is saved on the student&apos;s record, and their education is
+                marked as verified.
               </p>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="course_request_candidate">Active course *</Label>
+            <Label htmlFor="course_request_candidate">Course *</Label>
             <div data-testid="approve-course-select">
               <SearchableSelect
                 options={options}
@@ -155,7 +158,7 @@ export function ApproveCourseRequestDialog({
                   setError(null);
                   setSelectedCourseId(value.length > 0 ? Number(value) : null);
                 }}
-                placeholder="Select an Active course"
+                placeholder="Select a course"
                 disabled={busy || noCandidates}
               />
             </div>
@@ -166,7 +169,7 @@ export function ApproveCourseRequestDialog({
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Approve stays disabled until a course is selected.
+                Choose a course to enable Approve.
               </p>
             )}
           </div>
@@ -241,7 +244,7 @@ export function RejectCourseRequestDialog({
     if (shouldClose) {
       onOpenChange(false);
     } else {
-      setError("The rejection did not settle. Review the feedback on this request and retry.");
+      setError("The rejection did not finish. Check the message on this request, then try again.");
     }
   };
 
@@ -251,8 +254,8 @@ export function RejectCourseRequestDialog({
         <DialogHeader>
           <DialogTitle>Reject course request</DialogTitle>
           <DialogDescription>
-            Rejection is terminal: the linked education and roster stay unchanged. A corrected
-            request can be routed again later.
+            Rejecting cannot be undone. The student&apos;s education record stays the same. If the
+            request is corrected, it can be sent again later.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
@@ -261,8 +264,8 @@ export function RejectCourseRequestDialog({
           <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Only reject when this request cannot be completed with an Active course at your
-              school. The reason is recorded with your reviewer claim.
+              Only reject if your school cannot complete this request with a course. Your reason is
+              saved with the request.
             </p>
           </div>
 
@@ -271,7 +274,7 @@ export function RejectCourseRequestDialog({
             <Textarea
               id="course_request_reject_reason"
               data-testid="reject-remarks"
-              placeholder="Explain why this course request is rejected."
+              placeholder="Explain why you are rejecting this request."
               value={remarks}
               onChange={(event) => {
                 setError(null);
@@ -282,7 +285,7 @@ export function RejectCourseRequestDialog({
             />
             {blockingError !== null ? (
               <p className="text-xs text-muted-foreground" data-testid="reject-blocked-hint">
-                Whitespace-only reasons stay disabled; the server remains authoritative.
+                A reason is required to enable Reject.
               </p>
             ) : null}
           </div>

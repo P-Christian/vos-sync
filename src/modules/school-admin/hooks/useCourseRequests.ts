@@ -45,6 +45,8 @@ export interface CourseRequestActionableRow {
   readonly requestedCourseName: string;
   /** Name-only submitter label resolved server-side; never an email or id. */
   readonly submitterName: string;
+  /** Submission timestamp (`created_at`), rendered as a readable date. */
+  readonly submittedAt: string;
   readonly routedBy: number;
   readonly routedAt: string;
   readonly matchedSchoolCourseId: null;
@@ -58,6 +60,8 @@ export interface CourseRequestFinalizingRow {
   readonly requestedCourseName: string;
   /** Name-only submitter label resolved server-side; never an email or id. */
   readonly submitterName: string;
+  /** Submission timestamp (`created_at`), rendered as a readable date. */
+  readonly submittedAt: string;
   readonly routedBy: number;
   readonly routedAt: string;
   readonly matchedSchoolCourseId: number;
@@ -296,6 +300,7 @@ const ACTIONABLE_ROW_KEYS = [
   "requestStatus",
   "requestedCourseName",
   "submitterName",
+  "submittedAt",
   "routedBy",
   "routedAt",
   "matchedSchoolCourseId",
@@ -342,6 +347,7 @@ export function parseCourseRequestInboxRow(value: unknown): CourseRequestInboxRo
     requestStatus,
     requestedCourseName,
     submitterName,
+    submittedAt,
     routedBy,
     routedAt,
     matchedSchoolCourseId,
@@ -352,6 +358,7 @@ export function parseCourseRequestInboxRow(value: unknown): CourseRequestInboxRo
   if (requestStatus !== "RoutedToSchool") return null;
   if (!isNonBlankText(requestedCourseName)) return null;
   if (!isNonBlankText(submitterName)) return null;
+  if (!isNonBlankText(submittedAt)) return null;
   if (!isPositiveInteger(routedBy)) return null;
   if (!isNonBlankText(routedAt)) return null;
   if (reviewedAt !== null) return null;
@@ -361,6 +368,7 @@ export function parseCourseRequestInboxRow(value: unknown): CourseRequestInboxRo
       requestStatus,
       requestedCourseName,
       submitterName,
+      submittedAt,
       routedBy,
       routedAt,
       matchedSchoolCourseId: null,
@@ -374,6 +382,7 @@ export function parseCourseRequestInboxRow(value: unknown): CourseRequestInboxRo
       requestStatus,
       requestedCourseName,
       submitterName,
+      submittedAt,
       routedBy,
       routedAt,
       matchedSchoolCourseId,
@@ -388,25 +397,25 @@ export function parseCourseRequestInboxRow(value: unknown): CourseRequestInboxRo
 /** Strict parse of `{ inbox: { schoolId, routed, finalizing, courses } }`. */
 export function parseCourseRequestInboxPayload(json: unknown): CourseRequestInbox {
   if (!isRecord(json) || !isRecord(json.inbox) || !hasExactKeys(json, ["inbox"])) {
-    throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+    throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
   }
   const inbox = json.inbox;
   if (!hasExactKeys(inbox, INBOX_KEYS)) {
-    throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+    throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
   }
   const { schoolId, routed, finalizing, courses } = inbox;
   if (!isPositiveInteger(schoolId)) {
-    throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+    throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
   }
   if (!Array.isArray(routed) || !Array.isArray(finalizing) || !Array.isArray(courses)) {
-    throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+    throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
   }
   const parseRows = (entries: readonly unknown[]): CourseRequestInboxRow[] => {
     const rows: CourseRequestInboxRow[] = [];
     for (const entry of entries) {
       const row = parseCourseRequestInboxRow(entry);
       if (row === null) {
-        throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+        throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
       }
       rows.push(row);
     }
@@ -417,7 +426,7 @@ export function parseCourseRequestInboxPayload(json: unknown): CourseRequestInbo
   for (const entry of courses) {
     const candidate = parseCandidate(entry);
     if (candidate === null) {
-      throw new CourseInboxLoadError(503, "Course request inbox response was malformed.");
+      throw new CourseInboxLoadError(503, "We could not read the course requests. Please refresh the page.");
     }
     parsedCandidates.push(candidate);
   }
@@ -465,11 +474,11 @@ function parseDecisionResultBody(value: Record<string, unknown>): CourseRequestD
  */
 export function parseCourseRequestDecisionResult(json: unknown): CourseRequestDecisionResult {
   if (!isRecord(json) || !isRecord(json.result) || !hasExactKeys(json, ["result"])) {
-    throw new CourseDecisionParseError(503, "Course decision response was malformed.");
+    throw new CourseDecisionParseError(503, "The decision result could not be read. Refresh the list to check the latest state.");
   }
   const result = parseDecisionResultBody(json.result);
   if (result === null) {
-    throw new CourseDecisionParseError(503, "Course decision response was malformed.");
+    throw new CourseDecisionParseError(503, "The decision result could not be read. Refresh the list to check the latest state.");
   }
   return result;
 }
@@ -575,26 +584,26 @@ export function feedbackForCourseRequestOutcome(outcome: CourseRequestOutcome): 
         tone: "success",
         message:
           outcome.result.requestStatus === "Approved"
-            ? "Course request approved; the roster now carries the selected course."
-            : "Course decision recorded.",
+            ? "Course request approved. The selected course was saved on the student's record."
+            : "Your decision was saved.",
       };
     case "rejected":
       return { tone: "success", message: "Course request rejected." };
     case "stale":
       return {
         tone: "stale",
-        message: `Stale data: ${outcome.message} The inbox was refreshed; review the current row before retrying.`,
+        message: `${outcome.message} The list was refreshed, so check the latest details, then try again.`,
       };
     case "removed":
       return {
         tone: "removed",
-        message: "This request is no longer in your inbox; it was removed.",
+        message: "This request is no longer in your list.",
       };
     case "finalizing":
       return {
         tone: "finalizing",
         message:
-          "The decision may have committed but the response was lost. Only Resume of the persisted locked course and original reviewer is available.",
+          "Your approval may already be saved, but the page did not get the response. Press Resume to finish it. The saved course cannot be changed.",
       };
     case "failed":
       return { tone: "error", message: outcome.message };
@@ -620,17 +629,17 @@ export interface CourseRequestDecisionDeps {
 function messageForStatus(status: CourseRequestHttpStatus): string {
   switch (status) {
     case 400:
-      return "The decision input was rejected.";
+      return "Something was wrong with this decision. Refresh the list and try again.";
     case 401:
-      return "Your session is no longer valid.";
+      return "Your session has ended. Sign in again.";
     case 403:
-      return "You are not authorized to decide this request.";
+      return "You do not have permission to decide this request.";
     case 404:
-      return "Course request was not found.";
+      return "This request was not found.";
     case 409:
-      return "The course request changed before the decision committed.";
+      return "This request changed before your decision was saved.";
     case 503:
-      return "Course request storage is temporarily unavailable.";
+      return "Course requests are temporarily unavailable. Please try again.";
     default:
       return assertNeverCourseRequestVariant(status);
   }
@@ -657,16 +666,16 @@ function validateDecisionInput(
   decision: CourseRequestDecision,
 ): Extract<CourseRequestOutcome, { kind: "failed" }> | null {
   if (!Number.isInteger(requestId) || requestId <= 0) {
-    return failedOutcome(decision.action, requestId, 400, "Course request id must be a positive integer.");
+    return failedOutcome(decision.action, requestId, 400, "Something went wrong with this request. Refresh the list and try again.");
   }
   if (decision.action === "approve") {
     if (!Number.isInteger(decision.courseId) || decision.courseId <= 0) {
-      return failedOutcome(decision.action, requestId, 400, "A positive integer course id is required to approve.");
+      return failedOutcome(decision.action, requestId, 400, "Select a course before approving.");
     }
     return null;
   }
   if (decision.remarks.trim().length === 0) {
-    return failedOutcome(decision.action, requestId, 400, "Rejection remarks must not be blank.");
+    return failedOutcome(decision.action, requestId, 400, "Enter a reason to reject this request.");
   }
   return null;
 }
@@ -690,7 +699,7 @@ function guardPersistedLock(
       decision.action,
       requestId,
       409,
-      "This request already has a persisted decision; only resume of the locked course is available.",
+      "This request is already being approved. Press Resume to finish it.",
     );
   }
   if (decision.courseId !== claim.courseId) {
@@ -698,7 +707,7 @@ function guardPersistedLock(
       decision.action,
       requestId,
       409,
-      "This request is locked to its persisted course; only resume of that course is available.",
+      "This request is already being approved with a different course. Press Resume to finish it.",
     );
   }
   return null;
@@ -744,13 +753,13 @@ export async function executeCourseRequestDecision(
     try {
       const result = parseCourseRequestDecisionResult(json);
       if (action === "approve" && result.requestStatus !== "Approved") {
-        throw new CourseDecisionParseError(503, "An approval returned an unexpected decision status.");
+        throw new CourseDecisionParseError(503, "The approval result was not what we expected. Refresh the list to check the latest state.");
       }
       if (action === "reject" && result.requestStatus !== "Rejected") {
-        throw new CourseDecisionParseError(503, "A rejection returned an unexpected decision status.");
+        throw new CourseDecisionParseError(503, "The rejection result was not what we expected. Refresh the list to check the latest state.");
       }
       if (result.courseRequestId !== requestId) {
-        throw new CourseDecisionParseError(503, "Course decision response was malformed.");
+        throw new CourseDecisionParseError(503, "The decision result could not be read. Refresh the list to check the latest state.");
       }
       if (action === "reject") {
         deps.removeRow(requestId);
@@ -771,7 +780,7 @@ export async function executeCourseRequestDecision(
         503,
         parseError instanceof CourseDecisionParseError
           ? parseError.message
-          : "Course decision response was malformed.",
+          : "The decision result could not be read. Refresh the list to check the latest state.",
       );
       deps.setFeedback(requestId, feedbackForCourseRequestOutcome(outcome));
       return outcome;
@@ -866,7 +875,7 @@ export async function resumeCourseRequestDecision(
       "approve",
       requestId,
       409,
-      "There is no persisted finalizing decision to resume for this course request.",
+      "This request has no saved approval to resume.",
     );
     deps.setFeedback(requestId, feedbackForCourseRequestOutcome(outcome));
     return outcome;
@@ -980,13 +989,13 @@ export function useCourseRequests(): UseCourseRequestsResult {
       const res = await fetchImpl("/api/school-admin/course-requests", { cache: "no-store" });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new CourseInboxLoadError(res.status, readErrorMessage(json, "Failed to load the course request inbox."));
+        throw new CourseInboxLoadError(res.status, readErrorMessage(json, "Something went wrong while loading. Please try again."));
       }
       const parsed = parseCourseRequestInboxPayload(json);
       applyInbox(parsed);
       return parsed;
     } catch (err: unknown) {
-      setError(err instanceof CourseInboxLoadError ? err.message : "Failed to load the course request inbox.");
+      setError(err instanceof CourseInboxLoadError ? err.message : "Something went wrong while loading. Please try again.");
       setInbox(null);
       return null;
     } finally {
@@ -1025,7 +1034,7 @@ export function useCourseRequests(): UseCourseRequestsResult {
       "approve",
       requestId,
       409,
-      "A decision for this request is already in flight; duplicate submits are blocked.",
+      "Your decision is still being saved. Please wait.",
     );
     setFeedbackByRow((prev) => ({ ...prev, [requestId]: feedbackForCourseRequestOutcome(outcome) }));
     return outcome;

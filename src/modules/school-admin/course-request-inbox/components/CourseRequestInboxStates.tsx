@@ -61,7 +61,7 @@ export function CourseRequestInboxEmpty() {
       <EmptyPlaceholder
         icon={Inbox}
         title="No course requests"
-        description="When a course request is routed to your school it will appear here for review. Approve with an Active school course or reject with a reason."
+        description="When a course request is sent to your school, it will appear here. Approve it with one of your courses, or reject it with a reason."
       />
     </div>
   );
@@ -84,7 +84,7 @@ export function CourseRequestInboxErrorBanner({ message, loading, onRetry }: Err
         <div className="flex items-start gap-3">
           <ShieldAlert className="w-5 h-5 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-semibold">The course request inbox could not be loaded.</p>
+            <p className="text-sm font-semibold">We could not load the course requests.</p>
             <p className="text-xs mt-1">{message}</p>
           </div>
         </div>
@@ -122,13 +122,13 @@ export function CourseRequestInboxAccessPanel({ kind, message }: AccessPanelProp
           )}
         </div>
         <h3 className="mt-5 text-lg font-bold tracking-tight text-foreground/80">
-          {forbidden ? "Course request access unavailable" : "Sign-in required"}
+          {forbidden ? "Course requests are not available" : "Please sign in"}
         </h3>
         <p className="mt-2 max-w-md text-sm text-muted-foreground leading-relaxed">
           {forbidden
-            ? "Course requests are limited to a School Admin with exactly one active school assignment. " +
-              "Ask the VOS Admin to confirm your assignment, then reload this page."
-            : "Your session is no longer valid. Sign in again as a School Admin to view this inbox."}
+            ? "Course requests are only available to a school admin with one active school. " +
+              "Ask your VOS admin to check your school assignment, then reload this page."
+            : "Your session has ended. Sign in again as a school admin to view this page."}
         </p>
         <p className="mt-4 text-xs text-muted-foreground/80">{message}</p>
       </div>

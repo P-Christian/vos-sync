@@ -38,6 +38,7 @@ import {
   fetchSchoolRequestById,
   fetchCourseRequestById,
 } from './request.repo';
+import { notifyEducationRejection } from "@/lib/notifications/services/education-rejection";
 import {
   resolveLegacyApprovalTarget,
   verifyLegacyApprovalTarget,
@@ -561,6 +562,15 @@ async function rejectCourseRequest(
   } catch (error: unknown) {
     throw toDecisionError(error, "Course request storage is temporarily unavailable.");
   }
+  await notifyEducationRejection({
+    kind: "course",
+    requestId,
+    educationId: request.employee_education_id,
+    recipientUserId: request.requested_by,
+    courseName: request.requested_course_name,
+    reason: remarks,
+    rejectedBy: "vos_admin",
+  });
   return readBackCourseRequest(requestId);
 }
 
@@ -731,7 +741,18 @@ export async function rejectSchoolRequestDecision(
   requireSchoolRoutingWrite();
   requirePositiveSchoolId(requestId, "School request id");
   requirePositiveSchoolId(adminId, "VOS Admin id");
-  await rejectSchoolRequestPrimitive({ requestId, actorId: adminId, remarks });
+  const outcome = await rejectSchoolRequestPrimitive({ requestId, actorId: adminId, remarks });
+  if (outcome.kind === "mutated") {
+    await notifyEducationRejection({
+      kind: "school_request",
+      requestId,
+      educationId: outcome.request.employee_education_id,
+      recipientUserId: outcome.request.requested_by,
+      schoolName: outcome.request.requested_school_name,
+      reason: remarks.trim(),
+      rejectedBy: "vos_admin",
+    });
+  }
   return fetchSchoolRequestById(requestId);
 }
 

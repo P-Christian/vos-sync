@@ -4,36 +4,36 @@ import type {
 } from "@/modules/school-admin/hooks/useSchoolRequests";
 
 /**
- * Pure presentation/validation helpers for the privacy-limited School Admin
- * attendance inbox.
+ * Pure presentation/validation helpers for the School Admin attendance inbox.
  *
  * Every helper reads ONLY the fields of the parsed inbox DTO. Nothing here
- * may introduce a new data source: the inbox renders submitter display name,
- * requested/canonical school, canonical course, education dates, and the
- * submitted/routed/reviewer timestamps. Identity, alumni, contacts,
+ * may introduce a new data source: the inbox renders the student name, the
+ * school name from the request, the linked course, education dates, the
+ * submitted date, and the saved decision date. Identity, alumni, contacts,
  * documents, and course/identity overrides are never part of any value
  * produced here.
  */
-
-export const INBOX_UNKNOWN = "\u2014";
 
 function hasText(value: string | null | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-/** Safe date-only label. Missing/invalid input renders the placeholder. */
+/** Safe date-only label. Missing or invalid input renders an empty string. */
 export function formatInboxDate(value: string | null | undefined): string {
-  if (!hasText(value)) return INBOX_UNKNOWN;
+  if (!hasText(value)) return "";
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return INBOX_UNKNOWN;
+  if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
-/** Safe date+time label for submitted/routed/reviewer timestamps. */
+/**
+ * Safe date+time label for the submitted date and the saved decision date.
+ * Missing or invalid input renders an empty string.
+ */
 export function formatInboxDateTime(value: string | null | undefined): string {
-  if (!hasText(value)) return INBOX_UNKNOWN;
+  if (!hasText(value)) return "";
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return INBOX_UNKNOWN;
+  if (Number.isNaN(parsed.getTime())) return "";
   return parsed.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
@@ -43,49 +43,42 @@ export function formatInboxDateTime(value: string | null | undefined): string {
   });
 }
 
-/** Education attendance window. A missing end date is an open/current record. */
+/**
+ * Education attendance window. Missing values are dropped, never replaced
+ * with a dash: both sides missing renders an empty string, and a single
+ * present date renders just that date.
+ */
 export function formatEducationRange(
   startDate: string | null | undefined,
   endDate: string | null | undefined,
 ): string {
   const start = formatInboxDate(startDate);
-  if (!hasText(endDate)) {
-    return `${start} to Present`;
-  }
-  return `${start} to ${formatInboxDate(endDate)}`;
+  const end = formatInboxDate(endDate);
+  if (start.length === 0) return end;
+  if (end.length === 0) return start;
+  return `${start} - ${end}`;
 }
 
 export interface CourseDisplay {
-  /** Canonical course label, or the unresolved-course label. */
+  /** Course label, or the "no course" label when none is linked. */
   readonly label: string;
   readonly code: string | null;
   readonly resolved: boolean;
 }
 
 /**
- * Canonical course display. The frozen DTO exposes only the canonical course;
- * an unresolved course means the follow-on course workflow owns it, so no
- * course name is ever guessed or invented here.
+ * Course display. The DTO exposes only the linked course; when none is
+ * linked the label says so, and no course name is ever guessed or invented.
  */
-export function describeCanonicalCourse(row: SchoolInboxRow): CourseDisplay {
+export function describeCourse(row: SchoolInboxRow): CourseDisplay {
   if (row.course === null) {
-    return { label: "No canonical course linked", code: null, resolved: false };
+    return { label: "No course on file", code: null, resolved: false };
   }
   return {
     label: row.course.courseName,
     code: hasText(row.course.courseCode) ? row.course.courseCode : null,
     resolved: true,
   };
-}
-
-/** Canonical (routed) school label. Only the persisted id is exposed. */
-export function formatCanonicalSchool(row: SchoolInboxRow): string {
-  return `School #${String(row.matchedSchoolId)}`;
-}
-
-/** Reported school name persisted on the linked education row (raw value). */
-export function formatReportedSchool(row: SchoolInboxRow): string {
-  return hasText(row.education.schoolNameRaw) ? row.education.schoolNameRaw : INBOX_UNKNOWN;
 }
 
 /**
@@ -101,43 +94,35 @@ export function visibleInboxRows(
   return rows.filter((row) => row.matchedSchoolId === schoolId);
 }
 
-/** Reviewer/time claim label for claimed and Finalizing rows. */
-export function describePersistedClaim(row: SchoolInboxRow): string | null {
-  if (row.reviewedBy === null || !hasText(row.reviewedAt)) return null;
-  return `Reviewer #${String(row.reviewedBy)} - ${formatInboxDateTime(row.reviewedAt)}`;
+/**
+ * Saved-decision label for rows that already carry a persisted decision.
+ * Shows the saved time only, never a numeric user identifier.
+ */
+export function describeSavedDecision(row: SchoolInboxRow): string | null {
+  if (typeof row.reviewedBy !== "number") return null;
+  const savedAt = formatInboxDateTime(row.reviewedAt);
+  if (savedAt.length === 0) return null;
+  return `Saved ${savedAt}`;
 }
 
-export type ApprovalOutcomeVariant = "completesNow" | "followOn";
-
 export interface ApprovalOutcomeCopy {
-  readonly variant: ApprovalOutcomeVariant;
   readonly title: string;
   readonly body: string;
 }
 
 /**
- * Mirrors the server's two approval branches exactly:
- *  - canonical course present -> roster + education Verified, no follow-on.
- *  - course unresolved        -> partial roster, education stays Pending, and
- *    exactly one follow-on course request is created.
+ * Approval always saves the decision and marks the education as verified
+ * right away. Nothing is left waiting and no extra course request is
+ * created; a missing course only means the verified education has no course.
  */
 export function describeApprovalOutcome(row: SchoolInboxRow): ApprovalOutcomeCopy {
-  if (row.course === null) {
-    return {
-      variant: "followOn",
-      title: "Creates exactly one follow-on course request",
-      body:
-        "No canonical course is linked to this education. Approving records the attendance " +
-        "roster entry, keeps the education Pending, and creates exactly one follow-on course " +
-        "request for the course workflow.",
-    };
-  }
+  const courseNote =
+    row.course === null
+      ? "No course is linked, so the education will be verified without a course."
+      : `The linked course "${row.course.courseName}" is included.`;
   return {
-    variant: "completesNow",
-    title: "Completes this education now",
-    body:
-      `The canonical course "${row.course.courseName}" is already linked. Approving records the ` +
-      "attendance roster entry, marks the education Verified, and creates no follow-on course request.",
+    title: "This marks the education as verified",
+    body: `Approving saves your decision and marks the education as verified right away. ${courseNote}`,
   };
 }
 

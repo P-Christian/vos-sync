@@ -16,8 +16,9 @@ const requesterId = z
 
 /**
  * Internal parsed `vs_course_request` row subset returned by the scoped
- * queries. Manual route audit (`routed_by`/`routed_at`) is REQUIRED
- * non-null: a nullable audit never crosses this boundary and fails parsing.
+ * queries. Manual route audit (`routed_by`/`routed_at`) and the submission
+ * timestamp (`created_at`) are REQUIRED: a nullable audit never crosses this
+ * boundary and fails parsing.
  */
 export const scopedCourseRequestRowSchema = z
   .object({
@@ -32,6 +33,7 @@ export const scopedCourseRequestRowSchema = z
     reviewed_at: nullableText,
     routed_by: positiveInteger,
     routed_at: trimmedNonBlank,
+    created_at: trimmedNonBlank,
     admin_remarks: nullableText,
   })
   .strict();
@@ -43,6 +45,7 @@ const actionableRowBase = {
   requestStatus: z.literal("RoutedToSchool"),
   requestedCourseName: trimmedNonBlank,
   submitterName: trimmedNonBlank,
+  submittedAt: trimmedNonBlank,
   routedBy: positiveInteger,
   routedAt: trimmedNonBlank,
   reviewedAt: z.null(),

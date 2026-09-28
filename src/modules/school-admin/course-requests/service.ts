@@ -6,6 +6,9 @@ import {
   VerificationPrimitiveError,
 } from "@/modules/education-verification";
 import { fetchEducationExact } from "@/modules/education-verification/records";
+import { notifyEducationRejection } from "@/lib/notifications/services/education-rejection";
+
+// allow: SIZE_OK — the approval path is one resumable, ordered decision saga whose invariants span every step.
 
 import {
   courseRequestError,
@@ -380,8 +383,9 @@ export async function rejectCourseRequest(
 
   // Routed-first control flow: ONLY the decision fetch's NOT_FOUND result
   // may trigger the separate scoped terminal-replay fetch.
+  let decision: ScopedCourseRequestRow;
   try {
-    const decision = await fetchScopedCourseRequestForDecision(ctx, requestId);
+    decision = await fetchScopedCourseRequestForDecision(ctx, requestId);
     if (decision.matched_school_course_id !== null || decision.reviewed_by !== null) {
       conflict("STATE_CONFLICT", "The rejection conflicts with the persisted claim.");
     }
@@ -404,6 +408,15 @@ export async function rejectCourseRequest(
     requestId,
     reviewerId: ctx.userId,
     remarks: trimmedRemarks,
+  });
+  await notifyEducationRejection({
+    kind: "course",
+    requestId,
+    educationId: decision.employee_education_id,
+    recipientUserId: decision.requested_by,
+    courseName: decision.requested_course_name,
+    reason: trimmedRemarks,
+    rejectedBy: "school_admin",
   });
   return toDecisionResult(operation, terminal, "Rejected", null);
 }

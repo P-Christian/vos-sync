@@ -80,6 +80,13 @@ export const FREELANCER_NOTIFICATION_CATEGORIES: FreelancerNotificationCategoryG
     ],
   },
   {
+    title: "Education Verification",
+    description: "Updates about school attendance and course verification decisions.",
+    categories: [
+      { category: "EDUCATION_VERIFICATION", label: "Education verification decisions", defaultEmail: false, defaultInApp: true },
+    ],
+  },
+  {
     title: "Messages",
     description: "Notifications for communication with clients and employers.",
     categories: [

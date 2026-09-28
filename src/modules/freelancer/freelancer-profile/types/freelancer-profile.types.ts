@@ -100,6 +100,11 @@ export interface VsEducation {
     // Virtual fields joined from DB for UI rendering
     school_name?: string;
     course_name?: string;
+    course_verification?: {
+        readonly status: 'Pending' | 'RoutedToSchool' | 'Approved' | 'Rejected';
+        readonly remarks: string | null;
+    } | null;
+    attendance_rejected?: boolean;
 }
 
 export interface VsCertification {

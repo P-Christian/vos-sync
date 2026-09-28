@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createSchoolRequestSchema } from "../types/request.schema";
 import { toast } from "sonner";
+import type { SchoolDraftOutcome } from "../types/request.types";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,7 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: unknown) => Promise<boolean>;
+  onSubmit: (data: unknown) => Promise<SchoolDraftOutcome | null>;
 }
 
 export function CreateSchoolRequestModal({ open, onOpenChange, onSubmit }: Props) {
@@ -54,11 +55,11 @@ export function CreateSchoolRequestModal({ open, onOpenChange, onSubmit }: Props
 
   const handleValidSubmit = async (data: unknown) => {
     setLoading(true);
-    const success = await onSubmit(data);
+    const outcome = await onSubmit(data);
     setLoading(false);
 
-    if (success) {
-      toast.success("School request created successfully.");
+    if (outcome !== null) {
+      toast.success("Draft school created.");
       form.reset();
       onOpenChange(false);
     }
@@ -77,7 +78,7 @@ export function CreateSchoolRequestModal({ open, onOpenChange, onSubmit }: Props
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Missing School Request</DialogTitle>
+          <DialogTitle>Add a school as a draft</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
@@ -129,7 +130,7 @@ export function CreateSchoolRequestModal({ open, onOpenChange, onSubmit }: Props
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Submit Request"}
+                {loading ? "Creating..." : "Create draft"}
               </Button>
             </DialogFooter>
           </form>

@@ -1,8 +1,7 @@
 "use client";
 
-import { Check, Lock, RotateCcw, X } from "lucide-react";
+import { Check, RotateCcw, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -21,9 +20,8 @@ import {
   type CourseRequestInboxRow,
 } from "@/modules/school-admin/hooks/useCourseRequests";
 import {
-  describeFinalizingLock,
   describeLockedCourse,
-  formatRouteAudit,
+  formatInboxDateTime,
   requestReference,
 } from "../services/course-request-inbox.helpers";
 
@@ -39,17 +37,6 @@ interface CourseRequestInboxTableProps {
   readonly onApprove: (row: CourseRequestInboxRow) => void;
   readonly onReject: (row: CourseRequestInboxRow) => void;
   readonly onResume: (row: CourseRequestInboxRow) => void;
-}
-
-/**
- * One status tone for the single inbox status literal. Finalizing rows add a
- * separate amber lock badge; both badges are `whitespace-nowrap` so no status
- * ever clips mid-word.
- */
-function statusTone(status: CourseRequestInboxRow["requestStatus"]): string {
-  return status === "RoutedToSchool"
-    ? "border-amber-200 bg-amber-50 text-amber-700"
-    : "border-slate-200 bg-slate-50 text-slate-700";
 }
 
 function feedbackTone(tone: CourseRequestFeedback["tone"]): string {
@@ -71,10 +58,11 @@ function feedbackTone(tone: CourseRequestFeedback["tone"]): string {
 /**
  * Privacy-limited inbox table. Renders ONLY the allowlisted inbox row and
  * candidate fields. The Actions column is pinned sticky-right inside the
- * horizontal scroll container and both status badges are `whitespace-nowrap`,
- * so the actions and badges stay fully visible at 1440x900, 1024x768, 390x844
- * and 1680-wide viewports without page-level horizontal overflow. Finalizing
- * rows render the persisted locked course/original reviewer and ONLY Resume.
+ * horizontal scroll container, so the actions stay fully visible at 1440x900,
+ * 1024x768, 390x844 and 1680-wide viewports without page-level horizontal
+ * overflow. Finalizing rows render the persisted locked course and ONLY Resume.
+ * The request status is carried on the row as a data attribute only; it is not
+ * rendered as a column.
  */
 export function CourseRequestInboxTable({
   rows,
@@ -94,8 +82,8 @@ export function CourseRequestInboxTable({
             <TableRow className="bg-muted/40">
               <TableHead>Submitter</TableHead>
               <TableHead>Requested Course</TableHead>
-              <TableHead>Route Audit</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Submitted</TableHead>
+              <TableHead>Sent to your school</TableHead>
               <TableHead className="sticky right-0 z-10 border-l border-border/60 bg-card text-right">
                 Actions
               </TableHead>
@@ -140,40 +128,14 @@ export function CourseRequestInboxTable({
                       {row.requestedCourseName}
                     </span>
                   </TableCell>
+                  <TableCell className="text-sm whitespace-normal">
+                    <span data-testid={`course-request-submitted-${String(row.courseRequestId)}`}>
+                      {formatInboxDateTime(row.submittedAt)}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-xs text-muted-foreground whitespace-normal">
                     <div data-testid={`course-request-route-audit-${String(row.courseRequestId)}`}>
-                      {formatRouteAudit(row)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                      <Badge
-                        variant="outline"
-                        className={cn("whitespace-nowrap", statusTone(row.requestStatus))}
-                        data-testid={`course-request-status-${String(row.courseRequestId)}`}
-                      >
-                        {row.requestStatus}
-                      </Badge>
-                      {state.kind === "finalizing" &&
-                      row.matchedSchoolCourseId !== null &&
-                      row.reviewedBy !== null ? (
-                        <>
-                          <Badge
-                            variant="outline"
-                            className="whitespace-nowrap border-amber-300 bg-amber-100 text-amber-800"
-                            data-testid={`course-request-finalizing-${String(row.courseRequestId)}`}
-                          >
-                            <Lock className="mr-1 h-3 w-3" />
-                            Finalizing
-                          </Badge>
-                          <span
-                            className="max-w-[16rem] text-xs text-muted-foreground whitespace-normal"
-                            data-testid={`course-request-locked-course-${String(row.courseRequestId)}`}
-                          >
-                            {describeFinalizingLock(row, courses)}
-                          </span>
-                        </>
-                      ) : null}
+                      {formatInboxDateTime(row.routedAt)}
                     </div>
                   </TableCell>
                   <TableCell className="sticky right-0 z-10 border-l border-border/60 bg-card">
@@ -183,7 +145,7 @@ export function CourseRequestInboxTable({
                           className="whitespace-nowrap text-right text-xs text-muted-foreground"
                           data-testid={`course-request-locked-summary-${String(row.courseRequestId)}`}
                         >
-                          {locked.resolved ? locked.label : "Persisted course"}
+                          {locked.label}
                           {locked.code !== null ? ` (${locked.code})` : ""}
                         </span>
                       ) : null}

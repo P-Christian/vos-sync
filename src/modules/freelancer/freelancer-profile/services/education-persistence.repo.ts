@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { updatePendingEducation } from "./education-update.repo";
 
 const EDUCATION_FIELDS = [
   "employee_education_id",
@@ -95,26 +96,6 @@ async function requireValidCourseClaim(input: PendingEducationWrite): Promise<vo
   if (input.school_id !== null && input.school_course_id !== null) {
     await requireActiveSameSchoolCourse(input.school_id, input.school_course_id);
   }
-}
-
-function parseRows(body: unknown): PersistedPendingEducation[] {
-  const parsed = z.object({ data: z.array(educationRowSchema).max(1) }).safeParse(body);
-  if (!parsed.success) {
-    throw new EducationPersistenceError("Education storage returned an invalid result.");
-  }
-  return parsed.data.data;
-}
-
-async function fetchRows(query: URLSearchParams): Promise<PersistedPendingEducation[]> {
-  const { baseUrl, headers } = config();
-  const response = await fetch(`${baseUrl}/items/vs_employee_education?${query.toString()}`, {
-    headers,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new EducationPersistenceError("Education storage is temporarily unavailable.");
-  }
-  return parseRows(await response.json());
 }
 
 async function fetchAnyStatusByDraftKey(draftKey: string): Promise<AnyStatusEducation | null> {
@@ -258,97 +239,4 @@ function sameClaimAnyStatus(row: AnyStatusEducation, input: PendingEducationWrit
     row.start_date === input.start_date &&
     row.end_date === input.end_date
   );
-}
-
-async function fetchAnyStatusRow(
-  educationId: number,
-  userId: number
-): Promise<AnyStatusEducation | null> {
-  const { baseUrl, headers } = config();
-  const query = new URLSearchParams({ fields: EDUCATION_FIELDS, limit: "2" });
-  query.set("filter[employee_education_id][_eq]", String(educationId));
-  query.set("filter[user_id][_eq]", String(userId));
-  const response = await fetch(`${baseUrl}/items/vs_employee_education?${query.toString()}`, {
-    headers,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new EducationPersistenceError("Education storage is temporarily unavailable.");
-  }
-  const parsed = z
-    .object({ data: z.array(educationAnyStatusSchema).max(1) })
-    .safeParse(await response.json());
-  if (!parsed.success) {
-    throw new EducationPersistenceError("Education storage returned an invalid result.");
-  }
-  return parsed.data.data[0] ?? null;
-}
-
-export async function updatePendingEducation(
-  educationId: number,
-  userId: number,
-  input: PendingEducationWrite
-): Promise<PersistedPendingEducation> {
-  const query = new URLSearchParams({ fields: EDUCATION_FIELDS, limit: "2" });
-  query.set("filter[employee_education_id][_eq]", String(educationId));
-  query.set("filter[user_id][_eq]", String(userId));
-  const existing = (await fetchRows(query))[0] ?? null;
-  if (!existing) throw new EducationPersistenceError("Education was not found.");
-
-  const desired: PendingEducationWrite = {
-    ...input,
-    course_request_draft_key:
-      input.course_request_draft_key ?? existing.course_request_draft_key,
-  };
-  await requireValidCourseClaim(desired);
-  const data = pendingPayload(userId, desired);
-  const { baseUrl, headers } = config();
-  const patchQuery = new URLSearchParams({ fields: EDUCATION_FIELDS });
-  const response = await fetch(
-    `${baseUrl}/items/vs_employee_education?${patchQuery.toString()}`,
-    {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({
-        data,
-        query: {
-          filter: {
-            employee_education_id: { _eq: educationId },
-            user_id: { _eq: userId },
-            education_status: { _eq: "Pending" },
-          },
-        },
-      }),
-      cache: "no-store",
-    }
-  );
-  if (!response.ok) throw new EducationPersistenceError("Education could not be updated.");
-  const parsed = z
-    .object({ data: z.array(educationRowSchema).max(1) })
-    .safeParse(await response.json());
-  if (!parsed.success) {
-    throw new EducationPersistenceError("Education storage returned an invalid result.");
-  }
-  const patched = parsed.data.data[0] ?? null;
-  if (patched) return patched;
-  const refetched = await fetchAnyStatusRow(educationId, userId);
-  if (
-    refetched !== null &&
-    refetched.education_status === "Pending" &&
-    sameClaimAnyStatus(refetched, desired)
-  ) {
-    return {
-      employee_education_id: refetched.employee_education_id,
-      user_id: refetched.user_id,
-      school_id: refetched.school_id,
-      school_name_raw: refetched.school_name_raw,
-      course_name_raw: refetched.course_name_raw,
-      education_status: "Pending",
-      school_course_id: refetched.school_course_id,
-      course_request_draft_key: refetched.course_request_draft_key,
-      start_date: refetched.start_date,
-      end_date: refetched.end_date,
-    };
-  }
-  throw new EducationPersistenceError("Education was modified by another process.");
 }

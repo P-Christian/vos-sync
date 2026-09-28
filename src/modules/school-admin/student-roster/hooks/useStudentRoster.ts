@@ -6,9 +6,11 @@ import { CreateStudentInput, UpdateRosterAcademicsInput } from '../types/student
 import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
 import { generateSchoolYearOptions } from '../utils/school-year.utils';
 
-export type RosterAlumniView = 'current' | 'alumni';
+interface UseStudentRosterOptions {
+  isAlumni?: boolean;
+}
 
-export function useStudentRoster() {
+export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions = {}) {
   const [students, setStudents] = useState<VsSchoolStudent[]>([]);
   const [courses, setCourses] = useState<VsSchoolCourse[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -20,7 +22,6 @@ export function useStudentRoster() {
   const [selectedCourseId, setSelectedCourseId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [alumniView, setAlumniView] = useState<RosterAlumniView>('current');
 
   // Maintain accumulated list of all available school years
   const [accumulatedYears, setAccumulatedYears] = useState<string[]>([]);
@@ -36,7 +37,7 @@ export function useStudentRoster() {
       if (selectedCourseId !== 'all') params.append('school_course_id', selectedCourseId);
       if (selectedStatus !== 'all') params.append('invitation_status', selectedStatus);
       if (searchQuery.trim()) params.append('search_query', searchQuery.trim());
-      params.append('is_alumni', alumniView === 'alumni' ? 'true' : 'false');
+      params.append('is_alumni', isAlumni ? 'true' : 'false');
 
       const res = await fetch(`/api/school-admin/students?${params.toString()}`);
       if (!res.ok) {
@@ -61,7 +62,7 @@ export function useStudentRoster() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, alumniView]);
+  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, isAlumni]);
 
   useEffect(() => {
     let isMounted = true;
@@ -75,7 +76,7 @@ export function useStudentRoster() {
         if (selectedCourseId !== 'all') params.append('school_course_id', selectedCourseId);
         if (selectedStatus !== 'all') params.append('invitation_status', selectedStatus);
         if (searchQuery.trim()) params.append('search_query', searchQuery.trim());
-        params.append('is_alumni', alumniView === 'alumni' ? 'true' : 'false');
+        params.append('is_alumni', isAlumni ? 'true' : 'false');
 
         const res = await fetch(`/api/school-admin/students?${params.toString()}`);
         if (!res.ok) {
@@ -111,7 +112,7 @@ export function useStudentRoster() {
     return () => {
       isMounted = false;
     };
-  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, alumniView]);
+  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, isAlumni]);
 
   useEffect(() => {
     let isMounted = true;
@@ -210,8 +211,6 @@ export function useStudentRoster() {
     setSelectedStatus,
     searchQuery,
     setSearchQuery,
-    alumniView,
-    setAlumniView,
     availableSchoolYears,
     refreshRoster: fetchStudents,
     addStudent,

@@ -1,35 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as jose from "jose";
-import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
-import type { FreelancerProfile } from "../types/freelancer-profile.types";
 import { addEducationSchema, updateEducationSchema } from "./freelancer-profile.schema";
-import { createOrFetchPendingEducation, updatePendingEducation, type PendingEducationWrite } from "./education-persistence.repo";
+import { createOrFetchPendingEducation, type PendingEducationWrite } from "./education-persistence.repo";
+import { fetchOwnedEducation, updatePendingEducation } from "./education-update.repo";
 import { ensureEducationAttendanceRequest } from "./attendance-request.repo";
-import { deletePendingEducationAndRequests } from "./education-deletion.repo";
+import { deleteOwnedEducationWithLinks } from "./education-deletion.repo";
 import { assertEducationWriteAllowed, shouldCreateAttendanceRequest } from "../../../education-verification";
+import { updateVerifiedEducationClaim } from "./verified-education-edit.service";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
-
-export async function getFreelancerProfile(token: string): Promise<FreelancerProfile | null> {
-    if (!token) {
-        return null;
-    }
-
-    try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        const { payload } = await jose.jwtVerify(token, secret);
-        
-        if (payload.email && typeof payload.email === 'string') {
-            const user = await fetchFreelancerProfileFromDirectus(payload.email);
-            return user as FreelancerProfile;
-        }
-    } catch (err) {
-        console.error("Failed to verify token or fetch freelancer profile:", err);
-    }
-    
-    return null;
-}
+export { getFreelancerProfile } from "./profile-read.service";
+export { computeProfileCompletion } from "./profile-completion";
 
 export function buildInitials(fname?: string | null, lname?: string | null): string {
     if (!fname && !lname) return "U";
@@ -152,7 +132,13 @@ export async function updateEducationService(id: number, userId: number, payload
     });
     if (!parsed.success) throw new Error("Invalid education claim.");
 
-    const education = await updatePendingEducation(id, userId, pendingEducationWrite(parsed.data));
+    const write = pendingEducationWrite(parsed.data);
+    const existing = await fetchOwnedEducation(id, userId);
+    if (existing.education_status === "Verified") {
+        return updateVerifiedEducationClaim({ educationId: id, userId, write });
+    }
+
+    const education = await updatePendingEducation(id, userId, write);
     if (shouldCreateAttendanceRequest()) {
         await ensureEducationAttendanceRequest(education);
     }
@@ -161,7 +147,7 @@ export async function updateEducationService(id: number, userId: number, payload
 
 export async function deleteEducationService(id: number, userId: number) {
     assertEducationWriteAllowed();
-    await deletePendingEducationAndRequests(id, userId);
+    await deleteOwnedEducationWithLinks(id, userId);
 }
 
 export async function addCertificationService(userId: number, payload: any) {
@@ -245,63 +231,5 @@ export async function saveJobPreferencesService(userId: number, payload: any) {
     };
 
     return await upsertJobPreferencesInDirectus(userId, data);
-}
-
-export function computeProfileCompletion(profile: FreelancerProfile, verifications: any[] = []): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
-    let gov_id = 0;
-    let address = 0;
-    let mobile_number = 0;
-
-    for (const v of verifications || []) {
-        if (v.status === 'approved') {
-            if (v.type === 'gov_id') gov_id = 20;
-            if (v.type === 'address') address = 20;
-            if (v.type === 'mobile_number') mobile_number = 20;
-        }
-    }
-
-    let completedProfileSections = 0;
-    const totalProfileSections = 6;
-
-    // 1. Personal Info
-    if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) {
-        completedProfileSections++;
-    }
-    // 2. Resume Document
-    if (profile.resumes && profile.resumes.length > 0) {
-        completedProfileSections++;
-    }
-    // 3. Professional Summary
-    if (profile.job_seeker_profile?.[0]?.professional_summary) {
-        completedProfileSections++;
-    }
-    // 4. Core Skills
-    if (profile.skills && profile.skills.length > 0) {
-        completedProfileSections++;
-    }
-    // 5. Work Experience History
-    if (profile.work_experience && profile.work_experience.length > 0) {
-        completedProfileSections++;
-    }
-    // 6. Educational Background
-    if (profile.education && profile.education.length > 0) {
-        completedProfileSections++;
-    }
-
-    const profile_sections = Math.round((completedProfileSections / totalProfileSections) * 40);
-    const percent = gov_id + address + mobile_number + profile_sections;
-
-    let status: 'not_started' | 'draft' | 'complete' | 'admin_verified' = 'not_started';
-    const currentStatus = profile.job_seeker_profile?.[0]?.profile_status;
-
-    if (currentStatus === 'admin_verified') {
-        status = 'admin_verified';
-    } else if (percent === 100) {
-        status = 'complete';
-    } else if (percent > 0) {
-        status = 'draft';
-    }
-
-    return { percent, status };
 }
 

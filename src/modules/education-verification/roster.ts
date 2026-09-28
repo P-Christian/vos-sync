@@ -82,6 +82,59 @@ function normalizedIdentity(user: AuthoritativeUser) {
   };
 }
 
+type MarkAlumniInput = {
+  readonly educationId: number;
+  readonly schoolId: number;
+  readonly courseId: number | null;
+  readonly educationUserId: number;
+  readonly row: AttendanceRosterRecord;
+};
+
+/**
+ * Approval marks the roster row alumni unconditionally. The contamination
+ * guards run first so a cross-school/cross-course row still fails closed;
+ * an already-alumni row converges without a write, and a lost patch race
+ * re-reads and converges on the winner instead of throwing.
+ */
+async function markAttendanceAlumni(
+  input: MarkAlumniInput
+): Promise<AttendanceRosterRecord> {
+  assertReusableRoster(
+    input.row,
+    input.educationUserId,
+    input.schoolId,
+    input.courseId
+  );
+  if (input.row.is_alumni === true) return input.row;
+  const updated = await patchRows(
+    {
+      operation: "roster.markAlumni",
+      collection: "vs_school_student",
+      filter: {
+        student_id: { _eq: input.row.student_id },
+        employee_education_id: { _eq: input.educationId },
+        school_id: { _eq: input.schoolId },
+        registered_user_id: { _eq: input.educationUserId },
+      },
+      data: { is_alumni: true },
+      fields: ROSTER_FIELDS,
+    },
+    rosterSchema
+  );
+  if (updated) return updated;
+  const readBack = await fetchRosterExact(input.educationId);
+  if (
+    readBack.student_id === input.row.student_id &&
+    readBack.is_alumni === true
+  ) {
+    return readBack;
+  }
+  throw primitiveError(
+    "STALE_CONFLICT",
+    "The roster row changed before alumni marking."
+  );
+}
+
 function assertReusableRoster(
   row: AttendanceRosterRecord,
   educationUserId: number,
@@ -119,8 +172,13 @@ export async function ensureAttendanceRoster(
   }
   const current = existing[0];
   if (current) {
-    assertReusableRoster(current, education.user_id, schoolId, input.courseId);
-    return current;
+    return markAttendanceAlumni({
+      educationId,
+      schoolId,
+      courseId: input.courseId,
+      educationUserId: education.user_id,
+      row: current,
+    });
   }
 
   const firstUserRead = await fetchAuthoritativeUser(education.user_id);
@@ -134,10 +192,6 @@ export async function ensureAttendanceRoster(
       "The authoritative user identity changed during roster creation."
     );
   }
-  const classification = deriveRosterClassification(
-    education.end_date,
-    input.approvalDate
-  );
   try {
     return await createRow(
       "roster.createForAttendance",
@@ -152,7 +206,7 @@ export async function ensureAttendanceRoster(
         school_course_id: input.courseId,
         school_year: input.schoolYear?.trim() || null,
         gpa: input.gpa ?? null,
-        is_alumni: classification === "alumni",
+        is_alumni: true,
         employee_education_id: educationId,
         registered_user_id: education.user_id,
         invitation_status: "Registered",
@@ -163,8 +217,13 @@ export async function ensureAttendanceRoster(
   } catch (error: unknown) {
     if (!isDependencyFailure(error)) throw error;
     const winner = await fetchRosterExact(educationId);
-    assertReusableRoster(winner, education.user_id, schoolId, input.courseId);
-    return winner;
+    return markAttendanceAlumni({
+      educationId,
+      schoolId,
+      courseId: input.courseId,
+      educationUserId: education.user_id,
+      row: winner,
+    });
   }
 }
 

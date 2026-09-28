@@ -34,6 +34,7 @@ const actionablePrecursorSchema = z
     requestStatus: z.literal("RoutedToSchool"),
     requestedCourseName: trimmedNonBlank,
     requestedBy: positiveInteger,
+    submittedAt: trimmedNonBlank,
     routedBy: positiveInteger,
     routedAt: trimmedNonBlank,
     matchedSchoolCourseId: z.null(),
@@ -49,6 +50,7 @@ const finalizingPrecursorSchema = z
     requestStatus: z.literal("RoutedToSchool"),
     requestedCourseName: trimmedNonBlank,
     requestedBy: positiveInteger,
+    submittedAt: trimmedNonBlank,
     routedBy: positiveInteger,
     routedAt: trimmedNonBlank,
     matchedSchoolCourseId: positiveInteger,
@@ -152,6 +154,7 @@ function toActionablePrecursor(row: {
   readonly request_status: string;
   readonly requested_course_name: string;
   readonly requested_by: number;
+  readonly created_at: string;
   readonly routed_by: number;
   readonly routed_at: string;
   readonly matched_school_course_id: number | null;
@@ -163,6 +166,7 @@ function toActionablePrecursor(row: {
     requestStatus: row.request_status,
     requestedCourseName: row.requested_course_name,
     requestedBy: row.requested_by,
+    submittedAt: row.created_at,
     routedBy: row.routed_by,
     routedAt: row.routed_at,
     matchedSchoolCourseId: row.matched_school_course_id,
@@ -178,6 +182,7 @@ function toFinalizingPrecursor(row: {
   readonly request_status: string;
   readonly requested_course_name: string;
   readonly requested_by: number;
+  readonly created_at: string;
   readonly routed_by: number;
   readonly routed_at: string;
   readonly matched_school_course_id: number | null;
@@ -189,6 +194,7 @@ function toFinalizingPrecursor(row: {
     requestStatus: row.request_status,
     requestedCourseName: row.requested_course_name,
     requestedBy: row.requested_by,
+    submittedAt: row.created_at,
     routedBy: row.routed_by,
     routedAt: row.routed_at,
     matchedSchoolCourseId: row.matched_school_course_id,
@@ -220,6 +226,7 @@ export async function attachSubmitterNames(
       requestStatus: row.requestStatus,
       requestedCourseName: row.requestedCourseName,
       submitterName: names.get(row.requestedBy) ?? "",
+      submittedAt: row.submittedAt,
       routedBy: row.routedBy,
       routedAt: row.routedAt,
       matchedSchoolCourseId: row.matchedSchoolCourseId,
@@ -231,6 +238,7 @@ export async function attachSubmitterNames(
       requestStatus: row.requestStatus,
       requestedCourseName: row.requestedCourseName,
       submitterName: names.get(row.requestedBy) ?? "",
+      submittedAt: row.submittedAt,
       routedBy: row.routedBy,
       routedAt: row.routedAt,
       matchedSchoolCourseId: row.matchedSchoolCourseId,

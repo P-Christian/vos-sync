@@ -103,3 +103,18 @@ export type CourseDecisionOutcome =
   | { kind: 'stale'; action: CourseDecisionAction; requestId: number; message: string; reloaded: VsCourseRequest | null }
   | { kind: 'finalizing'; requestId: number; courseId: number; claimInitiator: number | null; persistedCourse: VsCourseRequest | null }
   | { kind: 'failed'; action: CourseDecisionAction; requestId: number; status: number; message: string };
+
+// --- School draft outcome: parsed guard for POST /api/vos-admin/schools ---
+
+/**
+ * Created-or-reused school returned by the guarded draft endpoint. `reused` is
+ * true when an existing normalized match was returned instead of a new row.
+ */
+export interface SchoolDraftOutcome {
+  readonly school_id: number;
+  readonly school_name: string;
+  readonly city_municipality: string | null;
+  readonly province: string | null;
+  readonly verification_route: "DIRECT_REVIEW" | "AWAITING_ACTIVATION" | "AWAITING_REGISTRATION";
+  readonly reused: boolean;
+}

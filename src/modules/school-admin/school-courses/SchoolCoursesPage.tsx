@@ -57,6 +57,26 @@ export function SchoolCoursesPage({
     return filterCourses(courses, searchQuery, statusFilter, degreeFilter);
   }, [courses, searchQuery, statusFilter, degreeFilter]);
 
+  const existingForAdd = useMemo(
+    () =>
+      courses.map((course) => ({
+        course_name: course.course_name,
+        degree: course.degree ?? null,
+      })),
+    [courses]
+  );
+
+  const existingForEdit = useMemo(
+    () =>
+      courses
+        .filter((course) => course.school_course_id !== editingCourse?.school_course_id)
+        .map((course) => ({
+          course_name: course.course_name,
+          degree: course.degree ?? null,
+        })),
+    [courses, editingCourse]
+  );
+
   const columns = useMemo<ColumnDef<VsSchoolCourse>[]>(
     () => [
       {
@@ -187,6 +207,7 @@ export function SchoolCoursesPage({
         onOpenChange={setIsAddOpen}
         onSubmit={async (data) => await addCourse(data)}
         saving={saving}
+        existingCourses={existingForAdd}
       />
 
       <EditCourseModal
@@ -197,6 +218,7 @@ export function SchoolCoursesPage({
         }}
         onSubmit={async (id, data) => await updateCourse(id, data)}
         saving={saving}
+        existingCourses={existingForEdit}
       />
     </div>
   );

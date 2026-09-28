@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { ClipboardCheck, Inbox, RefreshCw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,13 +32,13 @@ import { classifyInboxLoadError, visibleInboxRows } from "./services/school-requ
  * Privacy-limited School Admin attendance inbox.
  *
  * Consumes the school-request API and state hook without widening their contract:
- *  - renders ONLY the allowed DTO fields (submitter display name, schools,
- *    courses, dates, timestamps, and the persisted reviewer/time claim);
- *  - approves with optional academics (canonical course completes now;
- *    missing course stays Pending with one follow-on course request);
+ *  - renders ONLY the allowed DTO fields (student display name, requested
+ *    school name, course, education dates, submitted date, and the saved
+ *    decision time);
+ *  - approving saves the decision and marks the education as verified right
+ *    away, with no extra course request created;
  *  - rejects with a trimmed nonblank reason;
- *  - renders loading/empty/error/forbidden/stale/finalizing states, keeping
- *    recoverable Approved rows visible until their follow-on request exists;
+ *  - renders loading/empty/error/forbidden/stale/unfinished-approval states;
  *  - never renders or submits identity, alumni, school, education, course, or
  *    classification overrides.
  */
@@ -62,7 +63,12 @@ function showFeedbackToast(feedback: SchoolAttendanceFeedback): void {
   }
 }
 
-export function SchoolRequestInboxPage() {
+interface SchoolRequestInboxPageProps {
+  /** Rendered directly below the header card, above the scope paragraph. */
+  readonly belowHeader?: ReactNode;
+}
+
+export function SchoolRequestInboxPage({ belowHeader }: SchoolRequestInboxPageProps) {
   const {
     inbox,
     routed,
@@ -134,18 +140,6 @@ export function SchoolRequestInboxPage() {
     showFeedbackToast(feedbackForSchoolReconcileOutcome(outcome));
   }, [reconcileSchoolAttendance]);
 
-  if (loading && inbox === null) {
-    return <SchoolRequestInboxSkeleton />;
-  }
-
-  if (error !== null) {
-    const failure = classifyInboxLoadError(error);
-    if (failure === "forbidden" || failure === "unauthenticated") {
-      return <SchoolRequestInboxAccessPanel kind={failure} message={error} />;
-    }
-    return <SchoolRequestInboxErrorBanner message={error} loading={loading} onRetry={() => void loadInbox()} />;
-  }
-
   const schoolId = inbox?.schoolId ?? null;
   // Defense in depth: a row may render only when its PERSISTED matched school
   // equals the inbox's own school. Foreign rows never reach a cell.
@@ -164,7 +158,7 @@ export function SchoolRequestInboxPage() {
           data-testid="school-request-reconcile"
         >
           <RotateCcw className={reconcileBusy ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
-          Recover finalizing
+          Finish saved approvals
         </Button>
       ) : null}
       <Button
@@ -180,91 +174,115 @@ export function SchoolRequestInboxPage() {
     </div>
   );
 
+  // Every render state shares one root: the header card and the injected tab
+  // strip stay mounted, and only this content changes with the state.
+  let content: ReactNode;
+  if (loading && inbox === null) {
+    content = <SchoolRequestInboxSkeleton />;
+  } else if (error !== null) {
+    const failure = classifyInboxLoadError(error);
+    content =
+      failure === "forbidden" || failure === "unauthenticated" ? (
+        <SchoolRequestInboxAccessPanel kind={failure} message={error} />
+      ) : (
+        <SchoolRequestInboxErrorBanner message={error} loading={loading} onRetry={() => void loadInbox()} />
+      );
+  } else {
+    content = (
+      <>
+        {schoolId !== null ? (
+          <p className="text-xs text-muted-foreground" data-testid="school-request-scope">
+            {routedRows.length === 1
+              ? "1 request waiting for your decision."
+              : `${String(routedRows.length)} requests waiting for your decision.`}
+          </p>
+        ) : null}
+
+        {reconcileFeedback !== null ? (
+          <p
+            data-testid="school-request-reconcile-feedback"
+            data-tone={reconcileFeedback.tone}
+            className="text-sm text-muted-foreground"
+          >
+            {reconcileFeedback.message}
+          </p>
+        ) : null}
+
+        {isEmpty ? (
+          <div data-testid="school-request-empty">
+            <EmptyPlaceholder
+              icon={Inbox}
+              title="No attendance requests yet"
+              description="Requests from people who listed your school will show up here for review."
+            />
+          </div>
+        ) : (
+          <>
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Inbox className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">Waiting for your decision</h2>
+                <Badge variant="secondary">{routedRows.length}</Badge>
+              </div>
+              {routedRows.length === 0 ? (
+                <p className="text-sm text-muted-foreground" data-testid="school-request-routed-empty">
+                  No requests need your decision right now.
+                </p>
+              ) : (
+                <SchoolRequestInboxTable
+                  rows={routedRows}
+                  variant="routed"
+                  feedbackByRow={feedbackByRow}
+                  busyByRow={busyByRow}
+                  claims={claims}
+                  onApprove={setApproveRow}
+                  onReject={setRejectRow}
+                  onResume={(row) => void handleResume(row)}
+                />
+              )}
+            </section>
+
+            {finalizingRows.length > 0 ? (
+              <section className="space-y-3" data-testid="school-request-finalizing">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 text-amber-600" />
+                  <h2 className="text-sm font-semibold">Unfinished approvals</h2>
+                  <Badge variant="secondary">{finalizingRows.length}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  These approvals were saved but did not finish. Use Finish saved approvals to
+                  complete them. Saved student details can no longer be edited.
+                </p>
+                <SchoolRequestInboxTable
+                  rows={finalizingRows}
+                  variant="finalizing"
+                  feedbackByRow={feedbackByRow}
+                  busyByRow={busyByRow}
+                  claims={claims}
+                  onApprove={setApproveRow}
+                  onReject={setRejectRow}
+                  onResume={(row) => void handleResume(row)}
+                />
+              </section>
+            ) : null}
+          </>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="w-[90%] max-w-[2000px] mx-auto space-y-6" data-testid="school-request-inbox">
       <SchoolAdminModuleHeader
         title="Attendance Requests"
-        description="Review attendance verification requests routed to your school. Approve to certify attendance and optionally record academics, or reject with a reason."
+        description="Review requests from students who listed your school. Approve to verify their education, or reject with a reason."
         icon={ClipboardCheck}
         actions={headerActions}
       />
 
-      {schoolId !== null ? (
-        <p className="text-xs text-muted-foreground" data-testid="school-request-scope">
-          School #{schoolId} - {routedRows.length} routed request(s), {finalizingRows.length} finalizing
-        </p>
-      ) : null}
+      {belowHeader}
 
-      {reconcileFeedback !== null ? (
-        <p
-          data-testid="school-request-reconcile-feedback"
-          data-tone={reconcileFeedback.tone}
-          className="text-sm text-muted-foreground"
-        >
-          {reconcileFeedback.message}
-        </p>
-      ) : null}
-
-      {isEmpty ? (
-        <div data-testid="school-request-empty">
-          <EmptyPlaceholder
-            icon={Inbox}
-            title="No attendance requests"
-            description="When a freelancer requests attendance verification at your school, it will appear here for review."
-          />
-        </div>
-      ) : (
-        <>
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Inbox className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Routed to your school</h2>
-              <Badge variant="secondary">{routedRows.length}</Badge>
-            </div>
-            {routedRows.length === 0 ? (
-              <p className="text-sm text-muted-foreground" data-testid="school-request-routed-empty">
-                No routed attendance requests need a decision.
-              </p>
-            ) : (
-              <SchoolRequestInboxTable
-                rows={routedRows}
-                variant="routed"
-                feedbackByRow={feedbackByRow}
-                busyByRow={busyByRow}
-                claims={claims}
-                onApprove={setApproveRow}
-                onReject={setRejectRow}
-                onResume={(row) => void handleResume(row)}
-              />
-            )}
-          </section>
-
-          {finalizingRows.length > 0 ? (
-            <section className="space-y-3" data-testid="school-request-finalizing">
-              <div className="flex items-center gap-2">
-                <RotateCcw className="h-4 w-4 text-amber-600" />
-                <h2 className="text-sm font-semibold">Finalizing recovery</h2>
-                <Badge variant="secondary">{finalizingRows.length}</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                These approvals committed but their follow-on course request is not present yet. Only
-                Resume of the persisted reviewer/time decision is available; academics stay fixed on
-                the roster row and cannot be edited again.
-              </p>
-              <SchoolRequestInboxTable
-                rows={finalizingRows}
-                variant="finalizing"
-                feedbackByRow={feedbackByRow}
-                busyByRow={busyByRow}
-                claims={claims}
-                onApprove={setApproveRow}
-                onReject={setRejectRow}
-                onResume={(row) => void handleResume(row)}
-              />
-            </section>
-          ) : null}
-        </>
-      )}
+      {content}
 
       {approveRow !== null ? (
         <ApproveAttendanceDialog

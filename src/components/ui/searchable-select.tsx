@@ -26,6 +26,10 @@ export interface SearchableSelectProps {
     onSearchChange?: (term: string) => void;
     serverFiltered?: boolean;
     placeholder?: string;
+    /** Placeholder for the in-popover search input; defaults to a form derived from `placeholder`. */
+    searchPlaceholder?: string;
+    /** Accessible name for the combobox trigger, which takes no name from its content. */
+    ariaLabel?: string;
     disabled?: boolean;
     className?: string;
 }
@@ -37,6 +41,8 @@ export function SearchableSelect({
     onSearchChange,
     serverFiltered = false,
     placeholder = "Select option...",
+    searchPlaceholder,
+    ariaLabel,
     disabled = false,
     className,
 }: SearchableSelectProps) {
@@ -54,10 +60,11 @@ export function SearchableSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className={cn("w-full justify-between", !value && "text-muted-foreground", className)}
+                    aria-label={ariaLabel}
+                    className={cn("w-full min-w-0 justify-between", !value && "text-muted-foreground", className)}
                     disabled={disabled}
                 >
-                    {selectedLabel || placeholder}
+                    <span className="truncate">{selectedLabel || placeholder}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
@@ -65,7 +72,7 @@ export function SearchableSelect({
                 <Command shouldFilter={!serverFiltered}>
                     <CommandInput
               className="text-base md:text-sm"
-              placeholder={`Search ${placeholder.toLowerCase()}...`}
+              placeholder={searchPlaceholder ?? `Search ${placeholder.toLowerCase()}...`}
               onValueChange={onSearchChange}
             />
                     <CommandList>
@@ -93,7 +100,7 @@ export function SearchableSelect({
                                             value === opt.value ? "opacity-100" : "opacity-0"
                                         )}
                                     />
-                                    {opt.label}
+                                    <span className="min-w-0 flex-1 break-words">{opt.label}</span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

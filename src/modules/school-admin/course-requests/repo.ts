@@ -138,6 +138,7 @@ const looseCourseRequestRowSchema = z
     reviewed_at: z.string().nullable(),
     routed_by: z.number().int().nullable(),
     routed_at: z.string().nullable(),
+    created_at: z.string(),
     admin_remarks: z.string().nullable(),
   })
   .strict();
@@ -285,7 +286,7 @@ async function patchGuardedRow<T>(
 }
 
 const COURSE_REQUEST_FIELDS =
-  "course_request_id,school_id,employee_education_id,requested_by,requested_course_name,request_status,matched_school_course_id,reviewed_by,reviewed_at,routed_by,routed_at,admin_remarks";
+  "course_request_id,school_id,employee_education_id,requested_by,requested_course_name,request_status,matched_school_course_id,reviewed_by,reviewed_at,routed_by,routed_at,created_at,admin_remarks";
 const ROSTER_FIELDS =
   "student_id,school_id,school_course_id,employee_education_id,invitation_status,registered_user_id";
 const EDUCATION_OWNER_FIELDS = "employee_education_id,user_id";

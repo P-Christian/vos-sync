@@ -12,7 +12,7 @@ export const approveSchoolRequestSchema = z.object({
 
 export const rejectRequestSchema = z.object({
   action: z.literal('Rejected'),
-  admin_remarks: z.string().min(1, 'Admin remarks are required when rejecting a request.'),
+  admin_remarks: z.string().trim().min(1, 'Admin remarks are required when rejecting a request.'),
 });
 
 // We can accept either approve or reject for the review endpoint

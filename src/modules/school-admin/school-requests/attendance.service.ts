@@ -9,7 +9,8 @@ import { claimSchoolAttendance, normalizeRosterAcademics, parseRouteAudit } from
 import { routingError } from "@/modules/school-request-routing/errors";
 import { fetchSchoolRequestForSchool, listSchoolRequestInbox } from "./service";
 import { invalidInputError } from "./errors";
-import { fetchAttendanceEducation, fetchAttendanceRequest, patchAttendanceRequest } from "./attendance.repo";
+import { fetchAttendanceRequest, patchAttendanceRequest } from "./attendance.repo";
+import { notifyEducationRejection } from "@/lib/notifications/services/education-rejection";
 import type {
   AttendanceAcademics,
   AttendanceDecisionInput,
@@ -94,19 +95,16 @@ async function completeClaimedAttendance(
     expectedRawSchoolName: request.requestedSchoolName,
     canonicalCourseId: courseId,
   });
-  let courseRequestId: number | null = null;
+  const requestedCourseName =
+    education.school_course_id === null ? education.course_name_raw?.trim() ?? "" : "";
+  const courseRequest =
+    requestedCourseName.length > 0
+      ? await ensureCourseRequest({ educationId, schoolId, requestedCourseName })
+      : null;
+  const courseRequestId = courseRequest?.course_request_id ?? null;
   const reviewerId = request.reviewedBy;
   if (reviewerId === null) throw routingError("CLAIM_CONFLICT", "The attendance claim has no persisted reviewer.");
   await finalizeApproval(request.schoolRequestId, schoolId, reviewerId, educationId);
-  if (courseId === null) {
-    const educationDetails = await fetchAttendanceEducation(educationId);
-    const courseRequest = await ensureCourseRequest({
-      educationId,
-      schoolId,
-      requestedCourseName: educationDetails.course_name_raw ?? request.requestedSchoolName,
-    });
-    courseRequestId = courseRequest.course_request_id;
-  }
   if (education.education_status === "Unverified") {
     throw routingError("CORRELATION_CONFLICT", "The reconciled education has an invalid status.");
   }
@@ -182,5 +180,14 @@ export async function rejectSchoolAttendance(input: AttendanceRejectionInput): P
     { request_status: "Rejected", admin_remarks: remarks, reviewed_by: callerUserId, reviewed_at: new Date().toISOString(), active_employee_education_id: null },
   );
   if (!updated) throw routingError("CLAIM_CONFLICT", "The rejection lost its guarded race.");
+  await notifyEducationRejection({
+    kind: "attendance",
+    requestId,
+    educationId: current.employee_education_id,
+    recipientUserId: scoped.row.requestedBy,
+    schoolName: scoped.row.requestedSchoolName,
+    reason: remarks,
+    rejectedBy: "school_admin",
+  });
   return { requestId, requestStatus: "Rejected", reviewedBy: callerUserId, reviewedAt: updated.reviewed_at ?? "" };
 }
