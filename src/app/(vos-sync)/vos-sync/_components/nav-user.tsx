@@ -15,6 +15,7 @@ import {
     Sun,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useThemeCurtain } from "@/components/theme/useThemeCurtain"
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -56,7 +57,8 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
     const [loggingOut, setLoggingOut] = React.useState(false)
 
     // ✅ theme toggle support
-    const { theme, setTheme, systemTheme } = useTheme()
+    const { theme, systemTheme } = useTheme()
+    const { switchTheme } = useThemeCurtain()
     const [mounted, setMounted] = React.useState(false)
     const pathname = usePathname()
     React.useEffect(() => setMounted(true), [])
@@ -67,8 +69,8 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
     const toggleTheme = React.useCallback(() => {
         // If theme is not resolved yet, default to toggling from light -> dark
         const next = isDark ? "light" : "dark"
-        setTheme(next)
-    }, [isDark, setTheme])
+        switchTheme(next)
+    }, [isDark, switchTheme])
 
     const initials =
         user?.name

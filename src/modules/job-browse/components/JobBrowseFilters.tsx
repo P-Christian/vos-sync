@@ -98,7 +98,9 @@ export function JobBrowseFilters({
         </Select>
 
         <span className="ml-auto text-sm md:text-xs text-muted-foreground">
-          {filteredCount} of {totalCount} job{totalCount !== 1 ? "s" : ""}
+          {filteredCount === totalCount
+            ? `${totalCount} active job${totalCount !== 1 ? "s" : ""}`
+            : `${filteredCount} of ${totalCount} active jobs`}
         </span>
       </div>
     </div>

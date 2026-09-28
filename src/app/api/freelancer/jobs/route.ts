@@ -220,9 +220,15 @@ export async function GET(req: NextRequest) {
       "experience_level", "education", "status", "created_at",
     ].join(",");
 
+    const hasCustomFilters = andConditions.length > 1;
     const directusUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter=${encodeURIComponent(filterJson)}&sort[]=-created_at&fields=${fields}&limit=${limit}&offset=${offset}&meta=*`;
+    const activeTotalFilter = JSON.stringify({ status: { _eq: "ACTIVE" } });
+    const activeTotalUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter=${encodeURIComponent(activeTotalFilter)}&limit=0&meta=filter_count`;
 
-    const jobsRes = await fetch(directusUrl, { headers: getHeaders(), cache: "no-store" });
+    const [jobsRes, activeTotalRes] = await Promise.all([
+      fetch(directusUrl, { headers: getHeaders(), cache: "no-store" }),
+      hasCustomFilters ? fetch(activeTotalUrl, { headers: getHeaders(), cache: "no-store" }) : Promise.resolve(null),
+    ]);
 
     if (!jobsRes.ok) {
       const err = await jobsRes.json().catch(() => ({}));
@@ -236,14 +242,23 @@ export async function GET(req: NextRequest) {
     const rawJobs: Record<string, unknown>[] = jobsJson.data ?? [];
     
     const directusFilterCount = typeof jobsJson.meta?.filter_count === "number" ? jobsJson.meta.filter_count : null;
-    const directusTotalCount = typeof jobsJson.meta?.total_count === "number" ? jobsJson.meta.total_count : null;
+    let totalActiveCount = directusFilterCount ?? 0;
+
+    if (hasCustomFilters && activeTotalRes && activeTotalRes.ok) {
+      const activeTotalJson = await activeTotalRes.json().catch(() => ({}));
+      if (typeof activeTotalJson.meta?.filter_count === "number") {
+        totalActiveCount = activeTotalJson.meta.filter_count;
+      }
+    } else if (!hasCustomFilters && directusFilterCount !== null) {
+      totalActiveCount = directusFilterCount;
+    }
 
     const hasMore = directusFilterCount !== null
       ? offset + rawJobs.length < directusFilterCount
       : rawJobs.length === limit;
 
     const filterCount = directusFilterCount ?? (hasMore ? offset + rawJobs.length + 1 : offset + rawJobs.length);
-    const totalCount = directusTotalCount ?? filterCount;
+    const totalCount = totalActiveCount;
 
     if (rawJobs.length === 0) {
       return NextResponse.json({

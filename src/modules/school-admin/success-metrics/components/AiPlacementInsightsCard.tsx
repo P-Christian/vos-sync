@@ -11,7 +11,7 @@ export function AiPlacementInsightsCard() {
   const { data, insight, isGeneratingAi, aiError, generateAiInsights } = useSuccessMetricsContext();
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-br from-background via-background to-primary/5 shadow-xs">
+    <Card className="border border-border bg-gradient-to-br from-card via-card to-primary/5 shadow-xs">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
@@ -22,7 +22,7 @@ export function AiPlacementInsightsCard() {
               <CardTitle className="text-base font-semibold text-foreground">
                 AI Placement & Employability Insights
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs text-muted-foreground">
                 Stateless AI analysis synthesized from current cohort placement and application numbers
               </CardDescription>
             </div>

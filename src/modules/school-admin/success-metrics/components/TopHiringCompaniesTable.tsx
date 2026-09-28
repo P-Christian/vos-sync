@@ -18,7 +18,7 @@ export function TopHiringCompaniesTable({ topCompanies }: TopHiringCompaniesTabl
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-base font-semibold text-foreground">Top Hiring Employers</CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs text-muted-foreground">
               Companies actively hiring graduates and students from your institution
             </CardDescription>
           </div>
@@ -31,14 +31,14 @@ export function TopHiringCompaniesTable({ topCompanies }: TopHiringCompaniesTabl
             <p>No company placement records found yet.</p>
           </div>
         ) : (
-          <div className="divide-y rounded-lg border">
+          <div className="divide-y divide-border rounded-lg border border-border">
             {topCompanies.map((company, index) => (
               <div
                 key={`${company.companyId}-${index}`}
-                className="flex flex-col gap-2 p-3.5 sm:flex-row sm:items-center sm:justify-between hover:bg-muted/30 transition-colors"
+                className="flex flex-col gap-2 p-3.5 sm:flex-row sm:items-center sm:justify-between hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/20 text-primary font-bold">
                     {company.companyName.charAt(0).toUpperCase()}
                   </div>
                   <div>
