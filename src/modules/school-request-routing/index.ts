@@ -3,6 +3,8 @@ import "server-only";
 export { claimSchoolAttendance, normalizeRosterAcademics } from "./attendance-claim";
 export { SchoolRequestRoutingError } from "./errors";
 export {
+  bindEducationSchool,
+  EDUCATION_BIND_FIELDS,
   fetchEducation,
   fetchSchool,
   fetchSchoolRequest,

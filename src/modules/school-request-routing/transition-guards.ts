@@ -1,6 +1,5 @@
 import "server-only";
 
-import { schoolIdentitiesMatch } from "@/modules/school-identity";
 import { routingError } from "./errors";
 import { parseRouteAudit } from "./route-audit";
 import type {
@@ -52,16 +51,13 @@ export function assertPendingEducation(
     );
   }
   if (education.school_id === targetSchool.school_id) return;
-  if (
-    education.school_id !== null ||
-    education.school_name_raw === null ||
-    !schoolIdentitiesMatch(education.school_name_raw, targetSchool.school_name)
-  ) {
+  if (education.school_id !== null) {
     throw routingError(
       "CORRELATION_CONFLICT",
-      "The linked education is not canonically bound to the target school."
+      "The linked education is bound to a different school."
     );
   }
+  return;
 }
 
 export function routeReplay(

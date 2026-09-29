@@ -25,7 +25,7 @@ export function getHeaders(): Record<string, string> {
   return headers;
 }
 
-async function request(operation: string, path: string, init?: RequestInit): Promise<Response> {
+export async function request(operation: string, path: string, init?: RequestInit): Promise<Response> {
   if (!DIRECTUS_BASE) throw routingError("DEPENDENCY_FAILURE", `${operation} is not configured.`);
   try {
     const response = await fetch(`${DIRECTUS_BASE}${path}`, {
@@ -43,7 +43,7 @@ async function request(operation: string, path: string, init?: RequestInit): Pro
   }
 }
 
-async function responseJson(operation: string, response: Response): Promise<unknown> {
+export async function responseJson(operation: string, response: Response): Promise<unknown> {
   try {
     return await response.json();
   } catch (error: unknown) {

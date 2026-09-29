@@ -4,6 +4,7 @@ import { getPHTimeString } from "@/lib/utils";
 import { patchRows } from "./directus";
 import { routingError } from "./errors";
 import {
+  bindEducationSchool,
   classifySchoolRoute,
   fetchEducation,
   fetchSchoolRoute,
@@ -85,7 +86,12 @@ export async function routeSchoolRequest(input: RouteSchoolInput): Promise<Trans
       request_status: "RoutedToSchool",
     }
   );
-  if (updated) return { kind: "mutated", request: updated };
+  if (updated) {
+    if (education.school_id === null) {
+      await bindEducationSchool(educationId, input.targetSchoolId);
+    }
+    return { kind: "mutated", request: updated };
+  }
   const current = await fetchSchoolRequest(input.requestId);
   if (routeReplay(current, input)) return { kind: "converged", request: current };
   throw routingError("STALE_CONFLICT", "The school request changed before routing completed.");
@@ -133,7 +139,12 @@ export async function groupSchoolRequest(input: GroupSchoolInput): Promise<Trans
     },
     { matched_school_id: input.targetSchoolId, request_status: "Pending" }
   );
-  if (updated) return { kind: "mutated", request: updated };
+  if (updated) {
+    if (education.school_id === null) {
+      await bindEducationSchool(educationId, input.targetSchoolId);
+    }
+    return { kind: "mutated", request: updated };
+  }
   const current = await fetchSchoolRequest(input.requestId);
   if (groupReplay(current, input)) return { kind: "converged", request: current };
   throw routingError("STALE_CONFLICT", "The school request changed before grouping completed.");
