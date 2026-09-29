@@ -108,7 +108,7 @@ export async function GET(
         ),
         // Education
         fetch(
-          `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${talentUserId}&fields=employee_education_id,school_id.school_name,school_id.city_municipality,school_id.province,school_course_id.course_name,start_date,end_date&limit=-1`,
+          `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${talentUserId}&fields=employee_education_id,school_id.school_name,school_id.city_municipality,school_id.province,school_course_id.course_name,education_status,start_date,end_date&limit=-1`,
           { headers: getHeaders(), cache: "no-store" }
         ),
         // Certifications
@@ -178,6 +178,7 @@ export async function GET(
       employee_education_id: number;
       school_id?: { school_name?: string; city_municipality?: string; province?: string };
       school_course_id?: { course_name?: string };
+      education_status?: string | null;
       start_date?: string;
       end_date?: string;
     }> = eduRes.ok ? (await eduRes.json()).data ?? [] : [];
@@ -267,6 +268,7 @@ export async function GET(
         school_name: e.school_id?.school_name ?? null,
         school_location: [e.school_id?.city_municipality, e.school_id?.province].filter(Boolean).join(", ") || null,
         course_name: e.school_course_id?.course_name ?? null,
+        education_status: e.education_status ?? null,
         start_date: e.start_date ?? null,
         end_date: e.end_date ?? null,
       })),

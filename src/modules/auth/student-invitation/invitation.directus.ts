@@ -57,6 +57,13 @@ export interface DirectusCollectionPatch {
   readonly fields: string;
 }
 
+export interface DirectusCollectionCreate {
+  readonly operation: string;
+  readonly collection: string;
+  readonly data: Readonly<Record<string, unknown>>;
+  readonly fields: string;
+}
+
 export function lookupPath(lookup: DirectusLookup): string {
   const query = new URLSearchParams({
     [`filter[${lookup.field}][_eq]`]: String(lookup.value),
@@ -85,6 +92,30 @@ export async function fetchFirst<T>(
     const parsed = z.object({ data: z.array(schema) }).safeParse(body);
     if (!parsed.success) throw dependencyError(`${operation}.response`);
     return parsed.data.data[0] ?? null;
+  } catch (error: unknown) {
+    if (error instanceof StudentInvitationRepositoryError) throw error;
+    throw dependencyError(operation, undefined, error);
+  }
+}
+
+export async function fetchMany<T>(
+  operation: string,
+  path: string,
+  schema: ZodType<T>
+): Promise<T[]> {
+  if (!DIRECTUS_BASE) throw dependencyError(`${operation}.configuration`);
+
+  try {
+    const response = await fetch(`${DIRECTUS_BASE}${path}`, {
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+    if (!response.ok) throw dependencyError(operation, response.status);
+
+    const body: unknown = await response.json();
+    const parsed = z.object({ data: z.array(schema) }).safeParse(body);
+    if (!parsed.success) throw dependencyError(`${operation}.response`);
+    return parsed.data.data;
   } catch (error: unknown) {
     if (error instanceof StudentInvitationRepositoryError) throw error;
     throw dependencyError(operation, undefined, error);
@@ -121,6 +152,67 @@ export async function patchCollection<T>(
     const parsed = z.object({ data: z.array(schema).max(1) }).safeParse(body);
     if (!parsed.success) throw dependencyError(`${operation}.response`);
     return parsed.data.data[0] ?? null;
+  } catch (error: unknown) {
+    if (error instanceof StudentInvitationRepositoryError) throw error;
+    throw dependencyError(operation, undefined, error);
+  }
+}
+
+export interface DirectusItemDelete {
+  readonly operation: string;
+  readonly collection: string;
+  readonly id: string | number;
+}
+
+/**
+ * Delete one row by primary key. Directus answers 204 with no body; a
+ * missing row still resolves because compensation only needs the row gone.
+ */
+export async function deleteItem(remove: DirectusItemDelete): Promise<void> {
+  const { operation, collection, id } = remove;
+  if (!DIRECTUS_BASE) throw dependencyError(`${operation}.configuration`);
+
+  try {
+    const response = await fetch(
+      `${DIRECTUS_BASE}/items/${collection}/${id}`,
+      {
+        method: "DELETE",
+        headers: getHeaders(),
+        cache: "no-store",
+      }
+    );
+    if (!response.ok && response.status !== 404) {
+      throw dependencyError(operation, response.status);
+    }
+  } catch (error: unknown) {
+    if (error instanceof StudentInvitationRepositoryError) throw error;
+    throw dependencyError(operation, undefined, error);
+  }
+}
+export async function createItem<T>(
+  create: DirectusCollectionCreate,
+  schema: ZodType<T>
+): Promise<T | null> {
+  const { operation, collection, data, fields } = create;
+  if (!DIRECTUS_BASE) throw dependencyError(`${operation}.configuration`);
+
+  try {
+    const query = new URLSearchParams({ fields });
+    const response = await fetch(
+      `${DIRECTUS_BASE}/items/${collection}?${query.toString()}`,
+      {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+        cache: "no-store",
+      }
+    );
+    if (!response.ok) throw dependencyError(operation, response.status);
+
+    const body: unknown = await response.json();
+    const parsed = z.object({ data: schema.nullable() }).safeParse(body);
+    if (!parsed.success) throw dependencyError(`${operation}.response`);
+    return parsed.data.data;
   } catch (error: unknown) {
     if (error instanceof StudentInvitationRepositoryError) throw error;
     throw dependencyError(operation, undefined, error);

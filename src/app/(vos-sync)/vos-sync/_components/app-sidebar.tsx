@@ -158,6 +158,7 @@ export function AppSidebar({
                 { label: "My School", href: "/vos-sync/school-admin/profile", icon: Building2 },
                 { label: "My Courses", href: "/vos-sync/school-admin/courses", icon: GraduationCap },
                 { label: "Student Roster", href: "/vos-sync/school-admin/students", icon: Users },
+                { label: "Requests", href: "/vos-sync/school-admin/requests", icon: ClipboardCheck },
                 { label: "Job Referrals", href: "/vos-sync/school-admin/job-referrals", icon: Briefcase },
                 { label: "Success Metrics", href: "/vos-sync/school-admin/success-metrics", icon: TrendingUp },
                 // { label: "How It Works", href: "/vos-sync/school-admin/how-it-works", icon: HelpCircle },

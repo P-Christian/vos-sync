@@ -717,9 +717,14 @@ export default function ApplicantDetailsModal({
                   <AnimatedSection delay={0.3}>
                     <SectionCard icon={GraduationCap} title="Education">
                       <div className="space-y-3">
-                        {detail.education.map((edu, index) => (
-                          <div key={index} className="border-l-2 border-border pl-3 py-0.5">
-                            <h4 className="font-semibold text-foreground text-sm md:text-xs">{edu.school_name}</h4>
+                        {detail.education.map((edu) => (
+                          <div key={edu.id} data-education-id={edu.id} className="border-l-2 border-border pl-3 py-0.5">
+                            <div className="flex items-center justify-between gap-2 flex-wrap">
+                              <h4 className="font-semibold text-foreground text-sm md:text-xs">{edu.school_name}</h4>
+                              <Badge variant="outline" className="text-xs px-2 py-0 font-medium md:text-[10px]">
+                                {edu.status}
+                              </Badge>
+                            </div>
                             {edu.course_name && (
                               <p className="text-sm text-muted-foreground mt-0.5 md:text-xs">{edu.course_name}</p>
                             )}

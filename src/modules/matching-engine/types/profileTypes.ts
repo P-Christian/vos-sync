@@ -11,6 +11,8 @@ export interface NormalizedWorkEntry {
 }
 
 export interface NormalizedEduEntry {
+  id: number | null;
+  status: string | null;
   school: string | null;
   course: string | null;
   startDate: string | null;

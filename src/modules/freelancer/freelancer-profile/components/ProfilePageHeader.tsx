@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
+import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 
 export function ProfilePageHeader() {
     const { saveAllChanges, isSaving, hasPendingChanges } = useFreelancerProfileContext();
+    useUnsavedChangesGuard(hasPendingChanges, isSaving);
 
     const handleSave = async () => {
         const res = await saveAllChanges();

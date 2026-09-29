@@ -12,6 +12,10 @@ import {
   StudentInvitationAcceptanceError,
 } from "@/modules/auth/student-invitation/invitation.acceptance";
 import {
+  StudentInvitationEducationError,
+  synchronizeRosterEducation,
+} from "@/modules/auth/student-invitation/invitation.education";
+import {
   InvitationChallengeError,
   verifyInvitationChallenge,
 } from "@/modules/auth/student-invitation/invitation.challenge";
@@ -100,6 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!isLinkedToSession(student, session.userId)) {
         return conflictJson("INVITATION_OWNERSHIP_CONFLICT");
       }
+      await synchronizeRosterEducation({ userId: session.userId, student });
       await completeOwnedAcceptance({
         sessionUserId: session.userId,
         invitation,
@@ -181,6 +186,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!isLinkedToSession(latestStudent, session.userId)) {
         return conflictJson("INVITATION_OWNERSHIP_CONFLICT");
       }
+      await synchronizeRosterEducation({ userId: session.userId, student: latestStudent });
       await completeOwnedAcceptance({
         sessionUserId: session.userId,
         invitation: latestInvitation,
@@ -247,13 +253,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    const sync = await synchronizeRosterEducation({ userId: session.userId, student: link.student });
     await completeOwnedAcceptance({
       sessionUserId: session.userId,
       invitation: latestInvitation,
-      student: link.student,
+      student: sync.student,
     });
     return linkedResponse;
   } catch (error: unknown) {
+    if (error instanceof StudentInvitationEducationError) {
+      return verifyJson(
+        {
+          error:
+            error.statusCode === 503
+              ? "Invitation service is unavailable."
+              : error.statusCode === 400
+                ? "Invalid request."
+                : "Invitation cannot be accepted.",
+          code: error.code,
+        },
+        error.statusCode
+      );
+    }
     if (error instanceof InvitationChallengeError) {
       return verifyJson(
         {

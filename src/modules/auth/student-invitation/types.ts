@@ -19,6 +19,8 @@ export interface SchoolStudentRecord {
   readonly school_year: string | null;
   readonly registered_user_id: number | null;
   readonly invitation_status: "Not Sent" | "Invited" | "Registered";
+  /** Exact link to the verified education row; null while unlinked. */
+  readonly employee_education_id: number | null;
 }
 
 export interface SchoolRecord {
@@ -31,6 +33,20 @@ export interface SchoolCourseRecord {
   readonly course_name: string;
 }
 
+export type EducationStatus = "Verified" | "Pending" | "Unverified";
+
+export interface EmployeeEducationRecord {
+  readonly employee_education_id: number;
+  readonly user_id: number;
+  readonly school_id: number | null;
+  readonly school_course_id: number | null;
+  readonly school_name_raw: string | null;
+  readonly course_name_raw: string | null;
+  readonly education_status: EducationStatus | null;
+  readonly start_date: string | null;
+  readonly end_date: string | null;
+}
+
 export type StudentInvitationPreviewState =
   | "valid"
   | "expired"
@@ -41,6 +57,7 @@ export type StudentInvitationPreviewState =
 export interface ValidStudentInvitationPreviewDto {
   readonly state: "valid";
   readonly schoolName: string;
+  /** Course name; an empty string when the roster row has no course. */
   readonly courseName: string;
   readonly schoolYear: string;
   readonly studentFirstName: string;

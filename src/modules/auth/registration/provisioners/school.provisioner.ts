@@ -60,16 +60,14 @@ const SCHOOL_ADMIN_FIELDS = [
 
 const INVITATION_FIELDS = [
   "token_id",
-  "id",
   "token",
   "invited_email",
   "is_used",
   "expires_at",
   "school_id",
-  // Phase 1 must provision at least one of these ownership fields. Keeping
-  // both in the explicit selection lets the service support either approved
-  // schema variant while failing closed if neither is available.
-  "used_by_user_id",
+  // Only real vs_invite_token columns may be selected: Directus rejects (403)
+  // unknown fields, which would fail the entire provisioning read. Ownership
+  // and replay evidence is carried by registration_key.
   "registration_key",
 ] as const;
 

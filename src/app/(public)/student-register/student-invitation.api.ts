@@ -75,7 +75,7 @@ function isPreviewResponse(
     case "valid":
       return (
         hasString(value, "schoolName") &&
-        hasString(value, "courseName") &&
+        typeof value.courseName === "string" &&
         hasString(value, "schoolYear") &&
         hasString(value, "studentFirstName") &&
         typeof value.studentLastName === "string" &&
@@ -141,6 +141,8 @@ const ERROR_MESSAGES: Record<StudentInvitationErrorCode, string> = {
   OTP_EXPIRED: "The verification code has expired. Request a new code.",
   RATE_LIMITED: "Too many attempts. Please wait a moment and try again.",
   SERVICE_UNAVAILABLE: "We couldn't complete that request. Please try again.",
+  EDUCATION_AMBIGUOUS:
+    "Your school record needs a review before it can be linked. Please try again later.",
 };
 
 async function requestJson<T>(

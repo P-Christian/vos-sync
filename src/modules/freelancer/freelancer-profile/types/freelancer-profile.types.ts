@@ -91,6 +91,7 @@ export interface VsEducation {
     school_name_raw?: string | null;
     course_name_raw?: string | null;
     education_status?: 'Verified' | 'Pending' | 'Unverified';
+    course_request_draft_key?: string | null;
     school_course_id: number | null;
     start_date?: string | null;
     end_date?: string | null;
@@ -99,6 +100,11 @@ export interface VsEducation {
     // Virtual fields joined from DB for UI rendering
     school_name?: string;
     course_name?: string;
+    course_verification?: {
+        readonly status: 'Pending' | 'RoutedToSchool' | 'Approved' | 'Rejected';
+        readonly remarks: string | null;
+    } | null;
+    attendance_rejected?: boolean;
 }
 
 export interface VsCertification {

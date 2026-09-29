@@ -22,6 +22,8 @@ export function normalizeRawCandidate(raw: {
     is_current_role?: boolean;
   }>;
   education?: Array<{
+    id?: number | null;
+    status?: string | null;
     school_name?: string | null;
     course_name?: string | null;
     start_date?: string | null;
@@ -59,6 +61,8 @@ export function normalizeRawCandidate(raw: {
   }
 
   const education: NormalizedEduEntry[] = (raw.education ?? []).map((e) => ({
+    id: e.id ?? null,
+    status: e.status ?? null,
     school: e.school_name ?? null,
     course: e.course_name ?? null,
     startDate: e.start_date ?? null,
@@ -77,7 +81,7 @@ export function normalizeRawCandidate(raw: {
   if (workHistory.length > 0) completeness += 25;
   if (raw.summary && raw.summary.length > 50) completeness += 20;
   if ((raw.skills ?? []).length > 0) completeness += 20;
-  if (education.length > 0) completeness += 15;
+  if (education.some((e) => e.status === "Verified")) completeness += 15;
   if (certifications.length > 0 || portfolioLinks.length > 0) completeness += 20;
 
   // Activity score (placeholder: based on isCurrent role / active presence)

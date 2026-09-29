@@ -51,6 +51,42 @@ interface SkillMap {
   skill_id: number;
 }
 
+interface EducationRow {
+  employee_education_id: number;
+  school_id?: { school_name?: string | null } | number | null;
+  school_name_raw?: string | null;
+  school_course_id?: { course_name?: string | null } | number | null;
+  course_name_raw?: string | null;
+  education_status?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+}
+
+type DetailEducationStatus = "Verified" | "Pending" | "Unverified";
+
+function toDetailEducationStatus(value: string | null | undefined): DetailEducationStatus {
+  if (value === "Verified" || value === "Pending" || value === "Unverified") {
+    return value;
+  }
+  return "Unverified";
+}
+
+function resolveDetailSchoolName(row: EducationRow): string {
+  const linked =
+    typeof row.school_id === "object" && row.school_id !== null
+      ? row.school_id.school_name
+      : null;
+  return linked ?? row.school_name_raw ?? "Unknown School";
+}
+
+function resolveDetailCourseName(row: EducationRow): string | null {
+  const linked =
+    typeof row.school_course_id === "object" && row.school_course_id !== null
+      ? row.school_course_id.course_name
+      : null;
+  return linked ?? row.course_name_raw ?? null;
+}
+
 interface Skill {
   skill_name: string;
 }
@@ -86,6 +122,7 @@ const VALID_STATUSES = [
 ];
 
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { orderEducation } from "@/modules/client/education/order-education";
 
 // GET — Retrieve details profile for a single job seeker application
 export async function GET(
@@ -239,7 +276,7 @@ export async function GET(
       ),
 
       fetch(
-        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${applicantUserId}&fields=*`,
+        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_eq]=${applicantUserId}&fields=employee_education_id,school_id.school_name,school_name_raw,school_course_id.course_name,course_name_raw,education_status,start_date,end_date&limit=-1`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -373,7 +410,20 @@ export async function GET(
       ? await educationRes.json()
       : { data: [] };
 
-    const education = educationJson.data?.[0] ?? null;
+    const educationRows = (educationJson.data as EducationRow[] | null | undefined) ?? [];
+    const education = orderEducation(educationRows, {
+      status: (row) => row.education_status ?? null,
+      endDate: (row) => row.end_date ?? null,
+      startDate: (row) => row.start_date ?? null,
+      id: (row) => row.employee_education_id,
+    }).map((row) => ({
+      id: row.employee_education_id,
+      status: toDetailEducationStatus(row.education_status),
+      school_name: resolveDetailSchoolName(row),
+      course_name: resolveDetailCourseName(row),
+      start_date: row.start_date ?? null,
+      end_date: row.end_date ?? null,
+    }));
 
     // ---------------------------------------------------
     // CERTIFICATIONS

@@ -9,8 +9,10 @@ export interface VsSchoolStudent {
   last_name: string;
   email: string;
   school_course_id: number | null;
-  school_year: string;
+  school_year: string | null;
   gpa: number | null;
+  is_alumni: boolean;
+  employee_education_id: number | null;
   invitation_status: StudentInvitationStatus;
   invited_at: string | null;
   registered_user_id: number | null;
@@ -31,6 +33,10 @@ export interface StudentRosterFilter {
   school_course_id?: number | string;
   invitation_status?: StudentInvitationStatus | string;
   search_query?: string;
+  // Server-side Current/Alumni separation. `false` =
+  // Current Students view, `true` = Alumni view. Callers that omit it get
+  // the Current default from the service layer — never an unfiltered mix.
+  is_alumni?: boolean;
   page?: number;
   limit?: number;
 }

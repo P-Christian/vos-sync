@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
       ],
       education: [
         {
+          id: 1,
+          status: "Verified",
           school_name: "University of Pangasinan",
           course_name: "Bachelor of Science in Information Technology",
           start_date: "2018-06-01",

@@ -14,6 +14,7 @@ import {
 } from "@/modules/matching-engine";
 import { expandQueryWithGemini, shouldExpandWithGemini } from "@/lib/gemini/queryUnderstanding";
 import { rerankCandidatesWithGemini } from "@/lib/gemini/aiReranker";
+import { orderEducation } from "@/modules/client/education/order-education";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,8 +160,17 @@ function resolveRoleTaxonomy(
   };
 }
 
-export interface TalentResult {
+export interface TalentEducationBulkRow {
   user_id: number;
+  employee_education_id?: number;
+  education_status?: string;
+  school_id?: { school_name?: string; school_id?: number };
+  school_course_id?: { course_name?: string };
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface TalentResult {  user_id: number;
   profile_id: number;
   name: string;
   email: string;
@@ -180,12 +190,15 @@ export interface TalentResult {
     employment_type: string | null;
   }>;
   education: Array<{
+    id: number | null;
     school_name: string | null;
     school_id: number | null;
     course_name: string | null;
+    education_status: string | null;
     start_date: string | null;
     end_date: string | null;
   }>;
+  education_count: number;
   availability_status: string;
   is_saved: boolean;
   match_score: number | null;
@@ -394,7 +407,7 @@ export async function GET(req: NextRequest) {
       ),
       // vs_employee_education with school join
       fetch(
-        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_in]=${profileUserIds.join(",")}&fields=user_id,school_id.school_name,school_id.school_id,school_course_id.course_name,start_date,end_date&limit=-1`,
+        `${DIRECTUS_BASE}/items/vs_employee_education?filter[user_id][_in]=${profileUserIds.join(",")}&fields=user_id,employee_education_id,education_status,school_id.school_name,school_id.school_id,school_course_id.course_name,start_date,end_date&limit=-1`,
         { headers: getHeaders(), cache: "no-store" }
       ),
       // vs_saved_applicant — which of these are already saved by this company
@@ -448,13 +461,8 @@ export async function GET(req: NextRequest) {
       location?: string;
     }> = workRes.ok ? (await workRes.json()).data ?? [] : [];
 
-    const eduRows: Array<{
-      user_id: number;
-      school_id?: { school_name?: string; school_id?: number };
-      school_course_id?: { course_name?: string };
-      start_date?: string;
-      end_date?: string;
-    }> = eduRes.ok ? (await eduRes.json()).data ?? [] : [];
+    const eduRows: TalentEducationBulkRow[] =
+      eduRes.ok ? (await eduRes.json()).data ?? [] : [];
 
     const certRows: Array<{ user_id: number; certificate_name: string; issuing_organization?: string }> =
       certsRes.ok ? (await certsRes.json()).data ?? [] : [];
@@ -603,6 +611,8 @@ export async function GET(req: NextRequest) {
         skills,
         work_experience: work,
         education: edu.map((e) => ({
+          id: e.employee_education_id ?? null,
+          status: e.education_status ?? null,
           school_name: e.school_id?.school_name,
           course_name: e.school_course_id?.course_name,
           start_date: e.start_date,
@@ -640,6 +650,16 @@ export async function GET(req: NextRequest) {
         // Match score percentage & badges are shown ONLY when matching against a specific Job Posting (jobIdForMatch)
         const showMatchScore = Boolean(jobIdForMatch);
 
+        // Full education history in shared deterministic order; compact
+        // surfaces preview from this array and expose the remainder via
+        // education_count instead of dropping rows here.
+        const orderedEdu = orderEducation<TalentEducationBulkRow>(edu, {
+          status: (e) => e.education_status,
+          endDate: (e) => e.end_date,
+          startDate: (e) => e.start_date,
+          id: (e) => e.employee_education_id,
+        });
+
         return {
           user_id: profile.user_id,
           profile_id: profile.profile_id,
@@ -665,13 +685,16 @@ export async function GET(req: NextRequest) {
             is_current_role: w.is_current_role ?? false,
             employment_type: w.employment_type ?? null,
           })),
-          education: edu.slice(0, 2).map((e: { school_id?: { school_name?: string; school_id?: number }; school_course_id?: { course_name?: string }; start_date?: string; end_date?: string }) => ({
+          education: orderedEdu.map((e) => ({
+            id: e.employee_education_id ?? null,
             school_name: e.school_id?.school_name ?? null,
             school_id: e.school_id?.school_id ?? null,
             course_name: e.school_course_id?.course_name ?? null,
+            education_status: e.education_status ?? null,
             start_date: e.start_date ?? null,
             end_date: e.end_date ?? null,
           })),
+          education_count: edu.length,
           availability_status: normalized.availability,
           is_saved: savedUserIds.has(profile.user_id),
           match_score: showMatchScore ? engineResult.compatibility.score : null,

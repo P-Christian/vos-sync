@@ -16,8 +16,8 @@ import type {
 
 const INVITATION_FIELDS =
   "invitation_id,student_id,school_id,token,expires_at,is_used,used_at,created_at";
-const STUDENT_FIELDS =
-  "student_id,school_id,first_name,last_name,email,school_course_id,school_year,registered_user_id,invitation_status";
+export const STUDENT_FIELDS =
+  "student_id,school_id,first_name,last_name,email,school_course_id,school_year,registered_user_id,invitation_status,employee_education_id";
 
 const invitationSchema: ZodType<StudentInvitationRecord> = z.object({
   invitation_id: z.number().int(),
@@ -30,7 +30,7 @@ const invitationSchema: ZodType<StudentInvitationRecord> = z.object({
   created_at: z.string(),
 });
 
-const studentSchema: ZodType<SchoolStudentRecord> = z.object({
+export const studentSchema: ZodType<SchoolStudentRecord> = z.object({
   student_id: z.number().int(),
   school_id: z.number().int(),
   first_name: z.string().nullable(),
@@ -43,6 +43,7 @@ const studentSchema: ZodType<SchoolStudentRecord> = z.object({
     .nullable(),
   registered_user_id: z.number().int().nullable(),
   invitation_status: z.enum(["Not Sent", "Invited", "Registered"]),
+  employee_education_id: z.number().int().nullable(),
 });
 
 const schoolSchema: ZodType<SchoolRecord> = z.object({
@@ -229,3 +230,4 @@ export function findCourseById(
     courseSchema
   );
 }
+

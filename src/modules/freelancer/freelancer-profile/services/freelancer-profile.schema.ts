@@ -63,16 +63,19 @@ export type DeleteWorkExperiencePayload = z.infer<typeof deleteWorkExperienceSch
 
 export const addEducationSchema = z.object({
     school_id: z.number().int().positive().nullable().optional(),
-    school_name_raw: z.string().nullable().optional(),
-    course_name_raw: z.string().nullable().optional(),
-    education_status: z.enum(['Verified', 'Pending', 'Unverified']).optional(),
+    school_name_raw: z.string().trim().min(1).max(255).nullable().optional(),
+    course_name_raw: z.string().trim().min(1).max(255).nullable().optional(),
+    // Verification status is server-owned: the boundary strips any client
+    // value and persistence always writes Pending, so it is not accepted here.
     school_course_id: z.number().int().positive().nullable().optional(),
-    start_date: z.string().nullable().optional(),
-    end_date: z.string().nullable().optional(),
+    course_request_draft_key: z.uuid(),
+    start_date: z.iso.date().nullable().optional(),
+    end_date: z.iso.date().nullable().optional(),
 });
 
 export const updateEducationSchema = addEducationSchema.extend({
     id: z.number(),
+    course_request_draft_key: z.uuid().nullable().optional(),
 });
 
 export const deleteEducationSchema = z.object({

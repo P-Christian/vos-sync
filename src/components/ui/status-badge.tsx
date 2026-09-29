@@ -27,5 +27,5 @@ export function StatusBadge({
                         ? "badge-destructive"
                         : "badge-neutral";
 
-    return <Badge className={cn(toneClass, className)}>{children}</Badge>;
+    return <Badge variant="ghost" className={cn(toneClass, className)}>{children}</Badge>;
 }

@@ -4,6 +4,7 @@ type DirectusId = string | number;
 type DirectusFilterValue = string | number | boolean | null;
 // BOUNDED BEST-EFFORT application-level duplicate pre-check over Directus;
 // this is explicitly not a concurrency/race-safe uniqueness guarantee.
+const MASTER_SKILL_CANDIDATE_LIMIT = 20;
 const SCHOOL_IDENTITY_CANDIDATE_LIMIT = 500;
 const SCHOOL_IDENTITY_CANDIDATE_PAGE_SIZE = 100;
 
@@ -119,6 +120,27 @@ export class RegistrationProvisioningRepository {
     }
 
     return candidates;
+  }
+
+  /**
+   * Bounded case-insensitive candidate lookup over `vs_master_skills`.
+   * `findOne` supports only `_eq`/`_null`, so this `_icontains` lookup is the
+   * only way the saga can match input `"react"` to an existing `"React"` row.
+   */
+  async findMasterSkillCandidates<T extends Record<string, unknown>>(
+    name: string,
+    limit = MASTER_SKILL_CANDIDATE_LIMIT
+  ): Promise<T[]> {
+    const query = new URLSearchParams({
+      fields: "id,skill_name",
+      limit: String(limit),
+    });
+    query.set("filter[skill_name][_icontains]", name);
+    const response = await this.request<DirectusResponse<T[]>>(
+      `/items/vs_master_skills?${query.toString()}`,
+      { method: "GET", cache: "no-store" }
+    );
+    return Array.isArray(response.data) ? response.data : [];
   }
 
   async findUserEmailById(userId: DirectusId): Promise<string | null> {

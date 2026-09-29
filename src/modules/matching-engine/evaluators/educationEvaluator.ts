@@ -1,12 +1,35 @@
 // src/modules/matching-engine/evaluators/educationEvaluator.ts
 
-import { NormalizedProfile } from "../types/profileTypes";
+import { NormalizedProfile, NormalizedEduEntry } from "../types/profileTypes";
 import { MatchContext } from "../types/matchTypes";
 import { EvaluatorResult, EvidenceItem } from "../types/evaluatorTypes";
 
+const TECH_COURSE_KEYWORDS = [
+  "computer science",
+  "information technology",
+  "software",
+  "engineering",
+  "web",
+  "data",
+  "marketing",
+  "business",
+];
+
+function scoreVerifiedRow(edu: NormalizedEduEntry): number {
+  const courseLower = (edu.course ?? "").toLowerCase();
+  return TECH_COURSE_KEYWORDS.some((kw) => courseLower.includes(kw)) ? 10 : 7;
+}
+
+function idOrder(id: number | null): number {
+  return id ?? Number.POSITIVE_INFINITY;
+}
+
 export function evaluateEducation(profile: NormalizedProfile, context: MatchContext, weight: number): EvaluatorResult {
   const maxScore = 10;
-  if (profile.education.length === 0) {
+  const verified = profile.education.filter((edu) => edu.status === "Verified");
+
+  if (verified.length === 0) {
+    const hasAnyEducation = profile.education.length > 0;
     return {
       factor: "EDUCATION",
       label: "Education",
@@ -15,38 +38,43 @@ export function evaluateEducation(profile: NormalizedProfile, context: MatchCont
       weight,
       evidence: [],
       strengths: [],
-      weaknesses: ["No formal education listed"],
-      explanationCode: "EDUCATION_NONE",
-      explanationMessage: "No education records provided.",
+      weaknesses: [hasAnyEducation ? "No verified education records" : "No formal education listed"],
+      explanationCode: "EDUCATION_NONE_VERIFIED",
+      explanationMessage: hasAnyEducation
+        ? "Education records exist but none are verified."
+        : "No education records provided.",
     };
   }
 
-  const techCourses = ["computer science", "information technology", "software", "engineering", "web", "data", "marketing", "business"];
-  const edu = profile.education[0];
-  const courseLower = (edu.course || "").toLowerCase();
-
-  const isTech = techCourses.some((kw) => courseLower.includes(kw));
-  const rawScore = isTech ? 10 : 7;
+  const best = verified.reduce<{ edu: NormalizedEduEntry; score: number }>(
+    (acc, edu) => {
+      const score = scoreVerifiedRow(edu);
+      if (score > acc.score) return { edu, score };
+      if (score < acc.score) return acc;
+      return idOrder(edu.id) < idOrder(acc.edu.id) ? { edu, score } : acc;
+    },
+    { edu: verified[0], score: scoreVerifiedRow(verified[0]) },
+  );
 
   const evidence: EvidenceItem[] = [
     {
       type: "EDUCATION",
       label: "Education Record",
-      value: `${edu.course || "Degree"} ${edu.school ? `from ${edu.school}` : ""}`.trim(),
-      scoreContribution: rawScore,
+      value: `${best.edu.course || "Degree"} ${best.edu.school ? `from ${best.edu.school}` : ""}`.trim(),
+      scoreContribution: best.score,
     },
   ];
 
   return {
     factor: "EDUCATION",
     label: "Education",
-    score: rawScore,
+    score: best.score,
     maxScore,
     weight,
     evidence,
-    strengths: [`Education: ${edu.course || "Graduate"} (${edu.school || "University"})`],
+    strengths: [`Education: ${best.edu.course || "Graduate"} (${best.edu.school || "University"})`],
     weaknesses: [],
     explanationCode: "EDUCATION_SCORED",
-    explanationMessage: `Education score ${rawScore}/10 for ${edu.course || "degree"}.`,
+    explanationMessage: `Education score ${best.score}/10 for ${best.edu.course || "degree"}.`,
   };
 }

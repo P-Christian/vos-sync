@@ -161,6 +161,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
       enableHiding: false,
       cell: ({ row }) => {
         const student = row.original;
+        const isLinked = student.employee_education_id !== null && student.employee_education_id !== undefined;
         return (
           <div className="text-right">
             <DropdownMenu>
@@ -171,7 +172,7 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                {student.invitation_status !== 'Registered' && onInvite && (
+                {!isLinked && student.invitation_status !== 'Registered' && onInvite && (
                   <DropdownMenuItem
                     onClick={() => onInvite(student)}
                     className="cursor-pointer text-xs font-semibold text-primary focus:text-primary flex items-center"
@@ -187,17 +188,28 @@ export const StudentRosterTable: React.FC<StudentRosterTableProps> = ({
                   <Pencil className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                   <span>Edit Details</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (confirm(`Remove ${student.first_name} ${student.last_name} from roster?`)) {
-                      onDelete(student.student_id);
-                    }
-                  }}
-                  className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive flex items-center"
-                >
-                  <Trash2 className="mr-2 h-3.5 w-3.5 text-destructive" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
+                {isLinked ? (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-xs font-medium text-muted-foreground flex items-center"
+                    title="Education-linked rows cannot be deleted"
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    <span>Delete (Linked)</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (confirm(`Remove ${student.first_name} ${student.last_name} from roster?`)) {
+                        onDelete(student.student_id);
+                      }
+                    }}
+                    className="cursor-pointer text-xs font-medium text-destructive focus:text-destructive flex items-center"
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5 text-destructive" />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

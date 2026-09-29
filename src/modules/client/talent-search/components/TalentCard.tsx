@@ -4,7 +4,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { MapPin, Briefcase, BookmarkPlus, BookmarkCheck,   Eye } from "lucide-react";
+import { MapPin, Briefcase, BookmarkPlus, BookmarkCheck, GraduationCap, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { TalentCard as TalentCardType } from "../types";
@@ -113,6 +113,29 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
           {talent.skills.length > 5 && (
             <span className="px-2 py-0.5 rounded-full text-xs text-zinc-400">
               +{talent.skills.length - 5}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Education preview: at most two records plus an explicit remainder */}
+      {talent.education.length > 0 && (
+        <div className="flex flex-col gap-1">
+          {talent.education.slice(0, 2).map((edu, idx) => (
+            <p
+              key={edu.id ?? `edu-${idx}`}
+              className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-500 dark:text-zinc-400 truncate"
+            >
+              <GraduationCap className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+              <span className="truncate">
+                {edu.school_name ?? "—"}
+                {edu.course_name ? ` · ${edu.course_name}` : ""}
+              </span>
+            </p>
+          ))}
+          {(talent.education_count ?? talent.education.length) > 2 && (
+            <span className="px-2 py-0.5 rounded-full text-xs text-zinc-400 w-fit">
+              +{(talent.education_count ?? talent.education.length) - 2} more
             </span>
           )}
         </div>

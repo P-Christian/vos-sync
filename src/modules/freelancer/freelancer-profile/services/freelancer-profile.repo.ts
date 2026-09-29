@@ -48,6 +48,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                 school_name_raw: edu.school_name_raw,
                 course_name_raw: edu.course_name_raw,
                 education_status: edu.education_status,
+                course_request_draft_key: edu.course_request_draft_key ?? null,
                 school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
                 school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
                 course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
@@ -231,6 +232,7 @@ export async function fetchFreelancerProfileFromDirectus(email: string) {
                             school_name_raw: edu.school_name_raw,
                             course_name_raw: edu.course_name_raw,
                             education_status: edu.education_status,
+                            course_request_draft_key: edu.course_request_draft_key ?? null,
                             school_name: typeof edu.school_id === 'object' ? edu.school_id?.school_name : undefined,
                             school_course_id: typeof edu.school_course_id === 'object' ? edu.school_course_id?.school_course_id : edu.school_course_id,
                             course_name: typeof edu.school_course_id === 'object' ? edu.school_course_id?.course_name : undefined,
@@ -585,95 +587,6 @@ export async function deleteWorkExperienceFromDirectus(id: number) {
 
     return true;
 }
-
-export async function addEducationToDirectus(payload: any) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
-        throw new Error("Directus API URL or Static Token is not configured.");
-    }
-
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education`;
-    console.log("Sending ADD education payload to Directus:", JSON.stringify(payload));
-    
-    const res = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store"
-    });
-
-    if (!res.ok) {
-        let errDetails = "Unknown error";
-        try {
-            errDetails = await res.text();
-        } catch {}
-        console.error("Directus 400 error details:", errDetails);
-        throw new Error(`Failed to add education: HTTP ${res.status} - ${errDetails}`);
-    }
-
-    const json = await res.json();
-    return json.data;
-}
-
-export async function updateEducationInDirectus(id: number, payload: any) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
-        throw new Error("Directus API URL or Static Token is not configured.");
-    }
-
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education/${id}`;
-    console.log("Sending UPDATE education payload to Directus:", JSON.stringify(payload));
-    
-    const res = await fetch(url, {
-        method: "PATCH",
-        headers: {
-            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload),
-        cache: "no-store"
-    });
-
-    if (!res.ok) {
-        throw new Error(`Failed to update education: HTTP ${res.status}`);
-    }
-
-    const json = await res.json();
-    return json.data;
-}
-
-export async function deleteEducationFromDirectus(id: number) {
-    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
-        throw new Error("Directus API URL or Static Token is not configured.");
-    }
-
-    const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_employee_education/${id}`;
-    
-    const res = await fetch(url, {
-        method: "DELETE",
-        headers: {
-            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`
-        },
-        cache: "no-store"
-    });
-
-    if (!res.ok && res.status !== 204) {
-        throw new Error(`Failed to delete education: HTTP ${res.status}`);
-    }
-
-    return true;
-}
-
 
 export async function addCertificationToDirectus(payload: any) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;

@@ -18,9 +18,11 @@ export interface TalentWorkExperience {
 }
 
 export interface TalentEducation {
+  id: number | null;
   school_name: string | null;
   school_id: number | null;
   course_name: string | null;
+  education_status: string | null;
   start_date: string | null;
   end_date: string | null;
 }
@@ -78,6 +80,7 @@ export interface TalentCard {
   relevant_experience_years?: number;
   work_experience: TalentWorkExperience[];
   education: TalentEducation[];
+  education_count: number;
   availability_status: AvailabilityStatus;
   is_saved: boolean;
   match_score: number | null;
@@ -132,6 +135,7 @@ export interface TalentProfile {
     school_name: string | null;
     school_location: string | null;
     course_name: string | null;
+    education_status: string | null;
     start_date: string | null;
     end_date: string | null;
   }>;

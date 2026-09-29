@@ -1,31 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import * as jose from "jose";
-import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
-import { FreelancerProfile } from "../types/freelancer-profile.types";
-import { createSchoolRequestRepo } from "@/modules/vos-admin/request-management/services/request.repo";
+import { addEducationSchema, updateEducationSchema } from "./freelancer-profile.schema";
+import { createOrFetchPendingEducation, type PendingEducationWrite } from "./education-persistence.repo";
+import { fetchOwnedEducation, updatePendingEducation } from "./education-update.repo";
+import { ensureEducationAttendanceRequest } from "./attendance-request.repo";
+import { deleteOwnedEducationWithLinks } from "./education-deletion.repo";
+import { assertEducationWriteAllowed, shouldCreateAttendanceRequest } from "../../../education-verification";
+import { updateVerifiedEducationClaim } from "./verified-education-edit.service";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
-
-export async function getFreelancerProfile(token: string): Promise<FreelancerProfile | null> {
-    if (!token) {
-        return null;
-    }
-
-    try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
-        const { payload } = await jose.jwtVerify(token, secret);
-        
-        if (payload.email && typeof payload.email === 'string') {
-            const user = await fetchFreelancerProfileFromDirectus(payload.email);
-            return user as FreelancerProfile;
-        }
-    } catch (err) {
-        console.error("Failed to verify token or fetch freelancer profile:", err);
-    }
-    
-    return null;
-}
+export { getFreelancerProfile } from "./profile-read.service";
+export { computeProfileCompletion } from "./profile-completion";
 
 export function buildInitials(fname?: string | null, lname?: string | null): string {
     if (!fname && !lname) return "U";
@@ -98,74 +82,72 @@ export async function deleteWorkExperienceService(id: number, userId: number) {
     return await deleteWorkExperienceFromDirectus(id);
 }
 
-export async function addEducationService(userId: number, payload: any) {
-    const { addEducationToDirectus } = await import("./freelancer-profile.repo");
-
-    const data = {
-        user_id: userId,
-        school_id: payload.school_id,
-        school_name_raw: payload.school_name_raw || null,
-        course_name_raw: payload.course_name_raw || null,
-        education_status: payload.education_status || 'Verified',
-        school_course_id: payload.school_course_id || null,
-        start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
-        end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
-    };
-
-    const result = await addEducationToDirectus(data);
-
-    // Auto-create a school request when employee submits an unverified school
-    if (data.education_status === 'Pending' && data.school_name_raw) {
-        try {
-            await createSchoolRequestRepo({
-                requested_by: userId,
-                requested_school_name: data.school_name_raw,
-                request_status: 'Pending'
-            });
-        } catch (err) {
-            // Non-blocking: log error but don't fail the education save
-            console.error("[addEducationService] Failed to auto-create school request:", err);
-        }
+function pendingEducationWrite(data: {
+    readonly school_id?: number | null;
+    readonly school_name_raw?: string | null;
+    readonly course_name_raw?: string | null;
+    readonly school_course_id?: number | null;
+    readonly course_request_draft_key?: string | null;
+    readonly start_date?: string | null;
+    readonly end_date?: string | null;
+}): PendingEducationWrite {
+    const schoolId = data.school_id ?? null;
+    const schoolNameRaw = schoolId === null ? data.school_name_raw?.trim() ?? null : null;
+    if (schoolId === null && !schoolNameRaw) {
+        throw new Error("A school name is required when no canonical school is selected.");
     }
 
-    return result;
+    const schoolCourseId = schoolId === null ? null : data.school_course_id ?? null;
+    return {
+        school_id: schoolId,
+        school_name_raw: schoolNameRaw,
+        course_name_raw: schoolCourseId === null ? data.course_name_raw?.trim() ?? null : null,
+        school_course_id: schoolCourseId,
+        course_request_draft_key: data.course_request_draft_key ?? null,
+        start_date: data.start_date ? formatToPHDate(data.start_date) : null,
+        end_date: data.end_date ? formatToPHDate(data.end_date) : null,
+    };
 }
 
-export async function updateEducationService(id: number, userId: number, payload: any) {
-    const { updateEducationInDirectus } = await import("./freelancer-profile.repo");
+export async function addEducationService(userId: number, payload: unknown) {
+    assertEducationWriteAllowed();
+    const parsed = addEducationSchema.safeParse(payload);
+    if (!parsed.success) throw new Error("Invalid education claim.");
 
-    const data = {
-        school_id: payload.school_id,
-        school_name_raw: payload.school_name_raw || null,
-        course_name_raw: payload.course_name_raw || null,
-        education_status: payload.education_status || 'Verified',
-        school_course_id: payload.school_course_id || null,
-        start_date: payload.start_date ? formatToPHDate(payload.start_date) : null,
-        end_date: payload.end_date ? formatToPHDate(payload.end_date) : null,
-    };
+    const education = await createOrFetchPendingEducation(userId, {
+        ...pendingEducationWrite(parsed.data),
+        course_request_draft_key: parsed.data.course_request_draft_key,
+    });
+    if (shouldCreateAttendanceRequest()) {
+        await ensureEducationAttendanceRequest(education);
+    }
+    return education;
+}
 
-    const result = await updateEducationInDirectus(id, data);
+export async function updateEducationService(id: number, userId: number, payload: unknown) {
+    assertEducationWriteAllowed();
+    const parsed = updateEducationSchema.safeParse({
+        ...(typeof payload === "object" && payload !== null ? payload : {}),
+        id,
+    });
+    if (!parsed.success) throw new Error("Invalid education claim.");
 
-    // Auto-create a school request when employee updates to an unverified school
-    if (data.education_status === 'Pending' && data.school_name_raw) {
-        try {
-            await createSchoolRequestRepo({
-                requested_by: userId,
-                requested_school_name: data.school_name_raw,
-                request_status: 'Pending'
-            });
-        } catch (err) {
-            // Non-blocking: log error but don't fail the education update
-            console.error("[updateEducationService] Failed to auto-create school request:", err);
-        }
+    const write = pendingEducationWrite(parsed.data);
+    const existing = await fetchOwnedEducation(id, userId);
+    if (existing.education_status === "Verified") {
+        return updateVerifiedEducationClaim({ educationId: id, userId, write });
     }
 
-    return result;
+    const education = await updatePendingEducation(id, userId, write);
+    if (shouldCreateAttendanceRequest()) {
+        await ensureEducationAttendanceRequest(education);
+    }
+    return education;
 }
 
 export async function deleteEducationService(id: number, userId: number) {
-    const { deleteEducationFromDirectus } = await import("./freelancer-profile.repo");
-    return await deleteEducationFromDirectus(id);
+    assertEducationWriteAllowed();
+    await deleteOwnedEducationWithLinks(id, userId);
 }
 
 export async function addCertificationService(userId: number, payload: any) {
@@ -249,63 +231,5 @@ export async function saveJobPreferencesService(userId: number, payload: any) {
     };
 
     return await upsertJobPreferencesInDirectus(userId, data);
-}
-
-export function computeProfileCompletion(profile: FreelancerProfile, verifications: any[] = []): { percent: number; status: 'not_started' | 'draft' | 'complete' | 'admin_verified' } {
-    let gov_id = 0;
-    let address = 0;
-    let mobile_number = 0;
-
-    for (const v of verifications || []) {
-        if (v.status === 'approved') {
-            if (v.type === 'gov_id') gov_id = 20;
-            if (v.type === 'address') address = 20;
-            if (v.type === 'mobile_number') mobile_number = 20;
-        }
-    }
-
-    let completedProfileSections = 0;
-    const totalProfileSections = 6;
-
-    // 1. Personal Info
-    if (profile.user_fname && profile.user_lname && profile.user_bday && profile.gender) {
-        completedProfileSections++;
-    }
-    // 2. Resume Document
-    if (profile.resumes && profile.resumes.length > 0) {
-        completedProfileSections++;
-    }
-    // 3. Professional Summary
-    if (profile.job_seeker_profile?.[0]?.professional_summary) {
-        completedProfileSections++;
-    }
-    // 4. Core Skills
-    if (profile.skills && profile.skills.length > 0) {
-        completedProfileSections++;
-    }
-    // 5. Work Experience History
-    if (profile.work_experience && profile.work_experience.length > 0) {
-        completedProfileSections++;
-    }
-    // 6. Educational Background
-    if (profile.education && profile.education.length > 0) {
-        completedProfileSections++;
-    }
-
-    const profile_sections = Math.round((completedProfileSections / totalProfileSections) * 40);
-    const percent = gov_id + address + mobile_number + profile_sections;
-
-    let status: 'not_started' | 'draft' | 'complete' | 'admin_verified' = 'not_started';
-    const currentStatus = profile.job_seeker_profile?.[0]?.profile_status;
-
-    if (currentStatus === 'admin_verified') {
-        status = 'admin_verified';
-    } else if (percent === 100) {
-        status = 'complete';
-    } else if (percent > 0) {
-        status = 'draft';
-    }
-
-    return { percent, status };
 }
 

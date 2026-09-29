@@ -1,0 +1,193 @@
+import type {
+  SchoolAttendanceAcademics,
+  SchoolInboxRow,
+} from "@/modules/school-admin/hooks/useSchoolRequests";
+
+/**
+ * Pure presentation/validation helpers for the School Admin attendance inbox.
+ *
+ * Every helper reads ONLY the fields of the parsed inbox DTO. Nothing here
+ * may introduce a new data source: the inbox renders the student name, the
+ * school name from the request, the linked course, education dates, the
+ * submitted date, and the saved decision date. Identity, alumni, contacts,
+ * documents, and course/identity overrides are never part of any value
+ * produced here.
+ */
+
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+/** Safe date-only label. Missing or invalid input renders an empty string. */
+export function formatInboxDate(value: string | null | undefined): string {
+  if (!hasText(value)) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+/**
+ * Safe date+time label for the submitted date and the saved decision date.
+ * Missing or invalid input renders an empty string.
+ */
+export function formatInboxDateTime(value: string | null | undefined): string {
+  if (!hasText(value)) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Education attendance window. Missing values are dropped, never replaced
+ * with a dash: both sides missing renders an empty string, and a single
+ * present date renders just that date.
+ */
+export function formatEducationRange(
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+): string {
+  const start = formatInboxDate(startDate);
+  const end = formatInboxDate(endDate);
+  if (start.length === 0) return end;
+  if (end.length === 0) return start;
+  return `${start} - ${end}`;
+}
+
+export interface CourseDisplay {
+  /** Course label, or the "no course" label when none is linked. */
+  readonly label: string;
+  readonly code: string | null;
+  readonly resolved: boolean;
+}
+
+/**
+ * Course display. The DTO exposes only the linked course; when none is
+ * linked the label says so, and no course name is ever guessed or invented.
+ */
+export function describeCourse(row: SchoolInboxRow): CourseDisplay {
+  if (row.course === null) {
+    return { label: "No course on file", code: null, resolved: false };
+  }
+  return {
+    label: row.course.courseName,
+    code: hasText(row.course.courseCode) ? row.course.courseCode : null,
+    resolved: true,
+  };
+}
+
+/**
+ * Defense in depth: only rows whose PERSISTED `matchedSchoolId` equals the
+ * inbox's own school may render. A foreign-school row is dropped before any
+ * cell is built, so no cross-school data can appear in the DOM even if the
+ * boundary were ever widened by mistake.
+ */
+export function visibleInboxRows(
+  rows: readonly SchoolInboxRow[],
+  schoolId: number,
+): readonly SchoolInboxRow[] {
+  return rows.filter((row) => row.matchedSchoolId === schoolId);
+}
+
+/**
+ * Saved-decision label for rows that already carry a persisted decision.
+ * Shows the saved time only, never a numeric user identifier.
+ */
+export function describeSavedDecision(row: SchoolInboxRow): string | null {
+  if (typeof row.reviewedBy !== "number") return null;
+  const savedAt = formatInboxDateTime(row.reviewedAt);
+  if (savedAt.length === 0) return null;
+  return `Saved ${savedAt}`;
+}
+
+export interface ApprovalOutcomeCopy {
+  readonly title: string;
+  readonly body: string;
+}
+
+/**
+ * Approval always saves the decision and marks the education as verified
+ * right away. Nothing is left waiting and no extra course request is
+ * created; a missing course only means the verified education has no course.
+ */
+export function describeApprovalOutcome(row: SchoolInboxRow): ApprovalOutcomeCopy {
+  const courseNote =
+    row.course === null
+      ? "No course is linked, so the education will be verified without a course."
+      : `The linked course "${row.course.courseName}" is included.`;
+  return {
+    title: "This marks the education as verified",
+    body: `Approving saves your decision and marks the education as verified right away. ${courseNote}`,
+  };
+}
+
+export interface AcademicsInput {
+  readonly studentNumber: string;
+  readonly gpa: string;
+  readonly schoolYear: string;
+}
+
+export interface AcademicsValidation {
+  readonly academics: SchoolAttendanceAcademics;
+  readonly error: string | null;
+}
+
+const STUDENT_NUMBER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9\- ]*$/u;
+const SCHOOL_YEAR_PATTERN = /^\d{4}$/u;
+
+/**
+ * Client-side mirror of the server's optional-academics validation so
+ * malformed input is blocked before any network call. GPA must be numeric
+ * within 0..5, school year a four-digit year, and the student number a safe
+ * identifier. Blank inputs are omitted entirely (never sent as "").
+ */
+export function validateAcademicsInput(input: AcademicsInput): AcademicsValidation {
+  const studentNumber = input.studentNumber.trim();
+  const gpaText = input.gpa.trim();
+  const schoolYear = input.schoolYear.trim();
+
+  if (studentNumber.length > 0 && !STUDENT_NUMBER_PATTERN.test(studentNumber)) {
+    return {
+      academics: {},
+      error: "Student number may contain letters, numbers, spaces and hyphens only.",
+    };
+  }
+  if (gpaText.length > 0) {
+    const gpa = Number(gpaText);
+    if (!Number.isFinite(gpa) || gpa < 0 || gpa > 5) {
+      return { academics: {}, error: "GPA must be between 0 and 5." };
+    }
+  }
+  if (schoolYear.length > 0 && !SCHOOL_YEAR_PATTERN.test(schoolYear)) {
+    return { academics: {}, error: "School year must be a four-digit year." };
+  }
+
+  return {
+    academics: {
+      ...(studentNumber.length > 0 ? { student_number: studentNumber } : {}),
+      ...(gpaText.length > 0 ? { gpa: Number(gpaText) } : {}),
+      ...(schoolYear.length > 0 ? { school_year: schoolYear } : {}),
+    },
+    error: null,
+  };
+}
+
+export type InboxLoadFailureKind = "forbidden" | "unauthenticated" | "dependency" | "unknown";
+
+/**
+ * Classify a load error message from the HTTP boundary into the state the
+ * page must render. The API maps 403 to "Forbidden ...", 401 to
+ * "Unauthorized", and 503 to the sanitized dependency message.
+ */
+export function classifyInboxLoadError(message: string): InboxLoadFailureKind {
+  const lower = message.toLowerCase();
+  if (lower.includes("forbidden")) return "forbidden";
+  if (lower.includes("unauthorized")) return "unauthenticated";
+  if (lower.includes("temporarily unavailable")) return "dependency";
+  return "unknown";
+}

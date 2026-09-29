@@ -2,11 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { VsSchoolStudent } from '../types/student-roster.types';
-import { CreateStudentInput } from '../types/student-roster.schema';
+import { CreateStudentInput, UpdateRosterAcademicsInput } from '../types/student-roster.schema';
 import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
 import { generateSchoolYearOptions } from '../utils/school-year.utils';
 
-export function useStudentRoster() {
+interface UseStudentRosterOptions {
+  isAlumni?: boolean;
+}
+
+export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions = {}) {
   const [students, setStudents] = useState<VsSchoolStudent[]>([]);
   const [courses, setCourses] = useState<VsSchoolCourse[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -33,6 +37,7 @@ export function useStudentRoster() {
       if (selectedCourseId !== 'all') params.append('school_course_id', selectedCourseId);
       if (selectedStatus !== 'all') params.append('invitation_status', selectedStatus);
       if (searchQuery.trim()) params.append('search_query', searchQuery.trim());
+      params.append('is_alumni', isAlumni ? 'true' : 'false');
 
       const res = await fetch(`/api/school-admin/students?${params.toString()}`);
       if (!res.ok) {
@@ -46,7 +51,9 @@ export function useStudentRoster() {
       setTotalCount(json.total || 0);
 
       if (fetchedStudents.length > 0) {
-        const fetchedYears = fetchedStudents.map((s) => s.school_year).filter(Boolean);
+        const fetchedYears = fetchedStudents.flatMap((student) =>
+          student.school_year ? [student.school_year] : []
+        );
         setAccumulatedYears((prev) => Array.from(new Set([...prev, ...fetchedYears])));
       }
     } catch (err: unknown) {
@@ -55,7 +62,7 @@ export function useStudentRoster() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery]);
+  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, isAlumni]);
 
   useEffect(() => {
     let isMounted = true;
@@ -69,6 +76,7 @@ export function useStudentRoster() {
         if (selectedCourseId !== 'all') params.append('school_course_id', selectedCourseId);
         if (selectedStatus !== 'all') params.append('invitation_status', selectedStatus);
         if (searchQuery.trim()) params.append('search_query', searchQuery.trim());
+        params.append('is_alumni', isAlumni ? 'true' : 'false');
 
         const res = await fetch(`/api/school-admin/students?${params.toString()}`);
         if (!res.ok) {
@@ -83,7 +91,9 @@ export function useStudentRoster() {
           setTotalCount(json.total || 0);
 
           if (fetchedStudents.length > 0) {
-            const fetchedYears = fetchedStudents.map((s) => s.school_year).filter(Boolean);
+            const fetchedYears = fetchedStudents.flatMap((student) =>
+              student.school_year ? [student.school_year] : []
+            );
             setAccumulatedYears((prev) => Array.from(new Set([...prev, ...fetchedYears])));
           }
         }
@@ -102,7 +112,7 @@ export function useStudentRoster() {
     return () => {
       isMounted = false;
     };
-  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery]);
+  }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, isAlumni]);
 
   useEffect(() => {
     let isMounted = true;
@@ -139,7 +149,7 @@ export function useStudentRoster() {
     await fetchStudents();
   };
 
-  const editStudent = async (studentId: number, input: Partial<CreateStudentInput>) => {
+  const editStudent = async (studentId: number, input: UpdateRosterAcademicsInput) => {
     const res = await fetch(`/api/school-admin/students/${studentId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -13,6 +13,7 @@ import {
   Zap,
   ExternalLink,
   Star,
+  GraduationCap,
 } from "lucide-react";
 import { FreelancerNotification } from "../types";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Share2: <Share2 className="h-4 w-4" />,
   User: <User className="h-4 w-4" />,
   Zap: <Zap className="h-4 w-4" />,
+  GraduationCap: <GraduationCap className="h-4 w-4" />,
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -40,6 +42,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "INTERVIEW": "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300",
   "Referral Updates": "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300",
   "Profile Activity": "bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
+  "EDUCATION_VERIFICATION": "bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300",
   "MESSAGE_RECEIVED": "bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
   "UNREAD_MESSAGE_REMINDER": "bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300",
   "PRODUCT_UPDATES": "bg-purple-100 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300",
@@ -54,6 +57,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   "INTERVIEW": "Calendar",
   "Referral Updates": "Share2",
   "Profile Activity": "User",
+  "EDUCATION_VERIFICATION": "GraduationCap",
   "MESSAGE_RECEIVED": "MessageSquare",
   "UNREAD_MESSAGE_REMINDER": "MessageSquare",
   "PRODUCT_UPDATES": "Zap",

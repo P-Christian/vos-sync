@@ -42,6 +42,8 @@ export interface Applicant {
   applicant_profile_image_url?: string | null;
   active_interview_id?: number | null;
   location?: string;
+  education: EducationItem[];
+  education_count: number;
   education_school?: string;
   education_course?: string;
   screening_answers_count?: number;
@@ -75,7 +77,16 @@ export interface WorkExperienceItem {
   job_description?: string | null;
 }
 
+export type EducationStatus =
+  | "Verified"
+  | "Pending"
+  | "Unverified";
+
 export interface EducationItem {
+  readonly id: number;
+
+  readonly status: EducationStatus;
+
   school_name: string;
 
   course_name?: string | null;

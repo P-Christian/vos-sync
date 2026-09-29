@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { VsSchoolStudent } from '../types/student-roster.types';
-import { CreateStudentInput, createStudentSchema } from '../types/student-roster.schema';
-import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
+import { UpdateRosterAcademicsInput, updateRosterAcademicsSchema } from '../types/student-roster.schema';
 import { generateSchoolYearOptions } from '../utils/school-year.utils';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
@@ -12,32 +11,33 @@ interface EditStudentModalProps {
   isOpen: boolean;
   student: VsSchoolStudent | null;
   onClose: () => void;
-  onSuccess: (studentId: number, data: Partial<CreateStudentInput>) => Promise<void>;
-  courses: VsSchoolCourse[];
+  onSuccess: (studentId: number, data: UpdateRosterAcademicsInput) => Promise<void>;
 }
 
 interface EditStudentFormProps {
   student: VsSchoolStudent;
   onClose: () => void;
-  onSuccess: (studentId: number, data: Partial<CreateStudentInput>) => Promise<void>;
-  courses: VsSchoolCourse[];
+  onSuccess: (studentId: number, data: UpdateRosterAcademicsInput) => Promise<void>;
   schoolYearOptions: string[];
 }
+
+type AcademicFormData = {
+  student_number: string | null;
+  school_year: string;
+  gpa: number | null;
+};
 
 const EditStudentForm: React.FC<EditStudentFormProps> = ({
   student,
   onClose,
   onSuccess,
-  courses,
   schoolYearOptions,
 }) => {
-  const [formData, setFormData] = useState<CreateStudentInput>({
-    first_name: student.first_name || '',
-    middle_name: student.middle_name || '',
-    last_name: student.last_name || '',
-    email: student.email || '',
-    student_number: student.student_number || '',
-    school_course_id: student.school_course_id ? Number(student.school_course_id) : null,
+  const isLinked =
+    student.employee_education_id !== null && student.employee_education_id !== undefined;
+
+  const [formData, setFormData] = useState<AcademicFormData>({
+    student_number: student.student_number || null,
     school_year: student.school_year || '2025-2026',
     gpa: student.gpa !== null && student.gpa !== undefined ? Number(student.gpa) : null,
   });
@@ -49,7 +49,13 @@ const EditStudentForm: React.FC<EditStudentFormProps> = ({
     e.preventDefault();
     setErrors({});
 
-    const result = createStudentSchema.safeParse(formData);
+    const payload = {
+      student_number: formData.student_number,
+      school_year: formData.school_year,
+      gpa: formData.gpa,
+      expected_updated_at: student.updated_at ?? undefined,
+    };
+    const result = updateRosterAcademicsSchema.safeParse(payload);
     if (!result.success) {
       const fieldErrors: Record<string, string> = {};
       result.error.issues.forEach((issue) => {
@@ -81,82 +87,36 @@ const EditStudentForm: React.FC<EditStudentFormProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 min-h-[1.5rem]">
-            First Name *
-          </label>
-          <input
-            type="text"
-            value={formData.first_name}
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          {errors.first_name && <p className="text-xs text-destructive mt-1">{errors.first_name}</p>}
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 min-h-[1.5rem]">
-            Middle Name (Optional)
-          </label>
-          <input
-            type="text"
-            value={formData.middle_name || ''}
-            onChange={(e) => setFormData({ ...formData, middle_name: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 min-h-[1.5rem]">
-            Last Name *
-          </label>
-          <input
-            type="text"
-            value={formData.last_name}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          {errors.last_name && <p className="text-xs text-destructive mt-1">{errors.last_name}</p>}
-        </div>
+      <div className="p-3 bg-muted/40 text-muted-foreground text-xs rounded-lg border border-border">
+        Editing record for <span className="font-semibold text-foreground">{student.last_name}, {student.first_name}</span>
+        {' '}({student.email}). {isLinked
+          ? 'This is an education-linked row: only student number, school year, and GPA may be edited.'
+          : 'Only student number, school year, and GPA may be edited; identity and course stay saga-owned.'}
       </div>
 
       <div>
         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-          Email Address *
+          Student Number
         </label>
         <input
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          type="text"
+          value={formData.student_number || ''}
+          onChange={(e) => setFormData({ ...formData, student_number: e.target.value === '' ? null : e.target.value })}
           className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
-        {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
+        {errors.student_number && <p className="text-xs text-destructive mt-1">{errors.student_number}</p>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Student Number
-          </label>
-          <input
-            type="text"
-            value={formData.student_number || ''}
-            onChange={(e) => setFormData({ ...formData, student_number: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
             School Year *
           </label>
           <select
-            value={formData.school_year}
+            value={formData.school_year ?? ''}
             onChange={(e) => setFormData({ ...formData, school_year: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            {/* Include custom student school_year if not in list */}
             {formData.school_year && !schoolYearOptions.includes(formData.school_year) && (
               <option value={formData.school_year}>{formData.school_year}</option>
             )}
@@ -167,31 +127,6 @@ const EditStudentForm: React.FC<EditStudentFormProps> = ({
             ))}
           </select>
           {errors.school_year && <p className="text-xs text-destructive mt-1">{errors.school_year}</p>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Course
-          </label>
-          <select
-            value={formData.school_course_id || ''}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                school_course_id: e.target.value ? Number(e.target.value) : null,
-              })
-            }
-            className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="">Select Course...</option>
-            {courses.map((course) => (
-              <option key={course.school_course_id} value={course.school_course_id}>
-                {course.course_name}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>
@@ -212,6 +147,7 @@ const EditStudentForm: React.FC<EditStudentFormProps> = ({
             }
             className="w-full px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          {errors.gpa && <p className="text-xs text-destructive mt-1">{errors.gpa}</p>}
         </div>
       </div>
 
@@ -239,7 +175,6 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
   student,
   onClose,
   onSuccess,
-  courses,
 }) => {
   const schoolYearOptions = generateSchoolYearOptions();
 
@@ -263,11 +198,9 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({
           student={student}
           onClose={onClose}
           onSuccess={onSuccess}
-          courses={courses}
           schoolYearOptions={schoolYearOptions}
         />
       </div>
     </div>
   );
 };
-

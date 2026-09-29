@@ -19,6 +19,7 @@ export const STUDENT_INVITATION_ERROR_CODES = [
   "OTP_EXPIRED",
   "RATE_LIMITED",
   "SERVICE_UNAVAILABLE",
+  "EDUCATION_AMBIGUOUS",
 ] as const;
 
 /** Any code the student-invitation APIs can return in an error body. */

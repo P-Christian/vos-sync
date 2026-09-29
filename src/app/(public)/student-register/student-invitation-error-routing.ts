@@ -70,6 +70,7 @@ export function routeStudentInvitationError(
         ? otpRoute(error, false)
         : retryRoute(surface, error.message, error.resendAvailableAt);
     case "SERVICE_UNAVAILABLE":
+    case "EDUCATION_AMBIGUOUS":
       return retryRoute(surface, error.message, error.resendAvailableAt);
     default:
       return assertNever(error.code);
