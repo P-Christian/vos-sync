@@ -179,9 +179,14 @@ export type SchoolDecisionResult =
 
 /**
  * The attended outcomes, modeled as a discriminated union:
- *  - `completed`  approval verifies the education immediately, no follow-on.
- *  - `followUp`   legacy shape, unreachable: the server never returns a
- *    follow-on course request and approval never leaves the education Pending.
+ *  - `completed`  approval verifies the education immediately; the education
+ *    already carried a catalog course, so no follow-on was created.
+ *  - `followUp`   approval verifies the education, but its course was free
+ *    text (no catalog course), so the server also created a follow-on course
+ *    request for VOS to route and resolve.
+ *  - `deferred`   approval binds the education to the school but leaves it
+ *    Pending because its typed course is still unresolved; the follow-on
+ *    course request completes it (Pending -> Verified + course) when approved.
  *  - (Finalizing is represented by `SchoolAttendanceOutcome.kind === "finalizing"`.)
  */
 export type SchoolApprovalResolution =
@@ -194,6 +199,14 @@ export type SchoolApprovalResolution =
     }
   | {
       readonly kind: "followUp";
+      readonly requestId: number;
+      readonly rosterStudentId: number;
+      readonly courseRequestId: number;
+      readonly reviewedBy: number;
+      readonly reviewedAt: string;
+    }
+  | {
+      readonly kind: "deferred";
       readonly requestId: number;
       readonly rosterStudentId: number;
       readonly courseRequestId: number;
@@ -522,18 +535,25 @@ export function parseSchoolReconcilePayload(json: unknown): readonly SchoolAppro
 }
 
 /**
- * Classify the approved result. Approval verifies the education immediately
- * and creates no follow-on, so the only coherent pairing is Verified with a
- * null course request. Any other pairing is impossible and throws.
+ * Classify the approved result. A catalog-course approval verifies the
+ * education immediately (`completed`); a free-text-course approval either
+ * verifies immediately with a follow-on course request (`followUp`) or —
+ * when the typed course is still unresolved — binds the school while leaving
+ * the education Pending for the course approval to complete (`deferred`).
+ * A Pending education with no follow-on course request is impossible and throws.
  */
 export function classifyApprovalResolution(result: SchoolApprovedResult): SchoolApprovalResolution {
   switch (result.educationStatus) {
     case "Verified":
       if (result.courseRequestId !== null) {
-        throw new SchoolDecisionParseError(
-          503,
-          "Approved response carried a follow-on course request for a verified education.",
-        );
+        return {
+          kind: "followUp",
+          requestId: result.requestId,
+          rosterStudentId: result.rosterStudentId,
+          courseRequestId: result.courseRequestId,
+          reviewedBy: result.reviewedBy,
+          reviewedAt: result.reviewedAt,
+        };
       }
       return {
         kind: "completed",
@@ -543,9 +563,19 @@ export function classifyApprovalResolution(result: SchoolApprovedResult): School
         reviewedAt: result.reviewedAt,
       };
     case "Pending":
+      if (result.courseRequestId !== null) {
+        return {
+          kind: "deferred",
+          requestId: result.requestId,
+          rosterStudentId: result.rosterStudentId,
+          courseRequestId: result.courseRequestId,
+          reviewedBy: result.reviewedBy,
+          reviewedAt: result.reviewedAt,
+        };
+      }
       throw new SchoolDecisionParseError(
         503,
-        "Approved response left the education pending; approval verifies immediately.",
+        "Approved response left the education pending with no follow-on course request.",
       );
     default:
       return assertNeverSchoolAdminVariant(result.educationStatus);
@@ -672,6 +702,12 @@ export function feedbackForSchoolAttendanceOutcome(
           return {
             tone: "success",
             message: "Attendance approved; the education is now verified.",
+          };
+        case "deferred":
+          return {
+            tone: "success",
+            message:
+              "Attendance approved; the typed course still needs matching, so the education stays pending until it is resolved.",
           };
         default:
           return assertNeverSchoolAdminVariant(outcome.resolution);

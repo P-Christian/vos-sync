@@ -106,19 +106,19 @@ async function reconcileSchoolAttendance(
 ): Promise<EducationRecord> {
   const guard = schoolGuard(education, input);
   if (input.canonicalCourseId === null) {
+    const hasUnresolvedTypedCourse = (education.course_name_raw ?? "").trim().length > 0;
     const target: EducationTarget = {
       schoolId: input.canonicalSchoolId,
       courseId: education.school_course_id,
-      status: "Verified",
+      status: hasUnresolvedTypedCourse ? "Pending" : "Verified",
     };
     if (isTargetState(education, target)) return education;
     return guardedEducationPatch(
       education,
       guard,
-      {
-        school_id: input.canonicalSchoolId,
-        education_status: "Verified",
-      },
+      hasUnresolvedTypedCourse
+        ? { school_id: input.canonicalSchoolId }
+        : { school_id: input.canonicalSchoolId, education_status: "Verified" },
       target
     );
   }

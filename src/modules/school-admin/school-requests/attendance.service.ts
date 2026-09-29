@@ -4,6 +4,7 @@ import {
   ensureAttendanceRoster,
   ensureCourseRequest,
   reconcileLinkedEducation,
+  routeCourseRequestToSchool,
 } from "@/modules/education-verification";
 import { claimSchoolAttendance, normalizeRosterAcademics, parseRouteAudit } from "@/modules/school-request-routing";
 import { routingError } from "@/modules/school-request-routing/errors";
@@ -101,9 +102,21 @@ async function completeClaimedAttendance(
     requestedCourseName.length > 0
       ? await ensureCourseRequest({ educationId, schoolId, requestedCourseName })
       : null;
-  const courseRequestId = courseRequest?.course_request_id ?? null;
   const reviewerId = request.reviewedBy;
   if (reviewerId === null) throw routingError("CLAIM_CONFLICT", "The attendance claim has no persisted reviewer.");
+  // A free-text course yields a follow-on course request owned by THIS school.
+  // The approving school admin is the accountable actor that routes it here, so
+  // the request is immediately actionable in the school's course-request inbox.
+  const routedCourseRequest =
+    courseRequest !== null && courseRequest.request_status === "Pending"
+      ? await routeCourseRequestToSchool({
+          courseRequestId: courseRequest.course_request_id,
+          schoolId,
+          routedBy: reviewerId,
+          routedAt: approvalDate,
+        })
+      : courseRequest;
+  const courseRequestId = routedCourseRequest?.course_request_id ?? null;
   await finalizeApproval(request.schoolRequestId, schoolId, reviewerId, educationId);
   if (education.education_status === "Unverified") {
     throw routingError("CORRELATION_CONFLICT", "The reconciled education has an invalid status.");

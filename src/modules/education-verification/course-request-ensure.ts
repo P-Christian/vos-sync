@@ -12,7 +12,7 @@ import {
   courseRequestSchema,
   type CourseRequestRecord,
 } from "./schemas";
-import type { EnsureCourseRequestInput } from "./types";
+import type { EnsureCourseRequestInput, RouteCourseRequestInput } from "./types";
 import { requireNonBlank, requirePositiveInteger } from "./validation";
 
 function activeExisting(
@@ -123,6 +123,38 @@ async function refreshOccupiedSlot(
   throw primitiveError(
     "CLAIM_CONFLICT",
     "Another course request refresh won the education slot."
+  );
+}
+
+export async function routeCourseRequestToSchool(
+  input: RouteCourseRequestInput
+): Promise<CourseRequestRecord | null> {
+  const courseRequestId = requirePositiveInteger(input.courseRequestId, "courseRequestId");
+  const schoolId = requirePositiveInteger(input.schoolId, "schoolId");
+  const routedBy = requirePositiveInteger(input.routedBy, "routedBy");
+  const routedAt = requireNonBlank(input.routedAt, "routedAt");
+  return patchRows(
+    {
+      operation: "courseRequest.routeToSchool",
+      collection: "vs_course_request",
+      filter: {
+        course_request_id: { _eq: courseRequestId },
+        school_id: { _eq: schoolId },
+        request_status: { _eq: "Pending" },
+        matched_school_course_id: { _null: true },
+        reviewed_by: { _null: true },
+        reviewed_at: { _null: true },
+        routed_by: { _null: true },
+        routed_at: { _null: true },
+      },
+      data: {
+        request_status: "RoutedToSchool",
+        routed_by: routedBy,
+        routed_at: routedAt,
+      },
+      fields: COURSE_REQUEST_FIELDS,
+    },
+    courseRequestSchema
   );
 }
 

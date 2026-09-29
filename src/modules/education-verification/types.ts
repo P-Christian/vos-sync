@@ -78,3 +78,10 @@ export type EnsureCourseRequestInput = {
   readonly schoolId: number;
   readonly requestedCourseName: string;
 };
+
+export type RouteCourseRequestInput = {
+  readonly courseRequestId: number;
+  readonly schoolId: number;
+  readonly routedBy: number;
+  readonly routedAt: string;
+};

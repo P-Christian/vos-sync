@@ -2,7 +2,7 @@ import "server-only";
 
 export { fetchActiveCoursesForSchool } from "./catalog";
 export { claimCourseRequest, finalizeCourseRequest } from "./course-request-claim";
-export { ensureCourseRequest } from "./course-request-ensure";
+export { ensureCourseRequest, routeCourseRequestToSchool } from "./course-request-ensure";
 export { reconcileLinkedEducation } from "./education";
 export {
   completeAttendanceRosterCourse,
@@ -33,6 +33,7 @@ export type {
   FinalizeCourseRequestInput,
   ReconcileLinkedEducationInput,
   RosterClassification,
+  RouteCourseRequestInput,
 } from "./types";
 export type {
   ActiveSchoolCourse,
