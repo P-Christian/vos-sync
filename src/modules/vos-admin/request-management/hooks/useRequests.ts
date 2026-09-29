@@ -18,6 +18,11 @@ export function assertNeverCourseVariant(value: never): never {
   throw new Error(`Unhandled course variant: ${JSON.stringify(value)}`);
 }
 
+export interface SchoolInviteLink {
+  readonly invitationUrl: string;
+  readonly expiresAt: string;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -731,6 +736,24 @@ export function useRequests() {
     }
   };
 
+  const generateSchoolInvite = async (schoolId: number, email: string): Promise<SchoolInviteLink | null> => {
+    try {
+      const res = await fetch('/api/vos-admin/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ school_id: schoolId, invited_email: email }),
+      });
+      if (!res.ok) return null;
+      const json = (await res.json()) as unknown;
+      if (!isRecord(json)) return null;
+      const { invitation_url, expires_at } = json;
+      if (typeof invitation_url !== 'string' || typeof expires_at !== 'string') return null;
+      return { invitationUrl: invitation_url, expiresAt: expires_at };
+    } catch {
+      return null;
+    }
+  };
+
   const reviewSchoolRequest = async (id: number, data: ReviewAction): Promise<boolean> => {
     try {
       const res = await fetch(`/api/vos-admin/school-requests/${id}/review`, {
@@ -935,6 +958,7 @@ export function useRequests() {
     fetchCourseRequests,
     createSchoolRequest,
     reviewSchoolRequest,
+    generateSchoolInvite,
     reviewCourseRequest,
     courseCandidates,
     candidatesLoading,

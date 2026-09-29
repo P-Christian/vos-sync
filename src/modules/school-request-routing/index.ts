@@ -14,8 +14,10 @@ export {
   groupSchoolRequest,
   rejectSchoolRequest,
   releaseGroupedSchoolRequest,
+  releaseParkedRequestsForSchool,
   routeSchoolRequest,
 } from "./transitions";
+export type { ParkedReleaseSummary } from "./transitions";
 export type {
   AttendanceClaimInput,
   EducationRecord,

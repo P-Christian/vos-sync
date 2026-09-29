@@ -18,8 +18,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Link2, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -28,15 +30,18 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ReviewAction, SchoolDraftOutcome } from "../types/request.types";
 import type {
   SchoolDecisionFeedback,
   SchoolDecisionOutcome,
+  SchoolInviteLink,
   SchoolRequestDecision,
   SchoolRoutingCandidate,
 } from "../hooks/useRequests";
 import type { AwaitingSchoolGroup } from "../dashboard/school-demand.selectors";
 import { SchoolDemandDetailRequests } from "./SchoolDemandDetailRequests";
+import { InviteSchoolLinkModal } from "./InviteSchoolLinkModal";
 import { useSchoolRequestActionController } from "./school-requests/SchoolRequestActionController";
 import type { SchoolRequestsMode } from "./school-requests/school-request-mode";
 
@@ -60,6 +65,18 @@ function awaitingLabelFor(route: string): RefinementLabel | null {
   if (route === "AWAITING_REGISTRATION") return "Awaiting registration";
   if (route === "AWAITING_ACTIVATION") return "Awaiting activation";
   return null;
+}
+
+const INVITE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function isValidInviteEmail(value: string): boolean {
+  return INVITE_EMAIL_PATTERN.test(value.trim());
+}
+
+interface GeneratedSchoolInvite {
+  readonly schoolName: string;
+  readonly invitedEmail: string;
+  readonly invitationUrl: string;
 }
 
 function AccountStateBadge({ refinement }: { refinement: AccountRefinement }) {
@@ -93,6 +110,7 @@ export interface SchoolDemandDetailSheetProps {
   readonly onReview: (id: number, data: ReviewAction) => Promise<boolean>;
   readonly onDecide: (id: number, decision: SchoolRequestDecision) => Promise<SchoolDecisionOutcome>;
   readonly onCreatePlaceholder: (data: unknown) => Promise<SchoolDraftOutcome | null>;
+  readonly onGenerateInvite: (schoolId: number, email: string) => Promise<SchoolInviteLink | null>;
   readonly onDecided: () => void;
 }
 
@@ -100,7 +118,7 @@ export function SchoolDemandDetailSheet(props: SchoolDemandDetailSheetProps) {
   const {
     open, onOpenChange, group, mode, onSearchSchools, searchErrorFor, feedbackFor,
     decisionBusyFor, candidatesFor, candidatesLoadingFor, candidatesErrorFor, onReview,
-    onDecide, onCreatePlaceholder, onDecided,
+    onDecide, onCreatePlaceholder, onGenerateInvite, onDecided,
   } = props;
   const controller = useSchoolRequestActionController({
     mode, onReview, onDecide, onSearchSchools, candidatesFor, candidatesLoadingFor,
@@ -115,6 +133,9 @@ export function SchoolDemandDetailSheet(props: SchoolDemandDetailSheetProps) {
       ? `${matchedSchoolId}:${representativeId}`
       : null;
   const [result, setResult] = useState<{ key: string; label: RefinementLabel | null } | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [generatedInvite, setGeneratedInvite] = useState<GeneratedSchoolInvite | null>(null);
   const epochRef = useRef(0);
   const originRef = useRef<HTMLElement | null>(null);
   const searchRef = useRef(onSearchSchools);
@@ -210,6 +231,39 @@ export function SchoolDemandDetailSheet(props: SchoolDemandDetailSheetProps) {
     ["Latest request", formatTimestamp(group.latestCreatedAt), "demand-detail-latest", group.latestCreatedAt],
   ];
 
+  const adminAlreadyConnected = refinement.kind === "refined" && refinement.label === "Awaiting activation";
+  const inviteDisabled = inviteBusy || adminAlreadyConnected || !isValidInviteEmail(inviteEmail);
+
+  const generateInvite = async (): Promise<void> => {
+    if (inviteDisabled) return;
+    setInviteBusy(true);
+    try {
+      const email = inviteEmail.trim();
+      const link = await onGenerateInvite(group.matchedSchoolId, email);
+      if (link === null) {
+        toast.error("Could not generate the invite link. Please try again.");
+        return;
+      }
+      setGeneratedInvite({ schoolName: group.displayName, invitedEmail: email, invitationUrl: link.invitationUrl });
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+
+  const inviteButton = (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={inviteDisabled}
+      onClick={() => void generateInvite()}
+      data-testid="demand-detail-generate-invite"
+    >
+      <Link2 className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+      Generate invite link
+    </Button>
+  );
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -264,6 +318,34 @@ export function SchoolDemandDetailSheet(props: SchoolDemandDetailSheetProps) {
                   </span>
                 ) : null}
               </div>
+              <div className="mt-4 space-y-2 border-t pt-3" data-testid="demand-detail-invite">
+                <p className="text-sm font-medium">Invite school admin</p>
+                <p className="text-xs text-muted-foreground">
+                  Generate a link-only registration invite. No email is sent.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(event) => setInviteEmail(event.target.value)}
+                    placeholder="admin@school.edu"
+                    aria-label="Invitee email"
+                    disabled={inviteBusy}
+                    data-testid="demand-detail-invite-email"
+                    className="h-9 max-w-xs text-sm"
+                  />
+                  {adminAlreadyConnected ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">{inviteButton}</span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">An admin account is already connected.</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    inviteButton
+                  )}
+                </div>
+              </div>
             </section>
 
             <section aria-labelledby="demand-detail-requests-heading" className="space-y-2">
@@ -292,6 +374,15 @@ export function SchoolDemandDetailSheet(props: SchoolDemandDetailSheetProps) {
         </SheetContent>
       </Sheet>
       {controller.modals}
+      {generatedInvite !== null ? (
+        <InviteSchoolLinkModal
+          isOpen
+          onClose={() => setGeneratedInvite(null)}
+          schoolName={generatedInvite.schoolName}
+          invitedEmail={generatedInvite.invitedEmail}
+          invitationUrl={generatedInvite.invitationUrl}
+        />
+      ) : null}
     </>
   );
 }

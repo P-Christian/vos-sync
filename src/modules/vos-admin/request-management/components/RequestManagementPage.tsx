@@ -84,6 +84,7 @@ export function RequestManagementPage({ mode }: Props) {
     error,
     fetchSchoolRequests,
     reviewSchoolRequest,
+    generateSchoolInvite,
     decideSchoolRequest,
     searchSchoolsForRouting,
     schoolsForRouting,
@@ -285,6 +286,7 @@ export function RequestManagementPage({ mode }: Props) {
         onReview={reviewSchoolRequest}
         onDecide={decideSchoolRequest}
         onCreatePlaceholder={createSchoolPlaceholder}
+        onGenerateInvite={generateSchoolInvite}
         onDecided={refetchSchools}
       />
     </div>

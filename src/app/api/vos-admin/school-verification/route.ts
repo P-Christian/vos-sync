@@ -7,6 +7,7 @@ import {
   processVerificationDecision,
   VerificationDecisionSchema,
 } from "@/modules/vos-admin/school-verification";
+import { releaseParkedRequestsForSchool } from "@/modules/school-request-routing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,6 +75,17 @@ export async function POST(req: NextRequest) {
     const userAgent = req.headers.get("user-agent") || undefined;
 
     const result = await processVerificationDecision(parseResult.data, adminId, clientIp, userAgent);
+
+    // Best-effort: now that the school may be review-ready, release its parked
+    // school requests. Never throws into the approval response.
+    if (parseResult.data.action === "approve" && result.success) {
+      try {
+        await releaseParkedRequestsForSchool(Number(parseResult.data.schoolId));
+      } catch (releaseErr) {
+        console.warn("Non-fatal: failed releasing parked school requests after approval:", releaseErr);
+      }
+    }
+
     return NextResponse.json(result);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Internal server error";

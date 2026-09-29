@@ -11,6 +11,7 @@ import type {
 import { provisionClientGraph } from "./provisioners/client.provisioner";
 import { provisionFreelancerGraph } from "./provisioners/freelancer.provisioner";
 import { provisionSchoolGraph } from "./provisioners/school.provisioner";
+import { releaseParkedRequestsForSchool } from "@/modules/school-request-routing";
 
 export interface ProvisionedRegistrationUser extends Record<string, unknown> {
   user_id: string | number;
@@ -155,6 +156,7 @@ export class RegistrationProvisioningService {
 
     assertCompatibleUser(user, challenge, payload);
 
+    let provisionedSchoolId: number | null = null;
     try {
       if (payload.role === "CLIENT") {
         if (!payload.clientData) throw conflict("Client registration data is missing.");
@@ -168,7 +170,9 @@ export class RegistrationProvisioningService {
         if (!payload.schoolData) {
           throw conflict("School registration data is missing.");
         }
-        await provisionSchoolGraph(this.repo, user, payload.schoolData);
+        const graph = await provisionSchoolGraph(this.repo, user, payload.schoolData);
+        const sid = Number(graph.school?.school_id);
+        provisionedSchoolId = Number.isSafeInteger(sid) && sid > 0 ? sid : null;
       }
     } catch (error: unknown) {
       if (
@@ -228,13 +232,14 @@ export class RegistrationProvisioningService {
     }
 
     if (!wasAlreadyProvisioned)
-      await this.emitBestEffortEffects(activeUser, options);
+      await this.emitBestEffortEffects(activeUser, options, provisionedSchoolId);
     return activeUser;
   }
 
   private async emitBestEffortEffects(
     user: ProvisionedRegistrationUser,
-    options?: RegistrationProvisioningOptions
+    options?: RegistrationProvisioningOptions,
+    schoolId?: number | null
   ): Promise<void> {
     const numericUserId = Number(user.user_id);
     const effects: Array<Promise<unknown>> = [
@@ -258,6 +263,9 @@ export class RegistrationProvisioningService {
           "Your VOS Sync account has been created and is pending admin verification."
         )
       );
+    }
+    if (typeof schoolId === "number" && Number.isInteger(schoolId) && schoolId > 0) {
+      effects.push(releaseParkedRequestsForSchool(schoolId));
     }
     await Promise.allSettled(effects);
   }

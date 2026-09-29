@@ -8,6 +8,7 @@ import {
   fetchEducation,
   fetchSchoolRoute,
   fetchSchoolRequest,
+  listWaitingSchoolRequests,
   SCHOOL_REQUEST_FIELDS,
 } from "./records";
 import { schoolRequestSchema } from "./schemas";
@@ -217,4 +218,44 @@ export async function rejectSchoolRequest(input: RejectSchoolRequestInput): Prom
   const current = await fetchSchoolRequest(input.requestId);
   if (rejectReplay(current, normalizedInput)) return { kind: "converged", request: current };
   throw routingError("STALE_CONFLICT", "The school request changed before rejection completed.");
+}
+
+// Targeted per-school release of parked (Pending + matched) requests.
+// Safe when not review-ready (releaseGroupedSchoolRequest returns
+// skipped/ineligible-school). Idempotent and best-effort, never throws.
+export interface ParkedReleaseSummary {
+  readonly scanned: number;
+  readonly released: number;
+  readonly skipped: number;
+  readonly failed: number;
+}
+
+export async function releaseParkedRequestsForSchool(
+  schoolId: number
+): Promise<ParkedReleaseSummary> {
+  if (!Number.isInteger(schoolId) || schoolId <= 0) {
+    return { scanned: 0, released: 0, skipped: 0, failed: 0 };
+  }
+  let waiting: readonly SchoolRequestRecord[];
+  try {
+    waiting = await listWaitingSchoolRequests(schoolId);
+  } catch {
+    return { scanned: 0, released: 0, skipped: 0, failed: 0 };
+  }
+  let released = 0;
+  let skipped = 0;
+  let failed = 0;
+  for (const row of waiting) {
+    try {
+      const outcome = await releaseGroupedSchoolRequest({
+        requestId: row.school_request_id,
+        targetSchoolId: schoolId,
+      });
+      if (outcome.kind === "mutated") released += 1;
+      else skipped += 1;
+    } catch {
+      failed += 1;
+    }
+  }
+  return { scanned: waiting.length, released, skipped, failed };
 }
