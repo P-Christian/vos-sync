@@ -328,7 +328,7 @@ export async function updateEducationAction(id: number, _userId: number, payload
     }
 }
 
-export async function deleteEducationAction(id: number, _userId: number) {
+export async function deleteEducationAction(id: number) {
     const { deleteEducationService } = await import("./freelancer-profile.service");
     
     try {
