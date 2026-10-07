@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap,
   Search,
+  X,
   Building2,
   Users,
   ChevronRight,
@@ -14,12 +15,14 @@ import {
   Loader2,
   RefreshCw,
   BookOpen,
-  Sparkles,
+  Bot,
+  MapPin,
+  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -30,6 +33,8 @@ import { CampusCandidate } from "@/modules/matching-engine/campus/types";
 import StudentMatchTable from "./components/StudentMatchTable";
 import StudentMatchDrawer from "./components/StudentMatchDrawer";
 import SendInvitationDialog from "./components/SendInvitationDialog";
+import { PublicSchoolAdminProfileRender } from "@/modules/public/public-profile/components/PublicSchoolAdminProfileRender";
+import { PublicSchoolAdminProfile } from "@/modules/public/public-profile/services/public-profile.service";
 
 // ── Local Types ────────────────────────────────────────────────────────────────
 
@@ -130,9 +135,7 @@ function MatchPipelineLoadingState({
           animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
-        <div className="relative h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 border border-primary/25 flex items-center justify-center shadow-lg">
-          <Sparkles className="h-7 w-7 text-primary animate-pulse" />
-        </div>
+ 
       </div>
 
       {/* Dynamic Stage Text with Crossfade */}
@@ -196,6 +199,10 @@ export default function CampusTalentModule() {
   const [schoolsLoading, setSchoolsLoading] = useState(false);
   const [schoolsError, setSchoolsError] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+  const [schoolTab, setSchoolTab] = useState<string>("about");
+  const [schoolProfile, setSchoolProfile] = useState<PublicSchoolAdminProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // ── Student Roster ───────────────────────────────────────────────────────
   const [candidates, setCandidates] = useState<CampusCandidate[]>([]);
@@ -222,7 +229,9 @@ export default function CampusTalentModule() {
   const [drawerResult, setDrawerResult] = useState<CampusMatchResult | null>(null);
   const [inviteTarget, setInviteTarget] = useState<CampusMatchResult | null>(null);
 
-  // ── School Search ─────────────────────────────────────────────────────────
+  // ── School Search & Category Filters ─────────────────────────────────────
+  const [selectedSchoolType, setSelectedSchoolType] = useState<string>("ALL");
+
   const handleSchoolSearch = useCallback(async () => {
     setSchoolsLoading(true);
     setSchoolsError(null);
@@ -238,15 +247,61 @@ export default function CampusTalentModule() {
     }
   }, [schoolQuery]);
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      handleSchoolSearch();
+    });
+  }, [handleSchoolSearch]);
+
+  const schoolStats = useMemo(() => {
+    const totalSchools = schools.length;
+    const totalStudents = schools.reduce((acc, s) => acc + (Number(s.student_count) || 0), 0);
+    const totalCourses = schools.reduce((acc, s) => acc + (Number(s.course_count) || 0), 0);
+    return { totalSchools, totalStudents, totalCourses };
+  }, [schools]);
+
+  const availableSchoolTypes = useMemo(() => {
+    const types = new Set<string>();
+    for (const s of schools) {
+      if (s.school_type?.trim()) types.add(s.school_type.trim());
+    }
+    return Array.from(types);
+  }, [schools]);
+
+  const filteredSchools = useMemo(() => {
+    if (selectedSchoolType === "ALL") return schools;
+    return schools.filter(
+      (s) => s.school_type?.toLowerCase() === selectedSchoolType.toLowerCase()
+    );
+  }, [schools, selectedSchoolType]);
+
   // ── Select School → Load Students ─────────────────────────────────────────
   const handleSelectSchool = useCallback(async (school: School) => {
     setSelectedSchool(school);
     setView("STUDENTS");
+    setSchoolTab("about");
     setStudentsLoading(true);
     setStudentsError(null);
+    setProfileLoading(true);
+    setProfileError(null);
     setCandidates([]);
     setMatchResults([]);
     setSelectedJob(null);
+    setSchoolProfile(null);
+
+    // Fetch school profile
+    fetchJson<{ data: PublicSchoolAdminProfile }>(
+      `/api/client/campus-talent/schools/${school.school_id}`
+    )
+      .then((data) => {
+        setSchoolProfile(data.data ?? null);
+      })
+      .catch((e: unknown) => {
+        setProfileError(e instanceof Error ? e.message : "Failed to load school profile.");
+      })
+      .finally(() => {
+        setProfileLoading(false);
+      });
 
     try {
       const data = await fetchJson<{ data: CampusCandidate[] }>(
@@ -310,228 +365,405 @@ export default function CampusTalentModule() {
     <CompanyVerificationGuard moduleName="Campus Talent">
       <div className="flex flex-col min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b border-border px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <GraduationCap className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Campus Talent</h1>
-              <p className="text-sm text-muted-foreground">
-                Discover and match academic candidates from verified schools
-              </p>
+        {view === "SCHOOLS" ? (
+          <div className="border-b border-border px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <GraduationCap className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Campus Talent</h1>
+                <p className="text-sm text-muted-foreground">
+                  Discover and match academic candidates from verified schools
+                </p>
+              </div>
             </div>
           </div>
-
-          {/* Breadcrumb */}
-          {view !== "SCHOOLS" && (
-            <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+        ) : (
+          <div className="border-b border-border px-6 py-3.5 bg-background">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <button
                 onClick={() => { setView("SCHOOLS"); setSelectedSchool(null); }}
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground transition-colors font-medium text-xs sm:text-sm"
               >
                 Schools
               </button>
               {selectedSchool && (
                 <>
-                  <ChevronRight className="h-3.5 w-3.5" />
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0" />
                   <button
-                    onClick={() => setView("STUDENTS")}
+                    onClick={() => {
+                      setView("STUDENTS");
+                      setSchoolTab("about");
+                    }}
                     className={cn(
-                      "hover:text-foreground transition-colors",
-                      view === "STUDENTS" && "text-foreground font-medium"
+                      "hover:text-foreground transition-colors font-medium text-xs sm:text-sm",
+                      view === "STUDENTS" && schoolTab === "about" && "text-foreground font-semibold"
                     )}
                   >
                     {selectedSchool.school_name}
                   </button>
+                  {view === "STUDENTS" && schoolTab === "roster" && (
+                    <>
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      <span className="text-foreground font-semibold text-xs sm:text-sm">Student Roster</span>
+                    </>
+                  )}
+                  {view === "STUDENTS" && schoolTab === "courses" && (
+                    <>
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                      <span className="text-foreground font-semibold text-xs sm:text-sm">Courses</span>
+                    </>
+                  )}
                 </>
               )}
               {view === "MATCH" && selectedJob && (
                 <>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                  <span className="text-foreground font-medium">{selectedJob.job_title}</span>
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0" />
+                  <span className="text-foreground font-semibold text-xs sm:text-sm">{selectedJob.job_title}</span>
                 </>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content */}
-        <div className="flex-1 p-6">
+        <div className={cn("flex-1", view === "STUDENTS" ? "" : "p-6")}>
           {/* ── School Discovery View ─────────────────────────────────────── */}
           {view === "SCHOOLS" && (
             <div className="space-y-6">
-              <div className="flex gap-2 max-w-xl">
-                <Input
-                  placeholder="Search schools by name, city, or province..."
-                  value={schoolQuery}
-                  onChange={(e) => setSchoolQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleSchoolSearch(); }}
-                  className="flex-1"
-                />
-                <Button onClick={handleSchoolSearch} disabled={schoolsLoading}>
-                  {schoolsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  <span className="ml-2">Search</span>
-                </Button>
+              {/* Institutional Overview Metrics Banner */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-card border border-border/80 rounded-xl p-4.5 flex items-center gap-4 shadow-2xs">
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                    <GraduationCap className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold tracking-tight text-foreground">
+                      {schoolStats.totalSchools}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Partner Institutions
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border/80 rounded-xl p-4.5 flex items-center gap-4 shadow-2xs">
+                  <div className="h-11 w-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold tracking-tight text-foreground">
+                      {schoolStats.totalStudents.toLocaleString()}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Verified Student Network
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border/80 rounded-xl p-4.5 flex items-center gap-4 shadow-2xs">
+                  <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-bold tracking-tight text-foreground">
+                      {schoolStats.totalCourses.toLocaleString()}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Academic Degree Programs
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Search and Category Filter Toolbar */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-muted/20 border border-border rounded-xl p-3.5">
+                <div className="flex gap-2 flex-1 max-w-lg">
+                  <Input
+                    placeholder="Search schools by name, city, or province..."
+                    value={schoolQuery}
+                    onChange={(e) => setSchoolQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSchoolSearch(); }}
+                    className="flex-1 bg-background"
+                  />
+                  <Button onClick={handleSchoolSearch} disabled={schoolsLoading}>
+                    {schoolsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    <span className="ml-1.5 hidden sm:inline">Search</span>
+                  </Button>
+                </div>
+
+                {/* Filter Chips */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+                  <Button
+                    type="button"
+                    variant={selectedSchoolType === "ALL" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-8 text-xs rounded-lg font-medium"
+                    onClick={() => setSelectedSchoolType("ALL")}
+                  >
+                    All Types
+                  </Button>
+                  {availableSchoolTypes.map((type) => (
+                    <Button
+                      key={type}
+                      type="button"
+                      variant={selectedSchoolType.toLowerCase() === type.toLowerCase() ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-8 text-xs rounded-lg font-medium"
+                      onClick={() => setSelectedSchoolType(type)}
+                    >
+                      {type}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               {schoolsError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  {schoolsError}
+                <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/5 border border-destructive/20 p-3 rounded-lg">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{schoolsError}</span>
                 </div>
               )}
 
-              {schools.length === 0 && !schoolsLoading && !schoolsError && (
-                <div className="text-center py-16 text-muted-foreground">
-                  <GraduationCap className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                  <p className="font-medium">Search for a school to get started</p>
-                  <p className="text-sm mt-1">Find verified schools and browse their student rosters</p>
+              {filteredSchools.length === 0 && !schoolsLoading && !schoolsError && (
+                <div className="text-center py-20 border border-dashed border-border rounded-2xl bg-muted/10 text-muted-foreground space-y-2">
+                  <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                  <p className="font-semibold text-foreground text-base">No partner institutions found</p>
+                  <p className="text-xs max-w-md mx-auto text-muted-foreground">
+                    Try adjusting your search criteria or filter to discover verified universities and browse their candidate rosters.
+                  </p>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {schools.map((school, index) => (
-                  <motion.button
-                    key={school.school_id}
-                    onClick={() => handleSelectSchool(school)}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.26,
-                      delay: Math.min(index * 0.04, 0.28),
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                    whileHover={{ y: -3, scale: 1.015 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="text-left border border-border rounded-xl p-5 hover:border-primary/50 hover:bg-accent/40 hover:shadow-md transition-all group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="h-10 w-10 rounded-lg border border-border overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center">
-                        {resolveSchoolLogoUrl(school.school_logo_url) ? (
-                          <Image
-                            src={resolveSchoolLogoUrl(school.school_logo_url)!}
-                            alt={school.school_name}
-                            width={40}
-                            height={40}
-                            unoptimized
-                            className="object-contain"
-                          />
-                        ) : (
-                          <Building2 className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                          {school.school_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {[school.city_municipality, school.province].filter(Boolean).join(", ")}
-                        </p>
-                        {school.school_type && (
-                          <Badge variant="secondary" className="mt-2 text-xs">
-                            {school.school_type}
+              {/* School Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <AnimatePresence mode="popLayout">
+                  {filteredSchools.map((school) => (
+                    <motion.button
+                      layout
+                      key={school.school_id}
+                      onClick={() => handleSelectSchool(school)}
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{
+                        layout: { duration: 0.32, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.2 },
+                        scale: { duration: 0.2 },
+                      }}
+                      whileHover={{ y: -3, scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="text-left bg-card border border-border/80 rounded-2xl p-5 hover:border-primary/50 hover:shadow-md transition-[border-color,box-shadow] group flex flex-col justify-between"
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-start gap-3.5">
+                          <div className="h-12 w-12 rounded-xl border border-border overflow-hidden shrink-0 bg-muted/60 flex items-center justify-center shadow-2xs">
+                            {resolveSchoolLogoUrl(school.school_logo_url) ? (
+                              <Image
+                                src={resolveSchoolLogoUrl(school.school_logo_url)!}
+                                alt={school.school_name}
+                                width={48}
+                                height={48}
+                                unoptimized
+                                className="object-contain p-1"
+                              />
+                            ) : (
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-foreground text-sm leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                              {school.school_name}
+                            </p>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              <span className="truncate">
+                                {[school.city_municipality, school.province].filter(Boolean).join(", ") || "Philippines"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap pt-1">
+                          <Badge variant="outline" className="text-[10px] gap-1 bg-primary/5 text-primary border-primary/20">
+                            <ShieldCheck className="h-3 w-3" />
+                            Verified
                           </Badge>
-                        )}
+                          {school.school_type && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {school.school_type}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <Separator className="my-3" />
-                    <div className="flex gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5" />
-                        {school.student_count} students
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="h-3.5 w-3.5" />
-                        {school.course_count} courses
-                      </span>
-                    </div>
-                  </motion.button>
-                ))}
+
+                      <div className="mt-4 pt-4 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5 text-primary/80" />
+                            <strong className="text-foreground font-medium">{school.student_count}</strong> students
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="h-3.5 w-3.5 text-primary/80" />
+                            <strong className="text-foreground font-medium">{school.course_count}</strong> courses
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 font-medium text-primary group-hover:translate-x-1 transition-transform">
+                          Explore <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
+                      </div>
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
           )}
 
-          {/* ── Students View ──────────────────────────────────────────────── */}
+          {/* ── Students / School Detail View ───────────────────────────────── */}
           {view === "STUDENTS" && (
-            <div className="space-y-4">
-              {/* Action bar */}
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <div className="flex gap-2 flex-1 max-w-md">
-                  <Input
-                    placeholder="Filter students by name, email, or course..."
-                    value={studentSearch}
-                    onChange={(e) => setStudentSearch(e.target.value)}
-                    className="flex-1"
-                  />
+            <div className="space-y-6">
+              {profileLoading ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-sm font-medium">Loading school profile...</p>
                 </div>
-
-                <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
-                  {/* Searchable Job selector */}
-                  <div className="w-full sm:w-[320px] md:w-[380px] lg:w-[420px]">
-                    <SearchableSelect
-                      options={jobOptions}
-                      value={selectedJob ? String(selectedJob.job_id) : ""}
-                      onValueChange={(val) => {
-                        const found = jobs.find((j) => String(j.job_id) === val);
-                        if (found) setSelectedJob(found);
+              ) : profileError ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-destructive text-sm p-4 bg-destructive/10 rounded-xl flex-1 mr-4">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>{profileError}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1"
+                      onClick={() => {
+                        setView("SCHOOLS");
+                        setSelectedSchool(null);
                       }}
-                      placeholder={
-                        jobsLoading
-                          ? "Loading company jobs..."
-                          : "Select job to match against..."
-                      }
-                      disabled={jobsLoading || jobs.length === 0}
-                      className="h-9 text-xs sm:text-sm font-normal truncate"
-                    />
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      Change School
+                    </Button>
                   </div>
-
-                  <Button
-                    onClick={handleRunMatch}
-                    disabled={!selectedJob || candidates.length === 0 || matchLoading}
-                    size="sm"
-                    className="shrink-0"
-                  >
-                    {matchLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-1.5" />
-                    )}
-                    Run AI Match
-                  </Button>
                 </div>
-              </div>
+              ) : schoolProfile ? (
+                <PublicSchoolAdminProfileRender
+                  profile={schoolProfile}
+                  activeTab={schoolTab}
+                  onTabChange={setSchoolTab}
+                  studentCount={candidates.length}
+                  containerClassName="w-full"
+                  badgeText="Partner Institution"
+                  headerAction={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs gap-1.5 rounded-lg border-border hover:bg-muted"
+                      onClick={() => {
+                        setView("SCHOOLS");
+                        setSelectedSchool(null);
+                      }}
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      Change School
+                    </Button>
+                  }
+                  studentRosterContent={
+                    <div className="space-y-4">
+                      {/* Action bar */}
+                      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card border border-border rounded-2xl p-3 shadow-xs">
+                        <div className="relative flex-1 max-w-md">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          <Input
+                            placeholder="Filter students by name, email, or course..."
+                            value={studentSearch}
+                            onChange={(e) => setStudentSearch(e.target.value)}
+                            className="w-full pl-9 pr-8 bg-background h-10 text-xs sm:text-sm rounded-xl border-border"
+                          />
+                          {studentSearch && (
+                            <button
+                              type="button"
+                              onClick={() => setStudentSearch("")}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
 
-              {studentsError && (
-                <div className="flex items-center gap-2 text-destructive text-sm">
-                  <AlertCircle className="h-4 w-4" />
-                  {studentsError}
-                </div>
-              )}
+                        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                          {/* Searchable Job selector */}
+                          <div className="w-full sm:w-[300px] md:w-[340px] lg:w-[380px]">
+                            <SearchableSelect
+                              options={jobOptions}
+                              value={selectedJob ? String(selectedJob.job_id) : ""}
+                              onValueChange={(val) => {
+                                const found = jobs.find((j) => String(j.job_id) === val);
+                                if (found) setSelectedJob(found);
+                              }}
+                              placeholder={
+                                jobsLoading
+                                  ? "Loading company jobs..."
+                                  : "Select job to match against..."
+                              }
+                              disabled={jobsLoading || jobs.length === 0}
+                              className="h-10 text-xs sm:text-sm font-normal truncate rounded-xl"
+                            />
+                          </div>
 
-              {studentsLoading ? (
-                <div className="flex items-center justify-center py-16 text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Loading students...
-                </div>
-              ) : (
-                <StudentMatchTable
-                  candidates={filteredCandidates}
-                  matchResults={[]}
-                  showScores={false}
-                  onViewDetails={(r) => {
-                    // In plain student view, construct a minimal result for drawer
-                    setDrawerResult(r);
-                  }}
-                  onInvite={(r) => setInviteTarget(r)}
+                          <Button
+                            onClick={handleRunMatch}
+                            disabled={!selectedJob || candidates.length === 0 || matchLoading}
+                            size="sm"
+                            className="shrink-0 h-10 px-4 rounded-xl gap-2 font-medium"
+                          >
+                            {matchLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Bot className="h-4 w-4" />
+                            )}
+                            Run AI Match
+                          </Button>
+                        </div>
+                      </div>
+
+                      {studentsError && (
+                        <div className="flex items-center gap-2 text-destructive text-sm bg-destructive/10 border border-destructive/20 p-3 rounded-xl">
+                          <AlertCircle className="h-4 w-4 shrink-0" />
+                          <span>{studentsError}</span>
+                        </div>
+                      )}
+
+                      {studentsLoading ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground space-y-2">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          <span className="text-xs">Loading campus students...</span>
+                        </div>
+                      ) : (
+                        <StudentMatchTable
+                          candidates={filteredCandidates}
+                          matchResults={[]}
+                          showScores={false}
+                          onViewDetails={(r) => {
+                            // In plain student view, construct a minimal result for drawer
+                            setDrawerResult(r);
+                          }}
+                          onInvite={(r) => setInviteTarget(r)}
+                        />
+                      )}
+                    </div>
+                  }
                 />
-              )}
+              ) : null}
             </div>
           )}
 
           {/* ── Match Results View ─────────────────────────────────────────── */}
           {view === "MATCH" && (
-            <div className="space-y-4">
+            <div className="w-full max-w-7xl mx-auto space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">
@@ -545,10 +777,13 @@ export default function CampusTalentModule() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setView("STUDENTS")}
+                    onClick={() => {
+                      setView("STUDENTS");
+                      setSchoolTab("roster");
+                    }}
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
-                    Back to Students
+                    Back to Student Roster
                   </Button>
                   <Button
                     variant="outline"
@@ -597,7 +832,9 @@ export default function CampusTalentModule() {
         {/* Send Invitation Dialog */}
         <SendInvitationDialog
           target={inviteTarget}
-          jobTitle={selectedJob?.job_title ?? ""}
+          jobId={selectedJob?.job_id ?? null}
+          jobTitle={selectedJob?.job_title ?? null}
+          schoolId={selectedSchool?.school_id}
           schoolName={selectedSchool?.school_name ?? ""}
           onClose={() => setInviteTarget(null)}
           onSent={() => {

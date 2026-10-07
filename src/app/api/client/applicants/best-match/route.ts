@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     // Extract user attribution from JWT
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
     let userId: number | undefined;
     let companyId: number | undefined;
     if (token) {

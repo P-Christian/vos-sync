@@ -190,7 +190,7 @@ function getUserIdFromReq(req: NextRequest): number {
   try {
     const authHeader = req.headers.get("authorization");
     const cookieToken =
-      req.cookies.get("vos_access_token")?.value ||
+      req.cookies.get("vos_sync_access_token")?.value ||
       req.cookies.get("directus_token")?.value ||
       req.cookies.get("token")?.value ||
       req.cookies.get("next-auth.session-token")?.value;

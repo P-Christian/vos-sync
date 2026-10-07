@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import * as jose from 'jose';
 
-const COOKIE_NAME = 'vos_access_token';
+const COOKIE_NAME = 'vos_sync_access_token';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_super_secret_key_for_development';
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");

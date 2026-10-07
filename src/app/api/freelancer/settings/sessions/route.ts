@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 function getUserIdFromReq(req: NextRequest): number | null {
   const token =
     req.headers.get("authorization")?.replace("Bearer ", "") ||
-    req.cookies.get("vos_access_token")?.value;
+    req.cookies.get("vos_sync_access_token")?.value;
   if (!token) return null;
   const decoded = decodeJwtPayload(token);
   const id = decoded?.user_id ?? decoded?.sub ?? decoded?.id ?? null;

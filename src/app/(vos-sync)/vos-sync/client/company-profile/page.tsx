@@ -12,7 +12,7 @@ export const metadata = {
   description: "View and manage your company profile on the VOS Sync client Portal.",
 };
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {

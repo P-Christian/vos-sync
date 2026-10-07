@@ -6,9 +6,9 @@ import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_super_secret_key_for_development"
+    process.env.JWT_SECRET || "default_super_secret_key_for_development"
 );
 
 export async function POST(req: NextRequest) {
@@ -43,12 +43,17 @@ export async function POST(req: NextRequest) {
     // Delete using Next.js cookie helper
     res.cookies.delete(COOKIE_NAME);
     res.cookies.delete({ name: COOKIE_NAME, path: "/" });
+    res.cookies.delete("vos_sync_access_token");
+    res.cookies.delete({ name: "vos_sync_access_token", path: "/" });
 
     // Explicit Set-Cookie headers for guaranteed browser cookie eviction across custom hosts (e.g. vos-sync-local)
     res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+    res.headers.append("Set-Cookie", `vos_sync_access_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
     if (hostname) {
         res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
         res.headers.append("Set-Cookie", `${COOKIE_NAME}=; Path=/; Domain=.${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+        res.headers.append("Set-Cookie", `vos_sync_access_token=; Path=/; Domain=${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
+        res.headers.append("Set-Cookie", `vos_sync_access_token=; Path=/; Domain=.${hostname}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax`);
     }
 
     return res;

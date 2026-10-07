@@ -6,7 +6,7 @@ import FreelancerApplicationsPage from "@/modules/freelancer/freelancer-applicat
 
 export default async function FreelancerApplicationsRoute() {
     const cookieStore = await cookies();
-    const token = cookieStore.get("vos_access_token")?.value;
+    const token = cookieStore.get("vos_sync_access_token")?.value;
     const profile = token ? await getFreelancerProfile(token) : null;
     
     const user = {

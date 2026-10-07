@@ -11,64 +11,83 @@ import {
 } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
 import { ApplicantFilterStatus } from "../types";
+import { JobPipelineStage, STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
+import { cn } from "@/lib/utils";
 
 interface ApplicantFiltersProps {
   search: string;
   onSearchChange: (v: string) => void;
   status: ApplicantFilterStatus;
   onStatusChange: (v: ApplicantFilterStatus) => void;
-  counts?: Record<ApplicantFilterStatus, number>;
+  counts?: Record<string, number>;
+  pipelineStages?: JobPipelineStage[];
 }
 
-const PIPELINE_STATUS_OPTIONS: Array<{
+const CANONICAL_ALL_JOBS_OPTIONS: Array<{
   key: ApplicantFilterStatus;
   label: string;
   description: string;
+  dotColor?: string | null;
 }> = [
-  {
-    key: "ACTIVE_PIPELINE",
-    label: "Active Pipeline",
-    description: "In-progress candidates (Applied, Under Review, Shortlisted, Interviewing), excluding Hired, Rejected, and Withdrawn.",
-  },
   {
     key: "ALL",
     label: "All Candidates",
-    description: "All applicants across all hiring stages.",
+    description: "All applicants across all jobs and hiring stages.",
+    dotColor: null,
+  },
+  {
+    key: "ACTIVE_PIPELINE",
+    label: "Active Pipeline",
+    description: "In-progress candidates in non-terminal stages (Applied, Screening, Assessment, Interview, Offer).",
+    dotColor: null,
   },
   {
     key: "APPLIED",
     label: "Applied",
-    description: "New submissions awaiting initial review.",
+    description: "New candidate submissions awaiting initial review.",
+    dotColor: "bg-sky-500",
   },
   {
-    key: "UNDER_REVIEW",
-    label: "Under Review",
+    key: "SCREENING",
+    label: "Screening",
     description: "Candidates undergoing profile and resume evaluation.",
+    dotColor: "bg-blue-500",
   },
   {
-    key: "SHORTLISTED",
-    label: "Shortlisted",
-    description: "Qualified candidates selected for interview rounds.",
+    key: "ASSESSMENT",
+    label: "Assessment",
+    description: "Technical challenges, skills tests, or take-home assignments.",
+    dotColor: "bg-indigo-500",
   },
   {
-    key: "INTERVIEWING",
-    label: "Interviewing",
-    description: "Candidates with active or scheduled interview sessions.",
+    key: "INTERVIEW",
+    label: "Interview",
+    description: "Candidates in active live technical or manager interview rounds.",
+    dotColor: "bg-purple-500",
+  },
+  {
+    key: "OFFER",
+    label: "Offer",
+    description: "Formal job offer extended to candidate.",
+    dotColor: "bg-amber-500",
   },
   {
     key: "HIRED",
     label: "Hired",
-    description: "Candidates accepted and marked as hired.",
+    description: "Candidates accepted and officially hired (Terminal).",
+    dotColor: "bg-emerald-500",
   },
   {
     key: "REJECTED",
     label: "Rejected",
-    description: "Applicants not moving forward in the pipeline.",
+    description: "Candidates not moving forward in the hiring process (Terminal).",
+    dotColor: "bg-rose-500",
   },
   {
     key: "WITHDRAWN",
     label: "Withdrawn",
-    description: "Candidates who withdrew their application.",
+    description: "Candidates who voluntarily withdrew application (Terminal).",
+    dotColor: "bg-zinc-500",
   },
 ];
 
@@ -78,12 +97,61 @@ export default function ApplicantFilters({
   status,
   onStatusChange,
   counts,
+  pipelineStages,
 }: ApplicantFiltersProps) {
+  const hasDynamicStages = Boolean(pipelineStages && pipelineStages.length > 0);
+
+  const filterTabs = React.useMemo(() => {
+    if (!hasDynamicStages || !pipelineStages) {
+      return CANONICAL_ALL_JOBS_OPTIONS.map((item) => ({
+        key: item.key,
+        label: item.label,
+        description: item.description,
+        dotColor: item.dotColor ?? null,
+      }));
+    }
+
+    const items: Array<{
+      key: ApplicantFilterStatus;
+      label: string;
+      description: string;
+      dotColor?: string | null;
+    }> = [
+      {
+        key: "ALL" as ApplicantFilterStatus,
+        label: "All Candidates",
+        description: "All applicants across all stages for this job.",
+        dotColor: null,
+      },
+      {
+        key: "ACTIVE_PIPELINE" as ApplicantFilterStatus,
+        label: "Active Pipeline",
+        description: "In-progress candidates in non-terminal stages.",
+        dotColor: null,
+      },
+    ];
+
+    for (const stage of pipelineStages) {
+      items.push({
+        key: `STAGE_${stage.id}`,
+        label: stage.stage_name,
+        description:
+          stage.description ||
+          `${stage.stage_name} (${stage.stage_type})${
+            stage.is_terminal ? " - Terminal stage" : ""
+          }`,
+        dotColor: STAGE_COLOR_CLASSES[stage.color]?.dot || "bg-primary",
+      });
+    }
+
+    return items;
+  }, [hasDynamicStages, pipelineStages]);
+
   return (
     <div className="space-y-3.5 min-w-0">
       {/* Active Pipeline & Status Badges Filter on Top with Popover Tooltips */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1.5 pt-0.5 no-scrollbar scroll-smooth">
-        {PIPELINE_STATUS_OPTIONS.map((item) => {
+        {filterTabs.map((item) => {
           const isSelected = status === item.key;
           const count = counts ? counts[item.key] ?? 0 : undefined;
 
@@ -100,6 +168,14 @@ export default function ApplicantFilters({
                       : "bg-background/80 hover:bg-muted/80 text-muted-foreground hover:text-foreground border-border/80"
                   }`}
                 >
+                  {item.dotColor && (
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full shrink-0",
+                        isSelected ? "bg-primary-foreground" : item.dotColor
+                      )}
+                    />
+                  )}
                   <span>{item.label}</span>
                   {typeof count === "number" && (
                     <Badge

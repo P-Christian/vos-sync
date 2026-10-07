@@ -31,7 +31,7 @@ function getUserIdFromToken(token: string): number | null {
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_access_token")?.value;
+    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_sync_access_token")?.value;
     if (!token) return NextResponse.json({ unreadCount: 0 });
 
     const userId = getUserIdFromToken(token);

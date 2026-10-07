@@ -59,6 +59,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   const {
     applicants,
     rawApplicants,
+    jobPipeline,
     loading,
     saving,
     error,
@@ -68,6 +69,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     setSearch,
     fetchApplicants,
     updateStatus,
+    updateApplicantStage,
     clearError,
     detail,
     detailLoading,
@@ -119,28 +121,56 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   }, [fetchApplicants, jobId]);
 
   const statusCounts = React.useMemo(() => {
-    const counts: Record<ApplicantFilterStatus, number> = {
-      ACTIVE_PIPELINE: 0,
+    const counts: Record<string, number> = {
       ALL: rawApplicants.length,
+      ACTIVE_PIPELINE: 0,
       APPLIED: 0,
-      UNDER_REVIEW: 0,
-      SHORTLISTED: 0,
-      INTERVIEWING: 0,
+      SCREENING: 0,
+      ASSESSMENT: 0,
+      INTERVIEW: 0,
+      OFFER: 0,
       HIRED: 0,
       REJECTED: 0,
       WITHDRAWN: 0,
+      // Legacy status keys for fallback compatibility:
+      UNDER_REVIEW: 0,
+      SHORTLISTED: 0,
+      INTERVIEWING: 0,
     };
+
     for (const a of rawApplicants) {
+      const stageType = a.stage_type;
+      const isTerminal =
+        stageType === "HIRED" ||
+        stageType === "REJECTED" ||
+        stageType === "WITHDRAWN" ||
+        (!stageType && (a.application_status === "HIRED" || a.application_status === "REJECTED" || a.application_status === "WITHDRAWN"));
+
+      if (!isTerminal) {
+        counts.ACTIVE_PIPELINE++;
+      }
+
+      // Canonical mapping
+      if (stageType) {
+        if (stageType in counts) counts[stageType]++;
+      } else {
+        // Fallback for unmigrated legacy status
+        if (a.application_status === "APPLIED") counts.APPLIED++;
+        else if (a.application_status === "UNDER_REVIEW") counts.SCREENING++;
+        else if (a.application_status === "SHORTLISTED") counts.OFFER++;
+        else if (a.application_status === "INTERVIEWING") counts.INTERVIEW++;
+        else if (a.application_status in counts) counts[a.application_status]++;
+      }
+
+      // Keep legacy keys populated if queried
       if (a.application_status in counts) {
         counts[a.application_status]++;
       }
-      if (
-        a.application_status === "APPLIED" ||
-        a.application_status === "UNDER_REVIEW" ||
-        a.application_status === "SHORTLISTED" ||
-        a.application_status === "INTERVIEWING"
-      ) {
-        counts.ACTIVE_PIPELINE++;
+
+      // Dynamic Job Pipeline Stage count
+      if (a.current_stage_id) {
+        const stageKey = `STAGE_${a.current_stage_id}`;
+        counts[stageKey] = (counts[stageKey] || 0) + 1;
       }
     }
     return counts;
@@ -187,11 +217,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   };
 
   const handleViewDetails = (applicant: Applicant) => {
-    if (applicant.application_status === "APPLIED") {
-      setSelectedApplicant({ ...applicant, application_status: "UNDER_REVIEW" });
-    } else {
-      setSelectedApplicant(applicant);
-    }
+    setSelectedApplicant(applicant);
     fetchApplicantDetail(applicant.application_id);
     setDetailOpen(true);
   };
@@ -202,6 +228,15 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     notes: string
   ) => {
     const ok = await updateStatus(applicationId, status, notes);
+    if (ok) setDrawerOpen(false);
+  };
+
+  const handleSaveStage = async (
+    applicationId: number,
+    toStageId: number,
+    notes: string
+  ) => {
+    const ok = await updateApplicantStage(applicationId, toStageId, notes);
     if (ok) setDrawerOpen(false);
   };
 
@@ -228,6 +263,38 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
       }
     } else {
       toast.error(`Failed to update ${candidateName}'s status.`);
+    }
+  };
+
+  const handleQuickStageUpdate = async (
+    applicant: Applicant,
+    toStageId: number,
+    stageName: string
+  ) => {
+    const candidateName =
+      applicant.applicant_name || `Applicant #${applicant.application_id}`;
+
+    const ok = await updateApplicantStage(
+      applicant.application_id,
+      toStageId,
+      applicant.client_notes || ""
+    );
+
+    if (ok) {
+      toast.success(`${candidateName} moved to ${stageName}`);
+      if (applicant.application_id === selectedApplicant?.application_id) {
+        setSelectedApplicant((prev) =>
+          prev
+            ? {
+                ...prev,
+                current_stage_id: toStageId,
+                stage_name: stageName,
+              }
+            : null
+        );
+      }
+    } else {
+      toast.error(`Failed to update ${candidateName}'s stage.`);
     }
   };
 
@@ -381,6 +448,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 status={filterStatus}
                 onStatusChange={setFilterStatus}
                 counts={statusCounts}
+                pipelineStages={jobPipeline?.stages}
               />
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
@@ -394,6 +462,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                   applicants={applicants}
                   onUpdateStatus={handleUpdateStatus}
                   onQuickStatusUpdate={handleQuickStatusUpdate}
+                  onQuickStageUpdate={handleQuickStageUpdate}
                   onScheduleInterview={handleOpenSchedule}
                   onViewScheduledInterview={handleViewScheduledInterview}
                   onViewDetails={handleViewDetails}
@@ -409,6 +478,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
           onSave={handleSaveStatus}
+          onSaveStage={handleSaveStage}
           saving={saving}
           error={drawerOpen ? error : ""}
         />

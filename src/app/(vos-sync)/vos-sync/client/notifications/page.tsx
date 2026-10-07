@@ -14,7 +14,7 @@ export const metadata = {
     "Stay updated on job applications, interviews, and company activity on VOS Sync.",
 };
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {

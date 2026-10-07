@@ -1,8 +1,7 @@
- "use client";
-
 // src/modules/client/campus-talent/components/StudentMatchTable.tsx
 
-import React, { useMemo } from "react";
+"use client";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -14,11 +13,20 @@ import {
   Send,
   GraduationCap,
   Zap,
-  Sparkles,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 import {
@@ -98,20 +106,7 @@ function InvitationBadge({ status }: { status: string }) {
   );
 }
 
-const rowVariants = {
-  hidden: {
-    opacity: 0,
-    x: -28,
-  },
-  visible: {
-    opacity: 1,
-    x: 0,
-  },
-  exit: {
-    opacity: 0,
-    x: -16,
-  },
-};
+
 
 const tableHeaderClass =
   "px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground";
@@ -123,6 +118,8 @@ export default function StudentMatchTable({
   onViewDetails,
   onInvite,
 }: StudentMatchTableProps) {
+  const [filterTab, setFilterTab] = useState<"ALL" | "REGISTERED" | "UNINVITED" | "INVITED">("ALL");
+
   const resultMap = useMemo(() => {
     const map = new Map<number, CampusMatchResult>();
 
@@ -173,6 +170,58 @@ export default function StudentMatchTable({
     );
   }, [candidates, matchResults, showScores]);
 
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const registered = rows.filter((r) => r.isRegistered).length;
+    const invited = rows.filter((r) => r.invitationStatus?.toLowerCase() === "invited").length;
+    const validGpas = rows
+      .filter((r) => r.gpa !== null && r.gpa !== undefined)
+      .map((r) => r.gpa as number);
+    const avgGpa =
+      validGpas.length > 0
+        ? (validGpas.reduce((a, b) => a + b, 0) / validGpas.length).toFixed(2)
+        : null;
+    return { total, registered, invited, avgGpa };
+  }, [rows]);
+
+  const displayedRows = useMemo(() => {
+    if (filterTab === "REGISTERED") {
+      return rows.filter((r) => r.isRegistered);
+    }
+    if (filterTab === "UNINVITED") {
+      return rows.filter((r) => {
+        const s = r.invitationStatus?.toLowerCase() ?? "";
+        return s !== "invited" && s !== "registered";
+      });
+    }
+    if (filterTab === "INVITED") {
+      return rows.filter((r) => r.invitationStatus?.toLowerCase() === "invited");
+    }
+    return rows;
+  }, [rows, filterTab]);
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset to first page when dataset size changes
+  useEffect(() => {
+    queueMicrotask(() => {
+      setCurrentPage(1);
+    });
+  }, [candidates.length, matchResults.length]);
+
+  const totalCount = displayedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (safeCurrentPage - 1) * pageSize;
+    return displayedRows.slice(startIndex, startIndex + pageSize);
+  }, [displayedRows, safeCurrentPage, pageSize]);
+
+  const startItem = totalCount === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endItem = Math.min(safeCurrentPage * pageSize, totalCount);
+
   if (rows.length === 0) {
     return (
       <motion.div
@@ -207,25 +256,112 @@ export default function StudentMatchTable({
 
   return (
     <motion.div
-      className="overflow-hidden rounded-xl border border-border bg-background shadow-sm"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      layout
       transition={{
-        duration: 0.3,
-        ease: [0.22, 1, 0.36, 1],
+        layout: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
       }}
+      className="overflow-hidden rounded-xl border border-border bg-background shadow-sm space-y-0 min-h-[560px] flex flex-col justify-between"
     >
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[850px] text-sm">
+      {/* Table Toolbar & Segment Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border bg-muted/20 px-4 py-2.5">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pb-1 sm:pb-0 bg-muted/60 p-1 rounded-xl">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 text-xs rounded-lg font-medium transition-all px-3",
+              filterTab === "ALL"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => {
+              setFilterTab("ALL");
+              setCurrentPage(1);
+            }}
+          >
+            All Students ({stats.total})
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 text-xs rounded-lg font-medium transition-all px-3 gap-1.5",
+              filterTab === "REGISTERED"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => {
+              setFilterTab("REGISTERED");
+              setCurrentPage(1);
+            }}
+          >
+            <Zap className="h-3 w-3 text-primary" />
+            Registered on VOS ({stats.registered})
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 text-xs rounded-lg font-medium transition-all px-3",
+              filterTab === "UNINVITED"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => {
+              setFilterTab("UNINVITED");
+              setCurrentPage(1);
+            }}
+          >
+            Uninvited ({Math.max(0, stats.total - stats.invited - stats.registered)})
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-7 text-xs rounded-lg font-medium transition-all px-3 gap-1.5",
+              filterTab === "INVITED"
+                ? "bg-background text-foreground shadow-xs font-semibold"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => {
+              setFilterTab("INVITED");
+              setCurrentPage(1);
+            }}
+          >
+            <Mail className="h-3 w-3 text-muted-foreground" />
+            Invited ({stats.invited})
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto flex-1 min-h-[420px] scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <table className="w-full min-w-[720px] md:min-w-full text-sm table-fixed">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[28%]" />
+            {showScores ? (
+              <>
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+              </>
+            ) : (
+              <col className="w-[24%]" />
+            )}
+            <col className="w-[14%]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-border bg-muted/30">
               <th className={tableHeaderClass}>Student</th>
 
               <th className={tableHeaderClass}>
-                Course / Year
+                Course / Program
               </th>
 
-              {showScores && (
+              {showScores ? (
                 <>
                   <th
                     className={cn(
@@ -240,6 +376,10 @@ export default function StudentMatchTable({
                     Status
                   </th>
                 </>
+              ) : (
+                <th className={tableHeaderClass}>
+                  Verification &amp; Status
+                </th>
               )}
 
               <th
@@ -253,40 +393,44 @@ export default function StudentMatchTable({
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-border">
-            <AnimatePresence
-              mode="popLayout"
-              initial={false}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.tbody
+              key={`${filterTab}-${safeCurrentPage}-${pageSize}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15, ease: "easeInOut" }}
+              className="divide-y divide-border"
             >
-              {rows.map((row, index) => {
-                const hasMatch = resultMap.has(
-                  row.candidateId,
-                );
+              {paginatedRows.length > 0 ? (
+                paginatedRows.map((row, index) => {
+                  const hasMatch = resultMap.has(
+                    row.candidateId,
+                  );
 
-                const isEligible =
-                  row.eligibility.eligible;
+                  const isEligible =
+                    row.eligibility.eligible;
 
-                return (
-                  <motion.tr
-                    key={row.candidateId}
-                    layout
-                    variants={rowVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    transition={{
-                      duration: 0.28,
-                      delay: Math.min(index * 0.035, 0.28),
-                      ease: [0.22, 1, 0.36, 1],
-                    }}
-                    className={cn(
-                      "group relative transition-colors duration-150",
-                      "hover:bg-muted/30",
-                      showScores &&
-                        !isEligible &&
-                        "bg-muted/10 opacity-65",
-                    )}
-                  >
+                  return (
+                    <motion.tr
+                      key={row.candidateId}
+                      layout="position"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        duration: 0.2,
+                        delay: Math.min(index * 0.025, 0.25),
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
+                      className={cn(
+                        "group relative transition-colors duration-150",
+                        "hover:bg-muted/30",
+                        showScores &&
+                          !isEligible &&
+                          "bg-muted/10 opacity-65",
+                      )}
+                    >
                     {/* Student */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
@@ -337,7 +481,7 @@ export default function StudentMatchTable({
                                   delay: 0.15,
                                 }}
                               >
-                                <Sparkles className="h-3 w-3 text-primary" />
+                                
                               </motion.div>
                             )}
                           </div>
@@ -347,27 +491,27 @@ export default function StudentMatchTable({
                           </p>
 
                           {row.studentNumber && (
-                            <p className="mt-0.5 text-[10px] text-muted-foreground/70">
-                              {row.studentNumber}
+                            <p className="mt-0.5 text-[10px] text-muted-foreground/70 font-mono">
+                              ID: {row.studentNumber}
                             </p>
                           )}
                         </div>
                       </div>
                     </td>
 
-                    {/* Course / Year */}
+                    {/* Course / Program */}
                     <td className="px-4 py-3.5">
-                      <p className="max-w-[230px] truncate font-medium text-foreground">
+                      <p className="max-w-[260px] truncate font-medium text-foreground">
                         {row.courseName ?? (
                           <span className="font-normal italic text-muted-foreground">
-                            Unknown course
+                            General Academic Curriculum
                           </span>
                         )}
                       </p>
 
-                      <div className="mt-1 flex items-center gap-2">
+                      <div className="mt-1 flex items-center gap-2 flex-wrap">
                         <span className="text-xs text-muted-foreground">
-                          {row.schoolYear}
+                          {row.schoolYear || "Current Year"}
                         </span>
 
                         {row.gpa !== null && (
@@ -376,18 +520,15 @@ export default function StudentMatchTable({
                               •
                             </span>
 
-                            <span className="text-xs text-muted-foreground">
-                              GPA{" "}
-                              <span className="font-medium text-foreground">
-                                {row.gpa.toFixed(2)}
-                              </span>
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border">
+                              GPA {row.gpa.toFixed(2)}
                             </span>
                           </>
                         )}
                       </div>
                     </td>
 
-                    {/* Score */}
+                    {/* Score View: Score Column */}
                     {showScores && (
                       <>
                         <td className="px-4 py-3.5">
@@ -462,7 +603,7 @@ export default function StudentMatchTable({
                           )}
                         </td>
 
-                        {/* Status */}
+                        {/* Status for score view */}
                         <td className="px-4 py-3.5">
                           <div className="max-w-[260px] space-y-1.5">
                             {!isEligible &&
@@ -553,6 +694,36 @@ export default function StudentMatchTable({
                       </>
                     )}
 
+                    {/* Non-Score View: Status & Verification Column */}
+                    {!showScores && (
+                      <td className="px-4 py-3.5">
+                        <div className="flex flex-col gap-1.5 max-w-[220px]">
+                          <div className="flex items-center gap-2">
+                            {row.isRegistered ? (
+                              <Badge
+                                variant="secondary"
+                                className="h-5 gap-1 rounded-md px-2 text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+                              >
+                                <Zap className="h-2.5 w-2.5" />
+                                Registered on VOS
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="h-5 gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground"
+                              >
+                                <ShieldCheck className="h-2.5 w-2.5" />
+                                School Roster
+                              </Badge>
+                            )}
+                          </div>
+                          <div>
+                            <InvitationBadge status={row.invitationStatus} />
+                          </div>
+                        </div>
+                      </td>
+                    )}
+
                     {/* Actions */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1.5">
@@ -614,11 +785,108 @@ export default function StudentMatchTable({
                       </div>
                     </td>
                   </motion.tr>
-                );
-              })}
-            </AnimatePresence>
-          </tbody>
+                    );
+                  })
+                ) : (
+                  <motion.tr
+                    key="empty-row"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <td
+                      colSpan={showScores ? 5 : 4}
+                      className="h-72 text-center text-xs text-muted-foreground py-12"
+                    >
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex flex-col items-center justify-center gap-2"
+                      >
+                        <Users className="h-6 w-6 text-muted-foreground/50" />
+                        <span className="font-medium text-foreground/80">No students found in this category</span>
+                        <p className="text-[11px] text-muted-foreground">
+                          Try switching to another filter or clearing your search.
+                        </p>
+                      </motion.div>
+                    </td>
+                  </motion.tr>
+                )}
+            </motion.tbody>
+          </AnimatePresence>
         </table>
+      </div>
+
+      {/* ── Table Pagination Footer ─────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
+        <div className="text-xs text-muted-foreground">
+          Showing <strong className="text-foreground font-semibold">{startItem}</strong> to{" "}
+          <strong className="text-foreground font-semibold">{endItem}</strong> of{" "}
+          <strong className="text-foreground font-semibold">{totalCount}</strong> students
+          {totalCount < rows.length && (
+            <span className="ml-1 text-[11px] text-muted-foreground/80">
+              (filtered from {rows.length} total)
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 self-end sm:self-auto">
+          {/* Rows per page selector */}
+          <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
+            <span>Rows:</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(val) => {
+                setPageSize(Number(val));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-16 text-xs rounded-lg border-border bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="10" className="text-xs">
+                  10
+                </SelectItem>
+                <SelectItem value="25" className="text-xs">
+                  25
+                </SelectItem>
+                <SelectItem value="50" className="text-xs">
+                  50
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Page navigation */}
+          <div className="flex items-center gap-1">
+            <Button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safeCurrentPage <= 1}
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-lg"
+              title="Previous Page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="px-2.5 text-xs font-semibold text-foreground">
+              {safeCurrentPage} / {totalPages}
+            </span>
+            <Button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safeCurrentPage >= totalPages}
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-lg"
+              title="Next Page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

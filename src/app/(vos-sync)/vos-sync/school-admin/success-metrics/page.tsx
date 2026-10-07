@@ -20,7 +20,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'default_super_secret_key_for_devel
 export default async function Page() {
   const user = await getHeaderUserFromToken();
   const cookieStore = await cookies();
-  const token = cookieStore.get('vos_access_token')?.value;
+  const token = cookieStore.get('vos_sync_access_token')?.value;
 
   let schoolId = 1;
   let schoolName = 'Institution';

@@ -11,6 +11,7 @@ interface ApplicantListProps {
   applicants: Applicant[];
   onUpdateStatus: (applicant: Applicant) => void;
   onQuickStatusUpdate?: (applicant: Applicant, status: ApplicationStatus) => void;
+  onQuickStageUpdate?: (applicant: Applicant, toStageId: number, stageName: string) => void;
   onScheduleInterview: (applicant: Applicant) => void;
   onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
@@ -20,6 +21,7 @@ export default function ApplicantList({
   applicants,
   onUpdateStatus,
   onQuickStatusUpdate,
+  onQuickStageUpdate,
   onScheduleInterview,
   onViewScheduledInterview,
   onViewDetails,
@@ -68,6 +70,7 @@ export default function ApplicantList({
               applicant={a}
               onUpdateStatus={onUpdateStatus}
               onQuickStatusUpdate={onQuickStatusUpdate}
+              onQuickStageUpdate={onQuickStageUpdate}
               onScheduleInterview={onScheduleInterview}
               onViewScheduledInterview={onViewScheduledInterview}
               onViewDetails={onViewDetails}

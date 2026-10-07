@@ -61,6 +61,7 @@ import {
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { cn } from "@/lib/utils";
 import { Applicant, ApplicationStatus, CandidateDetail, STATUS_LABELS } from "../types";
+import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 import {
   getApplicantAvatarUrl,
   getInitials,
@@ -272,9 +273,24 @@ export default function ApplicantDetailsModal({
 
   const name = activeApplicant?.applicant_name ?? (detail?.application_id ? `Applicant #${detail.application_id}` : "Applicant Details");
   const status: ApplicationStatus = detail?.application_status ?? activeApplicant?.application_status ?? "APPLIED";
+  const stageName = detail?.stage_name || activeApplicant?.stage_name || STATUS_LABELS[status] || status;
+  const stageColor = detail?.stage_color || activeApplicant?.stage_color || "sky";
+  const stageBadgeClasses = STAGE_COLOR_CLASSES[stageColor]?.badge || STATUS_STYLES[status] || STATUS_STYLES.APPLIED;
+
   const jobTitle = detail?.job_title ?? activeApplicant?.job_title ?? "—";
   const appliedAt = detail?.applied_at ?? activeApplicant?.applied_at;
   const expectedSalary = formatCurrency(detail?.expected_salary ?? null);
+
+  const isTerminal =
+    detail?.stage_type === "HIRED" ||
+    detail?.stage_type === "REJECTED" ||
+    detail?.stage_type === "WITHDRAWN" ||
+    (!detail?.stage_type && (status === "HIRED" || status === "REJECTED" || status === "WITHDRAWN"));
+
+  const isInterviewEligible =
+    detail?.stage_type === "INTERVIEW" ||
+    detail?.stage_type === "ASSESSMENT" ||
+    (!detail?.stage_type && (status === "INTERVIEWING" || status === "SHORTLISTED"));
 
   const rawImage = detail?.profile_image ?? activeApplicant?.applicant_profile_image_url ?? activeApplicant?.profile_image_url;
   const avatarUrl = getApplicantAvatarUrl(rawImage);
@@ -319,9 +335,12 @@ export default function ApplicantDetailsModal({
                     <span>{name}</span>
                     <Badge
                       variant="outline"
-                      className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border md:text-[10px] ${STATUS_STYLES[status]}`}
+                      className={cn(
+                        "text-xs font-semibold px-2.5 py-0.5 rounded-full border md:text-[10px]",
+                        stageBadgeClasses
+                      )}
                     >
-                      {STATUS_LABELS[status]}
+                      {stageName}
                     </Badge>
                   </DialogTitle>
 
@@ -802,42 +821,32 @@ export default function ApplicantDetailsModal({
             </Button>
           </Link>
 
-          {status !== "HIRED" && status !== "REJECTED" && status !== "INTERVIEWING" && (
+          {!isTerminal && (
             <Button variant="outline" onClick={onUpdateStatus} className="border-border max-md:w-full max-md:min-h-10">
-              Update Status
+              Update Stage
             </Button>
           )}
 
-          {status === "SHORTLISTED" && (
-            <Button
-              onClick={onScheduleInterview}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5 max-md:w-full max-md:min-h-10"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              Schedule Interview
-            </Button>
-          )}
-
-          {status === "INTERVIEWING" && activeApplicant?.active_interview_id && (
-            <Link href="/vos-sync/client/interviews">
+          {isInterviewEligible && (
+            (detail?.active_interview_id || activeApplicant?.active_interview_id) ? (
+              <Link href="/vos-sync/client/interviews">
+                <Button
+                  variant="outline"
+                  className="border-border hover:bg-muted font-medium gap-1.5 max-md:w-full max-md:min-h-10"
+                >
+                  <CalendarPlus className="h-4 w-4 text-primary" />
+                  View Interview
+                </Button>
+              </Link>
+            ) : (
               <Button
-                variant="outline"
-                className="border-border hover:bg-muted font-medium gap-1.5 max-md:w-full max-md:min-h-10"
+                onClick={onScheduleInterview}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5 max-md:w-full max-md:min-h-10"
               >
-                <CalendarPlus className="h-4 w-4 text-primary" />
-                View Interview
+                <CalendarPlus className="h-4 w-4" />
+                Schedule Interview
               </Button>
-            </Link>
-          )}
-
-          {status === "INTERVIEWING" && !activeApplicant?.active_interview_id && (
-            <Button
-              onClick={onScheduleInterview}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-1.5 max-md:w-full max-md:min-h-10"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              Schedule Interview
-            </Button>
+            )
           )}
         </DialogFooter>
       </DialogContent>

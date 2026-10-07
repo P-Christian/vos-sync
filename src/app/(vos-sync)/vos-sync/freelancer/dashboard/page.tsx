@@ -14,7 +14,7 @@ function checkIsNewUser(dateStr?: string | null): boolean {
 
 export default async function FreelancerDashboardPage() {
     const cookieStore = await cookies();
-    const token = cookieStore.get("vos_access_token")?.value;
+    const token = cookieStore.get("vos_sync_access_token")?.value;
     const profile = token ? await getFreelancerProfile(token) : null;
 
     const termsAcceptedAt = (profile as Record<string, unknown> | null)?.terms_accepted_at as string | undefined;

@@ -3,7 +3,7 @@
  * Centralized JWT utilities for VOS ERP.
  */
 
-export const COOKIE_NAME = "vos_access_token";
+export const COOKIE_NAME = "vos_sync_access_token";
 export const REFRESH_COOKIE_NAME = "refreshToken"; // Matches Spring Boot backend
 export const SPRING_COOKIE_NAME = "springboot_token";
 export const LAST_VISITED_PATH_COOKIE = "vos_last_visited_path";

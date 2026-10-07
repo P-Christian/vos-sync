@@ -87,7 +87,8 @@ export function DashboardSidebar({
                 const res = await fetch("/api/auth/logout", { method: "POST" });
                 console.log("[DashboardSidebar] /api/auth/logout status:", res.status);
             } finally {
-                document.cookie = "vos_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                document.cookie = "vos_sync_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+                document.cookie = "vos_sync_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
                 console.log("[DashboardSidebar] Cookie after:", document.cookie);
                 document.body.style.display = 'none';
                 window.location.href = "/login";
@@ -150,8 +151,8 @@ export function DashboardSidebar({
                             const isMessages = item.label === "Messages";
                             return (
                                 <SidebarMenuItem key={index}>
-                                    <SidebarMenuButton 
-                                        asChild 
+                                    <SidebarMenuButton
+                                        asChild
                                         isActive={isActive}
                                         className={cn(
                                             "h-10 max-md:h-11 text-muted-foreground hover:bg-accent/50 hover:text-foreground",
@@ -175,7 +176,7 @@ export function DashboardSidebar({
                         })}
                     </SidebarMenu>
                 </ScrollArea>
-                
+
                 {config.ctaButton && (
                     <div className="px-4 py-4">
                         <Button asChild className="w-full justify-start font-medium bg-[hsl(var(--success))] hover:bg-[hsl(var(--success))]/90 text-white" size="lg">

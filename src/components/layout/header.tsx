@@ -122,18 +122,19 @@ export function Header() {
     } catch (err) {
       console.error("Logout error:", err)
     } finally {
-      document.cookie = "vos_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;"
+      document.cookie = "vos_sync_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;"
+      document.cookie = "vos_sync_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;"
       window.location.href = "/login"
     }
   }
 
   const initials = user?.name
     ? user.name
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((w) => w[0].toUpperCase())
-        .join("")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("")
     : "U"
 
   return (
@@ -160,7 +161,7 @@ export function Header() {
           <Link href="/about-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">About Us</Link>
           <Link href="/contact-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">Contact</Link>
         </nav>
- 
+
         <div className="hidden lg:flex items-center gap-4">
           <ThemeSelector />
 
@@ -247,7 +248,7 @@ export function Header() {
             </>
           )}
         </div>
- 
+
         {/* Mobile Menu Toggle */}
         <div className="flex lg:hidden items-center gap-2">
           <ThemeSelector />
@@ -265,7 +266,7 @@ export function Header() {
           </Button>
         </div>
       </div>
- 
+
       {/* Mobile Nav Dropdown */}
       {mobileMenuOpen && (
         <nav

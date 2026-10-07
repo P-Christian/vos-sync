@@ -5,7 +5,7 @@ import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 const COOKIE_MAX_AGE_CAP = 60 * 60 * 24 * 7;
 
 export async function POST(req: NextRequest) {

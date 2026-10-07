@@ -94,7 +94,7 @@ function LoginForm() {
     const [errors, setErrors] = React.useState<FieldErrors>({})
 
     React.useEffect(() => {
-        if (typeof document !== "undefined" && document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/)) {
+        if (typeof document !== "undefined" && document.cookie.match(/(^|;)\s*vos_sync_access_token\s*=\s*([^;]+)/)) {
             const nextParam = sanitizeNextPath(searchParams.get("next")) || "/vos-sync/freelancer/dashboard"
             router.replace(nextParam)
         }

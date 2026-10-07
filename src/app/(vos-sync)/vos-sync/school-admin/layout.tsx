@@ -7,7 +7,7 @@ async function verifySchoolAdminRole() {
         return { isAdmin: true, user: { name: "Local Admin", email: "admin@localhost", avatar: "" } };
     }
     const cookieStore = await cookies();
-    const token = cookieStore.get("vos_access_token")?.value;
+    const token = cookieStore.get("vos_sync_access_token")?.value;
     if (!token) return { isAdmin: false, user: null };
     
     try {

@@ -1,7 +1,7 @@
 "use client";
 // src/modules/client/campus-talent/components/StudentMatchDrawer.tsx
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -12,11 +12,15 @@ import {
   BookOpen,
   Target,
   Send,
-  Sparkles,
+ 
   Info,
   Award,
   ShieldCheck,
   Briefcase,
+  Mail,
+  Copy,
+  Check,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -188,6 +192,20 @@ function StudentMatchDrawerContent({
         .toUpperCase()
     : "ST";
 
+  const [copied, setCopied] = useState(false);
+  const handleCopyEmail = useCallback(() => {
+    if (!result.email) return;
+    navigator.clipboard.writeText(result.email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [result.email]);
+
+  const isMatchEvaluated =
+    result.score > 0 ||
+    explanation !== null ||
+    gaps.length > 0 ||
+    curriculumItems.length > 0;
+
   const getScoreVerdict = (score: number, eligible: boolean) => {
     if (!eligible) {
       return {
@@ -298,17 +316,19 @@ function StudentMatchDrawerContent({
                     )}
 
                     <Badge variant="outline" className="text-[11px] uppercase tracking-wider">
-                      {result.matchModel}
+                      {isMatchEvaluated ? result.matchModel : "ACADEMIC ROSTER"}
                     </Badge>
 
                     {result.invitationStatus === "Invited" && (
-                      <Badge variant="secondary" className="text-[11px]">
+                      <Badge variant="secondary" className="text-[11px] gap-1">
+                        <Mail className="h-3 w-3" />
                         Invited
                       </Badge>
                     )}
 
                     {result.invitationStatus === "Registered" && (
-                      <Badge className="text-[11px]">
+                      <Badge className="text-[11px] gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
                         Registered
                       </Badge>
                     )}
@@ -352,50 +372,98 @@ function StudentMatchDrawerContent({
                 duration: 0.25,
               }}
             >
-              {/* Match Score Hero Card */}
-              <motion.div
-                className={cn(
-                  "rounded-xl border p-5 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5",
-                  result.eligibility.eligible
-                    ? result.score >= 70
-                      ? "border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20"
-                      : result.score >= 50
-                      ? "border-amber-500/25 bg-amber-500/5 dark:bg-amber-950/20"
-                      : "border-border bg-muted/30"
-                    : "border-destructive/30 bg-destructive/5"
-                )}
-                initial="hidden"
-                animate="visible"
-                variants={sectionVariants}
-                transition={{
-                  delay: 0.14,
-                  duration: 0.25,
-                }}
-              >
-                <ScoreRing
-                  score={result.score}
-                  eligible={result.eligibility.eligible}
-                />
+              {/* Context-Aware Hero Card: AI Match Result vs. Academic Roster Profile */}
+              {isMatchEvaluated ? (
+                <motion.div
+                  className={cn(
+                    "rounded-xl border p-5 transition-all flex flex-col sm:flex-row items-center sm:items-start gap-5",
+                    result.eligibility.eligible
+                      ? result.score >= 70
+                        ? "border-emerald-500/25 bg-emerald-500/5 dark:bg-emerald-950/20"
+                        : result.score >= 50
+                        ? "border-amber-500/25 bg-amber-500/5 dark:bg-amber-950/20"
+                        : "border-border bg-muted/30"
+                      : "border-destructive/30 bg-destructive/5"
+                  )}
+                  initial="hidden"
+                  animate="visible"
+                  variants={sectionVariants}
+                  transition={{
+                    delay: 0.14,
+                    duration: 0.25,
+                  }}
+                >
+                  <ScoreRing
+                    score={result.score}
+                    eligible={result.eligibility.eligible}
+                  />
 
-                <div className="flex-1 min-w-0 text-center sm:text-left space-y-1.5">
-                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                    <Badge variant={verdict.variant} className="text-xs px-2.5 py-0.5">
-                      {verdict.label}
+                  <div className="flex-1 min-w-0 text-center sm:text-left space-y-1.5">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <Badge variant={verdict.variant} className="text-xs px-2.5 py-0.5">
+                        {verdict.label}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        Evidence Level: <strong className="text-foreground">{result.evidenceLevel.replace(/_/g, " ")}</strong>
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-foreground font-medium">
+                      {verdict.description}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground">
+                      Deterministic score computed using curriculum course taxonomies &amp; verified profile credentials.
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-5 space-y-3 shadow-2xs"
+                  initial="hidden"
+                  animate="visible"
+                  variants={sectionVariants}
+                  transition={{
+                    delay: 0.14,
+                    duration: 0.25,
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-primary/15 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                        <GraduationCap className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-foreground">
+                          Academic Roster Candidate
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          Verified university enrollment and course registrar credentials
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[11px] gap-1 bg-primary/10 text-primary border-primary/20">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Verified by Registrar
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      Evidence Level: <strong className="text-foreground">{result.evidenceLevel.replace(/_/g, " ")}</strong>
-                    </span>
                   </div>
 
-                  <p className="text-sm text-foreground font-medium">
-                    {verdict.description}
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    This candidate is actively enrolled and verified under the school&apos;s academic roster. Select a job vacancy from the toolbar and click <strong>Run AI Match</strong> to evaluate course curriculum alignment, syllabus competencies, and calculate a deterministic match score.
                   </p>
 
-                  <p className="text-xs text-muted-foreground">
-                    Deterministic score computed using curriculum course taxonomies & verified profile credentials.
-                  </p>
-                </div>
-              </motion.div>
+                  <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-background/80 px-2.5 py-1 border border-border/80">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Active Student Enrollment
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-background/80 px-2.5 py-1 border border-border/80">
+                      
+                      Ready for AI Match Analysis
+                    </span>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Academic & Profile KPI Grid (4-Column Layout) */}
               <motion.div
@@ -413,8 +481,8 @@ function StudentMatchDrawerContent({
                     <GraduationCap className="h-3.5 w-3.5 text-primary" />
                     <span>Degree Course</span>
                   </div>
-                  <p className="font-semibold text-foreground text-sm truncate" title={result.courseName ?? "Unknown"}>
-                    {result.courseName ?? "Unknown Course"}
+                  <p className="font-semibold text-foreground text-sm truncate" title={result.courseName || "General Academic Curriculum"}>
+                    {result.courseName || "General Academic Curriculum"}
                   </p>
                 </div>
 
@@ -492,7 +560,7 @@ function StudentMatchDrawerContent({
                 >
                   <div className="flex items-center justify-between gap-2 border-b border-primary/10 pb-3">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                      
                       <p className="text-sm font-bold text-foreground">
                         AI Match Analysis & Recruiter Guidance
                       </p>
@@ -747,6 +815,155 @@ function StudentMatchDrawerContent({
                   </p>
                 </motion.div>
               )}
+
+              {/* Academic Credentials & Verification Details */}
+              <motion.div
+                className="rounded-xl border border-border/70 bg-card p-5 space-y-4 shadow-2xs"
+                initial="hidden"
+                animate="visible"
+                variants={sectionVariants}
+                transition={{
+                  delay: 0.35,
+                  duration: 0.25,
+                }}
+              >
+                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Academic Credentials &amp; Verification
+                    </h4>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    Institutional Record
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Institutional Email</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-foreground truncate select-all">
+                        {result.email}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={handleCopyEmail}
+                        title="Copy email to clipboard"
+                      >
+                        {copied ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Student Number</p>
+                    <div className="flex items-center gap-1.5">
+                      <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-mono font-medium text-foreground">
+                        {result.studentNumber || "Pending Enrollment Record"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">Degree Program</p>
+                    <p className="text-xs font-medium text-foreground">
+                      {result.courseName || "General Academic Curriculum"}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Inferred Syllabus Taxonomies Context (When no skills or curriculum mapped yet) */}
+              {curriculumItems.length === 0 && verifiedSkills.length === 0 && (
+                <motion.div
+                  className="rounded-xl border border-dashed border-border/80 bg-muted/20 p-4 space-y-2 text-xs text-muted-foreground"
+                  initial="hidden"
+                  animate="visible"
+                  variants={sectionVariants}
+                  transition={{
+                    delay: 0.38,
+                    duration: 0.25,
+                  }}
+                >
+                  <div className="flex items-center gap-2 text-foreground font-medium">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <span>Curriculum &amp; Coursework Taxonomies</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Course syllabus competencies are automatically mapped when you execute an AI Match against an active job order. The engine identifies matching core subject competencies, practical lab proficiencies, and graduation prerequisites from the school&apos;s verified curriculum.
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Candidate Outreach & Invitation Status */}
+              <motion.div
+                className="rounded-xl border border-border/70 bg-card p-5 space-y-3.5 shadow-2xs"
+                initial="hidden"
+                animate="visible"
+                variants={sectionVariants}
+                transition={{
+                  delay: 0.42,
+                  duration: 0.25,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Send className="h-4 w-4 text-primary shrink-0" />
+                    <h4 className="text-sm font-semibold text-foreground">
+                      Talent Outreach Status
+                    </h4>
+                  </div>
+                  {result.invitationStatus === "Invited" ? (
+                    <Badge variant="secondary" className="text-[11px] gap-1">
+                      <Mail className="h-3 w-3" />
+                      Invitation Sent
+                    </Badge>
+                  ) : result.invitationStatus === "Registered" ? (
+                    <Badge className="text-[11px] gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Active Candidate
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[11px]">
+                      Not Yet Invited
+                    </Badge>
+                  )}
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {result.invitationStatus === "Invited"
+                    ? "An official onboarding invitation has been delivered to the student's institutional email address. Once the student accepts and registers on VOS Sync, their full profile and portfolio will be linked."
+                    : result.invitationStatus === "Registered"
+                    ? "This student has activated their verified VOS Sync account. You can communicate directly and review their verified profile credentials."
+                    : "Invite this academic candidate to register on VOS Sync. They will receive a unique cryptographic verification link to claim their academic record, upload portfolios, and apply for open positions."}
+                </p>
+
+                {canInvite && (
+                  <div className="pt-1 flex items-center justify-between gap-3 bg-muted/30 border border-border/60 rounded-lg p-3">
+                    <div className="text-xs">
+                      <p className="font-medium text-foreground">Invite to Join Talent Pool</p>
+                      <p className="text-muted-foreground text-[11px]">Sends invite to {result.email}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => onInvite(result)}
+                      className="gap-1.5 h-8 shrink-0 text-xs"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      Invite Now
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
 
             {/* Footer: Sticky action bar */}

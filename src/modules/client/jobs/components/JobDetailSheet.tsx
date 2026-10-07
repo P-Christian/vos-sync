@@ -38,6 +38,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { PublicJobPosting, JobPosting, JobStatus, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
+import JobPipelineSection from "@/modules/client/pipeline/components/JobPipelineSection";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -419,6 +420,12 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
                   </Section>
                 </>
               )}
+
+              {/* Hiring Pipeline Workflow */}
+              <Separator />
+              <Section title="Hiring Pipeline Workflow">
+                <JobPipelineSection jobId={job.job_id} />
+              </Section>
             </div>
 
             {/* Right Column: Client info */}

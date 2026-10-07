@@ -34,7 +34,7 @@ export default async function PublicSchoolAdminProfilePage({
 
   // Determine caller details
   const cookieStore = await cookies();
-  const token = cookieStore.get("vos_access_token")?.value;
+  const token = cookieStore.get("vos_sync_access_token")?.value;
   let callerUser = { name: "Guest", email: "guest@example.com", avatar: "" };
   
   if (token) {
@@ -64,7 +64,7 @@ export default async function PublicSchoolAdminProfilePage({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
       <PortalPageHeader user={callerUser} />
 
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
         <PublicSchoolAdminProfileRender profile={profile} />
       </main>
     </div>

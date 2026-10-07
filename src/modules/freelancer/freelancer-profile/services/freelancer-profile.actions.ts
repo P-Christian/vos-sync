@@ -12,7 +12,7 @@ const JWT_SECRET = new TextEncoder().encode(
 
 async function getAuthenticatedUserId(): Promise<number> {
     if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") return 1;
-    const token = (await cookies()).get("vos_access_token")?.value;
+    const token = (await cookies()).get("vos_sync_access_token")?.value;
     if (!token) throw new Error("Unauthorized.");
 
     try {
@@ -53,11 +53,11 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
         }
     }
 
-    const url = targetProfileId 
+    const url = targetProfileId
         ? `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile/${targetProfileId}`
         : `${NEXT_PUBLIC_API_BASE_URL}/items/vs_job_seeker_profile`;
-    
-    const body = targetProfileId 
+
+    const body = targetProfileId
         ? { professional_summary: summary }
         : { professional_summary: summary, user_id: userId };
 
@@ -81,18 +81,18 @@ export async function updateProfessionalSummaryAction(summary: string, profileId
     }
 
     revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
-    
+
     return { success: true };
 }
 
 export async function generateProfessionalSummaryAction(profileJson: string) {
     try {
         const summary = await generateProfessionalSummaryWithGemini(profileJson);
-        
+
         if (!summary) {
             return { success: false, error: "Failed to generate professional summary" };
         }
-        
+
         return { success: true, summary };
     } catch (err: unknown) {
         console.error("generateProfessionalSummaryAction Error:", err);
@@ -111,7 +111,7 @@ export async function searchMasterSkillsAction(query: string) {
     }
 
     const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills?filter[skill_name][_icontains]=${encodeURIComponent(query)}&limit=20`;
-    
+
     const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
         cache: "no-store"
@@ -128,7 +128,7 @@ export async function searchMasterSkillsAction(query: string) {
 
 export async function resolveSkillsAction(skillNames: string[]) {
     if (!skillNames || skillNames.length === 0) return [];
-    
+
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
@@ -138,7 +138,7 @@ export async function resolveSkillsAction(skillNames: string[]) {
 
     const namesParam = skillNames.map(n => encodeURIComponent(n)).join(',');
     const url = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills?filter[skill_name][_in]=${namesParam}`;
-    
+
     const res = await fetch(url, {
         headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
         cache: "no-store"
@@ -160,7 +160,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         throw new Error("Directus API URL or Static Token is not configured.");
     }
-    
+
     const toAdd = newSkillIds.filter(id => !initialSkillIds.includes(id));
     const toRemove = initialSkillIds.filter(id => !newSkillIds.includes(id));
 
@@ -171,7 +171,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
             user_id: userId,
             skill_id: skillId
         }));
-        
+
         const addRes = await fetch(addUrl, {
             method: "POST",
             headers: {
@@ -183,7 +183,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
 
         if (!addRes.ok) {
             let errText = "Unknown error";
-            try { errText = await addRes.text(); } catch {}
+            try { errText = await addRes.text(); } catch { }
             throw new Error(`Failed to insert new skills: HTTP ${addRes.status} - ${errText}`);
         }
     }
@@ -211,10 +211,10 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
                     },
                     body: JSON.stringify(idsToDelete)
                 });
-                
+
                 if (!delRes.ok) {
                     let errText = "Unknown error";
-                    try { errText = await delRes.text(); } catch {}
+                    try { errText = await delRes.text(); } catch { }
                     console.error(`Failed to bulk delete skills: HTTP ${delRes.status} - ${errText}`);
                 }
             }
@@ -227,7 +227,7 @@ export async function saveUserSkillsAction(userId: number, initialSkillIds: numb
 
 export async function addWorkExperienceAction(userId: number, payload: any) {
     const { addWorkExperienceService } = await import("./freelancer-profile.service");
-    
+
     try {
         await addWorkExperienceService(userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -240,7 +240,7 @@ export async function addWorkExperienceAction(userId: number, payload: any) {
 
 export async function updateWorkExperienceAction(id: number, userId: number, payload: any) {
     const { updateWorkExperienceService } = await import("./freelancer-profile.service");
-    
+
     try {
         await updateWorkExperienceService(id, userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -253,7 +253,7 @@ export async function updateWorkExperienceAction(id: number, userId: number, pay
 
 export async function deleteWorkExperienceAction(id: number, userId: number) {
     const { deleteWorkExperienceService } = await import("./freelancer-profile.service");
-    
+
     try {
         await deleteWorkExperienceService(id, userId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -267,16 +267,16 @@ export async function deleteWorkExperienceAction(id: number, userId: number) {
 export async function uploadMediaAction(formData: FormData) {
     const file = formData.get("file");
     if (!file) return { success: false, error: "No file provided" };
-    
+
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-    
+
     if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
         return { success: false, error: "Directus API URL or Static Token is not configured." };
     }
-    
+
     const url = `${NEXT_PUBLIC_API_BASE_URL}/files`;
-    
+
     try {
         const res = await fetch(url, {
             method: "POST",
@@ -285,13 +285,13 @@ export async function uploadMediaAction(formData: FormData) {
             },
             body: formData,
         });
-        
+
         if (!res.ok) {
             let errText = "Unknown error";
-            try { errText = await res.text(); } catch {}
+            try { errText = await res.text(); } catch { }
             throw new Error(`Failed to upload media: HTTP ${res.status} - ${errText}`);
         }
-        
+
         const json = await res.json();
         return { success: true, url: json.data.id, id: json.data.id };
     } catch (err: any) {
@@ -302,7 +302,7 @@ export async function uploadMediaAction(formData: FormData) {
 
 export async function addEducationAction(_userId: number, payload: any) {
     const { addEducationService } = await import("./freelancer-profile.service");
-    
+
     try {
         const userId = await getAuthenticatedUserId();
         await addEducationService(userId, payload);
@@ -316,7 +316,7 @@ export async function addEducationAction(_userId: number, payload: any) {
 
 export async function updateEducationAction(id: number, _userId: number, payload: any) {
     const { updateEducationService } = await import("./freelancer-profile.service");
-    
+
     try {
         const userId = await getAuthenticatedUserId();
         await updateEducationService(id, userId, payload);
@@ -330,7 +330,7 @@ export async function updateEducationAction(id: number, _userId: number, payload
 
 export async function deleteEducationAction(id: number) {
     const { deleteEducationService } = await import("./freelancer-profile.service");
-    
+
     try {
         const userId = await getAuthenticatedUserId();
         await deleteEducationService(id, userId);
@@ -344,7 +344,7 @@ export async function deleteEducationAction(id: number) {
 
 export async function addCertificationAction(userId: number, payload: any) {
     const { addCertificationService } = await import("./freelancer-profile.service");
-    
+
     try {
         await addCertificationService(userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -357,7 +357,7 @@ export async function addCertificationAction(userId: number, payload: any) {
 
 export async function updateCertificationAction(id: number, userId: number, payload: any) {
     const { updateCertificationService } = await import("./freelancer-profile.service");
-    
+
     try {
         await updateCertificationService(id, userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -370,7 +370,7 @@ export async function updateCertificationAction(id: number, userId: number, payl
 
 export async function deleteCertificationAction(id: number, userId: number) {
     const { deleteCertificationService } = await import("./freelancer-profile.service");
-    
+
     try {
         await deleteCertificationService(id, userId);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -383,7 +383,7 @@ export async function deleteCertificationAction(id: number, userId: number) {
 
 export async function updatePersonalInfoAction(userId: number, payload: any) {
     const { updatePersonalInfoService } = await import("./freelancer-profile.service");
-    
+
     try {
         await updatePersonalInfoService(userId, payload);
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -396,7 +396,7 @@ export async function updatePersonalInfoAction(userId: number, payload: any) {
 
 export async function updateProfileVisibilityAction(userId: number, profileId: number | undefined, visibility: string) {
     const { upsertJobSeekerProfileInDirectus } = await import("./freelancer-profile.repo");
-    
+
     try {
         await upsertJobSeekerProfileInDirectus(userId, profileId, { profile_visibility: visibility });
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
@@ -409,10 +409,10 @@ export async function updateProfileVisibilityAction(userId: number, profileId: n
 
 export async function saveAllProfileChangesAction(payload: any) {
     const { profileId, personalInfo, visibility, professionalSummary, skills, initialSkillIds, education, workExperience, certifications, jobPreferences } = payload;
-    
+
     // Import all services
-    const { 
-        updatePersonalInfoService, 
+    const {
+        updatePersonalInfoService,
         addEducationService, updateEducationService, deleteEducationService,
         addWorkExperienceService, updateWorkExperienceService, deleteWorkExperienceService,
         addCertificationService, updateCertificationService, deleteCertificationService,
@@ -469,9 +469,9 @@ export async function saveAllProfileChangesAction(payload: any) {
         // Recalculate Profile Completion
         const { getFreelancerProfile } = await import("./freelancer-profile.service");
         const { updateJobSeekerProfileCompletion } = await import("./freelancer-profile.repo");
-        
-        const token = (await cookies()).get("vos_access_token")?.value;
-        
+
+        const token = (await cookies()).get("vos_sync_access_token")?.value;
+
         if (token) {
             const updatedProfile = await getFreelancerProfile(token);
             if (updatedProfile && updatedProfile.job_seeker_profile?.[0]) {
@@ -484,7 +484,7 @@ export async function saveAllProfileChangesAction(payload: any) {
 
         const { revalidatePath } = await import("next/cache");
         revalidatePath("/(vos-sync)/vos-sync/freelancer/profile");
-        
+
         return { success: true };
     } catch (err: any) {
         console.error("saveAllProfileChangesAction Error:", err);
@@ -577,7 +577,7 @@ export async function uploadProfileImageAction(userId: number, formData: FormDat
             },
             body: JSON.stringify({ folder: FOLDER_ID })
         });
-        
+
         if (!patchRes.ok) {
             console.error(`Failed to assign folder to file ${fileId}`);
         }

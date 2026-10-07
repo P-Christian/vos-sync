@@ -197,6 +197,7 @@ export default function JobsModule() {
       job_department: initialData?.job_department ?? "",
       experience_level: initialData?.experience_level || "MID",
       status: initialData?.status ?? "DRAFT",
+      source_pipeline_id: initialData?.source_pipeline_id ?? null,
     });
     clearMessages();
     setIsDialogOpen(true);

@@ -10,7 +10,7 @@ const JWT_SECRET = new TextEncoder().encode(
 async function verifyAdmin(req: NextRequest): Promise<number | null> {
   if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") return 1;
   const cookieStore = await cookies();
-  const token = req.headers.get("authorization")?.replace("Bearer ", "") || cookieStore.get("vos_access_token")?.value;
+  const token = req.headers.get("authorization")?.replace("Bearer ", "") || cookieStore.get("vos_sync_access_token")?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);

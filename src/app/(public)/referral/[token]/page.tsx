@@ -58,7 +58,7 @@ export default async function ReferralLandingPage(props: Props) {
   }
 
   const cookieStore = await cookies();
-  const tokenVal = cookieStore.get("vos_access_token")?.value;
+  const tokenVal = cookieStore.get("vos_sync_access_token")?.value;
   const isLoggedIn = !!tokenVal;
 
   return (

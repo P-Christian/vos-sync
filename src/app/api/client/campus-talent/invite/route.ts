@@ -43,64 +43,88 @@ function getUserIdFromToken(token: string): number | null {
   }
 }
 
-async function createInvitationRecord(
-  payload: CampusInvitationPayload,
+function getPHDateTime(date: Date = new Date()): string {
+  const dtf = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  return dtf.format(date).replace(" ", "T");
+}
+
+async function findActiveStudentInvitation(
+  studentId: number,
+  schoolId?: number | null
+): Promise<{ invitation_id: number; token: string; expires_at: string } | null> {
+  const schoolFilter = schoolId ? `&filter[school_id][_eq]=${schoolId}` : "";
+  const res = await fetch(
+    `${DIRECTUS_BASE}/items/vs_student_invitation?filter[student_id][_eq]=${studentId}${schoolFilter}&filter[is_used][_eq]=0&sort[]=-created_at&limit=1`,
+    { headers: getHeaders(), cache: "no-store" }
+  );
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data?.[0] || null;
+}
+
+async function createStudentInvitation(
+  studentId: number,
+  schoolId: number,
   token: string,
-  expiresAt: string
-): Promise<{ invitation_id: number } | null> {
-  const res = await fetch(`${DIRECTUS_BASE}/items/vs_campus_talent_invitation`, {
+  expiresAt: string,
+  createdAt: string
+): Promise<{ invitation_id: number; token: string; expires_at: string } | null> {
+  const res = await fetch(`${DIRECTUS_BASE}/items/vs_student_invitation`, {
     method: "POST",
     headers: getHeaders(),
     body: JSON.stringify({
-      student_id: payload.studentId,
-      school_id: payload.schoolId,
-      job_id: payload.jobId,
-      company_id: payload.companyId,
-      recruiter_id: payload.recruiterId,
-      recipient_email: payload.recipientEmail,
+      student_id: studentId,
+      school_id: schoolId,
       token,
-      status: "PENDING",
       expires_at: expiresAt,
-      created_at: new Date().toISOString(),
+      is_used: 0,
+      created_at: createdAt,
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error("[campus-talent/invite] createStudentInvitation error:", errText);
+    return null;
+  }
   const json = await res.json();
   return json.data ?? null;
 }
 
-async function updateInvitationStatus(
-  invitationId: number,
-  status: "SENT" | "FAILED",
-  sentAt?: string
-): Promise<void> {
-  await fetch(`${DIRECTUS_BASE}/items/vs_campus_talent_invitation/${invitationId}`, {
-    method: "PATCH",
-    headers: getHeaders(),
-    body: JSON.stringify({
-      status,
-      ...(sentAt ? { sent_at: sentAt } : {}),
-    }),
-  });
-}
-
 async function updateStudentInvitationStatus(
   studentId: number,
-  status: "Invited"
+  status: "Invited",
+  invitedAt: string
 ): Promise<void> {
   await fetch(`${DIRECTUS_BASE}/items/vs_school_student/${studentId}`, {
     method: "PATCH",
     headers: getHeaders(),
     body: JSON.stringify({
       invitation_status: status,
-      invited_at: new Date().toISOString(),
+      invited_at: invitedAt,
     }),
   });
 }
 
-function buildInvitationHtml(payload: CampusInvitationPayload, registrationLink: string): string {
+function buildInvitationHtml(
+  payload: CampusInvitationPayload,
+  actionLink: string,
+  isRegisteredUser: boolean
+): string {
   const studentName = `${payload.recipientName}`;
-  return `<!DOCTYPE html>
+  const companyName = payload.companyName || "A partner employer";
+  const schoolText = payload.schoolName ? ` at <strong>${payload.schoolName}</strong>` : "";
+
+  if (payload.jobTitle) {
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -111,18 +135,51 @@ function buildInvitationHtml(payload: CampusInvitationPayload, registrationLink:
     <h2 style="color: #1e293b; margin-top: 0;">You have been invited to apply!</h2>
     <p style="color: #475569;">Hello <strong>${studentName}</strong>,</p>
     <p style="color: #475569;">
-      <strong>${payload.companyName}</strong> has reviewed your academic profile at <strong>${payload.schoolName}</strong>
+      <strong>${companyName}</strong> has reviewed your academic profile${schoolText}
       and would like to invite you to apply for the following role:
     </p>
     <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 24px 0; border-radius: 4px;">
       <strong style="color: #0c4a6e;">${payload.jobTitle}</strong>
       ${payload.courseName ? `<p style="margin: 4px 0; color: #475569; font-size: 14px;">Matched to your program: ${payload.courseName}</p>` : ""}
     </div>
-    <p style="color: #475569;">Click the button below to register on VOS Sync and view the full job posting:</p>
+    <p style="color: #475569;">${isRegisteredUser ? "Click the button below to view the job posting:" : "Click the button below to register on VOS Sync and view the full opportunity:"}</p>
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${registrationLink}"
-         style="background: #0ea5e9; color: #fff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: bold;">
-        Register &amp; View Opportunity
+      <a href="${actionLink}"
+         style="background: #0ea5e9; color: #fff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+        ${isRegisteredUser ? "View Opportunity" : "Register & View Opportunity"}
+      </a>
+    </div>
+    <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">
+      This invitation was sent to ${payload.recipientEmail}. If you believe you received this in error, you may ignore this email.
+    </p>
+  </div>
+</body>
+</html>`;
+  }
+
+  // General platform registration invitation
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Invitation to Connect on VOS Sync</title>
+</head>
+<body style="font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 32px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 40px; border: 1px solid #e5e7eb;">
+    <h2 style="color: #1e293b; margin-top: 0;">Connect with ${companyName} on VOS Sync!</h2>
+    <p style="color: #475569;">Hello <strong>${studentName}</strong>,</p>
+    <p style="color: #475569;">
+      <strong>${companyName}</strong> has discovered your academic profile${schoolText} on VOS Sync and invites you to join the talent network.
+    </p>
+    <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 24px 0; border-radius: 4px;">
+      <strong style="color: #0c4a6e;">Campus Talent Network</strong>
+      <p style="margin: 4px 0; color: #475569; font-size: 14px;">Register your verified student profile to connect with hiring teams, showcase your projects, and access career opportunities.</p>
+    </div>
+    <p style="color: #475569;">Click the button below to register your account on VOS Sync:</p>
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${actionLink}"
+         style="background: #0ea5e9; color: #fff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+        Register on VOS Sync
       </a>
     </div>
     <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">
@@ -137,7 +194,7 @@ export async function POST(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -153,67 +210,155 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as CampusInvitationPayload;
-    const { studentId, schoolId, jobId, recipientEmail, recipientName, schoolName, courseName, jobTitle, companyName } = body;
+    const { studentId, jobId, recipientEmail, recipientName, schoolName } = body;
+    let { schoolId, courseName, jobTitle, companyName } = body;
 
-    if (!studentId || !schoolId || !jobId || !recipientEmail || !recipientName) {
+    if (!studentId || !recipientEmail || !recipientName) {
       return NextResponse.json({ error: "Missing required invitation fields." }, { status: 400 });
     }
 
-    // Generate invitation token and expiry
-    const inviteToken = randomBytes(32).toString("hex");
-    const expiresAt = new Date(
-      Date.now() + INVITATION_EXPIRES_DAYS * 24 * 60 * 60 * 1000
-    ).toISOString();
+    // Resolve company name if not supplied
+    if (!companyName && companyId) {
+      try {
+        const cRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=company_name`, { headers: getHeaders() });
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          companyName = cData.data?.company_name || "";
+        }
+      } catch {
+        // non-blocking fallback
+      }
+    }
 
-    const registrationLink = `${APP_URL}/register?invite=${inviteToken}&ref=campus`;
+    // Auto-resolve schoolId, courseName and registered_user_id
+    let registeredUserId: number | null = null;
+    try {
+      const sRes = await fetch(`${DIRECTUS_BASE}/items/vs_school_student/${studentId}?fields=school_id,course_name,registered_user_id`, { headers: getHeaders() });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (!schoolId) schoolId = sData.data?.school_id || 0;
+        if (!courseName) courseName = sData.data?.course_name;
+        if (sData.data?.registered_user_id) {
+          registeredUserId = Number(sData.data.registered_user_id);
+        }
+      }
+    } catch {
+      // non-blocking fallback
+    }
 
-    // ── Step 1: Create PENDING record (DB first, before email) ───────────────
+    // Auto-resolve jobTitle if jobId passed but title missing
+    if (jobId && !jobTitle) {
+      try {
+        const jRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${jobId}?fields=job_title`, { headers: getHeaders() });
+        if (jRes.ok) {
+          const jData = await jRes.json();
+          jobTitle = jData.data?.job_title || "";
+        }
+      } catch {
+        // non-blocking fallback
+      }
+    }
+
+    // Normalize empty strings/0 to null
+    const safeJobId = jobId && Number(jobId) > 0 ? Number(jobId) : null;
+    const safeJobTitle = safeJobId ? jobTitle?.trim() || null : null;
+
+    const nowPH = getPHDateTime();
+    const expiresDate = new Date(Date.now() + INVITATION_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = getPHDateTime(expiresDate);
+
+    let actionLink = "";
+    let invitationId: number | null = null;
+
+    if (!registeredUserId) {
+      // Unregistered student -> Issue vs_student_invitation token for /student-register
+      const existingInvitation = await findActiveStudentInvitation(studentId, schoolId);
+      let inviteToken = "";
+      if (existingInvitation) {
+        inviteToken = existingInvitation.token;
+        invitationId = existingInvitation.invitation_id;
+      } else {
+        inviteToken = randomBytes(32).toString("hex");
+        const createdRecord = await createStudentInvitation(
+          studentId,
+          schoolId || 0,
+          inviteToken,
+          expiresAt,
+          nowPH
+        );
+        if (!createdRecord) {
+          return NextResponse.json({ error: "Failed to create invitation record." }, { status: 500 });
+        }
+        invitationId = createdRecord.invitation_id;
+      }
+      actionLink = `${APP_URL}/student-register?token=${inviteToken}`;
+    } else {
+      // Already registered student -> Direct to job application or portal
+      actionLink = safeJobId ? `${APP_URL}/jobs/${safeJobId}` : `${APP_URL}/dashboard`;
+
+      if (safeJobId) {
+        try {
+          const appInvRes = await fetch(`${DIRECTUS_BASE}/items/vs_applicant_invitation`, {
+            method: "POST",
+            headers: getHeaders(),
+            body: JSON.stringify({
+              company_id: companyId,
+              applicant_user_id: registeredUserId,
+              job_id: safeJobId,
+              subject: safeJobTitle ? `Job Opportunity: ${safeJobTitle}` : "Career Invitation",
+              message: `You have been invited by ${companyName || "a partner employer"} for the position: ${safeJobTitle || "Open Role"} on VOS Sync.`,
+              status: "PENDING",
+              created_by: userId,
+              created_at: nowPH,
+              updated_at: nowPH,
+            }),
+          });
+          if (appInvRes.ok) {
+            const appInvJson = await appInvRes.json();
+            invitationId = appInvJson.data?.invitation_id ?? null;
+          }
+        } catch (appInvErr: unknown) {
+          console.error("[campus-talent/invite] vs_applicant_invitation error:", appInvErr);
+        }
+      }
+    }
+
     const invitationPayload: CampusInvitationPayload = {
       studentId,
-      schoolId,
-      jobId,
+      schoolId: schoolId || 0,
+      jobId: safeJobId,
       companyId,
       recipientEmail,
       recipientName,
-      schoolName,
+      schoolName: schoolName || "Partner Institution",
       courseName,
-      jobTitle,
-      companyName,
+      jobTitle: safeJobTitle,
+      companyName: companyName || "Partner Employer",
       recruiterId: userId,
     };
 
-    const record = await createInvitationRecord(invitationPayload, inviteToken, expiresAt);
-    if (!record) {
-      return NextResponse.json({ error: "Failed to create invitation record." }, { status: 500 });
-    }
-
-    const invitationId = record.invitation_id;
-
-    // ── Step 2: Attempt email dispatch ────────────────────────────────────────
+    // ── Attempt email dispatch ────────────────────────────────────────
     let emailSent = false;
+    const emailSubject = safeJobTitle
+      ? `Career Opportunity: ${safeJobTitle} at ${invitationPayload.companyName}`
+      : `Invitation to connect with ${invitationPayload.companyName} on VOS Sync`;
+
     try {
       await transporter.sendMail({
         from: MAIL_FROM,
         to: recipientEmail,
-        subject: `Career Opportunity: ${jobTitle} at ${companyName}`,
-        html: buildInvitationHtml(invitationPayload, registrationLink),
+        subject: emailSubject,
+        html: buildInvitationHtml(invitationPayload, actionLink, Boolean(registeredUserId)),
       });
       emailSent = true;
     } catch (mailErr: unknown) {
-      // Email failure is isolated — DB record is updated to FAILED but no crash
       console.error("[campus-talent/invite] SMTP failure:", mailErr);
     }
 
-    // ── Step 3: Update invitation record to SENT or FAILED ───────────────────
-    const now = new Date().toISOString();
-    await updateInvitationStatus(invitationId, emailSent ? "SENT" : "FAILED", emailSent ? now : undefined);
-
-    // ── Step 4: Update vs_school_student only if SENT ─────────────────────────
+    // ── Update vs_school_student status upon successful dispatch ──────
     if (emailSent) {
-      await updateStudentInvitationStatus(studentId, "Invited");
-    }
-
-    if (!emailSent) {
+      await updateStudentInvitationStatus(studentId, "Invited", nowPH);
+    } else {
       return NextResponse.json(
         {
           success: false,

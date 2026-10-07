@@ -98,7 +98,7 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
             console.log("[NavUser] /api/auth/logout HTTP status:", res.status)
         } finally {
             // Expire client-side cookie if present
-            document.cookie = "vos_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
+            document.cookie = "vos_sync_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
             console.log("[NavUser] Client logout finished. Document cookie after logout:", document.cookie)
 
             // Hide the body to prevent bfcache flash on back navigation

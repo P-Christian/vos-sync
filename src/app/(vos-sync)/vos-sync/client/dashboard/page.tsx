@@ -8,7 +8,7 @@ import { getClientProfile } from "@/modules/client/settings/services/client-prof
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 export default async function clientDashboardPage() {
     const cookieStore = await cookies();

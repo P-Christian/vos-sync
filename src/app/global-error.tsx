@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { ServerDownContent } from "@/components/shared/ServerDownContent";
+import { AlertTriangle, RefreshCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import "../app/globals.css";
 
 export default function GlobalError({
@@ -17,13 +18,20 @@ export default function GlobalError({
 
     return (
         <html lang="en">
-            <body className="antialiased bg-background text-foreground">
-                <ServerDownContent
-                    title="Critical Server Outage"
-                    description="A critical system error or backend database disconnect occurred at the application root."
-                    errorCode={error.digest || "500_CRITICAL_SERVER_ERROR"}
-                    reset={reset}
-                />
+            <body className="antialiased bg-background text-foreground flex min-h-screen items-center justify-center p-6 text-center">
+                <div className="flex flex-col items-center max-w-md">
+                    <div className="mb-6 rounded-full bg-destructive/10 p-5 text-destructive">
+                        <AlertTriangle className="h-10 w-10" />
+                    </div>
+                    <h1 className="text-2xl font-bold tracking-tight mb-2">Critical Application Error</h1>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        {error.message || "A critical system error occurred. Please try refreshing the application."}
+                    </p>
+                    <Button onClick={() => reset()} className="gap-2">
+                        <RefreshCcw className="h-4 w-4" />
+                        Try again
+                    </Button>
+                </div>
             </body>
         </html>
     );

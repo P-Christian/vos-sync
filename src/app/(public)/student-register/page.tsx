@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default async function StudentRegisterPage() {
   const cookieStore = await cookies();
-  const initialHasSession = cookieStore.has("vos_access_token");
+  const initialHasSession = cookieStore.has("vos_sync_access_token");
   return (
     <div className="max-md:items-start flex min-h-[calc(100dvh-6rem)] items-center justify-center py-4 sm:py-12">
       <Suspense

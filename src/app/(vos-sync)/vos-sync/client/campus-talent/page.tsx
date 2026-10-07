@@ -14,7 +14,7 @@ export const metadata = {
     "Discover and match academic candidates from verified schools. AI-powered campus talent discovery for recruiters.",
 };
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -56,7 +56,7 @@ export default async function CampusTalentPage() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <PortalPageHeader user={headerUser} />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
         <CampusTalentModule />
       </main>
     </div>

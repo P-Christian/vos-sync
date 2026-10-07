@@ -9,7 +9,7 @@ const TARGET_FOLDER = "12bdc284-8351-4c3b-bf17-80cf37536ce3";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("vos_access_token")?.value;
+    const token = req.cookies.get("vos_sync_access_token")?.value;
     if (!token && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }

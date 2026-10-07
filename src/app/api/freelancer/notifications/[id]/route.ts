@@ -38,7 +38,7 @@ export async function PATCH(
     const { id } = await params;
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
