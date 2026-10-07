@@ -8,4 +8,5 @@ export function schoolIdentitiesMatch(left: string, right: string): boolean {
     normalizedLeft.length > 0 &&
     normalizedLeft === normalizeSchoolIdentity(right)
   );
+  
 }
