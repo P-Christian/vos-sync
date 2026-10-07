@@ -29,7 +29,7 @@ import {
   STAGE_COLOR_CLASSES,
   STAGE_TYPE_DETAILS,
 } from "../types";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import {  ShieldCheck } from "lucide-react";
 
 interface StageEditModalProps {
   open: boolean;

@@ -59,7 +59,6 @@ interface ApplicantCardProps {
 export default function ApplicantCard({
   applicant,
   onUpdateStatus,
-  onQuickStatusUpdate,
   onQuickStageUpdate,
   onScheduleInterview,
   onViewScheduledInterview,

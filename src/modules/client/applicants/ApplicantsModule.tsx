@@ -11,7 +11,7 @@ import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { Applicant, ApplicantFilterStatus, ApplicationStatus, STATUS_LABELS } from "./types";
+import { Applicant, ApplicationStatus, STATUS_LABELS } from "./types";
 import {
   Dialog,
   DialogContent,
