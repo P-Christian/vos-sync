@@ -2,7 +2,7 @@
 
 // src/modules/client/messaging/hooks/useConversations.ts
 
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Conversation, CreateConversationPayload } from "../types";
 import {
   fetchConversations,
@@ -18,9 +18,11 @@ export function useConversations() {
 
   const { subscribe } = useRealtime();
 
+  const archivedFilterRef = useRef(false);
+
   useEffect(() => {
     const unsubscribe = subscribe("vs_messages", () => {
-      fetchConversations()
+      fetchConversations({ archived: archivedFilterRef.current })
         .then((data) => {
           if (data) setConversations(data);
         })
@@ -33,6 +35,7 @@ export function useConversations() {
 
   const loadConversations = useCallback(
     async (opts?: { archived?: boolean }) => {
+      archivedFilterRef.current = opts?.archived ?? false;
       setLoading(true);
       setError("");
       try {
