@@ -105,13 +105,13 @@ export async function PATCH(
       return NextResponse.json({ error: "Request payload required." }, { status: 400 });
     }
 
-    let name = body.name !== undefined ? String(body.name).trim() : undefined;
+    const name = body.name !== undefined ? String(body.name).trim() : undefined;
     if (name !== undefined) {
       if (!name) return NextResponse.json({ error: "Pipeline name cannot be empty." }, { status: 400 });
       if (name.length > 100) return NextResponse.json({ error: "Pipeline name cannot exceed 100 characters." }, { status: 400 });
     }
 
-    let status = body.status;
+    const status = body.status;
     if (status !== undefined && status !== "ACTIVE" && status !== "ARCHIVED") {
       return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
     }

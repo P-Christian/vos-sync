@@ -66,19 +66,19 @@ export async function PATCH(
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Request payload required." }, { status: 400 });
 
-    let stageName = body.stage_name !== undefined ? String(body.stage_name).trim() : undefined;
+    const stageName = body.stage_name !== undefined ? String(body.stage_name).trim() : undefined;
     if (stageName !== undefined) {
       if (!stageName) return NextResponse.json({ error: "Stage name cannot be empty." }, { status: 400 });
       if (stageName.length > 100) return NextResponse.json({ error: "Stage name cannot exceed 100 characters." }, { status: 400 });
     }
 
-    let color = body.color !== undefined ? String(body.color).trim() : undefined;
+    const color = body.color !== undefined ? String(body.color).trim() : undefined;
     if (color !== undefined && !ALLOWED_COLORS.has(color)) {
       return NextResponse.json({ error: "Invalid color key." }, { status: 400 });
     }
 
-    let description = body.description !== undefined ? String(body.description).trim().slice(0, 500) : undefined;
-    let stageOrder = body.stage_order !== undefined && Number.isInteger(Number(body.stage_order)) && Number(body.stage_order) > 0 ? Number(body.stage_order) : undefined;
+    const description = body.description !== undefined ? String(body.description).trim().slice(0, 500) : undefined;
+    const stageOrder = body.stage_order !== undefined && Number.isInteger(Number(body.stage_order)) && Number(body.stage_order) > 0 ? Number(body.stage_order) : undefined;
 
     const success = await updatePipelineStage(pipelineId, sId, companyId, {
       stage_name: stageName,

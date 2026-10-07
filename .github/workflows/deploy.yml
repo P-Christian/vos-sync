@@ -11,22 +11,42 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to Production
-    runs-on: self-hosted 
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      NODE_OPTIONS: --max-old-space-size=8192
 
     steps:
-      - name: Pull Code, Build, and Restart
-        run: |
-          set -e
-          cd /home/vertex/vos-sync
-          git fetch --all
-          git reset --hard origin/master
-          node --version
-          npm --version
-          npm ci
-          npm run build
-          pm2 restart "vos-sync" || PORT=4000 pm2 start npm --name "vos-sync" -- start
-          sudo tailscale serve --bg 4000
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
 
+            cd /home/vertex/vos-sync
+
+            echo "==> Updating source"
+            git fetch --all
+            git reset --hard origin/master
+
+            echo "==> Node versions"
+            node --version
+            npm --version
+
+            echo "==> Installing dependencies"
+            npm ci
+
+            echo "==> Building application"
+            export NODE_OPTIONS="--max-old-space-size=8192"
+            npm run build
+
+            echo "==> Restarting application"
+            pm2 restart "vos-sync" || PORT=4000 pm2 start npm --name "vos-sync" -- start
+
+            echo "==> Configuring Tailscale Serve"
+            sudo tailscale serve --bg 4000
+
+            echo "==> Deployment complete"
