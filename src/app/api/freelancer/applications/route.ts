@@ -689,7 +689,7 @@ export async function POST(req: NextRequest) {
             category: "APPLICATION_SUBMITTED",
             title: "Application Submitted",
             message: `Your application for "${jobTitle}" was submitted successfully.`,
-            action_url: `/vos-sync/freelancer/my-applications`,
+            action_url: `/vos-sync/freelancer/applications`,
           }).catch((err: unknown) => console.error("[Candidate in-app] APPLICATION_SUBMITTED error:", err));
 
           // Chat System Message

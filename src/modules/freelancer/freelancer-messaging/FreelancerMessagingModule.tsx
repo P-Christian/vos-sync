@@ -91,6 +91,12 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
     [archive, activeConversation, clearMessages]
   );
 
+  const handleCloseConversation = useCallback(() => {
+    setActiveConversation(null);
+    clearMessages();
+    setMobileShowChat(false);
+  }, [clearMessages]);
+
   const handleSend = useCallback(
     async (content: string, files: File[]) => {
       if (!activeConversation) return;
@@ -220,7 +226,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
                   onSend={handleSend}
                   onRefresh={handleRefreshMessages}
                   onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
-                  onBack={() => setMobileShowChat(false)}
+                  onBack={handleCloseConversation}
                   onToggleReaction={toggleReaction}
                 />
               </div>
