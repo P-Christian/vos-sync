@@ -8,7 +8,7 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_s
 
 async function getUserIdFromToken() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("vos_access_token")?.value;
+  const token = cookieStore.get("vos_sync_access_token")?.value;
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);

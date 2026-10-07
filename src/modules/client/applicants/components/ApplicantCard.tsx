@@ -30,11 +30,9 @@ import {
   Eye,
   MoreVertical,
   Edit3,
-  UserCheck,
-  XCircle,
-  RotateCcw,
 } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
+import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 import { getApplicantAvatarUrl, getInitials, timeAgo } from "../utils/applicantUtils";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +50,7 @@ interface ApplicantCardProps {
   applicant: Applicant;
   onUpdateStatus: (applicant: Applicant) => void;
   onQuickStatusUpdate?: (applicant: Applicant, status: ApplicationStatus) => void;
+  onQuickStageUpdate?: (applicant: Applicant, toStageId: number, stageName: string) => void;
   onScheduleInterview: (applicant: Applicant) => void;
   onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
@@ -60,7 +59,7 @@ interface ApplicantCardProps {
 export default function ApplicantCard({
   applicant,
   onUpdateStatus,
-  onQuickStatusUpdate,
+  onQuickStageUpdate,
   onScheduleInterview,
   onViewScheduledInterview,
   onViewDetails,
@@ -70,15 +69,14 @@ export default function ApplicantCard({
   const avatarUrl = getApplicantAvatarUrl(rawImage);
   const initials = getInitials(applicant.applicant_name);
 
-  const handleQuickStatus = (newStatus: ApplicationStatus, e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    if (newStatus === applicant.application_status) return;
-    if (onQuickStatusUpdate) {
-      onQuickStatusUpdate(applicant, newStatus);
-    } else {
-      onUpdateStatus(applicant);
-    }
-  };
+  // Canonical stage authority for interview operations:
+  // Available when candidate is in an INTERVIEW or ASSESSMENT stage (or legacy unmigrated status)
+  const isInterviewEligible =
+    applicant.stage_type === "INTERVIEW" ||
+    applicant.stage_type === "ASSESSMENT" ||
+    (!applicant.stage_type &&
+      (applicant.application_status === "SHORTLISTED" ||
+        applicant.application_status === "INTERVIEWING"));
 
   return (
     <Card
@@ -223,16 +221,20 @@ export default function ApplicantCard({
             {/* Status Badge - Anchored to a fixed column */}
             <div className="shrink-0 flex items-center">
               <motion.div
-                key={applicant.application_status}
+                key={applicant.current_stage_id ?? applicant.application_status}
                 initial={{ scale: 0.82, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 450, damping: 26 }}
               >
                 <Badge
                   variant="outline"
-                  className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-200 shadow-2xs md:text-[11px] ${STATUS_STYLES[applicant.application_status]}`}
+                  className={cn(
+                    "text-xs font-semibold px-2.5 py-0.5 rounded-full border transition-all duration-200 shadow-2xs md:text-[11px]",
+                    STAGE_COLOR_CLASSES[applicant.stage_color || "sky"]?.badge ||
+                      STATUS_STYLES[applicant.application_status]
+                  )}
                 >
-                  {STATUS_LABELS[applicant.application_status]}
+                  {applicant.stage_name || STATUS_LABELS[applicant.application_status] || applicant.application_status}
                 </Badge>
               </motion.div>
             </div>
@@ -269,53 +271,39 @@ export default function ApplicantCard({
                 </Button>
               </Link>
 
-              {/* Contextual Primary Action Button */}
-              {applicant.application_status === "INTERVIEWING" && applicant.active_interview_id && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onViewScheduledInterview && applicant.active_interview_id) {
-                      onViewScheduledInterview(applicant.active_interview_id);
-                    }
-                  }}
-                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium shadow-sm md:text-xs"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5 text-primary" />
-                  View Interview
-                </Button>
+              {/* Contextual Primary Action Button (Canonical Stage Authority) */}
+              {isInterviewEligible && (
+                applicant.active_interview_id ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onViewScheduledInterview && applicant.active_interview_id) {
+                        onViewScheduledInterview(applicant.active_interview_id);
+                      }
+                    }}
+                    className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium shadow-sm md:text-xs"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5 text-primary" />
+                    View Interview
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleInterview(applicant);
+                    }}
+                    className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    Schedule Interview
+                  </Button>
+                )
               )}
 
-              {applicant.application_status === "SHORTLISTED" && (
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onScheduleInterview(applicant);
-                  }}
-                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                  Schedule Interview
-                </Button>
-              )}
-
-              {applicant.application_status === "INTERVIEWING" && !applicant.active_interview_id && (
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onScheduleInterview(applicant);
-                  }}
-                  className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
-                >
-                  <CalendarPlus className="h-3.5 w-3.5" />
-                  Schedule Interview
-                </Button>
-              )}
-
-              {/* 3 Dots Actions (Secondary Admin Actions Only) */}
+              {/* 3 Dots Actions (Pipeline-Driven Stage Progression) */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -329,103 +317,60 @@ export default function ApplicantCard({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider md:text-[11px]">
-                    Quick Actions
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider md:text-[10px]">
+                    Stage Progression
                   </DropdownMenuLabel>
 
-                  {/* Dynamic Status Update Actions */}
-                  {applicant.application_status === "APPLIED" && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("UNDER_REVIEW", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
-                      >
-                        <Clock className="h-3.5 w-3.5 text-blue-500" />
-                        Move to Under Review
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("SHORTLISTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-violet-500" />
-                        Shortlist Candidate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
-                      >
-                        <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                        Reject Candidate
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {applicant.application_status === "UNDER_REVIEW" && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("SHORTLISTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5 text-violet-500" />
-                        Shortlist Candidate
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
-                      >
-                        <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                        Reject Candidate
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {applicant.application_status === "SHORTLISTED" && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("HIRED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-emerald-600 focus:text-emerald-600 font-medium md:text-xs"
-                      >
-                        <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
-                        Mark as Hired
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
-                      >
-                        <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                        Reject Candidate
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {applicant.application_status === "INTERVIEWING" && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("HIRED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-emerald-600 focus:text-emerald-600 font-medium md:text-xs"
-                      >
-                        <UserCheck className="h-3.5 w-3.5 text-emerald-500" />
-                        Mark as Hired
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => handleQuickStatus("REJECTED", e)}
-                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 text-rose-600 focus:text-rose-600 font-medium md:text-xs"
-                      >
-                        <XCircle className="h-3.5 w-3.5 text-rose-500" />
-                        Reject Candidate
-                      </DropdownMenuItem>
-                    </>
-                  )}
-
-                  {(applicant.application_status === "REJECTED" ||
-                    applicant.application_status === "WITHDRAWN") && (
-                    <DropdownMenuItem
-                      onClick={(e) => handleQuickStatus("UNDER_REVIEW", e)}
-                      className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
-                      Reopen Application
-                    </DropdownMenuItem>
+                  {/* Dynamic Destinations from Active Job Pipeline */}
+                  {applicant.allowed_next_stages && applicant.allowed_next_stages.length > 0 ? (
+                    applicant.allowed_next_stages.map((stage) => {
+                      const dotColor =
+                        STAGE_COLOR_CLASSES[stage.color]?.dot || "bg-primary";
+                      return (
+                        <DropdownMenuItem
+                          key={stage.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onQuickStageUpdate) {
+                              onQuickStageUpdate(
+                                applicant,
+                                stage.id,
+                                stage.stage_name
+                              );
+                            } else {
+                              onUpdateStatus(applicant);
+                            }
+                          }}
+                          className={cn(
+                            "text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs",
+                            stage.stage_type === "REJECTED"
+                              ? "text-rose-600 focus:text-rose-600"
+                              : stage.stage_type === "HIRED"
+                              ? "text-emerald-600 focus:text-emerald-600"
+                              : ""
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "h-2 w-2 rounded-full shrink-0",
+                              dotColor
+                            )}
+                          />
+                          <span>Move to {stage.stage_name}</span>
+                        </DropdownMenuItem>
+                      );
+                    })
+                  ) : (
+                    <div className="px-2 py-1.5 text-xs text-muted-foreground italic">
+                      {applicant.stage_type === "HIRED" ||
+                      applicant.stage_type === "REJECTED" ||
+                      applicant.stage_type === "WITHDRAWN" ||
+                      applicant.application_status === "HIRED" ||
+                      applicant.application_status === "REJECTED" ||
+                      applicant.application_status === "WITHDRAWN"
+                        ? "Terminal state — no further moves"
+                        : "No transitions available"}
+                    </div>
                   )}
 
                   <DropdownMenuSeparator />
@@ -438,7 +383,7 @@ export default function ApplicantCard({
                     className="text-sm gap-2 cursor-pointer max-md:min-h-10 md:text-xs"
                   >
                     <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
-                    Custom Status & Notes...
+                    Update Candidate Stage...
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

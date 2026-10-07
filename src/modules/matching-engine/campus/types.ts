@@ -176,14 +176,14 @@ export type CampusInvitationStatus =
 
 export interface CampusInvitationPayload {
   studentId: number;
-  schoolId: number;
-  jobId: number;
-  companyId: number;
+  schoolId?: number;
+  jobId?: number | null;
+  companyId?: number;
   recipientEmail: string;
   recipientName: string;
-  schoolName: string;
-  courseName: string | null;
-  jobTitle: string;
-  companyName: string;
-  recruiterId: number;
+  schoolName?: string;
+  courseName?: string | null;
+  jobTitle?: string | null;
+  companyName?: string;
+  recruiterId?: number;
 }

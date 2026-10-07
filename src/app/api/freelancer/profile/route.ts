@@ -5,7 +5,7 @@ import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/se
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 export async function GET(req: NextRequest) {
     try {

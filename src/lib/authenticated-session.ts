@@ -41,7 +41,7 @@ export function getAccessTokenFromRequest(
     if (match?.[1]?.trim()) return match[1].trim();
   }
 
-  const cookieToken = request.cookies?.get("vos_access_token")?.value;
+  const cookieToken = request.cookies?.get("vos_sync_access_token")?.value;
   return cookieToken?.trim() || null;
 }
 
@@ -90,7 +90,7 @@ export async function authenticateRequest(
 
 export async function authenticateCookieSession(): Promise<AuthenticatedSession | null> {
   const cookieStore = await cookies();
-  return authenticateAccessToken(cookieStore.get("vos_access_token")?.value);
+  return authenticateAccessToken(cookieStore.get("vos_sync_access_token")?.value);
 }
 
 export function hasRole(

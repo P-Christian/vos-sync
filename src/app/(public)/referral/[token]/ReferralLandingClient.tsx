@@ -45,7 +45,7 @@ export default function ReferralLandingClient({ referral, token, isLoggedIn: isL
 
   React.useEffect(() => {
     // Sync login state with server prop and fallback to check cookies
-    const hasToken = typeof document !== "undefined" && !!document.cookie.match(/(^|;)\s*vos_access_token\s*=\s*([^;]+)/);
+    const hasToken = typeof document !== "undefined" && !!document.cookie.match(/(^|;)\s*vos_sync_access_token\s*=\s*([^;]+)/);
     const resolvedLogged = isLoggedInFromServer || hasToken;
     setIsLoggedIn((prev) => {
       if (prev !== resolvedLogged) {

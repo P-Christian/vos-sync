@@ -13,7 +13,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import Link from "next/link";
-import { MapPin, Users, Clock, Briefcase, Landmark, Banknote, ChevronRight } from "lucide-react";
+import {
+  MapPin,
+  Users,
+  Clock,
+  Briefcase,
+  Landmark,
+  Banknote,
+  ChevronRight,
+  PlayCircle,
+  RotateCcw,
+} from "lucide-react";
 import JobStatusBadge from "./JobStatusBadge";
 import { JobPosting, JobStatus, JOB_TYPE_LABELS } from "../types";
 
@@ -85,6 +95,7 @@ const cardVariants = {
 export default function JobCard({
   job,
   onView,
+  onStatusChange,
 }: JobCardProps) {
   const descData = parseJsonField(job.job_description);
   const reqsData = parseJsonField(job.job_requirements);
@@ -183,27 +194,81 @@ export default function JobCard({
                     </div>
                   </div>
 
-                  {/* ── Right: Clean Primary ATS Action ───────────────── */}
+                  {/* ── Right: Dynamic Context-Aware Action ─────────────── */}
                   <div className="flex items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-border/50">
-                    <Link
-                      href={`/vos-sync/client/applicants?job_id=${job.job_id}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    {job.status === "DRAFT" ? (
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        className="h-9 px-3.5 text-sm md:text-xs gap-2 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 font-semibold shadow-xs max-md:min-h-10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStatusChange(job.job_id, "ACTIVE");
+                        }}
+                        className="h-9 px-3.5 text-sm md:text-xs gap-2 rounded-xl border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 font-semibold shadow-xs max-md:min-h-10"
+                        title="Publish this job to make it active and receive applications"
                       >
-                        <Users className="h-3.5 w-3.5 text-primary" />
-                        View Applicants
-                        {typeof job.applicants_count === "number" && job.applicants_count > 0 && (
-                          <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-xs md:text-[10px] font-bold">
-                            {job.applicants_count}
-                          </span>
-                        )}
-                        <ChevronRight className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                        <PlayCircle className="h-3.5 w-3.5 text-primary" />
+                        Make Active
                       </Button>
-                    </Link>
+                    ) : job.status === "CLOSED" ? (
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStatusChange(job.job_id, "ACTIVE");
+                          }}
+                          className="h-9 px-3 text-sm md:text-xs gap-1.5 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all font-semibold shadow-xs max-md:min-h-10"
+                          title="Reopen and activate this job posting"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          Reopen
+                        </Button>
+                        <Link
+                          href={`/vos-sync/client/applicants?job_id=${job.job_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 px-2.5 text-sm md:text-xs gap-1.5 rounded-xl text-muted-foreground hover:text-foreground font-semibold max-md:min-h-10"
+                            title="View past applicants"
+                          >
+                            <Users className="h-3.5 w-3.5" />
+                            {typeof job.applicants_count === "number" && job.applicants_count > 0 && (
+                              <span className="px-1.5 py-0.2 bg-muted text-muted-foreground rounded-full text-xs md:text-[10px] font-bold">
+                                {job.applicants_count}
+                              </span>
+                            )}
+                          </Button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <Link
+                        href={`/vos-sync/client/applicants?job_id=${job.job_id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-3.5 text-sm md:text-xs gap-2 rounded-xl border-border hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 font-semibold shadow-xs max-md:min-h-10"
+                        >
+                          <Users className="h-3.5 w-3.5 text-primary" />
+                          View Applicants
+                          {typeof job.applicants_count === "number" && job.applicants_count > 0 && (
+                            <span className="ml-0.5 px-1.5 py-0.2 bg-primary/10 text-primary rounded-full text-xs md:text-[10px] font-bold">
+                              {job.applicants_count}
+                            </span>
+                          )}
+                          <ChevronRight className="h-3 w-3 text-muted-foreground/60 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                        </Button>
+                      </Link>
+                    )}
                   </div>
 
                 </div>

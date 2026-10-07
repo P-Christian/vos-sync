@@ -14,7 +14,7 @@ export const metadata = {
     "Manage account preferences, password security, company team roles, and authorized integrations on VOS Sync.",
 };
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {

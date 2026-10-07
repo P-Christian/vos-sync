@@ -2,6 +2,8 @@
 // src/app/api/client/applicants/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { JobPipelineStage, JobPipelineVersion } from "@/modules/client/pipeline/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -77,6 +79,7 @@ interface RawApplication {
   job_id: number;
   user_id: number;
   application_status: string;
+  current_stage_id?: number | null;
   client_notes?: string | null;
   applied_at?: string;
   status_updated_at?: string;
@@ -223,7 +226,7 @@ export async function GET(req: NextRequest) {
       req.headers
         .get("authorization")
         ?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -316,7 +319,7 @@ export async function GET(req: NextRequest) {
     // ------------------------------
 
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?${filterQuery}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at&limit=500`,
+      `${DIRECTUS_BASE}/items/vs_job_application?${filterQuery}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,current_stage_id,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at&limit=500`,
       {
         headers: getHeaders(),
         cache: "no-store",
@@ -614,6 +617,22 @@ export async function GET(req: NextRequest) {
     });
 
     // ------------------------------
+    // Job Pipelines resolution
+    // ------------------------------
+    const uniqueJobIds = [...new Set(rawApps.map((a) => a.job_id).filter(Boolean))];
+    const jobPipelineMap: Record<number, JobPipelineVersion | null> = {};
+    await Promise.all(
+      uniqueJobIds.map(async (jId) => {
+        try {
+          const pipe = await getJobPipeline(jId);
+          jobPipelineMap[jId] = pipe;
+        } catch {
+          jobPipelineMap[jId] = null;
+        }
+      })
+    );
+
+    // ------------------------------
     // Response
     // ------------------------------
 
@@ -633,6 +652,49 @@ export async function GET(req: NextRequest) {
       const primaryEdu = userEdu[0];
       const referralInfo = appReferralMap[application.application_id];
 
+      const pipe = jobPipelineMap[application.job_id];
+      let currentStage: JobPipelineStage | undefined;
+      let allowedNextStages: Array<{
+        id: number;
+        stage_name: string;
+        stage_type: string;
+        color: string;
+        is_terminal: boolean;
+      }> = [];
+
+      if (pipe?.stages) {
+        if (application.current_stage_id) {
+          currentStage = pipe.stages.find((s) => s.id === Number(application.current_stage_id));
+        }
+        if (!currentStage) {
+          currentStage =
+            pipe.stages.find((s) => s.stage_type === application.application_status) ||
+            pipe.stages.find((s) => s.stage_type === "APPLIED") ||
+            pipe.stages[0];
+        }
+
+        if (currentStage && !currentStage.is_terminal) {
+          const transitions = pipe.transitions ?? [];
+          const forwardStageIds = new Set(
+            transitions.filter((t) => t.from_stage_id === currentStage!.id).map((t) => t.to_stage_id)
+          );
+
+          allowedNextStages = pipe.stages
+            .filter(
+              (s) =>
+                s.id !== currentStage!.id &&
+                (forwardStageIds.has(s.id) || s.stage_type === "REJECTED" || s.stage_type === "WITHDRAWN")
+            )
+            .map((s) => ({
+              id: s.id,
+              stage_name: s.stage_name,
+              stage_type: s.stage_type,
+              color: s.color,
+              is_terminal: Boolean(s.is_terminal),
+            }));
+        }
+      }
+
       return {
         ...application,
 
@@ -646,6 +708,12 @@ export async function GET(req: NextRequest) {
         job_title:
           jobsMap[application.job_id]?.title ??
           "Unknown Role",
+
+        current_stage_id: currentStage?.id ?? application.current_stage_id ?? null,
+        stage_name: currentStage?.stage_name ?? application.application_status,
+        stage_type: currentStage?.stage_type ?? application.application_status,
+        stage_color: currentStage?.color ?? "sky",
+        allowed_next_stages: allowedNextStages,
         
         applicant_profile_image_url: 
           user?.profile_image_url ?? "",
@@ -703,6 +771,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       applicants,
       jobs: jobOptions,
+      pipeline: jobId ? jobPipelineMap[Number(jobId)] : null,
     });
 
     

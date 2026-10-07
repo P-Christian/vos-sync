@@ -7,7 +7,7 @@ import {
 } from "@/lib/status-validator";
 import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 
 export async function GET(req: NextRequest) {
   try {

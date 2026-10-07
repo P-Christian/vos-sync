@@ -34,7 +34,7 @@ export default async function PublicClientProfilePage({
 
   // Determine caller details
   const cookieStore = await cookies();
-  const token = cookieStore.get("vos_access_token")?.value;
+  const token = cookieStore.get("vos_sync_access_token")?.value;
   let callerUser = { name: "Guest", email: "guest@example.com", avatar: "" };
   
   if (token) {

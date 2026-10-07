@@ -46,7 +46,7 @@ export async function POST(
   { params }: { params: Promise<{ companyCode: string }> }
 ) {
   try {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_access_token")?.value;
+    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_sync_access_token")?.value;
     if (!token) {
       return NextResponse.json({ error: "Unauthorized: no token provided" }, { status: 401 });
     }

@@ -20,16 +20,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Applicant, ApplicationStatus, STATUS_LABELS, ALLOWED_STATUS_TRANSITIONS } from "../types";
+import { Badge } from "@/components/ui/badge";
+import {
+  Applicant,
+  ApplicationStatus,
+  STATUS_LABELS,
+  ALLOWED_STATUS_TRANSITIONS,
+} from "../types";
+import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 import { AlertCircle, Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StatusUpdateDrawerProps {
   applicant: Applicant | null;
   open: boolean;
   onClose: () => void;
-  onSave: (
+  onSave?: (
     applicationId: number,
     status: ApplicationStatus,
+    notes: string
+  ) => Promise<void>;
+  onSaveStage?: (
+    applicationId: number,
+    toStageId: number,
     notes: string
   ) => Promise<void>;
   saving: boolean;
@@ -41,37 +54,97 @@ export default function StatusUpdateDrawer({
   open,
   onClose,
   onSave,
+  onSaveStage,
   saving,
   error,
 }: StatusUpdateDrawerProps) {
   const currentStatus = applicant?.application_status ?? "APPLIED";
-  const allowedTransitions = ALLOWED_STATUS_TRANSITIONS[currentStatus] ?? [];
+  const currentStageName = applicant?.stage_name || STATUS_LABELS[currentStatus] || currentStatus;
+  const currentStageColor = applicant?.stage_color || "sky";
 
-  const [selectedStatus, setSelectedStatus] = useState<ApplicationStatus>(
-    allowedTransitions[0] ?? currentStatus
+  const hasDynamicStages = Boolean(
+    applicant?.allowed_next_stages !== undefined && applicant?.allowed_next_stages !== null
+  );
+  const dynamicAllowed = applicant?.allowed_next_stages ?? [];
+  const legacyAllowed = ALLOWED_STATUS_TRANSITIONS[currentStatus] ?? [];
+
+  const [selectedStageId, setSelectedStageId] = useState<string>("");
+  const [selectedLegacyStatus, setSelectedLegacyStatus] = useState<ApplicationStatus>(
+    legacyAllowed[0] ?? currentStatus
   );
   const [notes, setNotes] = useState(applicant?.client_notes ?? "");
 
   React.useEffect(() => {
     if (applicant) {
-      const allowed = ALLOWED_STATUS_TRANSITIONS[applicant.application_status] ?? [];
-      setSelectedStatus(allowed[0] ?? applicant.application_status);
+      if (applicant.allowed_next_stages && applicant.allowed_next_stages.length > 0) {
+        setSelectedStageId(String(applicant.allowed_next_stages[0].id));
+      } else {
+        setSelectedStageId("");
+      }
+
+      const legacy = ALLOWED_STATUS_TRANSITIONS[applicant.application_status] ?? [];
+      setSelectedLegacyStatus(legacy[0] ?? applicant.application_status);
       setNotes(applicant.client_notes ?? "");
     }
   }, [applicant]);
 
+  const canSave = hasDynamicStages ? dynamicAllowed.length > 0 : legacyAllowed.length > 0;
+
   const handleSave = async () => {
-    if (!applicant || allowedTransitions.length === 0) return;
-    await onSave(applicant.application_id, selectedStatus, notes);
+    if (!applicant || !canSave) return;
+
+    if (hasDynamicStages && selectedStageId) {
+      const stageIdNum = parseInt(selectedStageId, 10);
+      if (onSaveStage) {
+        await onSaveStage(applicant.application_id, stageIdNum, notes);
+        return;
+      }
+
+      const matchedStage = dynamicAllowed.find((s) => s.id === stageIdNum);
+      if (matchedStage && onSave) {
+        await onSave(
+          applicant.application_id,
+          matchedStage.stage_type as ApplicationStatus,
+          notes
+        );
+        return;
+      }
+    }
+
+    if (onSave) {
+      await onSave(applicant.application_id, selectedLegacyStatus, notes);
+    }
   };
+
+  const isTerminal =
+    applicant?.stage_type === "HIRED" ||
+    applicant?.stage_type === "REJECTED" ||
+    applicant?.stage_type === "WITHDRAWN" ||
+    applicant?.application_status === "HIRED" ||
+    applicant?.application_status === "REJECTED" ||
+    applicant?.application_status === "WITHDRAWN";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-sm font-bold">
-            Update Application Status
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-sm font-bold">
+              Update Candidate Stage
+            </DialogTitle>
+            {applicant && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[11px] font-semibold px-2 py-0.5 rounded-full border",
+                  STAGE_COLOR_CLASSES[currentStageColor]?.badge ||
+                    "bg-muted text-muted-foreground"
+                )}
+              >
+                {currentStageName}
+              </Badge>
+            )}
+          </div>
           {applicant && (
             <p className="text-sm text-zinc-500 mt-1 md:text-xs">
               {applicant.applicant_name ?? `Applicant #${applicant.application_id}`} &bull;{" "}
@@ -88,20 +161,80 @@ export default function StatusUpdateDrawer({
             </div>
           )}
 
-          {allowedTransitions.length > 0 ? (
+          {hasDynamicStages ? (
+            dynamicAllowed.length > 0 ? (
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs">
+                  Destination Stage <span className="text-rose-500">*</span>
+                </Label>
+                <Select
+                  value={selectedStageId}
+                  onValueChange={(v) => setSelectedStageId(v)}
+                >
+                  <SelectTrigger className="h-9 max-md:min-h-10 md:text-sm">
+                    <SelectValue placeholder="Select target stage..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dynamicAllowed.map((stage) => {
+                      const dotColor =
+                        STAGE_COLOR_CLASSES[stage.color]?.dot || "bg-primary";
+                      return (
+                        <SelectItem
+                          key={stage.id}
+                          value={String(stage.id)}
+                          className="text-sm cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "h-2 w-2 rounded-full shrink-0",
+                                dotColor
+                              )}
+                            />
+                            <span>{stage.stage_name}</span>
+                            {stage.is_terminal && (
+                              <span className="text-[10px] text-muted-foreground ml-1">
+                                (Terminal)
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-sm text-muted-foreground md:text-xs">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-foreground">
+                    Current Stage: {currentStageName}
+                  </p>
+                  <p className="mt-1 leading-relaxed">
+                    {isTerminal
+                      ? "This candidate has reached a terminal stage and cannot be transitioned further."
+                      : "No valid forward transitions are configured from this stage in the active job pipeline."}
+                  </p>
+                </div>
+              </div>
+            )
+          ) : legacyAllowed.length > 0 ? (
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs">
                 New Status <span className="text-rose-500">*</span>
               </Label>
               <Select
-                value={selectedStatus}
-                onValueChange={(v) => setSelectedStatus(v as ApplicationStatus)}
+                value={selectedLegacyStatus}
+                onValueChange={(v) =>
+                  setSelectedLegacyStatus(v as ApplicationStatus)
+                }
               >
                 <SelectTrigger className="h-9 max-md:min-h-10 md:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {allowedTransitions.map((s) => (
+                  {legacyAllowed.map((s) => (
                     <SelectItem key={s} value={s} className="text-sm">
                       {STATUS_LABELS[s]}
                     </SelectItem>
@@ -119,7 +252,7 @@ export default function StatusUpdateDrawer({
                 <p className="mt-1 leading-relaxed">
                   {currentStatus === "INTERVIEWING"
                     ? "Active interviews are managed directly from the Interview Workspace. You can reschedule or cancel the session from there."
-                    : currentStatus === "HIRED" || currentStatus === "REJECTED"
+                    : isTerminal
                     ? "This candidate is in a terminal status and cannot be transitioned manually."
                     : "No manual status transitions are available for this candidate."}
                 </p>
@@ -154,13 +287,13 @@ export default function StatusUpdateDrawer({
           >
             Cancel
           </Button>
-          {allowedTransitions.length > 0 && (
+          {canSave && (
             <Button
               onClick={handleSave}
               disabled={saving}
               className="h-9 max-md:min-h-10 text-sm rounded-lg"
             >
-              {saving ? "Saving..." : "Save Status"}
+              {saving ? "Saving..." : "Save Stage"}
             </Button>
           )}
         </DialogFooter>

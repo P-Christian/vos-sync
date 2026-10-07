@@ -4,7 +4,7 @@ import * as jose from "jose";
 import { canAuthenticate } from "@/lib/status-validator";
 import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 const PROTECTED_PREFIXES = ["/dashboard", "/scm", "/fm", "/hrm", "/bia", "/arf", "/cafeteria", "/vos-sync", "/main-dashboard"];
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -29,7 +29,6 @@ export async function middleware(req: NextRequest) {
         pathname.startsWith("/robots.txt") ||
         pathname.startsWith("/sitemap.xml") ||
         pathname.startsWith("/server-down") ||
-        pathname.startsWith("/500") ||
         pathname.startsWith("/api/health") ||
         PUBLIC_FILE.test(pathname)
     ) {

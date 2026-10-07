@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     children: React.ReactNode;
 }) {
     const cookieStore = await cookies();
-    const token = cookieStore.get("vos_access_token")?.value;
+    const token = cookieStore.get("vos_sync_access_token")?.value;
     const payload = token ? decodeJwtPayload(token) : null;
     
     // Fetch the real freelancer profile from the DB to get the avatar image

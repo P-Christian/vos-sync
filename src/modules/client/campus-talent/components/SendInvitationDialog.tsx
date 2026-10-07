@@ -16,7 +16,9 @@ import { CampusMatchResult } from "@/modules/matching-engine/campus/types";
 
 interface SendInvitationDialogProps {
   target: CampusMatchResult | null;
-  jobTitle: string;
+  jobId?: number | null;
+  jobTitle?: string | null;
+  schoolId?: number;
   schoolName: string;
   onClose: () => void;
   onSent: () => void;
@@ -26,8 +28,10 @@ type DialogState = "IDLE" | "SENDING" | "SUCCESS" | "FAILED";
 
 export default function SendInvitationDialog({
   target,
+  jobId,
   jobTitle,
   schoolName,
+  schoolId,
   onClose,
   onSent,
 }: SendInvitationDialogProps) {
@@ -47,16 +51,13 @@ export default function SendInvitationDialog({
         credentials: "include",
         body: JSON.stringify({
           studentId: target.candidateId,
-          schoolId: 0,
-          jobId: 0,
-          companyId: 0,
+          schoolId: schoolId || undefined,
+          jobId: jobId || null,
           recipientEmail: target.email,
           recipientName: target.studentName,
           schoolName,
           courseName: target.courseName,
-          jobTitle,
-          companyName: "",
-          recruiterId: 0,
+          jobTitle: jobTitle || null,
         }),
       });
 
@@ -81,7 +82,7 @@ export default function SendInvitationDialog({
       );
       setState("FAILED");
     }
-  }, [target, jobTitle, schoolName, onSent]);
+  }, [target, jobId, jobTitle, schoolId, schoolName, onSent]);
 
   return (
     <AnimatePresence>
@@ -130,7 +131,9 @@ export default function SendInvitationDialog({
                   </h3>
 
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    An email will be sent inviting this student to apply
+                    {jobTitle
+                      ? "An email will be sent inviting this student to apply"
+                      : "An email will be sent inviting this student to register on VOS Sync"}
                   </p>
                 </div>
 
@@ -178,9 +181,9 @@ export default function SendInvitationDialog({
                 </div>
 
                 <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground">Job</span>
+                  <span className="text-muted-foreground">{jobTitle ? "Job" : "Invitation Type"}</span>
                   <span className="font-medium text-foreground text-right">
-                    {jobTitle}
+                    {jobTitle || "General Campus Registration"}
                   </span>
                 </div>
 

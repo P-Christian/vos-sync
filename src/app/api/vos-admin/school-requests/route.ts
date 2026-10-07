@@ -23,7 +23,7 @@ async function verifyAdminRole(
   if (!token) {
     try {
       const cookieStore = await cookies();
-      token = cookieStore.get("vos_access_token")?.value ?? null;
+      token = cookieStore.get("vos_sync_access_token")?.value ?? null;
     } catch {
       token = null;
     }

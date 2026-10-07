@@ -38,7 +38,7 @@ export async function GET(
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -104,10 +104,28 @@ export async function GET(
     ].join(",");
 
     const studentsUrl = `${DIRECTUS_BASE}/items/vs_school_student?${studentFilters.join("&")}&fields=${studentFields}&sort[]=last_name&limit=200`;
-    const studentsRes = await fetch(studentsUrl, { headers: getHeaders(), cache: "no-store" });
+    const coursesUrl = `${DIRECTUS_BASE}/items/vs_school_course?filter[school_id][_eq]=${schoolId}&fields=school_course_id,course_name,course_code,degree&limit=100`;
+
+    const [studentsRes, coursesRes] = await Promise.all([
+      fetch(studentsUrl, { headers: getHeaders(), cache: "no-store" }),
+      fetch(coursesUrl, { headers: getHeaders(), cache: "no-store" }),
+    ]);
     if (!studentsRes.ok) throw new Error("Failed to fetch students.");
 
     const rawStudents = ((await studentsRes.json()).data ?? []) as Array<Record<string, unknown>>;
+    const rawCourses = coursesRes.ok ? (((await coursesRes.json()).data ?? []) as Array<Record<string, unknown>>) : [];
+
+    const courseMap: Record<number, { course_name: string; course_code: string; degree: string }> = {};
+    for (const c of rawCourses) {
+      const cId = Number(c.school_course_id);
+      if (cId) {
+        courseMap[cId] = {
+          course_name: String(c.course_name ?? ""),
+          course_code: String(c.course_code ?? ""),
+          degree: String(c.degree ?? ""),
+        };
+      }
+    }
 
     // Resolve registered user profiles for students with registered_user_id
     const registeredUserIds = rawStudents
@@ -168,10 +186,24 @@ export async function GET(
     }
 
     const candidates: (AcademicCandidate | EnhancedCandidate)[] = rawStudents.map((s) => {
-      const courseObj = s.school_course_id as Record<string, unknown> | null;
-      const courseName = courseObj ? String(courseObj.course_name ?? "") : null;
-      const courseCode = courseObj ? String(courseObj.course_code ?? "") : null;
-      const degree = courseObj?.degree as "Associate" | "Bachelor" | "Master" | "Doctorate" | null ?? null;
+      let courseName: string | null = null;
+      let courseCode: string | null = null;
+      let degree: "Associate" | "Bachelor" | "Master" | "Doctorate" | null = null;
+
+      if (s.school_course_id && typeof s.school_course_id === "object") {
+        const courseObj = s.school_course_id as Record<string, unknown>;
+        courseName = courseObj.course_name ? String(courseObj.course_name) : null;
+        courseCode = courseObj.course_code ? String(courseObj.course_code) : null;
+        degree = (courseObj.degree as "Associate" | "Bachelor" | "Master" | "Doctorate" | null) ?? null;
+      } else if (s.school_course_id) {
+        const cId = Number(s.school_course_id);
+        const mapped = courseMap[cId];
+        if (mapped) {
+          courseName = mapped.course_name || null;
+          courseCode = mapped.course_code || null;
+          degree = (mapped.degree as "Associate" | "Bachelor" | "Master" | "Doctorate" | null) ?? null;
+        }
+      }
       const registeredUserId = s.registered_user_id ? Number(s.registered_user_id) : null;
 
       const base = {

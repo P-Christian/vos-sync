@@ -18,7 +18,7 @@ async function verifyVosAdmin(req: Request): Promise<AdminAuth | null> {
     let token = req.headers.get("authorization")?.replace("Bearer ", "") || null;
     if (!token) {
         const cookieStore = await cookies();
-        token = cookieStore.get("vos_access_token")?.value ?? null;
+        token = cookieStore.get("vos_sync_access_token")?.value ?? null;
     }
     if (!token) return null;
 

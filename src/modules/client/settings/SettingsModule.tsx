@@ -17,17 +17,20 @@ import {
   Bell,
   AlertCircle,
   CheckCircle,
+  GitFork,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import PipelineSettingsTab from "@/modules/client/pipeline/components/PipelineSettingsTab";
 
-type SettingsTab = "account" | "security" | "team" | "notifications";
+type SettingsTab = "account" | "security" | "team" | "notifications" | "pipeline";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "account", label: "Account Profile", icon: User },
   { id: "security", label: "Security & Auth", icon: Shield },
   { id: "team", label: "Team & Roles", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "pipeline", label: "ATS Pipeline", icon: GitFork },
   // { id: "integrations", label: "Integrations", icon: Blocks },
 ];
 
@@ -104,7 +107,7 @@ export default function SettingsModule() {
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
         <CardHeader className="border-b gap-0 border-zinc-100 dark:border-zinc-800 px-6 max-md:px-1 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-md:grid max-md:grid-cols-4 max-md:items-stretch max-md:gap-0.5">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-md:grid max-md:grid-cols-5 max-md:items-stretch max-md:gap-0.5">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -158,6 +161,7 @@ export default function SettingsModule() {
                 />
               )}
               {activeTab === "notifications" && <NotificationSettings />}
+              {activeTab === "pipeline" && <PipelineSettingsTab />}
               {/* {activeTab === "integrations" && <IntegrationSettings />} */}
             </>
           )}

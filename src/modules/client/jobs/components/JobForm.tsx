@@ -52,6 +52,7 @@ import { JobFormData, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobType, Experie
 import { RichTextEditor } from "./RichTextEditor";
 import { useRoleCategories } from "../hooks/useRoleCategories";
 import { SuggestCategoryModal } from "./SuggestCategoryModal";
+import JobPipelineSection from "@/modules/client/pipeline/components/JobPipelineSection";
 
 interface JobFormProps {
   data: JobFormData;
@@ -1331,6 +1332,15 @@ export default function JobForm({
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* ATS Hiring Pipeline Snapshot & Customization */}
+            <div className="pt-2">
+              <JobPipelineSection
+                jobId={data.job_id ?? null}
+                selectedSourcePipelineId={data.source_pipeline_id ?? null}
+                onSourcePipelineChange={(pipeId) => onChange("source_pipeline_id", pipeId ?? null)}
+              />
             </div>
           </div>
         )}

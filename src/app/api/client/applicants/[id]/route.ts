@@ -5,6 +5,8 @@ import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { getPHTimeString } from "@/lib/utils";
+import { transitionApplicationStage, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { JobPipelineStage } from "@/modules/client/pipeline/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,7 +136,7 @@ export async function GET(
 
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) {
       return NextResponse.json(
@@ -169,7 +171,7 @@ export async function GET(
     // ---------------------------------------------------
 
     const applicationRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at`,
+      `${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,job_id,user_id,application_status,current_stage_id,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at`,
       {
         headers: getHeaders(),
         cache: "no-store",
@@ -195,37 +197,6 @@ export async function GET(
     }
 
     const applicantUserId = application.user_id;
-
-    // ---------------------------------------------------
-    // AUTO-TRANSITION: APPLIED -> UNDER_REVIEW ON VIEW
-    // ---------------------------------------------------
-    if (application.application_status === "APPLIED") {
-      const nowPH = getPHTimeString();
-      application.application_status = "UNDER_REVIEW";
-      application.status_updated_at = nowPH;
-
-      fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}`, {
-        method: "PATCH",
-        headers: getHeaders(),
-        body: JSON.stringify({
-          application_status: "UNDER_REVIEW",
-          status_updated_at: nowPH,
-        }),
-      }).catch((e) => console.error("Error auto-updating status to UNDER_REVIEW:", e));
-
-      if (applicantUserId) {
-        createNotification({
-          event_type: "application_status_changed",
-          recipient_user_id: applicantUserId,
-          entity_type: "job_application",
-          entity_id: Number(id),
-          category: "Application Updates",
-          title: "Application Status Updated",
-          message: "Your application is now under review by the employer.",
-          action_url: "/vos-sync/freelancer/applications",
-        }).catch((e) => console.error("Error sending review notification:", e));
-      }
-    }
 
     // ---------------------------------------------------
     // PARALLEL REQUESTS
@@ -679,6 +650,56 @@ skills = (skillsJson.data as Skill[] ?? []).map(
 
     const resolvedPortfolioUrl = application.portfolio_url?.trim() || portfolioFromSocials?.trim() || null;
 
+    // Resolve active ATS Job Pipeline for this candidate
+    let currentStage: JobPipelineStage | undefined;
+    let allowedNextStages: Array<{
+      id: number;
+      stage_name: string;
+      stage_type: string;
+      color: string;
+      is_terminal: boolean;
+    }> = [];
+
+    if (application.job_id) {
+      try {
+        const pipeline = await getJobPipeline(Number(application.job_id));
+        if (pipeline?.stages) {
+          if (application.current_stage_id) {
+            currentStage = pipeline.stages.find((s) => s.id === Number(application.current_stage_id));
+          }
+          if (!currentStage) {
+            currentStage =
+              pipeline.stages.find((s) => s.stage_type === application.application_status) ||
+              pipeline.stages.find((s) => s.stage_type === "APPLIED") ||
+              pipeline.stages[0];
+          }
+
+          if (currentStage && !currentStage.is_terminal) {
+            const transitions = pipeline.transitions ?? [];
+            const forwardStageIds = new Set(
+              transitions.filter((t) => t.from_stage_id === currentStage!.id).map((t) => t.to_stage_id)
+            );
+
+            allowedNextStages = pipeline.stages
+              .filter(
+                (s) =>
+                  s.id !== currentStage!.id &&
+                  (forwardStageIds.has(s.id) || s.stage_type === "REJECTED" || s.stage_type === "WITHDRAWN")
+              )
+              .map((s) => ({
+                id: s.id,
+                stage_name: s.stage_name,
+                stage_type: s.stage_type,
+                color: s.color,
+                is_terminal: Boolean(s.is_terminal),
+              }));
+          }
+        }
+      } catch (pipeErr) {
+        console.error("Error resolving applicant stage details:", pipeErr);
+      }
+    }
+
     const applicant = {
       application_id: application.application_id,
       job_id: application.job_id,
@@ -687,6 +708,11 @@ skills = (skillsJson.data as Skill[] ?? []).map(
       company,
 
       application_status: application.application_status,
+      current_stage_id: currentStage?.id ?? application.current_stage_id ?? null,
+      stage_name: currentStage?.stage_name ?? application.application_status,
+      stage_type: currentStage?.stage_type ?? application.application_status,
+      stage_color: currentStage?.color ?? "sky",
+      allowed_next_stages: allowedNextStages,
 
       applicant_name:
         `${user.user_fname} ${user.user_lname}`.trim(),
@@ -774,7 +800,7 @@ skills = (skillsJson.data as Skill[] ?? []).map(
   }
 }
 
-// PATCH — Update application status
+// PATCH — Update application status / stage
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -783,12 +809,61 @@ export async function PATCH(
     const { id } = await params;
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
     const body = await req.json().catch(() => null);
+
+    const userId = token ? getUserIdFromToken(token) : null;
+    let targetStageId: number | null = body?.to_stage_id ? Number(body.to_stage_id) : null;
+
+    // If legacy application_status was sent without to_stage_id, resolve targetStageId from pipeline
+    if (!targetStageId && body?.application_status) {
+      try {
+        const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=job_id`, {
+          headers: getHeaders(),
+          cache: "no-store",
+        });
+        if (appRes.ok) {
+          const aData = (await appRes.json()).data;
+          if (aData?.job_id) {
+            const pipe = await getJobPipeline(Number(aData.job_id));
+            const matched = pipe?.stages?.find((s) => s.stage_type === body.application_status);
+            if (matched) targetStageId = matched.id;
+          }
+        }
+      } catch (err) {
+        console.error("Error mapping legacy application_status to stage:", err);
+      }
+    }
+
+    if (targetStageId) {
+      const result = await transitionApplicationStage({
+        applicationId: Number(id),
+        toStageId: targetStageId,
+        changedByUserId: userId,
+        notes: body?.client_notes ?? body?.notes,
+      });
+
+      if (!result.success) {
+        return NextResponse.json(
+          { error: result.error || "Failed to update candidate stage." },
+          { status: result.statusCode || 422 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: result.noop
+          ? `Application already in stage "${result.toStage?.stage_name}".`
+          : `Application moved to "${result.toStage?.stage_name}".`,
+        application: result.application,
+        from_stage: result.fromStage,
+        to_stage: result.toStage,
+      });
+    }
 
     if (!body?.application_status) {
       return NextResponse.json(
-        { error: "application_status is required." },
+        { error: "to_stage_id or application_status is required." },
         { status: 400 }
       );
     }

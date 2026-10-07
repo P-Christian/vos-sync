@@ -19,6 +19,7 @@ const EMPTY_FORM: JobFormData = {
   benefits: ["13th Month Pay & Bonuses", "Paid Leave (Sick, Vacation)"],
   screening_questions: [],
   status: "DRAFT",
+  source_pipeline_id: null,
 };
 
 interface JobsResponse {
@@ -63,6 +64,7 @@ export function useJobs() {
     ...formData,
     salary_min: formData.salary_min ? Number(formData.salary_min) : null,
     salary_max: formData.salary_max ? Number(formData.salary_max) : null,
+    source_pipeline_id: formData.source_pipeline_id ? Number(formData.source_pipeline_id) : undefined,
   });
 
   // OPTIMISTIC CREATE JOB

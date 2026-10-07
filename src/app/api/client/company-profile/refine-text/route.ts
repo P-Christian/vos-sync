@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     const userId = getUserIdFromToken(token);

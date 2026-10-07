@@ -6,7 +6,7 @@ import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/se
 export async function GET() {
     try {
         const cookieStore = await cookies();
-        const token = cookieStore.get("vos_access_token")?.value;
+        const token = cookieStore.get("vos_sync_access_token")?.value;
 
         if (!token) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

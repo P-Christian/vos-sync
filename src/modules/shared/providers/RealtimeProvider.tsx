@@ -175,7 +175,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         retryCountRef.current = 0;
         console.log("🟢 [Realtime WS] WebSocket OPENED successfully at:", url);
 
-        const token = getCookie("vos_access_token");
+        const token = getCookie("vos_sync_access_token");
         if (token) {
           console.log("🔑 [Realtime WS] Sending Directus Auth token frame...");
           ws.send(JSON.stringify({ type: "auth", access_token: token }));

@@ -44,7 +44,7 @@ async function getAdminUserFromToken(req: NextRequest): Promise<{ adminId: numbe
     return { adminId: 1 };
   }
   const cookieStore = await cookies();
-  const token = req.headers.get("authorization")?.replace("Bearer ", "") || cookieStore.get("vos_access_token")?.value;
+  const token = req.headers.get("authorization")?.replace("Bearer ", "") || cookieStore.get("vos_sync_access_token")?.value;
   if (!token) return null;
 
   try {

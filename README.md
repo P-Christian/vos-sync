@@ -61,6 +61,11 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Server-Side Pagination & Configurable Page Size**: Dynamic server-side pagination with standard page sizes (`10`, `20`, `30`, `40`, `50`), multi-page navigation controls, and total record counts.
 * **Motion Transitions & Micro-Interactions**: Staggered container animations, card hover lift effects (`whileHover={{ y: -3 }}`), and spring-animated status badges (`AuditActionBadge`, `AuditStatusBadge`).
 
+#### Multi-Repo Authentication & Cookie Session Isolation
+
+* **Isolated Cookie Domain Scope (`vos_sync_access_token`)**: Renamed primary JWT authentication cookie to `vos_sync_access_token` across authentication handlers, middleware guards, API routes, layout checks, and WebSocket providers. Prevents cookie namespace collisions and session overwriting with other local VOS ERP repositories or Spring Boot services sharing the `localhost` domain.
+* **Dual-Cookie Eviction on Logout**: Logout handlers proactively purge both active `vos_sync_access_token` and legacy `vos_sync_access_token` across path and hostname domains to ensure clean session termination.
+
 ---
 
 
@@ -128,9 +133,14 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Auto Create Job with AI**: Natural-language prompt-driven job generation (`AutoCreateJobModal`) leveraging company profiles, addresses, industries, and taxonomy matching to structure rich-text descriptions, responsibilities, qualifications, and extracted skills. Enforces strict salary guardrails (zero fabricated salaries) and unifies review in the standard 5-step job creation wizard.
 * **In-Editor AI Text Refinements**: Integrated AI action bar in `RichTextEditor` (`✨ Improve`, `✂ Make Concise`, `⚙ More Technical`, `🔄 Regenerate`, and custom instructions) powered by `/api/client/jobs/refine-text` for real-time section-level polish.
 * **Searchable Category Combobox & Controlled Suggestions**: In-form searchable combobox with real-time text matching, candidate descriptions, and an integrated category suggestion modal (`SuggestCategoryModal`) featuring AI semantic deduplication pre-checks to protect taxonomy integrity while preventing employer posting friction.
+* **Configurable ATS Hiring Pipeline & Versioned Job Snapshots**: Decoupled company hiring pipeline templates (`vs_company_pipelines`) from per-job versioned workflow snapshots (`vs_job_pipeline_versions`, `vs_job_pipeline_stages`, `vs_job_pipeline_transitions`). Jobs maintain their own isolated snapshots upon creation. Changes to company defaults do not mutate existing jobs.
+* **Authoritative Backend Immutability Locking**: Strict backend gate enforcing workflow immutability once candidate applications exist (`application_count > 0`), rejecting mutations (stage creation, deletion, reordering, renaming, transitions, and resets) with HTTP 409 Conflict. Unlocked jobs (0 candidates) allow complete customization or instant re-sync with company defaults.
+* **Canonical Semantic Types & Universal Exits**: Powered by 8 stable semantic types (`APPLIED`, `SCREENING`, `ASSESSMENT`, `INTERVIEW`, `OFFER`, `HIRED`, `REJECTED`, `WITHDRAWN`), preserving platform metrics, notifications, and AI matching while employers tailor stage labels, colors, and transition graphs. `REJECTED` and `WITHDRAWN` serve as universal exits, and terminal states prohibit outgoing transitions.
+* **Automated Candidate Stage Binding & History**: Automatic server-side assignment of candidate submissions to the job's active `APPLIED` stage and immutable logging into `vs_application_stage_history` (`from_stage_id = null`, `to_stage_id = APPLIED`).
+* **Non-Destructive Legacy Bootstrap**: On-demand snapshot creation and deterministic mapping for legacy jobs and existing applications based on legacy statuses.
 * **Referential Integrity**: Jobs maintain explicit foreign key mapping `category_id` $\rightarrow$ `vs_role_category(category_id)` alongside backwards-compatible legacy fallback resolution.
 * **Unified Search, Multi-Filter Toolbar & ATS Workflow**: Real-time client-side search across Job Title, Department, and Location, paired with a searchable Category combobox, Employment Type selector, Work Arrangement filter, and Status filter.
-* **Interactive Job Cards**: Full card click-to-preview with a 2-second hover tooltip, dedicated right-side ATS "View Applicants" primary action, and centralized job editing and live status controls inside the preview drawer.
+* **Interactive Job Cards & Context-Aware Primary Actions**: Full card click-to-preview with a 2-second hover tooltip, dynamic status-aware right-side actions ("Make Active" for `DRAFT`, "Reopen" and candidate review for `CLOSED`, and "View Applicants" with live candidate count badge for `ACTIVE`), alongside centralized job editing and live status controls inside the preview drawer.
 * **Framer Motion Animations**: Staggered card entrance transitions, smooth list reordering (`AnimatePresence` + `layout="position"`), and responsive hover lift states.
 
 #### Rule-Based Skill Intelligence
@@ -139,7 +149,15 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Exact, alias, technology-relation, hierarchy, and category-based matching.
 ### Applicant Management & Candidate Review
 
-* **Optimistic UI & Fluid Motion Quick Actions**: Instantaneous 0ms candidate status updates across quick action dropdowns (*Move to Under Review*, *Shortlist Candidate*, *Reject Candidate*, *Reopen Application*) with automatic rollback resilience on server error, toast notifications, spring-animated status badges, and smooth layout reordering powered by `framer-motion` `<AnimatePresence mode="popLayout">`.
+* **Dynamic ATS Pipeline Workflow & Stage Transitions**: Workflow authority shifted from hardcoded status enums to the active job's snapshot pipeline (`current_stage_id` $\rightarrow$ `vs_job_pipeline_stages`). Candidates display configured presentation stage names, assigned theme colors (`sky`, `emerald`, `amber`, etc.), and allowed next stages derived directly from the job's transition graph.
+* **Dual-Mode Stage Filtering (Cross-Job vs Job-Specific View)**:
+  * **All Jobs View**: When no specific job is selected, candidates are grouped across the 8 canonical semantic stage types (`Applied`, `Screening`, `Assessment`, `Interview`, `Offer`, `Hired`, `Rejected`, `Withdrawn`) plus `All Candidates` and non-terminal `Active Pipeline` (`stage_type !== HIRED/REJECTED/WITHDRAWN`).
+  * **Job-Specific View**: When a specific job is selected, the filter toolbar dynamically displays the actual custom stages configured for that job's active pipeline snapshot (`STAGE_<id>`) with employer-defined names and color tokens.
+* **Pipeline-Governed Candidate Cards & Actions**: Transition dropdowns in `ApplicantCard` and `StatusUpdateDrawer` render strictly from `applicant.allowed_next_stages` without hardcoded legacy branching. Interview scheduling actions are canonically gated by `stage_type === "INTERVIEW" || stage_type === "ASSESSMENT"`.
+* **Universal "Update Stage" Action**: In `ApplicantDetailsModal`, "Update Status" is replaced with "Update Stage", available for every non-terminal candidate regardless of intermediate stage type.
+* **Read-Only Candidate Profile Inspection**: Strictly eliminated auto-mutation on candidate inspection (`GET /api/client/applicants/[id]`); opening or reviewing a candidate profile is 100% read-only and performs zero database writes or stage changes.
+* **Authoritative Transition Validation & Canonical Synchronization**: Dedicated endpoint (`PATCH /api/client/applicants/[id]/stage`) and service verifying transition routes against configured graphs and universal exits (`REJECTED`, `WITHDRAWN`), strictly blocking movement out of terminal stages, atomically synchronizing canonical database status enums, and logging immutable audit records to `vs_application_stage_history`.
+* **Optimistic UI & Fluid Motion Quick Actions**: Instantaneous candidate stage updates with automatic rollback resilience on server error, toast notifications, spring-animated status badges, and smooth layout reordering powered by `framer-motion` `<AnimatePresence mode="popLayout">`.
 * **AI Candidate-Job Evaluation & Company Cross-Role Opportunity Match**: Structured candidate profile evaluations matching against job qualifications with cross-role recommendations across other active company openings; persistent append-only evaluation records in `vs_application_ai_analysis` with immutable history and 3-state semantic CTAs (`Generate AI Analysis`, `View AI Analysis`, `Regenerate`).
 * **Comprehensive Candidate Review Modal**: Responsive dual-column layout separating high-level profile overview, contact information, metrics, screening Q&A, and compensation from deep candidate history (experience timeline, education, certifications, and document attachments).
 * **Screening Questions & Responses**: Complete question-by-question candidate response display with individual unanswered indicators and a dedicated `"No screening answers submitted"` fallback state.
@@ -149,11 +167,24 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 ---
 
+### Configurable ATS Hiring Pipeline (Foundation & Workflow Settings)
+
+* **Decoupled Workflow & Stable Semantic Taxonomy**: Configurable presentation workflow layer operating over 8 stable canonical stage types (`APPLIED`, `SCREENING`, `ASSESSMENT`, `INTERVIEW`, `OFFER`, `HIRED`, `REJECTED`, `WITHDRAWN`), preserving deterministic AI matching, analytics, and notification behavior while allowing custom hiring nomenclature.
+* **Flexible Template Selection & Real-Time Preview during Job Creation**: In the screening step of the job creation wizard, employers can toggle between the Company Default pipeline or choose any saved pipeline template via a searchable combobox dropdown (`SearchableSelect`), with real-time sequence preview pills reflecting the exact stages that will be snapshotted upon posting.
+* **Automated Company Pipeline Provisioning**: Automatic seeding of default company hiring templates with canonical stages, semantic visual tokens, and verified initial transition routes.
+* **Deterministic Transition & Terminal Integrity**: Server-enforced transition validation preventing illegal moves, self-loops, and cross-pipeline leakage. System terminal outcomes (`REJECTED`, `WITHDRAWN`) remain universally accessible from any non-terminal stage without manual graph clutter.
+* **Explicit Progression Reachability & Unconnected Stage Warnings**: Visual distinction between stage existence and stage reachability across Settings and Job Posting views; highlights non-terminal stages lacking configured forward routes with clear progression alerts (`⚠ No progression stages configured`, `Candidates cannot reach Hired from this stage`) alongside automatic terminal exit indicators (`✓ Rejected`, `✓ Withdrawn`).
+* **Interactive ATS Pipeline Settings Suite**: Dedicated Employer Settings tab (`Settings → ATS Pipeline`) enabling recruiters to create custom workflow templates, add and rename stages, assign color themes, reorder sequence numbers, and configure available transition pathways.
+* **Draggable Drag-and-Drop Stage Reordering**: Intuitive drag-to-reorder interface powered by `framer-motion` (`Reorder.Group` and `Reorder.Item`) with dedicated grip handles, smooth spring physics, active drag elevation, and optimistic sequence persistence via `/api/client/pipelines/[id]/reorder`.
+* **One-Click Default Template Assignment**: Recruiters can designate any customized pipeline template as their company-wide default via an integrated "Make Default" action in the template summary card, ensuring new jobs automatically inherit the chosen workflow.
+
+---
+
 ### Client Talent Search
 
 * **Direct Talent Discovery & Outreach**: Searchable freelancer profile database with multi-dimensional filtering, profile inspection slide-over drawers, and direct talent bookmarking (`useSavedTalent`).
 * **Interactive Send Invitation Dialog**: Modal outreach flow with personalized message drafts and dynamic, scrollable company job linking allowing employers to invite candidate to specific active openings or send general interest invitations.
-* **Strict Contextual ATS Action Workflow**: Contextual status transitions (`APPLIED` $\rightarrow$ `UNDER_REVIEW` [automatic upon candidate profile view or manual], `UNDER_REVIEW` $\rightarrow$ `SHORTLISTED`/`REJECTED`, `SHORTLISTED` $\rightarrow$ `INTERVIEWING` [system-driven on interview creation], `INTERVIEWING` $\rightarrow$ `HIRED`/`REJECTED` [system-driven on final evaluation]), contextual action gates (`Schedule Interview`, `View Interview`), and decoupled recruitment vs session lifecycle management.
+* **Strict Contextual ATS Action Workflow**: Contextual status transitions (`APPLIED` $\rightarrow$ `UNDER_REVIEW` [manual recruiter review or stage progression], `UNDER_REVIEW` $\rightarrow$ `SHORTLISTED`/`REJECTED`, `SHORTLISTED` $\rightarrow$ `INTERVIEWING` [system-driven on interview creation], `INTERVIEWING` $\rightarrow$ `HIRED`/`REJECTED` [system-driven on final evaluation]), contextual action gates (`Schedule Interview`, `View Interview`), and decoupled recruitment vs session lifecycle management.
 
 ### Best Match AI
 
@@ -187,6 +218,22 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * Decoupled recruitment lifecycle: interview scheduling, rescheduling, cancellation, and intermediate completion do not mutate `application_status` (maintains `INTERVIEWING`), keeping candidates eligible for subsequent rounds without state conflation or status drift.
 * Read-only evaluation locking for completed or cancelled interviews.
 * Strict company-scoped scheduling isolation.
+
+---
+
+## Campus Talent Discovery & AI Matching
+
+Company recruiters can discover academic candidates from verified schools and run AI-powered match analysis against active job postings without requiring students to have registered profiles.
+
+* **School Discovery & Metrics**: Search verified schools by name, city, or province with live student and course counts, institution category filters, and network overview metrics (partner institutions, verified student network, degree programs).
+* **Full-Width School Profile Header & Sticky Underline Tab Navigation**: Selecting a partner institution opens an edge-to-edge School Profile modeled after the Company Profile architecture (`CompanyHeader` + `CompanyTabNav`) with full-bleed cover banner, overlapping avatar (`-mt-14 sm:-mt-18`), verified badges, action controls, and sticky full-width underline tab navigation (**About**, **Courses**, **Student Roster & AI Match**) leading into centered `max-w-7xl` content panels with fluid Framer Motion transitions.
+* **Fixed-Layout Roster Table & Fluid Tab Motion**: Enforces `table-fixed` column distribution (`<colgroup>`) to prevent column snapping when switching status filter tabs or displaying empty categories, paired with smooth Framer Motion layout and row transitions.
+* **Student Roster, Pagination & Verification View**: Loads all roster students from `vs_school_student`, mapping course degree programs with client-side pagination (10, 25, 50 rows per page), count indicators, and previous/next page controls. Features an enhanced search toolbar with quick clear, status pills, and GPA statistics.
+* **Context-Aware Candidate Drawer**: Differentiates between Academic Roster Profile mode (clean credentials, contact details, curriculum mapping, and outreach workflows) and AI Job Match Evaluation mode (deterministic scoring, Gemini explainability, and gap analysis).
+* **Progressive Match Pipeline**: Deterministic evaluation runs first — eligibility (hard REQUIRED constraints), score (0–100), and structured evidence. Gemini only explains the deterministic output; it cannot modify scores or invent new gaps.
+* **Match Model Selection**: `ACADEMIC` (roster-only, weights: course 45% / year 25% / curriculum 20% / GPA 10%) vs `HYBRID` (registered profile, weights: skills 35% / experience 25% / education 20% / responsibilities 15% / GPA 5%).
+* **GapStatus Distinction**: `NOT_EVIDENCED` (data unavailable — absence is not confirmation of missing qualification) vs `NOT_MATCHED` (evidence present but insufficient) vs `REQUIREMENT_FAILED` (hard eligibility block).
+* **Transactional-Safe Invitations**: 2-step email pattern — invitation record created as `PENDING` first; `sendMail()` attempted as a side effect; record updated to `SENT` or `FAILED`; `vs_school_student.invitation_status` only updated to `Invited` after confirmed `SENT`.
 
 ---
 
@@ -387,7 +434,7 @@ VOS Sync includes dedicated infrastructure for detecting and communicating backe
 * **Non-Disruptive Floating Outage Overlay**: System outage and service monitor rendered as a fixed modal backdrop overlay (`z-[9999] bg-black/60 backdrop-blur-md`) rather than destroying active page state, preserving user inputs, forms, and navigation context.
 * **In-Place Recovery & Diagnostics**: Real-time `/api/health` connectivity verification with live Web Server & Database Backend indicators, response latency, Philippine local-time (PST) timestamps, and in-place `reset()` reconnection.
 * **Dismissible Monitoring**: User dismiss action allowing workflow continuation if the disruption is non-critical.
-* **Dedicated Outage Pages**: Standalone `/server-down` and `/500` fallback routes configured to bypass authentication middleware to avoid redirect loops during infrastructure downtimes.
+* **Dedicated Outage Pages**: Standalone `/server-down` fallback route configured to bypass authentication middleware to avoid redirect loops during infrastructure downtimes.
 
 ---
 

@@ -13,7 +13,7 @@ import { createReferralsSchema } from '@/modules/school-admin/job-referrals/type
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const COOKIE_NAME = 'vos_access_token';
+const COOKIE_NAME = 'vos_sync_access_token';
 const JWT_SECRET = process.env.JWT_SECRET || 'default_super_secret_key_for_development';
 
 async function getAuthSession(req: NextRequest) {

@@ -7,9 +7,11 @@ import {
   ApplicationStatus,
   CandidateDetail,
 } from "../types";
+import { JobPipelineVersion } from "@/modules/client/pipeline/types";
 
 export function useApplicants() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
+  const [jobPipeline, setJobPipeline] = useState<JobPipelineVersion | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,6 +72,7 @@ export function useApplicants() {
         }
 
         setApplicants(json.applicants ?? []);
+        setJobPipeline(json.pipeline ?? null);
       } catch (err: unknown) {
         setError(
           err instanceof Error
@@ -84,7 +87,111 @@ export function useApplicants() {
   );
 
   // --------------------------------
-  // Update status (Optimistic UI)
+  // Update Stage (Dynamic Pipeline-driven)
+  // --------------------------------
+
+  const updateApplicantStage = useCallback(
+    async (
+      applicationId: number,
+      toStageId: number,
+      notes?: string
+    ) => {
+      setSaving(true);
+      setError("");
+
+      let rollbackList: Applicant[] = [];
+
+      // 1. Optimistic local mutation
+      setApplicants((prev) => {
+        rollbackList = prev;
+        return prev.map((applicant) => {
+          if (applicant.application_id === applicationId) {
+            const targetStage =
+              applicant.allowed_next_stages?.find((s) => s.id === toStageId) ||
+              jobPipeline?.stages?.find((s) => s.id === toStageId);
+
+            return {
+              ...applicant,
+              current_stage_id: toStageId,
+              stage_name: targetStage?.stage_name || applicant.stage_name,
+              stage_type: targetStage?.stage_type || applicant.stage_type,
+              stage_color: targetStage?.color || applicant.stage_color,
+              application_status: (targetStage?.stage_type as ApplicationStatus) || applicant.application_status,
+              client_notes: notes !== undefined ? notes : applicant.client_notes,
+            };
+          }
+          return applicant;
+        });
+      });
+
+      try {
+        const res = await fetch(`/api/client/applicants/${applicationId}/stage`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            to_stage_id: toStageId,
+            notes,
+          }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.error || "Failed to update stage.");
+        }
+
+        if (json.to_stage) {
+          setApplicants((prev) =>
+            prev.map((a) =>
+              a.application_id === applicationId
+                ? {
+                    ...a,
+                    current_stage_id: json.to_stage.id,
+                    stage_name: json.to_stage.stage_name,
+                    stage_type: json.to_stage.stage_type,
+                    stage_color: json.to_stage.color,
+                    application_status: json.to_stage.stage_type,
+                    client_notes: notes !== undefined ? notes : a.client_notes,
+                  }
+                : a
+            )
+          );
+
+          setDetail((prev) =>
+            prev && prev.application_id === applicationId
+              ? {
+                  ...prev,
+                  current_stage_id: json.to_stage.id,
+                  stage_name: json.to_stage.stage_name,
+                  stage_type: json.to_stage.stage_type,
+                  stage_color: json.to_stage.color,
+                  application_status: json.to_stage.stage_type,
+                  client_notes: notes !== undefined ? notes : prev.client_notes,
+                }
+              : prev
+          );
+        }
+
+        return true;
+      } catch (err: unknown) {
+        setApplicants(rollbackList);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An error occurred."
+        );
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [jobPipeline]
+  );
+
+  // --------------------------------
+  // Update status (Legacy & backwards-compatible wrapper)
   // --------------------------------
 
   const updateStatus = useCallback(
@@ -93,12 +200,21 @@ export function useApplicants() {
       status: ApplicationStatus,
       notes: string
     ) => {
+      // Find candidate
+      const target = applicants.find((a) => a.application_id === applicationId);
+      const stageMatch =
+        target?.allowed_next_stages?.find((s) => s.stage_type === status) ||
+        jobPipeline?.stages?.find((s) => s.stage_type === status);
+
+      if (stageMatch) {
+        return updateApplicantStage(applicationId, stageMatch.id, notes);
+      }
+
       setSaving(true);
       setError("");
 
       let rollbackList: Applicant[] = [];
 
-      // 1. Optimistic local mutation
       setApplicants((prev) => {
         rollbackList = prev;
         return prev.map((applicant) =>
@@ -137,7 +253,6 @@ export function useApplicants() {
 
         return true;
       } catch (err: unknown) {
-        // Rollback on failure
         setApplicants(rollbackList);
         setError(
           err instanceof Error
@@ -150,7 +265,7 @@ export function useApplicants() {
         setSaving(false);
       }
     },
-    []
+    [applicants, jobPipeline, updateApplicantStage]
   );
 
   // --------------------------------
@@ -226,55 +341,64 @@ export function useApplicants() {
       .trim()
       .toLowerCase();
 
-    return applicants.filter(
-      (applicant) => {
-        const matchesStatus =
-          filterStatus === "ALL"
-            ? true
-            : filterStatus === "ACTIVE_PIPELINE"
-            ? (applicant.application_status === "APPLIED" ||
-               applicant.application_status === "UNDER_REVIEW" ||
-               applicant.application_status === "SHORTLISTED" ||
-               applicant.application_status === "INTERVIEWING")
-            : applicant.application_status === filterStatus;
+    return applicants.filter((applicant) => {
+      let matchesStatus = false;
 
-        if (!matchesStatus) {
-          return false;
-        }
+      const stageType = applicant.stage_type;
+      const isTerminal =
+        stageType === "HIRED" ||
+        stageType === "REJECTED" ||
+        stageType === "WITHDRAWN" ||
+        (!stageType && (applicant.application_status === "HIRED" || applicant.application_status === "REJECTED" || applicant.application_status === "WITHDRAWN"));
 
-        if (!query) {
-          return true;
-        }
-
-        const skillsText =
-          applicant.skills
-            ?.join(" ")
-            .toLowerCase() ?? "";
-
-        return (
-          applicant.applicant_name
-            ?.toLowerCase()
-            .includes(query) ||
-          applicant.applicant_email
-            ?.toLowerCase()
-            .includes(query) ||
-          applicant.job_title
-            ?.toLowerCase()
-            .includes(query) ||
-          skillsText.includes(query)
-        );
+      if (filterStatus === "ALL") {
+        matchesStatus = true;
+      } else if (filterStatus === "ACTIVE_PIPELINE") {
+        matchesStatus = !isTerminal;
+      } else if (filterStatus.startsWith("STAGE_")) {
+        const stageId = parseInt(filterStatus.replace("STAGE_", ""), 10);
+        matchesStatus =
+          applicant.current_stage_id === stageId ||
+          Boolean(
+            applicant.stage_name &&
+              jobPipeline?.stages?.find((s) => s.id === stageId)?.stage_name ===
+                applicant.stage_name
+          );
+      } else {
+        matchesStatus =
+          applicant.stage_type === filterStatus ||
+          applicant.application_status === filterStatus ||
+          (filterStatus === "SCREENING" && applicant.application_status === "UNDER_REVIEW") ||
+          (filterStatus === "OFFER" && applicant.application_status === "SHORTLISTED") ||
+          (filterStatus === "INTERVIEW" && applicant.application_status === "INTERVIEWING");
       }
-    );
-  }, [
-    applicants,
-    filterStatus,
-    search,
-  ]);
+
+      if (!matchesStatus) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const skillsText =
+        applicant.skills?.join(" ").toLowerCase() ?? "";
+
+      return (
+        applicant.applicant_name?.toLowerCase().includes(query) ||
+        applicant.applicant_email?.toLowerCase().includes(query) ||
+        applicant.job_title?.toLowerCase().includes(query) ||
+        skillsText.includes(query)
+      );
+    });
+  }, [applicants, filterStatus, jobPipeline, search]);
 
   return {
     applicants: filteredApplicants,
 
     rawApplicants: applicants,
+
+    jobPipeline,
 
     loading,
     saving,
@@ -289,6 +413,7 @@ export function useApplicants() {
 
     fetchApplicants,
     updateStatus,
+    updateApplicantStage,
 
     clearError: () =>
       setError(""),

@@ -14,7 +14,7 @@ export function decodeJwtPayload(token: string): Record<string, unknown> | null 
 
 export async function getHeaderUserFromToken() {
   const cookieStore = await cookies();
-  const token = cookieStore.get("vos_access_token")?.value ?? null;
+  const token = cookieStore.get("vos_sync_access_token")?.value ?? null;
   const p = token ? decodeJwtPayload(token) : null;
   
   const pickString = (obj: Record<string, unknown> | null, keys: string[]) => {

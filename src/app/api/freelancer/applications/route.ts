@@ -7,6 +7,7 @@ import { createSystemMessage } from "@/lib/messaging/system-message";
 import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
+import { assignInitialStageToApplication } from "@/modules/client/pipeline/services/job-pipeline.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -284,7 +285,7 @@ export async function POST(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
@@ -567,6 +568,13 @@ export async function POST(req: NextRequest) {
         console.error("Failed to log status history:", histErr);
       }
 
+      // 4. Assign Initial Pipeline Stage and Log vs_application_stage_history
+      try {
+        await assignInitialStageToApplication(Number(body.job_id), Number(applicationId), userId);
+      } catch (stageErr) {
+        console.error("Failed to assign initial pipeline stage:", stageErr);
+      }
+
       // Trigger notification
       await createNotification({
         event_type: "application_submitted",
@@ -738,7 +746,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
 
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 

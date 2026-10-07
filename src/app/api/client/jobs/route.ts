@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "./service.directus";
 import { checkRestriction } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
+import { snapshotCompanyPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
     const userId = getUserIdFromToken(token);
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
   try {
     const token =
       req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_access_token")?.value;
+      req.cookies.get("vos_sync_access_token")?.value;
     if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
     const userId = getUserIdFromToken(token);
@@ -217,6 +218,20 @@ export async function POST(req: NextRequest) {
     };
 
     const createdJob = await jobService.createJob(jobPayload);
+
+    // Initial Job Pipeline Snapshot
+    if (createdJob?.job_id) {
+      try {
+        await snapshotCompanyPipeline(
+          Number(createdJob.job_id),
+          companyId,
+          body.source_pipeline_id ? Number(body.source_pipeline_id) : undefined
+        );
+      } catch (pipeErr) {
+        console.error("[POST /api/client/jobs] Failed to snapshot pipeline for job:", pipeErr);
+      }
+    }
+
     const jobWithCompany = await attachCompanyToJob(createdJob);
 
     return NextResponse.json({

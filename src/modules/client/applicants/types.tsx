@@ -1,4 +1,4 @@
-// src/modules/client/applicants/types.tsx
+import { CanonicalStageType } from "@/modules/client/pipeline/types";
 
 export type ApplicationStatus =
   | "APPLIED"
@@ -9,7 +9,21 @@ export type ApplicationStatus =
   | "REJECTED"
   | "WITHDRAWN";
 
-export type ApplicantFilterStatus = ApplicationStatus | "ALL" | "ACTIVE_PIPELINE";
+export type ApplicantFilterStatus =
+  | "ALL"
+  | "ACTIVE_PIPELINE"
+  | CanonicalStageType
+  | ApplicationStatus
+  | `STAGE_${number}`
+  | string;
+
+export interface ApplicantStageOption {
+  id: number;
+  stage_name: string;
+  stage_type: CanonicalStageType;
+  color: string;
+  is_terminal: boolean;
+}
 
 export interface Applicant {
   application_id: number;
@@ -23,6 +37,11 @@ export interface Applicant {
   job_title: string;
 
   application_status: ApplicationStatus;
+  current_stage_id?: number | null;
+  stage_name?: string;
+  stage_type?: CanonicalStageType;
+  stage_color?: string;
+  allowed_next_stages?: ApplicantStageOption[];
 
   client_notes?: string | null;
 
@@ -136,6 +155,12 @@ export interface CandidateDetail {
   user_id: number;
 
   application_status: ApplicationStatus;
+  current_stage_id?: number | null;
+  stage_name?: string;
+  stage_type?: CanonicalStageType;
+  stage_color?: string;
+  allowed_next_stages?: ApplicantStageOption[];
+  active_interview_id?: number | null;
 
   applicant_name: string;
 
@@ -208,6 +233,7 @@ export const STATUS_LABELS: Record<
   WITHDRAWN: "Withdrawn",
 };
 
+// LEGACY FALLBACK ONLY: Used only for displaying legacy unmigrated applicant records without active pipeline snapshots.
 export const STATUS_FLOW: ApplicationStatus[] = [
   "APPLIED",
   "UNDER_REVIEW",
@@ -218,6 +244,7 @@ export const STATUS_FLOW: ApplicationStatus[] = [
   "WITHDRAWN",
 ];
 
+// LEGACY FALLBACK ONLY: Active workflow transitions are strictly governed by active job pipeline snapshots (vs_job_pipeline_transitions).
 export const ALLOWED_STATUS_TRANSITIONS: Record<ApplicationStatus, ApplicationStatus[]> = {
   APPLIED: ["UNDER_REVIEW"],
   UNDER_REVIEW: ["SHORTLISTED", "REJECTED"],

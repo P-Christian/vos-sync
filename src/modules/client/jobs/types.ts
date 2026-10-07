@@ -163,6 +163,7 @@ export interface JobFormData {
   is_new_category_suggested?: boolean;
   category_suggestion_rationale?: string;
   suggested_category_name?: string;
+  source_pipeline_id?: number | null;
 }
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {

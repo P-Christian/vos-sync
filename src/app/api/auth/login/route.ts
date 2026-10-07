@@ -5,7 +5,7 @@ import { loginUser } from "@/modules/auth/services/auth.service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const COOKIE_NAME = "vos_access_token";
+const COOKIE_NAME = "vos_sync_access_token";
 const COOKIE_MAX_AGE_CAP = 60 * 60 * 24 * 7; // 7 days cap
 
 export async function POST(req: NextRequest) {
