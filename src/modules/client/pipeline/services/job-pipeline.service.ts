@@ -114,7 +114,7 @@ export async function snapshotCompanyPipeline(
   sourcePipelineId?: number
 ): Promise<JobPipelineVersion | null> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Resolve source company pipeline template
     let sourcePipeline = sourcePipelineId
@@ -177,7 +177,7 @@ export async function snapshotCompanyPipeline(
         source_pipeline_id: sourcePipeline.id,
         version: nextVersion,
         is_active: true,
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 
@@ -207,7 +207,7 @@ export async function snapshotCompanyPipeline(
           description: compStage.description,
           is_terminal: compStage.is_terminal,
           is_system: compStage.is_system,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
 
@@ -235,7 +235,7 @@ export async function snapshotCompanyPipeline(
             job_pipeline_id: jobPipeline.id,
             from_stage_id: mappedFromId,
             to_stage_id: mappedToId,
-            created_at: nowUtc,
+            created_at: nowPH,
           }),
         });
 
@@ -299,7 +299,7 @@ export async function bootstrapJobPipeline(
       }
 
       const appliedStage = stageByType.get("APPLIED") ?? stages[0];
-      const nowUtc = new Date().toISOString();
+      const nowPH = getPHTimeString();
 
       for (const app of applications) {
         if (!app.current_stage_id) {
@@ -325,7 +325,7 @@ export async function bootstrapJobPipeline(
                 to_stage_id: matchedStage.id,
                 changed_by: null,
                 change_reason: `Legacy ATS migration (${rawStatus} → ${canonicalType})`,
-                created_at: nowUtc,
+                created_at: nowPH,
               }),
             });
           }
@@ -446,7 +446,7 @@ export async function addJobPipelineStage(
     const stageOrder = maxOrder + 1;
 
     const defaultColor = STAGE_TYPE_DETAILS[data.stage_type]?.defaultColor || "sky";
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_stages`, {
       method: "POST",
@@ -460,7 +460,7 @@ export async function addJobPipelineStage(
         description: data.description?.trim() || null,
         is_terminal: isTerminal,
         is_system: false,
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 
@@ -617,7 +617,7 @@ export async function updateJobPipelineTransitions(
     }
 
     // 2. Insert new transitions
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     for (const toId of targetStageIds) {
       await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_transitions`, {
         method: "POST",
@@ -626,7 +626,7 @@ export async function updateJobPipelineTransitions(
           job_pipeline_id: pipeline.id,
           from_stage_id: fromStageId,
           to_stage_id: toId,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
     }
@@ -694,7 +694,7 @@ export async function assignInitialStageToApplication(
     const appliedStage =
       pipeline.stages.find((s) => s.stage_type === "APPLIED") ?? pipeline.stages[0];
 
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Update application with current_stage_id and canonical status
     await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${applicationId}`, {
@@ -703,7 +703,7 @@ export async function assignInitialStageToApplication(
       body: JSON.stringify({
         current_stage_id: appliedStage.id,
         application_status: "APPLIED",
-        status_updated_at: nowUtc,
+        status_updated_at: nowPH,
       }),
     });
 
@@ -722,7 +722,7 @@ export async function assignInitialStageToApplication(
           stage_name: appliedStage.stage_name,
           stage_type: appliedStage.stage_type,
         },
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 

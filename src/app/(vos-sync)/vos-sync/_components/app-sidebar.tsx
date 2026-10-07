@@ -116,7 +116,7 @@ export function AppSidebar({
                     { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
                     { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
                     // { label: "How It Works", href: "/vos-sync/freelancer/how-it-works", icon: HelpCircle },
-                    { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2 },
+                    { label: "Configuration", href: "/vos-sync/freelancer/settings", icon: Settings2 },
                   ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
@@ -141,7 +141,7 @@ export function AppSidebar({
                 { label: "Messages", href: "/vos-sync/client/messaging", icon: MessageSquare },
                 { label: "Notifications", href: "/vos-sync/client/notifications", icon: Bell },
                 // { label: "How It Works", href: "/vos-sync/client/how-it-works", icon: HelpCircle },
-                { label: "Settings", href: "/vos-sync/client/settings", icon: Settings2 },
+                { label: "Configuration", href: "/vos-sync/client/settings", icon: Settings2 },
             ],
             footerLinks: [],
         };
@@ -161,8 +161,7 @@ export function AppSidebar({
                 { label: "Requests", href: "/vos-sync/school-admin/requests", icon: ClipboardCheck },
                 { label: "Job Referrals", href: "/vos-sync/school-admin/job-referrals", icon: Briefcase },
                 { label: "Success Metrics", href: "/vos-sync/school-admin/success-metrics", icon: TrendingUp },
-                // { label: "How It Works", href: "/vos-sync/school-admin/how-it-works", icon: HelpCircle },
-                { label: "Settings", href: "/vos-sync/school-admin/settings", icon: Settings2 },
+                { label: "Configuration", href: "/vos-sync/school-admin/settings", icon: Settings2 },
             ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
@@ -186,7 +185,7 @@ export function AppSidebar({
                 { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target },
                 { label: "Gemini Monitoring", href: "/vos-sync/vos-admin/gemini-monitoring", icon: Cpu },
                 { label: "Audit Trail", href: "/vos-sync/vos-admin/audit-trail", icon: ShieldCheck },
-                { label: "Settings", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
+                { label: "Configuration", href: "/vos-sync/vos-admin/settings", icon: Settings2 },
             ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },

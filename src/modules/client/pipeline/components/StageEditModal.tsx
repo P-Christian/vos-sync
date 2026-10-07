@@ -99,6 +99,14 @@ export default function StageEditModal({
       setFormError("Stage name is required.");
       return;
     }
+    if (stageName.trim().length > 100) {
+      setFormError("Stage name cannot exceed 100 characters.");
+      return;
+    }
+    if (description.trim().length > 500) {
+      setFormError("Internal guidelines cannot exceed 500 characters.");
+      return;
+    }
 
     await onSave({
       stage_name: stageName.trim(),
@@ -140,10 +148,11 @@ export default function StageEditModal({
               onChange={(e) => setStageName(e.target.value)}
               placeholder="e.g., Technical Assessment, Coding Challenge"
               className="h-9 text-xs"
+              maxLength={100}
               required
             />
             <p className="text-[11px] text-muted-foreground">
-              What your hiring managers and candidates see in the ATS interface.
+              What your hiring managers and candidates see in the ATS interface (max 100 characters).
             </p>
           </div>
 
@@ -223,6 +232,7 @@ export default function StageEditModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g., In this stage candidates complete a 45-minute coding exercise..."
               className="text-xs resize-none"
+              maxLength={500}
               rows={2}
             />
           </div>

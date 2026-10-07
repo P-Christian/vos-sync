@@ -1,5 +1,3 @@
-// src/app/api/client/jobs/[id]/pipeline/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   canModifyJobPipeline,
@@ -7,6 +5,7 @@ import {
   getJobPipeline,
   snapshotCompanyPipeline,
 } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,20 +25,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) headers.Authorization = `Bearer ${DIRECTUS_TOKEN}`;
   return headers;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -66,15 +51,10 @@ export async function GET(
       return NextResponse.json({ error: "Invalid job ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
@@ -107,7 +87,7 @@ export async function GET(
   } catch (err) {
     console.error("GET /api/client/jobs/[id]/pipeline error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to retrieve job pipeline." },
+      { error: "Failed to retrieve job pipeline." },
       { status: 500 }
     );
   }
@@ -124,15 +104,10 @@ export async function POST(
       return NextResponse.json({ error: "Invalid job ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
@@ -180,7 +155,7 @@ export async function POST(
   } catch (err) {
     console.error("POST /api/client/jobs/[id]/pipeline error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to reset job pipeline snapshot." },
+      { error: "Failed to reset job pipeline snapshot." },
       { status: 500 }
     );
   }

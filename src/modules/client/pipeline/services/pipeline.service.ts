@@ -9,6 +9,7 @@ import {
   STAGE_TYPE_DETAILS,
   TERMINAL_STAGE_TYPES,
 } from "../types";
+import { getPHTimeString } from "@/lib/utils";
 
 const DIRECTUS_BASE = (
   process.env.DIRECTUS_URL ||
@@ -232,7 +233,7 @@ export async function getPipelineWithDetails(
  */
 export async function seedDefaultCompanyPipeline(companyId: number): Promise<CompanyPipeline | null> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Create pipeline header
     const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines`, {
@@ -244,8 +245,8 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
         is_default: true,
         version: 1,
         status: "ACTIVE",
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -273,8 +274,8 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
           description: s.description,
           is_terminal: s.is_terminal,
           is_system: s.is_system,
-          created_at: nowUtc,
-          updated_at: nowUtc,
+          created_at: getPHTimeString(),
+          updated_at: getPHTimeString(),
         }),
       });
 
@@ -317,7 +318,7 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
             pipeline_id: newPipeline.id,
             from_stage_id: fromSt.id,
             to_stage_id: toSt.id,
-            created_at: nowUtc,
+            created_at: getPHTimeString(),
           }),
         });
         if (tRes.ok) {
@@ -346,7 +347,7 @@ export async function createCompanyPipeline(
   data: { name: string; is_default?: boolean }
 ): Promise<CompanyPipeline | null> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     if (data.is_default) {
       // Unset previous defaults by ID
@@ -364,7 +365,7 @@ export async function createCompanyPipeline(
             await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines/${pipe.id}`, {
               method: "PATCH",
               headers: getHeaders(),
-              body: JSON.stringify({ is_default: false, updated_at: nowUtc }),
+              body: JSON.stringify({ is_default: false, updated_at: nowPH }),
             });
           }
         }
@@ -380,8 +381,8 @@ export async function createCompanyPipeline(
         is_default: Boolean(data.is_default),
         version: 1,
         status: "ACTIVE",
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -405,8 +406,8 @@ export async function createCompanyPipeline(
           description: s.description,
           is_terminal: s.is_terminal,
           is_system: s.is_system,
-          created_at: nowUtc,
-          updated_at: nowUtc,
+          created_at: nowPH,
+          updated_at: nowPH,
         }),
       });
 
@@ -442,7 +443,7 @@ export async function createCompanyPipeline(
             pipeline_id: newPipeline.id,
             from_stage_id: fromSt.id,
             to_stage_id: toSt.id,
-            created_at: nowUtc,
+            created_at: nowPH,
           }),
         });
       }
@@ -464,7 +465,7 @@ export async function updateCompanyPipeline(
   payload: { name?: string; is_default?: boolean; status?: "ACTIVE" | "ARCHIVED" }
 ): Promise<boolean> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     if (payload.is_default) {
       // Unset previous defaults by ID
@@ -482,7 +483,7 @@ export async function updateCompanyPipeline(
             await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines/${pipe.id}`, {
               method: "PATCH",
               headers: getHeaders(),
-              body: JSON.stringify({ is_default: false, updated_at: nowUtc }),
+              body: JSON.stringify({ is_default: false, updated_at: nowPH }),
             });
           }
         }
@@ -496,7 +497,7 @@ export async function updateCompanyPipeline(
         headers: getHeaders(),
         body: JSON.stringify({
           ...payload,
-          updated_at: nowUtc,
+          updated_at: nowPH,
         }),
       }
     );
@@ -539,7 +540,7 @@ export async function addPipelineStage(
     const stageOrder = maxOrder + 1;
 
     const defaultColor = STAGE_TYPE_DETAILS[data.stage_type]?.defaultColor || "sky";
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_stages`, {
       method: "POST",
@@ -553,8 +554,8 @@ export async function addPipelineStage(
         description: data.description?.trim() || null,
         is_terminal: isTerminal,
         is_system: false,
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -592,9 +593,9 @@ export async function updatePipelineStage(
     const stage = pipeline.stages?.find((s) => s.id === stageId);
     if (!stage) return false;
 
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     const updatePayload: Record<string, unknown> = {
-      updated_at: nowUtc,
+      updated_at: nowPH,
     };
 
     if (data.stage_name !== undefined) updatePayload.stage_name = data.stage_name.trim();
@@ -701,7 +702,7 @@ export async function updateStageTransitions(
     }
 
     // 2. Insert new transitions
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     for (const toId of targetStageIds) {
       await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions`, {
         method: "POST",
@@ -710,7 +711,7 @@ export async function updateStageTransitions(
           pipeline_id: pipelineId,
           from_stage_id: fromStageId,
           to_stage_id: toId,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
     }
@@ -737,7 +738,7 @@ export async function reorderPipelineStages(
     const stages = pipeline.stages ?? [];
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     let order = 1;
     for (const stageId of orderedStageIds) {
       if (stageMap.has(stageId)) {
@@ -746,7 +747,7 @@ export async function reorderPipelineStages(
           headers: getHeaders(),
           body: JSON.stringify({
             stage_order: order++,
-            updated_at: nowUtc,
+            updated_at: nowPH,
           }),
         });
       }
