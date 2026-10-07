@@ -1,10 +1,9 @@
-// src/app/api/client/pipelines/[id]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   getPipelineWithDetails,
   updateCompanyPipeline,
 } from "@/modules/client/pipeline/services/pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,20 +23,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) headers.Authorization = `Bearer ${DIRECTUS_TOKEN}`;
   return headers;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -60,18 +45,20 @@ export async function GET(
   try {
     const { id } = await params;
     const pipelineId = Number(id);
+    if (!pipelineId || isNaN(pipelineId)) {
+      return NextResponse.json({ error: "Invalid pipeline ID." }, { status: 400 });
+    }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
-    if (!companyId) return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    if (!companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    }
 
     const pipeline = await getPipelineWithDetails(pipelineId, companyId);
     if (!pipeline) {
@@ -85,7 +72,7 @@ export async function GET(
   } catch (err) {
     console.error("GET /api/client/pipelines/[id] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to retrieve pipeline." },
+      { error: "Failed to retrieve pipeline." },
       { status: 500 }
     );
   }
@@ -98,26 +85,41 @@ export async function PATCH(
   try {
     const { id } = await params;
     const pipelineId = Number(id);
+    if (!pipelineId || isNaN(pipelineId)) {
+      return NextResponse.json({ error: "Invalid pipeline ID." }, { status: 400 });
+    }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
-    if (!companyId) return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    if (!companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    }
 
     const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    if (!body) {
+      return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    }
+
+    const name = body.name !== undefined ? String(body.name).trim() : undefined;
+    if (name !== undefined) {
+      if (!name) return NextResponse.json({ error: "Pipeline name cannot be empty." }, { status: 400 });
+      if (name.length > 100) return NextResponse.json({ error: "Pipeline name cannot exceed 100 characters." }, { status: 400 });
+    }
+
+    const status = body.status;
+    if (status !== undefined && status !== "ACTIVE" && status !== "ARCHIVED") {
+      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
+    }
 
     const success = await updateCompanyPipeline(pipelineId, companyId, {
-      name: body.name,
-      is_default: body.is_default,
-      status: body.status,
+      name,
+      is_default: body.is_default !== undefined ? Boolean(body.is_default) : undefined,
+      status,
     });
 
     if (!success) {
@@ -133,7 +135,7 @@ export async function PATCH(
   } catch (err) {
     console.error("PATCH /api/client/pipelines/[id] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to update pipeline." },
+      { error: "Failed to update pipeline." },
       { status: 500 }
     );
   }

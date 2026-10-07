@@ -1,7 +1,6 @@
-// src/app/api/client/pipelines/[id]/stages/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { addPipelineStage } from "@/modules/client/pipeline/services/pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +13,8 @@ const DIRECTUS_BASE = (
 
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
+const ALLOWED_COLORS = new Set(["sky", "blue", "indigo", "purple", "violet", "amber", "emerald", "rose", "zinc"]);
+
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -21,20 +22,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) headers.Authorization = `Bearer ${DIRECTUS_TOKEN}`;
   return headers;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -57,32 +44,42 @@ export async function POST(
   try {
     const { id } = await params;
     const pipelineId = Number(id);
+    if (!pipelineId || isNaN(pipelineId)) {
+      return NextResponse.json({ error: "Invalid pipeline ID." }, { status: 400 });
+    }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
-    if (!companyId) return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    if (!companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    }
 
     const body = await req.json().catch(() => null);
-    if (!body?.stage_name?.trim()) {
+    const stageName = typeof body?.stage_name === "string" ? body.stage_name.trim() : "";
+    if (!stageName) {
       return NextResponse.json({ error: "Stage name is required." }, { status: 400 });
     }
+    if (stageName.length > 100) {
+      return NextResponse.json({ error: "Stage name cannot exceed 100 characters." }, { status: 400 });
+    }
+
     if (!body?.stage_type) {
       return NextResponse.json({ error: "Canonical stage type is required." }, { status: 400 });
     }
 
+    const color = typeof body?.color === "string" && ALLOWED_COLORS.has(body.color.trim()) ? body.color.trim() : undefined;
+    const description = typeof body?.description === "string" ? body.description.trim().slice(0, 500) : undefined;
+
     const stage = await addPipelineStage(pipelineId, companyId, {
-      stage_name: body.stage_name,
+      stage_name: stageName,
       stage_type: body.stage_type,
-      color: body.color,
-      description: body.description,
+      color,
+      description,
     });
 
     if (!stage) {
@@ -96,7 +93,7 @@ export async function POST(
   } catch (err) {
     console.error("POST /api/client/pipelines/[id]/stages error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to add stage." },
+      { error: "Failed to add stage." },
       { status: 500 }
     );
   }

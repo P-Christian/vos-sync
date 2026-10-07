@@ -1,9 +1,8 @@
-// src/app/api/client/applicants/[id]/stage/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { transitionApplicationStage } from "@/modules/client/pipeline/services/job-pipeline.service";
 import { createNotification } from "@/lib/notifications";
 import { createSystemMessage } from "@/lib/messaging/system-message";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,20 +22,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -63,22 +48,45 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid application ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid authentication token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 403 });
+    }
+
+    // IDOR Protection: Verify application belongs to a job owned by this company
+    const appCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_application/${applicationId}?fields=application_id,job_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!appCheckRes.ok) {
+      return NextResponse.json({ error: "Application not found." }, { status: 404 });
+    }
+    const appCheckJson = await appCheckRes.json();
+    const targetJobId = Number(appCheckJson.data?.job_id);
+    if (!targetJobId) {
+      return NextResponse.json({ error: "Application is not associated with a valid job." }, { status: 400 });
+    }
+
+    const jobCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,company_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!jobCheckRes.ok) {
+      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
+    }
+    const jobCheckJson = await jobCheckRes.json();
+    const jobCompanyId = Number(jobCheckJson.data?.company_id);
+    if (jobCompanyId !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
+      );
     }
 
     const body = await req.json().catch(() => null);
@@ -91,12 +99,14 @@ export async function PATCH(
       );
     }
 
+    const notes = typeof body?.notes === "string" ? body.notes.trim().slice(0, 1000) : undefined;
+
     const result = await transitionApplicationStage({
       applicationId,
       toStageId,
       changedByUserId: userId,
-      changeReason: body?.notes,
-      notes: body?.notes,
+      changeReason: notes,
+      notes,
     });
 
     if (!result.success) {
@@ -173,7 +183,7 @@ export async function PATCH(
   } catch (err: unknown) {
     console.error("PATCH /api/client/applicants/[id]/stage error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

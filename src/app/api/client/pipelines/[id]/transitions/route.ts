@@ -1,7 +1,6 @@
-// src/app/api/client/pipelines/[id]/transitions/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { updateStageTransitions } from "@/modules/client/pipeline/services/pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,20 +20,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) headers.Authorization = `Bearer ${DIRECTUS_TOKEN}`;
   return headers;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -57,31 +42,38 @@ export async function PUT(
   try {
     const { id } = await params;
     const pipelineId = Number(id);
+    if (!pipelineId || isNaN(pipelineId)) {
+      return NextResponse.json({ error: "Invalid pipeline ID." }, { status: 400 });
+    }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
-    if (!companyId) return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    if (!companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 404 });
+    }
 
     const body = await req.json().catch(() => null);
-    if (!body?.from_stage_id || !Array.isArray(body?.target_stage_ids)) {
+    const fromStageId = Number(body?.from_stage_id);
+    if (!fromStageId || isNaN(fromStageId) || !Array.isArray(body?.target_stage_ids)) {
       return NextResponse.json(
         { error: "from_stage_id and target_stage_ids (array) are required." },
         { status: 400 }
       );
     }
 
+    const targetStageIds = body.target_stage_ids
+      .map(Number)
+      .filter((n: number) => !isNaN(n) && n > 0);
+
     const result = await updateStageTransitions(
       pipelineId,
-      Number(body.from_stage_id),
-      body.target_stage_ids.map(Number),
+      fromStageId,
+      targetStageIds,
       companyId
     );
 
@@ -93,7 +85,7 @@ export async function PUT(
   } catch (err) {
     console.error("PUT /api/client/pipelines/[id]/transitions error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to update transitions." },
+      { error: "Failed to update transitions." },
       { status: 500 }
     );
   }

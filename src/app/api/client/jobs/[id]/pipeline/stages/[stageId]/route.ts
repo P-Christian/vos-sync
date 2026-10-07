@@ -1,5 +1,3 @@
-// src/app/api/client/jobs/[id]/pipeline/stages/[stageId]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   canModifyJobPipeline,
@@ -7,6 +5,7 @@ import {
   getJobCompanyId,
   updateJobPipelineStage,
 } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +18,8 @@ const DIRECTUS_BASE = (
 
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
+const ALLOWED_COLORS = new Set(["sky", "blue", "indigo", "purple", "violet", "amber", "emerald", "rose", "zinc"]);
+
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -26,20 +27,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) headers.Authorization = `Bearer ${DIRECTUS_TOKEN}`;
   return headers;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function getCompanyId(userId: number): Promise<number | null> {
@@ -67,15 +54,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid parameters." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
@@ -107,11 +89,25 @@ export async function PATCH(
     const body = await req.json().catch(() => null);
     if (!body) return NextResponse.json({ error: "Request payload required." }, { status: 400 });
 
+    const stageName = body.stage_name !== undefined ? String(body.stage_name).trim() : undefined;
+    if (stageName !== undefined) {
+      if (!stageName) return NextResponse.json({ error: "Stage name cannot be empty." }, { status: 400 });
+      if (stageName.length > 100) return NextResponse.json({ error: "Stage name cannot exceed 100 characters." }, { status: 400 });
+    }
+
+    const color = body.color !== undefined ? String(body.color).trim() : undefined;
+    if (color !== undefined && !ALLOWED_COLORS.has(color)) {
+      return NextResponse.json({ error: "Invalid color key." }, { status: 400 });
+    }
+
+    const description = body.description !== undefined ? String(body.description).trim().slice(0, 500) : undefined;
+    const stageOrder = body.stage_order !== undefined && Number.isInteger(Number(body.stage_order)) && Number(body.stage_order) > 0 ? Number(body.stage_order) : undefined;
+
     const result = await updateJobPipelineStage(jobId, sId, {
-      stage_name: body.stage_name,
-      color: body.color,
-      description: body.description,
-      stage_order: body.stage_order,
+      stage_name: stageName,
+      color,
+      description,
+      stage_order: stageOrder,
     });
 
     if (!result.success) {
@@ -125,7 +121,7 @@ export async function PATCH(
   } catch (err) {
     console.error("PATCH /api/client/jobs/[id]/pipeline/stages/[stageId] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to update stage." },
+      { error: "Failed to update stage." },
       { status: 500 }
     );
   }
@@ -143,15 +139,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Invalid parameters." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
@@ -192,7 +183,7 @@ export async function DELETE(
   } catch (err) {
     console.error("DELETE /api/client/jobs/[id]/pipeline/stages/[stageId] error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to delete stage." },
+      { error: "Failed to delete stage." },
       { status: 500 }
     );
   }
