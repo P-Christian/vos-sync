@@ -7,7 +7,8 @@ import { createSystemMessage } from "@/lib/messaging/system-message";
 import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
-import { assignInitialStageToApplication } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { assignInitialStageToApplication, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,9 +53,9 @@ export async function GET(req: NextRequest) {
     const userId = getUserIdFromToken(token);
     if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
 
-    // Fetch applications for this user
+    // Fetch applications for this user (client_notes excluded for privacy)
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,client_notes,applied_at,status_updated_at,resume_id&limit=200`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,applied_at,status_updated_at,resume_id&limit=200`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -760,7 +761,7 @@ export async function PATCH(req: NextRequest) {
 
     // 1. Fetch application details
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application/${body.application_id}?fields=application_id,user_id,application_status,job_id`,
+      `${DIRECTUS_BASE}/items/vs_job_application/${body.application_id}?fields=application_id,user_id,application_status,job_id,current_stage_id`,
       { headers: getHeaders(), cache: "no-store" }
     );
     if (!appRes.ok) {
@@ -771,30 +772,50 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden. You do not own this application." }, { status: 403 });
     }
 
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const nowPH = getPHTimeString();
 
     if (body.action === "withdraw") {
-      const allowedFrom = ["DRAFT", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEWING"];
-      if (!allowedFrom.includes(appData.application_status)) {
+      const rawStatus = String(appData.application_status || "").toUpperCase();
+      const terminalStatuses = ["HIRED", "REJECTED", "WITHDRAWN"];
+      if (terminalStatuses.includes(rawStatus)) {
         return NextResponse.json(
-          { error: `Cannot withdraw application when status is ${appData.application_status}.` },
+          { error: `Cannot withdraw application when status is already ${rawStatus}.` },
           { status: 409 }
         );
       }
 
+      // Resolve WITHDRAWN stage from active job pipeline
+      let withdrawnStageId: number | null = null;
+      let fromStageName = "Application";
+      if (appData.job_id) {
+        try {
+          const pipeline = await getJobPipeline(Number(appData.job_id));
+          const wStage = pipeline?.stages?.find((s) => s.stage_type === "WITHDRAWN");
+          if (wStage) withdrawnStageId = wStage.id;
+          if (appData.current_stage_id && pipeline?.stages) {
+            const currentStage = pipeline.stages.find((s) => s.id === Number(appData.current_stage_id));
+            if (currentStage) fromStageName = currentStage.stage_name;
+          }
+        } catch (err) {
+          console.error("Error resolving job pipeline for withdrawal:", err);
+        }
+      }
+
       // Update application
+      const patchPayload: Record<string, unknown> = {
+        application_status: "WITHDRAWN",
+        withdrawn_at: nowPH,
+        withdrawal_reason: body.reason || null,
+        status_updated_at: nowPH,
+      };
+      if (withdrawnStageId) {
+        patchPayload.current_stage_id = withdrawnStageId;
+      }
+
       const updateRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${body.application_id}`, {
         method: "PATCH",
         headers: getHeaders(),
-        body: JSON.stringify({
-          application_status: "WITHDRAWN",
-          withdrawn_at: nowPH,
-          withdrawal_reason: body.reason || null,
-          status_updated_at: nowPH,
-        }),
+        body: JSON.stringify(patchPayload),
       });
 
       if (!updateRes.ok) {
@@ -815,6 +836,28 @@ export async function PATCH(req: NextRequest) {
           occurred_at: nowPH,
         }),
       }).catch((e) => console.error("Error creating withdrawal history:", e));
+
+      // Insert authoritative stage history
+      if (withdrawnStageId) {
+        await fetch(`${DIRECTUS_BASE}/items/vs_application_stage_history`, {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify({
+            application_id: Number(body.application_id),
+            from_stage_id: appData.current_stage_id || null,
+            to_stage_id: withdrawnStageId,
+            changed_by: userId,
+            change_reason: body.reason || "Candidate voluntarily withdrew application",
+            metadata: {
+              from_stage_name: fromStageName,
+              to_stage_name: "Withdrawn",
+              from_status: appData.application_status,
+              to_status: "WITHDRAWN",
+            },
+            created_at: nowPH,
+          }),
+        }).catch((e) => console.error("Error creating stage withdrawal history:", e));
+      }
 
       // Trigger notifications for employer
       try {

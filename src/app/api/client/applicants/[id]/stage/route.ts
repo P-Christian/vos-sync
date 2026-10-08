@@ -138,14 +138,21 @@ export async function PATCH(
       }
 
       if (jobseekerId) {
+        // Sanitize dynamic stage name to prevent phishing/markup injection
+        const cleanStageName =
+          result.toStage.stage_name
+            .replace(/[^\w\s\-().,/]/g, "")
+            .trim()
+            .slice(0, 50) || "Updated Stage";
+
         createNotification({
           event_type: "application_status_changed",
           recipient_user_id: jobseekerId,
           entity_type: "job_application",
           entity_id: applicationId,
           category: "APPLICATION_STATUS_UPDATED",
-          title: `Application Moved to ${result.toStage.stage_name}`,
-          message: `Your application for "${jobTitle}" has progressed to "${result.toStage.stage_name}".`,
+          title: `Application Moved to ${cleanStageName}`,
+          message: `Your application for "${jobTitle}" has progressed to "${cleanStageName}".`,
           action_url: "/vos-sync/freelancer/applications",
         }).catch((err) => console.error("[Candidate Stage Notification] Error:", err));
 
@@ -153,7 +160,7 @@ export async function PATCH(
         const systemText =
           result.toStage.stage_type === "HIRED"
             ? "Client hired you."
-            : `Application moved to stage: ${result.toStage.stage_name}`;
+            : `Application moved to stage: ${cleanStageName}`;
 
         const statusEventType =
           result.toStage.stage_type === "HIRED" ? "HIRED" : "APPLICATION_STATUS_CHANGED";

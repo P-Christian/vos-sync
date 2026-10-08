@@ -1,6 +1,7 @@
 // src/app/api/client/talent-profile/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 
 export const runtime = "nodejs";
@@ -26,18 +27,20 @@ function toProtectedAssetUrl(fileReference: string): string {
   return fileId ? `/api/assets/${encodeURIComponent(fileId)}` : "";
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+function maskEmail(email?: string | null): string {
+  if (!email || typeof email !== "string") return "";
+  const parts = email.trim().split("@");
+  if (parts.length !== 2) return "***";
+  const [name, domain] = parts;
+  if (name.length <= 2) return `${name.slice(0, 1)}***@${domain}`;
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function maskPhone(phone?: string | null): string | null {
+  if (!phone || typeof phone !== "string") return null;
+  const clean = phone.trim();
+  if (clean.length <= 4) return "****";
+  return `***-***-${clean.slice(-4)}`;
 }
 
 export async function GET(
@@ -52,19 +55,12 @@ export async function GET(
       return NextResponse.json({ error: "Invalid talent ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json(
@@ -237,8 +233,8 @@ export async function GET(
     const profile = {
       user_id: userData.user_id,
       name: `${userData.user_fname} ${userData.user_lname}`.trim(),
-      email: userData.user_email,
-      phone: userData.user_contact ?? null,
+      email: maskEmail(userData.user_email),
+      phone: maskPhone(userData.user_contact),
       profile_image_url: userData.profile_image_url ?? null,
       gender: userData.gender ?? null,
       nationality: userData.nationality ?? null,
@@ -298,8 +294,7 @@ export async function GET(
 
     return NextResponse.json({ profile });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("[talent-profile] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

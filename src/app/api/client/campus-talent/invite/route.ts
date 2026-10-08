@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { transporter, MAIL_FROM } from "@/lib/mail/transporter";
 import { CampusInvitationPayload } from "@/modules/matching-engine/campus/types";
@@ -29,18 +30,14 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+function escapeHtml(str?: string | null): string {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function getPHDateTime(date: Date = new Date()): string {
@@ -119,16 +116,18 @@ function buildInvitationHtml(
   actionLink: string,
   isRegisteredUser: boolean
 ): string {
-  const studentName = `${payload.recipientName}`;
-  const companyName = payload.companyName || "A partner employer";
-  const schoolText = payload.schoolName ? ` at <strong>${payload.schoolName}</strong>` : "";
+  const studentName = escapeHtml(payload.recipientName);
+  const companyName = escapeHtml(payload.companyName || "A partner employer");
+  const schoolText = payload.schoolName ? ` at <strong>${escapeHtml(payload.schoolName)}</strong>` : "";
+  const jobTitleEscaped = payload.jobTitle ? escapeHtml(payload.jobTitle) : "";
+  const courseNameEscaped = payload.courseName ? escapeHtml(payload.courseName) : "";
 
   if (payload.jobTitle) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Career Opportunity — ${payload.jobTitle}</title>
+  <title>Career Opportunity — ${jobTitleEscaped}</title>
 </head>
 <body style="font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 32px;">
   <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 40px; border: 1px solid #e5e7eb;">
@@ -139,8 +138,8 @@ function buildInvitationHtml(
       and would like to invite you to apply for the following role:
     </p>
     <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 16px; margin: 24px 0; border-radius: 4px;">
-      <strong style="color: #0c4a6e;">${payload.jobTitle}</strong>
-      ${payload.courseName ? `<p style="margin: 4px 0; color: #475569; font-size: 14px;">Matched to your program: ${payload.courseName}</p>` : ""}
+      <strong style="color: #0c4a6e;">${jobTitleEscaped}</strong>
+      ${courseNameEscaped ? `<p style="margin: 4px 0; color: #475569; font-size: 14px;">Matched to your program: ${courseNameEscaped}</p>` : ""}
     </div>
     <p style="color: #475569;">${isRegisteredUser ? "Click the button below to view the job posting:" : "Click the button below to register on VOS Sync and view the full opportunity:"}</p>
     <div style="text-align: center; margin: 32px 0;">
@@ -150,7 +149,7 @@ function buildInvitationHtml(
       </a>
     </div>
     <p style="color: #94a3b8; font-size: 12px; margin-top: 32px;">
-      This invitation was sent to ${payload.recipientEmail}. If you believe you received this in error, you may ignore this email.
+      This invitation was sent to ${escapeHtml(payload.recipientEmail)}. If you believe you received this in error, you may ignore this email.
     </p>
   </div>
 </body>
@@ -192,15 +191,12 @@ function buildInvitationHtml(
 
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified || !companyId) {
       return NextResponse.json(
@@ -210,17 +206,41 @@ export async function POST(req: NextRequest) {
     }
 
     const body = (await req.json()) as CampusInvitationPayload;
-    const { studentId, jobId, recipientEmail, recipientName, schoolName } = body;
+    const { studentId, jobId, schoolName } = body;
     let { schoolId, courseName, jobTitle, companyName } = body;
 
-    if (!studentId || !recipientEmail || !recipientName) {
-      return NextResponse.json({ error: "Missing required invitation fields." }, { status: 400 });
+    if (!studentId) {
+      return NextResponse.json({ error: "Missing required student ID." }, { status: 400 });
     }
 
-    // Resolve company name if not supplied
+    // Authoritatively resolve student record from database to prevent open mail relay
+    const sRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_school_student/${studentId}?fields=student_id,school_id,first_name,last_name,email,course_name,registered_user_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!sRes.ok) {
+      return NextResponse.json({ error: "Student record not found." }, { status: 404 });
+    }
+    const sData = await sRes.json();
+    const dbStudent = sData.data;
+    if (!dbStudent) {
+      return NextResponse.json({ error: "Student record not found." }, { status: 404 });
+    }
+
+    const recipientEmail = String(dbStudent.email ?? "").trim();
+    if (!recipientEmail || !recipientEmail.includes("@")) {
+      return NextResponse.json({ error: "Student does not have a valid registered institutional email." }, { status: 400 });
+    }
+
+    const recipientName = [dbStudent.first_name, dbStudent.last_name].filter(Boolean).join(" ") || body.recipientName || "Student";
+    if (!schoolId) schoolId = dbStudent.school_id || 0;
+    if (!courseName) courseName = dbStudent.course_name;
+    const registeredUserId = dbStudent.registered_user_id ? Number(dbStudent.registered_user_id) : null;
+
+    // Resolve and verify company name
     if (!companyName && companyId) {
       try {
-        const cRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=company_name`, { headers: getHeaders() });
+        const cRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=company_name`, { headers: getHeaders(), cache: "no-store" });
         if (cRes.ok) {
           const cData = await cRes.json();
           companyName = cData.data?.company_name || "";
@@ -230,33 +250,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-resolve schoolId, courseName and registered_user_id
-    let registeredUserId: number | null = null;
-    try {
-      const sRes = await fetch(`${DIRECTUS_BASE}/items/vs_school_student/${studentId}?fields=school_id,course_name,registered_user_id`, { headers: getHeaders() });
-      if (sRes.ok) {
-        const sData = await sRes.json();
-        if (!schoolId) schoolId = sData.data?.school_id || 0;
-        if (!courseName) courseName = sData.data?.course_name;
-        if (sData.data?.registered_user_id) {
-          registeredUserId = Number(sData.data.registered_user_id);
-        }
+    // Verify job ownership to prevent cross-tenant IDOR
+    if (jobId) {
+      const jRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_posting/${jobId}?fields=job_id,job_title,company_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!jRes.ok) {
+        return NextResponse.json({ error: "Job posting not found." }, { status: 404 });
       }
-    } catch {
-      // non-blocking fallback
-    }
-
-    // Auto-resolve jobTitle if jobId passed but title missing
-    if (jobId && !jobTitle) {
-      try {
-        const jRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${jobId}?fields=job_title`, { headers: getHeaders() });
-        if (jRes.ok) {
-          const jData = await jRes.json();
-          jobTitle = jData.data?.job_title || "";
-        }
-      } catch {
-        // non-blocking fallback
+      const jData = await jRes.json();
+      if (Number(jData.data?.company_id) !== Number(companyId)) {
+        return NextResponse.json({ error: "Forbidden: You do not own this job posting." }, { status: 403 });
       }
+      jobTitle = jData.data?.job_title || jobTitle;
     }
 
     // Normalize empty strings/0 to null

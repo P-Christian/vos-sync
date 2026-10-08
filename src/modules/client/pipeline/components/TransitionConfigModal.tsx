@@ -54,11 +54,13 @@ export default function TransitionConfigModal({
   // Filter candidate target stages:
   // Cannot transition to self.
   // "Rejected" and "Withdrawn" are system-wide terminal exits available automatically from all non-terminal stages.
+  // "Applied" is the initial intake stage and cannot be transitioned back into from other stages.
   const eligibleStages = allStages.filter(
     (s) =>
       s.id !== sourceStage.id &&
       s.stage_type !== "REJECTED" &&
-      s.stage_type !== "WITHDRAWN"
+      s.stage_type !== "WITHDRAWN" &&
+      s.stage_type !== "APPLIED"
   );
 
   const toggleTarget = (stageId: number) => {

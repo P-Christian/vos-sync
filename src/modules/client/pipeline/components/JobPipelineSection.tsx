@@ -631,10 +631,10 @@ export default function JobPipelineSection({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      disabled={index === 0}
+                      disabled={index === 0 || sortedStages[index - 1]?.stage_type === "APPLIED"}
                       onClick={() => moveStageOrder(st.id, "up")}
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                      title="Move Up"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      title={index === 0 || sortedStages[index - 1]?.stage_type === "APPLIED" ? "Cannot move above initial application stage" : "Move Up"}
                     >
                       <ArrowUp className="h-3.5 w-3.5" />
                     </Button>
@@ -642,10 +642,10 @@ export default function JobPipelineSection({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      disabled={index === sortedStages.length - 1}
+                      disabled={index === sortedStages.length - 1 || st.stage_type === "APPLIED"}
                       onClick={() => moveStageOrder(st.id, "down")}
-                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                      title="Move Down"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none"
+                      title={st.stage_type === "APPLIED" ? "Initial application stage cannot be moved down" : "Move Down"}
                     >
                       <ArrowDown className="h-3.5 w-3.5" />
                     </Button>

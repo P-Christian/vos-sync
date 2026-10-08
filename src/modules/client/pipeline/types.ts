@@ -27,6 +27,13 @@ export const TERMINAL_STAGE_TYPES: readonly CanonicalStageType[] = [
   "WITHDRAWN",
 ] as const;
 
+export const CUSTOM_ALLOWED_STAGE_TYPES: readonly CanonicalStageType[] = [
+  "SCREENING",
+  "ASSESSMENT",
+  "INTERVIEW",
+  "OFFER",
+] as const;
+
 export interface StageTypeMetadata {
   label: string;
   description: string;

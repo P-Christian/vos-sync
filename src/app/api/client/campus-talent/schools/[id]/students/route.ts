@@ -2,6 +2,7 @@
 // GET: Fetch students for a specific school, resolving registered user profiles.
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { AcademicCandidate, EnhancedCandidate } from "@/modules/matching-engine/campus/types";
 
@@ -17,18 +18,11 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+function maskStudentNumber(num?: string | null): string | null {
+  if (!num || typeof num !== "string") return null;
+  const clean = num.trim();
+  if (clean.length <= 4) return clean;
+  return `***${clean.slice(-4)}`;
 }
 
 export async function GET(
@@ -36,15 +30,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json(
@@ -208,7 +199,7 @@ export async function GET(
 
       const base = {
         studentId: Number(s.student_id),
-        studentNumber: s.student_number ? String(s.student_number) : null,
+        studentNumber: maskStudentNumber(s.student_number ? String(s.student_number) : null),
         firstName: String(s.first_name ?? ""),
         middleName: s.middle_name ? String(s.middle_name) : null,
         lastName: String(s.last_name ?? ""),
