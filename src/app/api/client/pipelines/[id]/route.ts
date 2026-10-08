@@ -100,6 +100,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
     }
 
+    const existingPipeline = await getPipelineWithDetails(pipelineId, companyId);
+    if (!existingPipeline) {
+      return NextResponse.json({ error: "Pipeline not found." }, { status: 404 });
+    }
+
     const body = await req.json().catch(() => null);
     if (!body) {
       return NextResponse.json({ error: "Request payload required." }, { status: 400 });

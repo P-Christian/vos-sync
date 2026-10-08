@@ -228,6 +228,14 @@ export function useJobPipeline(jobId?: number | null) {
       const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
       if (targetIndex < 0 || targetIndex >= stages.length) return false;
 
+      // Pin APPLIED: Cannot move APPLIED down, and cannot move any stage above APPLIED
+      if (
+        stages[currentIndex].stage_type === "APPLIED" ||
+        stages[targetIndex].stage_type === "APPLIED"
+      ) {
+        return false;
+      }
+
       // Swap in array
       const temp = stages[currentIndex];
       stages[currentIndex] = stages[targetIndex];

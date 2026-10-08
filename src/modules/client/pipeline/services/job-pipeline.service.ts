@@ -2,6 +2,7 @@
 
 import {
   CanonicalStageType,
+  CUSTOM_ALLOWED_STAGE_TYPES,
   JobPipelineStage,
   JobPipelineTransition,
   JobPipelineVersion,
@@ -41,19 +42,19 @@ function getHeaders(): Record<string, string> {
 export async function getJobApplicationCount(jobId: number): Promise<number> {
   try {
     const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[withdrawal_reason][_null]=true&aggregate[count]=application_id`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[application_status][_neq]=WITHDRAWN&aggregate[count]=application_id`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
     if (res.ok) {
       const json = await res.json();
       const count = Number(json.data?.[0]?.count?.application_id ?? json.data?.[0]?.count ?? 0);
-      if (!isNaN(count) && count > 0) return count;
+      if (!isNaN(count)) return count;
     }
 
     // Fallback direct count fetch
     const listRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&fields=application_id&limit=100`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[application_status][_neq]=WITHDRAWN&fields=application_id&limit=100`,
       { headers: getHeaders(), cache: "no-store" }
     );
     if (listRes.ok) {
@@ -61,21 +62,30 @@ export async function getJobApplicationCount(jobId: number): Promise<number> {
       return (listJson.data ?? []).length;
     }
 
-    return 0;
+    // Both queries failed - return -1 to signal failure instead of failing open
+    return -1;
   } catch (err) {
     console.error(`[job-pipeline.service] Error checking applications for job #${jobId}:`, err);
-    return 0;
+    return -1;
   }
 }
 
 /**
  * Validates whether the active job pipeline version can be modified.
  * Immutability rule: active job pipeline version is locked if application_count > 0.
+ * Fail-closed policy: modification is refused if application count cannot be determined safely.
  */
 export async function canModifyJobPipeline(
   jobId: number
 ): Promise<{ canModify: boolean; applicationCount: number; error?: string }> {
   const count = await getJobApplicationCount(jobId);
+  if (count < 0) {
+    return {
+      canModify: false,
+      applicationCount: 0,
+      error: "Unable to verify application lock status. Pipeline modification is temporarily locked for safety.",
+    };
+  }
   if (count > 0) {
     return {
       canModify: false,
@@ -437,12 +447,20 @@ export async function addJobPipelineStage(
     const pipeline = await getJobPipeline(jobId);
     if (!pipeline) return { success: false, error: "Job pipeline not found." };
 
-    if (!isValidStageType(data.stage_type)) {
-      return { success: false, error: "Invalid canonical stage type." };
+    const currentStages = pipeline.stages ?? [];
+    if (currentStages.length >= 25) {
+      return { success: false, error: "Maximum 25 stages allowed per pipeline." };
     }
 
-    const isTerminal = isTerminalStageType(data.stage_type);
-    const maxOrder = (pipeline.stages ?? []).reduce((max, s) => Math.max(max, s.stage_order), 0);
+    if (!CUSTOM_ALLOWED_STAGE_TYPES.includes(data.stage_type)) {
+      return {
+        success: false,
+        error: `Custom stages must be an intermediate evaluation step (${CUSTOM_ALLOWED_STAGE_TYPES.join(", ")}).`,
+      };
+    }
+
+    const isTerminal = false;
+    const maxOrder = currentStages.reduce((max, s) => Math.max(max, s.stage_order), 0);
     const stageOrder = maxOrder + 1;
 
     const defaultColor = STAGE_TYPE_DETAILS[data.stage_type]?.defaultColor || "sky";
@@ -605,6 +623,10 @@ export async function updateJobPipelineTransitions(
       if (toId === fromStageId) {
         return { success: false, error: "Self-transitions are not permitted." };
       }
+      const targetStage = stages.find((s) => s.id === toId);
+      if (targetStage?.stage_type === "APPLIED") {
+        return { success: false, error: "Transitions targeting the initial intake stage (APPLIED) are not permitted." };
+      }
     }
 
     // 1. Delete existing transitions for this from_stage_id
@@ -658,13 +680,27 @@ export async function reorderJobPipelineStages(
     const stages = pipeline.stages ?? [];
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
+    // Deduplicate requested stage IDs to guard against payload anomalies
+    const deduplicatedIds = Array.from(new Set(orderedStageIds));
+
+    // Pin entry stage: APPLIED must always remain at position 1
+    const appliedStage = stages.find((s) => s.stage_type === "APPLIED" || (s.is_system && s.stage_order === 1));
+    const filteredOrderedIds = deduplicatedIds.filter(
+      (id) => (appliedStage ? id !== appliedStage.id : true)
+    );
+    const finalOrderedIds = appliedStage ? [appliedStage.id, ...filteredOrderedIds] : deduplicatedIds;
+
+    const nowPH = getPHTimeString();
     let order = 1;
-    for (const stageId of orderedStageIds) {
+    for (const stageId of finalOrderedIds) {
       if (stageMap.has(stageId)) {
         await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_stages/${stageId}`, {
           method: "PATCH",
           headers: getHeaders(),
-          body: JSON.stringify({ stage_order: order++ }),
+          body: JSON.stringify({
+            stage_order: order++,
+            updated_at: nowPH,
+          }),
         });
       }
     }
@@ -831,8 +867,11 @@ export async function transitionApplicationStage({
       };
     }
 
-    // 6. Guard: Cannot move OUT of a terminal stage
-    if (fromStage.is_terminal) {
+    // 6. Guard: Cannot move OUT of a terminal stage or terminal status
+    const rawAppStatus = String(appData.application_status || "").toUpperCase();
+    const isTerminalStatus = rawAppStatus === "REJECTED" || rawAppStatus === "WITHDRAWN" || rawAppStatus === "HIRED";
+
+    if (fromStage.is_terminal || isTerminalStatus) {
       return {
         success: false,
         error: `Candidate is in terminal stage "${fromStage.stage_name}" and cannot be transitioned further.`,

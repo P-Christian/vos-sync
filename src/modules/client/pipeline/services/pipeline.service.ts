@@ -4,6 +4,7 @@ import {
   CanonicalStageType,
   CANONICAL_STAGE_TYPES,
   CompanyPipeline,
+  CUSTOM_ALLOWED_STAGE_TYPES,
   PipelineStage,
   PipelineTransition,
   STAGE_TYPE_DETAILS,
@@ -349,6 +350,20 @@ export async function createCompanyPipeline(
   try {
     const nowPH = getPHTimeString();
 
+    // Enforce quota: maximum 20 pipeline templates per company
+    const countRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company_pipelines?filter[company_id][_eq]=${companyId}&filter[status][_neq]=ARCHIVED&aggregate[count]=id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (countRes.ok) {
+      const countJson = await countRes.json();
+      const currentCount = Number(countJson.data?.[0]?.count?.id ?? countJson.data?.[0]?.count ?? 0);
+      if (currentCount >= 20) {
+        console.warn(`[pipeline.service] Company ${companyId} reached maximum 20 pipeline templates limit.`);
+        return null;
+      }
+    }
+
     if (data.is_default) {
       // Unset previous defaults by ID
       const checkRes = await fetch(
@@ -467,6 +482,13 @@ export async function updateCompanyPipeline(
   try {
     const nowPH = getPHTimeString();
 
+    // Verify pipeline belongs to company
+    const pipeline = await getPipelineWithDetails(pipelineId, companyId);
+    if (!pipeline || pipeline.company_id !== companyId) {
+      console.warn(`[pipeline.service] Unauthorized update attempt for pipeline ${pipelineId} by company ${companyId}`);
+      return false;
+    }
+
     if (payload.is_default) {
       // Unset previous defaults by ID
       const checkRes = await fetch(
@@ -527,15 +549,21 @@ export async function addPipelineStage(
     const pipeline = await getPipelineWithDetails(pipelineId, companyId);
     if (!pipeline) throw new Error("Pipeline not found or unauthorized.");
 
-    if (!isValidStageType(data.stage_type)) {
-      throw new Error(`Invalid stage type. Must be one of: ${CANONICAL_STAGE_TYPES.join(", ")}`);
+    const currentStages = pipeline.stages ?? [];
+    if (currentStages.length >= 25) {
+      throw new Error("Maximum 25 stages allowed per pipeline.");
     }
 
-    // Terminal integrity: HIRED, REJECTED, WITHDRAWN must be terminal
-    const isTerminal = isTerminalStageType(data.stage_type);
+    if (!CUSTOM_ALLOWED_STAGE_TYPES.includes(data.stage_type)) {
+      throw new Error(
+        `Custom stages must be an intermediate evaluation step (${CUSTOM_ALLOWED_STAGE_TYPES.join(", ")}).`
+      );
+    }
+
+    // Terminal integrity: custom stages are evaluation steps and cannot be terminal
+    const isTerminal = false;
 
     // Calculate next stage_order
-    const currentStages = pipeline.stages ?? [];
     const maxOrder = currentStages.reduce((max, s) => Math.max(max, s.stage_order), 0);
     const stageOrder = maxOrder + 1;
 
@@ -690,6 +718,10 @@ export async function updateStageTransitions(
       if (toId === fromStageId) {
         return { success: false, error: "Self-transitions are not permitted." };
       }
+      const targetStage = stages.find((s) => s.id === toId);
+      if (targetStage?.stage_type === "APPLIED") {
+        return { success: false, error: "Transitions targeting the initial intake stage (APPLIED) are not permitted." };
+      }
     }
 
     // 1. Delete existing transitions where from_stage_id === fromStageId
@@ -738,9 +770,19 @@ export async function reorderPipelineStages(
     const stages = pipeline.stages ?? [];
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
+    // Deduplicate requested stage IDs to guard against payload anomalies
+    const deduplicatedIds = Array.from(new Set(orderedStageIds));
+
+    // Pin entry stage: APPLIED must always remain at position 1
+    const appliedStage = stages.find((s) => s.stage_type === "APPLIED" || (s.is_system && s.stage_order === 1));
+    const filteredOrderedIds = deduplicatedIds.filter(
+      (id) => (appliedStage ? id !== appliedStage.id : true)
+    );
+    const finalOrderedIds = appliedStage ? [appliedStage.id, ...filteredOrderedIds] : deduplicatedIds;
+
     const nowPH = getPHTimeString();
     let order = 1;
-    for (const stageId of orderedStageIds) {
+    for (const stageId of finalOrderedIds) {
       if (stageMap.has(stageId)) {
         await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_stages/${stageId}`, {
           method: "PATCH",

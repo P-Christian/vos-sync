@@ -24,6 +24,7 @@ import {
 import {
   CanonicalStageType,
   CANONICAL_STAGE_TYPES,
+  CUSTOM_ALLOWED_STAGE_TYPES,
   JobPipelineStage,
   PipelineStage,
   STAGE_COLOR_CLASSES,
@@ -178,7 +179,7 @@ export default function StageEditModal({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {CANONICAL_STAGE_TYPES.map((type) => {
+                {(isSystemStage ? CANONICAL_STAGE_TYPES : CUSTOM_ALLOWED_STAGE_TYPES).map((type) => {
                   const details = STAGE_TYPE_DETAILS[type];
                   return (
                     <SelectItem key={type} value={type} className="text-xs py-2">

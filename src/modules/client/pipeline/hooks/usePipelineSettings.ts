@@ -252,6 +252,14 @@ export function usePipelineSettings() {
       const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
       if (targetIndex < 0 || targetIndex >= stages.length) return false;
 
+      // Pin APPLIED: Cannot move APPLIED down, and cannot move any stage above APPLIED
+      if (
+        stages[currentIndex].stage_type === "APPLIED" ||
+        stages[targetIndex].stage_type === "APPLIED"
+      ) {
+        return false;
+      }
+
       // Swap in array
       const temp = stages[currentIndex];
       stages[currentIndex] = stages[targetIndex];
@@ -304,8 +312,16 @@ export function usePipelineSettings() {
       const currentPipelineId = selectedPipeline.id;
       const originalPipelines = [...pipelines];
 
+      // Ensure APPLIED stage stays pinned at position 1
+      const appliedIdx = newOrderedStages.findIndex((s) => s.stage_type === "APPLIED");
+      const normalizedStages = [...newOrderedStages];
+      if (appliedIdx > 0) {
+        const [applied] = normalizedStages.splice(appliedIdx, 1);
+        normalizedStages.unshift(applied);
+      }
+
       // Update stage_order numbers to reflect new array order
-      const reorderedStages = newOrderedStages.map((s, idx) => ({
+      const reorderedStages = normalizedStages.map((s, idx) => ({
         ...s,
         stage_order: idx + 1,
       }));
