@@ -31,15 +31,6 @@ interface PortalPageHeaderProps {
   user: PortalPageHeaderUser;
 }
 
-function isWithin10Days(dateStr?: string | null): boolean {
-  if (!dateStr) return true; // Default to true if unauthenticated/demo
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return true;
-  const diffMs = Date.now() - date.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  return diffDays >= 0 && diffDays <= 10;
-}
-
 /**
  * Reusable page header for all portal pages.
  * Includes a SidebarTrigger (hamburger) on the left for mobile support,
@@ -52,14 +43,46 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
   const isSchoolAdminRoute = pathname?.startsWith("/vos-sync/school-admin");
   const isVosAdminRoute = pathname?.startsWith("/vos-sync/vos-admin");
 
-  const getHelpRoute = () => {
+  const getHelpRoute = React.useCallback(() => {
     if (isClientRoute) return "/vos-sync/client/how-it-works";
     if (isFreelancerRoute) return "/vos-sync/freelancer/how-it-works";
     if (isSchoolAdminRoute) return "/vos-sync/school-admin/how-it-works";
     return "/how-it-works";
-  };
+  }, [isClientRoute, isFreelancerRoute, isSchoolAdminRoute]);
 
-  const showNewBadge = isWithin10Days(user.terms_accepted_at || user.created_at);
+  const helpRoute = getHelpRoute();
+  const storageKey = React.useMemo(() => {
+    return `vos_help_guide_seen_${user?.email || "guest"}`;
+  }, [user?.email]);
+
+  const [hasSeenHelp, setHasSeenHelp] = React.useState<boolean>(true);
+
+  React.useEffect(() => {
+    try {
+      const seen = localStorage.getItem(storageKey);
+      if (seen === "true" || pathname === helpRoute) {
+        setHasSeenHelp(true);
+        if (seen !== "true") {
+          localStorage.setItem(storageKey, "true");
+        }
+      } else {
+        setHasSeenHelp(false);
+      }
+    } catch {
+      setHasSeenHelp(true);
+    }
+  }, [storageKey, pathname, helpRoute]);
+
+  const handleHelpClick = React.useCallback(() => {
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch {
+      // Ignore localStorage errors
+    }
+    setHasSeenHelp(true);
+  }, [storageKey]);
+
+  const showNewBadge = !hasSeenHelp;
 
   return (
     <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b shadow-xs bg-background sm:h-16 px-4">
@@ -88,7 +111,7 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 size="icon"
                 className="text-muted-foreground hover:text-foreground flex relative cursor-pointer max-md:size-11"
               >
-                <Link href={getHelpRoute()}>
+                <Link href={helpRoute} onClick={handleHelpClick}>
                   <HelpCircle className="h-5 w-5" />
                   {showNewBadge && (
                     <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
