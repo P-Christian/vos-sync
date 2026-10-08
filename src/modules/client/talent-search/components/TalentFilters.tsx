@@ -3,7 +3,8 @@
 // src/modules/client/talent-search/components/TalentFilters.tsx
 
 import React, { useState } from "react";
-import { Filter, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Filter, ChevronDown, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,15 +27,30 @@ const COMMON_SKILLS = [
 function FilterSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 last:border-0">
+    <div className="border-b border-border/70 pb-3 last:border-0">
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-between w-full text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider py-2 max-md:min-h-10"
+        className="flex items-center justify-between w-full text-xs font-semibold text-foreground/85 uppercase tracking-wider py-2 hover:text-foreground transition-colors max-md:min-h-10"
       >
-        {title}
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+        <span>{title}</span>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        </motion.div>
       </button>
-      {open && <div className="mt-2">{children}</div>}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="pt-1 pb-1">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -65,16 +81,26 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
     <div className="flex flex-col gap-4 h-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-zinc-500" />
-          <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Filters</span>
-          {activeCount > 0 && (
-            <Badge className="h-5 px-1.5 text-sm md:text-xs bg-indigo-500 text-white border-0">
-              {activeCount}
-            </Badge>
-          )}
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Filters</span>
+          <AnimatePresence>
+            {activeCount > 0 && (
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.6, opacity: 0 }}
+                transition={{ duration: 0.18 }}
+              >
+                <Badge className="h-5 px-1.5 text-xs bg-primary text-primary-foreground border-0 font-bold">
+                  {activeCount}
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         {activeCount > 0 && (
           <button
+            type="button"
             onClick={() => {
               onFilterChange("skills", []);
               onFilterChange("location", "");
@@ -82,17 +108,17 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
               onFilterChange("availability", "");
               onFilterChange("school_id", "");
             }}
-            className="text-xs text-zinc-400 hover:text-rose-500 transition-colors max-md:min-h-10"
+            className="text-xs text-muted-foreground hover:text-destructive transition-colors max-md:min-h-10"
           >
             Clear filters
           </button>
         )}
       </div>
 
-      <div className="flex flex-col gap-4 overflow-y-auto flex-1 pr-1">
+      <div className="flex flex-col gap-3 overflow-y-auto flex-1 pr-1">
         {/* Skills */}
         <FilterSection title="Skills">
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div className="flex gap-1.5">
               <Input
                 placeholder="Add skill…"
@@ -104,13 +130,13 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
                     addSkill(skillInput);
                   }
                 }}
-                className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg"
+                className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
               />
               <Button
                 size="sm"
                 onClick={() => addSkill(skillInput)}
                 disabled={!skillInput.trim()}
-                className="h-8 max-md:min-h-10 px-3 text-sm md:text-xs rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white border-0 shrink-0"
+                className="h-8 max-md:min-h-10 px-3 text-xs rounded-lg shrink-0 shadow-2xs"
               >
                 Add
               </Button>
@@ -119,30 +145,43 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             {/* Added skills */}
             {filters.skills.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {filters.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-medium"
-                  >
-                    {skill}
-                    <button onClick={() => removeSkill(skill)} className="hover:text-rose-500 max-md:relative max-md:after:absolute max-md:after:-inset-[15px] max-md:after:content-['']">
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
-                ))}
+                <AnimatePresence>
+                  {filters.skills.map((skill) => (
+                    <motion.span
+                      layout
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.8, opacity: 0 }}
+                      key={skill}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20 font-medium shadow-2xs"
+                    >
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(skill)}
+                        className="hover:text-destructive transition-colors p-0.5"
+                        title={`Remove ${skill}`}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </motion.span>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
 
             {/* Quick skill chips */}
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 pt-1">
               {COMMON_SKILLS.filter((s) => !filters.skills.includes(s)).slice(0, 10).map((skill) => (
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   key={skill}
+                  type="button"
                   onClick={() => addSkill(skill)}
-                  className="px-2 py-0.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-indigo-400 hover:text-indigo-600 transition-colors max-md:min-h-10 max-md:px-3"
+                  className="px-2 py-0.5 rounded-full text-xs border border-border/80 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/50 transition-colors"
                 >
                   + {skill}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -154,7 +193,7 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             placeholder="City or province…"
             value={filters.location}
             onChange={(e) => onFilterChange("location", e.target.value)}
-            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg"
+            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
           />
         </FilterSection>
 
@@ -164,14 +203,15 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([level, label]) => (
               <button
                 key={level}
+                type="button"
                 onClick={() =>
                   onFilterChange("experience_level", filters.experience_level === level ? "" : level)
                 }
                 className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-sm md:text-xs transition-colors max-md:min-h-10",
+                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
                   filters.experience_level === level
-                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    ? "bg-primary/10 text-primary font-semibold border border-primary/20 shadow-2xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {label}
@@ -186,14 +226,15 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             {(Object.entries(AVAILABILITY_LABELS) as [AvailabilityStatus, string][]).map(([status, label]) => (
               <button
                 key={status}
+                type="button"
                 onClick={() =>
                   onFilterChange("availability", filters.availability === status ? "" : status)
                 }
                 className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-sm md:text-xs transition-colors max-md:min-h-10",
+                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
                   filters.availability === status
-                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold"
-                    : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    ? "bg-primary/10 text-primary font-semibold border border-primary/20 shadow-2xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {label}
@@ -203,13 +244,15 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
         </FilterSection>
       </div>
 
-      <Button
-        id="talent-filter-apply"
-        onClick={onApply}
-        className="w-full h-9 max-md:min-h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0"
-      >
-        Apply Filters
-      </Button>
+      <motion.div whileTap={{ scale: 0.98 }}>
+        <Button
+          id="talent-filter-apply"
+          onClick={onApply}
+          className="w-full h-9 max-md:min-h-10 rounded-xl font-semibold text-sm shadow-2xs"
+        >
+          Apply Filters
+        </Button>
+      </motion.div>
     </div>
   );
 }

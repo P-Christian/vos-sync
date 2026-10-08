@@ -7,6 +7,7 @@ import {
   Search, Users, Bookmark, AlertCircle, ChevronLeft, ChevronRight,
   SlidersHorizontal, X,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -147,28 +148,23 @@ export default function TalentSearchModule() {
 
   return (
     <CompanyVerificationGuard moduleName="Talent Search">
-      <div className="space-y-4 md:space-y-6 client-page-transition">
-        <style>{`
-          @keyframes page-entry {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .client-page-transition {
-            animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          }
-        `}</style>
-
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="space-y-4 md:space-y-6"
+      >
         {/* ── Header ──────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-violet-950 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-48 w-48 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-8 bottom-0 h-32 w-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-card via-card/90 to-muted/40 p-6 sm:p-8 rounded-3xl border border-border shadow-sm relative overflow-hidden">
+          <div className="absolute right-0 top-0 h-48 w-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -left-8 bottom-0 h-32 w-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
-            <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+            <div className="p-3 bg-primary/10 text-primary backdrop-blur rounded-2xl border border-primary/20">
               <Search className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Talent Search</h1>
-              <p className="text-sm text-indigo-200 mt-0.5">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Talent Search</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Discover and connect with professionals, freelancers &amp; students
               </p>
             </div>
@@ -178,12 +174,12 @@ export default function TalentSearchModule() {
           {hasSearched && (
             <div className="flex gap-4 md:gap-6 relative z-10">
               <div className="text-center">
-                <p className="text-2xl font-bold">{total}</p>
-                <p className="text-sm md:text-xs text-zinc-400">Profiles Found</p>
+                <p className="text-2xl font-bold text-foreground">{total}</p>
+                <p className="text-sm md:text-xs text-muted-foreground">Profiles Found</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold">{saved.length}</p>
-                <p className="text-sm md:text-xs text-zinc-400">Saved</p>
+                <p className="text-2xl font-bold text-foreground">{saved.length}</p>
+                <p className="text-sm md:text-xs text-muted-foreground">Saved</p>
               </div>
             </div>
           )}
@@ -191,7 +187,7 @@ export default function TalentSearchModule() {
 
         {/* ── Main Content ─────────────────────────── */}
         <Tabs defaultValue="search" className="space-y-4">
-          <TabsList className="h-10 max-md:min-h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 w-fit">
+          <TabsList className="h-10 max-md:min-h-10 bg-muted/80 backdrop-blur-sm rounded-xl p-1 w-fit border border-border">
             <TabsTrigger value="search" className="rounded-lg text-sm max-md:text-xs gap-2 px-4 max-md:px-3">
               <Search className="h-4 w-4" />
               Search Talent
@@ -200,7 +196,7 @@ export default function TalentSearchModule() {
               <Bookmark className="h-4 w-4" />
               Saved
               {saved.length > 0 && (
-                <span className="ml-1 text-xs bg-indigo-500 text-white rounded-full px-1.5 py-0.5 font-bold">
+                <span className="ml-1 text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 font-bold">
                   {saved.length}
                 </span>
               )}
@@ -209,10 +205,15 @@ export default function TalentSearchModule() {
 
           {/* ── SEARCH TAB ────────────────────────── */}
           <TabsContent value="search">
-            <div className="flex gap-4 md:gap-6">
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-4 md:gap-6"
+            >
               {/* Sidebar filters — desktop */}
               <div className="hidden lg:flex flex-col w-64 shrink-0">
-                <div className="sticky top-4 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
+                <div className="sticky top-4 bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 shadow-sm">
                   <TalentFiltersPanel
                     filters={filters}
                     onFilterChange={updateFilter}
@@ -224,7 +225,7 @@ export default function TalentSearchModule() {
               {/* Results area */}
               <div className="flex-1 min-w-0 space-y-4">
                 {/* Search bar */}
-                <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 max-md:p-3 shadow-sm space-y-3">
+                <div className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 max-md:p-3 shadow-sm space-y-3">
                   <TalentSearchBar
                     keyword={filters.keyword}
                     jobIdForMatch={jobIdForMatch}
@@ -249,31 +250,39 @@ export default function TalentSearchModule() {
                   </div>
 
                   {/* Mobile filters panel */}
-                  {mobileFiltersOpen && (
-                    <div className="lg:hidden border-t border-zinc-200 dark:border-zinc-800 pt-3 relative">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-3 right-0 h-7 w-7 max-md:size-10 p-0 rounded-full"
-                        onClick={() => setMobileFiltersOpen(false)}
+                  <AnimatePresence>
+                    {mobileFiltersOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="lg:hidden border-t border-border pt-3 relative overflow-hidden"
                       >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                      <TalentFiltersPanel
-                        filters={filters}
-                        onFilterChange={updateFilter}
-                        onApply={() => {
-                          handleSearch();
-                          setMobileFiltersOpen(false);
-                        }}
-                      />
-                    </div>
-                  )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-3 right-0 h-7 w-7 max-md:size-10 p-0 rounded-full"
+                          onClick={() => setMobileFiltersOpen(false)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                        <TalentFiltersPanel
+                          filters={filters}
+                          onFilterChange={updateFilter}
+                          onApply={() => {
+                            handleSearch();
+                            setMobileFiltersOpen(false);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Error */}
                 {error && !loading && (
-                  <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+                  <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     {error}
                   </div>
@@ -281,10 +290,10 @@ export default function TalentSearchModule() {
 
                 {/* Results count */}
                 {hasSearched && !loading && (
-                  <div className="flex items-center justify-between text-sm text-zinc-500">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>
-                      Showing <strong className="text-zinc-800 dark:text-zinc-200">{talents.length}</strong> of{" "}
-                      <strong className="text-zinc-800 dark:text-zinc-200">{total}</strong> profiles
+                      Showing <strong className="text-foreground">{talents.length}</strong> of{" "}
+                      <strong className="text-foreground">{total}</strong> profiles
                     </span>
                     {totalPages > 1 && (
                       <span>Page {page} of {totalPages}</span>
@@ -292,92 +301,121 @@ export default function TalentSearchModule() {
                   </div>
                 )}
 
-                {/* Loading skeleton */}
-                {loading && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 space-y-3 animate-pulse"
-                      >
-                        <div className="flex gap-3">
-                          <div className="h-12 w-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 shrink-0" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded w-3/4" />
-                            <div className="h-3 bg-zinc-100 dark:bg-zinc-700 rounded w-1/2" />
+                {/* State Transitions: Loading Skeleton, Empty State, Initial State, Results */}
+                <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div
+                      key="loading-skeleton"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className="rounded-2xl border border-border bg-card p-5 space-y-3 animate-pulse"
+                        >
+                          <div className="flex gap-3">
+                            <div className="h-12 w-12 rounded-xl bg-muted shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 bg-muted rounded w-3/4" />
+                              <div className="h-3 bg-muted/60 rounded w-1/2" />
+                            </div>
                           </div>
+                          <div className="flex gap-1.5">
+                            {[1, 2, 3].map((j) => (
+                              <div key={j} className="h-6 w-14 rounded-full bg-muted/80" />
+                            ))}
+                          </div>
+                          <div className="h-3 bg-muted/60 rounded w-full" />
+                          <div className="h-3 bg-muted/60 rounded w-4/5" />
                         </div>
-                        <div className="flex gap-1.5">
-                          {[1, 2, 3].map((j) => (
-                            <div key={j} className="h-6 w-14 rounded-full bg-zinc-100 dark:bg-zinc-800" />
-                          ))}
+                      ))}
+                    </motion.div>
+                  ) : hasSearched && talents.length === 0 && !error ? (
+                    <motion.div
+                      key="empty-state"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center justify-center py-20 text-center"
+                    >
+                      <Users className="h-12 w-12 text-muted-foreground/40 mb-4" />
+                      <h3 className="text-base font-semibold text-foreground">No profiles found</h3>
+                      <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                        Try adjusting your search keywords or filters to find more candidates.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={resetFilters}
+                        className="mt-4 rounded-xl text-sm max-md:min-h-10 max-md:px-3 max-md:text-xs"
+                      >
+                        Clear All Filters
+                      </Button>
+                    </motion.div>
+                  ) : !hasSearched && !error ? (
+                    <motion.div
+                      key="initial-state"
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center justify-center py-20 text-center"
+                    >
+                      <div className="relative mb-6">
+                        <div className="h-20 w-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+                          <Search className="h-10 w-10 text-primary-foreground" />
                         </div>
-                        <div className="h-3 bg-zinc-100 dark:bg-zinc-700 rounded w-full" />
-                        <div className="h-3 bg-zinc-100 dark:bg-zinc-700 rounded w-4/5" />
+                        <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                          AI
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Empty state */}
-                {!loading && hasSearched && talents.length === 0 && !error && (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <Users className="h-12 w-12 text-zinc-300 dark:text-zinc-700 mb-4" />
-                    <h3 className="text-base font-semibold text-zinc-700 dark:text-zinc-300">No profiles found</h3>
-                    <p className="text-sm text-zinc-400 mt-1 max-w-sm">
-                      Try adjusting your search keywords or filters to find more candidates.
-                    </p>
-                    <Button
-                      variant="outline"
-                      onClick={resetFilters}
-                      className="mt-4 rounded-xl text-sm max-md:min-h-10 max-md:px-3 max-md:text-xs"
+                      <h3 className="text-lg font-bold text-foreground">
+                        Find Your Next Hire
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
+                        Search by name, skill, job title, or school.
+                      </p>
+                      <Button
+                        onClick={handleSearch}
+                        className="mt-6 h-11 px-8 rounded-xl font-semibold text-sm gap-2"
+                      >
+                        <Search className="h-4 w-4" />
+                        Browse All Talent
+                      </Button>
+                    </motion.div>
+                  ) : talents.length > 0 ? (
+                    <motion.div
+                      key="results-grid"
+                      initial="hidden"
+                      animate="show"
+                      exit={{ opacity: 0 }}
+                      variants={{
+                        hidden: { opacity: 0 },
+                        show: {
+                          opacity: 1,
+                          transition: {
+                            staggerChildren: 0.04,
+                          },
+                        },
+                      }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
                     >
-                      Clear All Filters
-                    </Button>
-                  </div>
-                )}
-
-                {/* Initial state */}
-                {!loading && !hasSearched && !error && (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="relative mb-6">
-                      <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                        <Search className="h-10 w-10 text-white" />
-                      </div>
-                      <div className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-amber-400 flex items-center justify-center text-xs font-bold text-amber-900">
-                        AI
-                      </div>
-                    </div>
-                    <h3 className="text-lg font-bold text-zinc-800 dark:text-zinc-200">
-                      Find Your Next Hire
-                    </h3>
-                    <p className="text-sm text-zinc-400 mt-2 max-w-md leading-relaxed">
-                      Search by name, skill, job title, or school. 
-                    </p>
-                    <Button
-                      onClick={handleSearch}
-                      className="mt-6 h-11 px-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-semibold text-sm gap-2"
-                    >
-                      <Search className="h-4 w-4" />
-                      Browse All Talent
-                    </Button>
-                  </div>
-                )}
-
-                {/* Results grid */}
-                {!loading && talents.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {talents.map((talent) => (
-                      <TalentCardComponent
-                        key={talent.user_id}
-                        talent={talent}
-                        onViewProfile={handleViewProfile}
-                        onToggleSave={handleToggleSave}
-                        saving={saving}
-                      />
-                    ))}
-                  </div>
-                )}
+                      {talents.map((talent) => (
+                        <TalentCardComponent
+                          key={talent.user_id}
+                          talent={talent}
+                          onViewProfile={handleViewProfile}
+                          onToggleSave={handleToggleSave}
+                          saving={saving}
+                        />
+                      ))}
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
 
                 {/* Pagination */}
                 {!loading && totalPages > 1 && (
@@ -404,7 +442,7 @@ export default function TalentSearchModule() {
                             onClick={() => handlePageChange(pg)}
                             className={cn(
                               "h-9 w-9 max-md:size-10 p-0 rounded-xl text-sm max-md:text-xs",
-                              pg === page ? "bg-indigo-600 text-white border-0" : ""
+                              pg === page ? "bg-primary text-primary-foreground border-0" : ""
                             )}
                           >
                             {pg}
@@ -425,12 +463,17 @@ export default function TalentSearchModule() {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </TabsContent>
 
           {/* ── SAVED TAB ─────────────────────────── */}
           <TabsContent value="saved">
-            <div className="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 max-md:p-4 shadow-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-6 max-md:p-4 shadow-sm"
+            >
               <SavedTalentPanel
                 saved={saved}
                 loading={savedLoading}
@@ -444,7 +487,7 @@ export default function TalentSearchModule() {
                 onInvite={handleOpenInvite}
                 unsaving={saving}
               />
-            </div>
+            </motion.div>
           </TabsContent>
         </Tabs>
 
@@ -479,7 +522,7 @@ export default function TalentSearchModule() {
             error={savedError}
           />
         )}
-      </div>
+      </motion.div>
     </CompanyVerificationGuard>
   );
 }

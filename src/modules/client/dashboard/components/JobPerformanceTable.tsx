@@ -1,7 +1,7 @@
 // src/modules/client/dashboard/components/JobPerformanceTable.tsx
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { JobPerformanceItem } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,19 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
     return s === "ACTIVE" || s === "PUBLISHED" || s === "OPEN";
   };
 
+  const displayedJobs = useMemo(() => {
+    return [...jobs]
+      .sort((a, b) => {
+        const aApps = a.applicantsCount ?? a.applicants_count ?? 0;
+        const bApps = b.applicantsCount ?? b.applicants_count ?? 0;
+        if (aApps !== bApps) return bApps - aApps;
+        const aDate = new Date(a.postedAt || a.created_at || 0).getTime();
+        const bDate = new Date(b.postedAt || b.created_at || 0).getTime();
+        return bDate - aDate;
+      })
+      .slice(0, 10);
+  }, [jobs]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -59,7 +72,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
           </CardHeader>
 
           <CardContent className="p-0">
-            {jobs.length === 0 ? (
+            {displayedJobs.length === 0 ? (
               <div className="py-12 text-center text-muted-foreground text-sm md:text-xs space-y-2">
                 <Briefcase className="h-8 w-8 mx-auto text-muted-foreground/40" />
                 <p>No active jobs posted yet.</p>
@@ -87,7 +100,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
                   <span className="col-span-2 text-right min-w-0 truncate">Status</span>
                 </div>
 
-                {jobs.map((job) => {
+                {displayedJobs.map((job) => {
                   const id = job.id || job.job_id || 0;
                   const title = job.title || job.job_title || "Job Posting";
                   const department = job.department || job.job_department || "General";
@@ -141,7 +154,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
         </div>
 
         <div className="p-4 bg-muted/20 border-t border-border/60 flex items-center justify-between">
-          <span className="text-sm md:text-xs text-muted-foreground">Showing top performing postings</span>
+          <span className="text-sm md:text-xs text-muted-foreground">Showing top 10 postings</span>
           <Button
             variant="outline"
             size="sm"

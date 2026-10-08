@@ -44,6 +44,7 @@ import {
 interface ReorderableStageItemProps {
   stage: PipelineStage;
   index: number;
+  prevStage?: PipelineStage;
   totalStages: number;
   stageMap: Map<number, PipelineStage>;
   isDeleting: boolean;
@@ -59,6 +60,7 @@ interface ReorderableStageItemProps {
 function ReorderableStageItem({
   stage,
   index,
+  prevStage,
   totalStages,
   stageMap,
   isDeleting,
@@ -85,8 +87,11 @@ function ReorderableStageItem({
     .map((id) => stageMap.get(id))
     .filter(Boolean) as PipelineStage[];
 
+  const isApplied = stage.stage_type === "APPLIED";
   const isFirst = index === 0;
   const isLast = index === totalStages - 1;
+  const isMoveUpDisabled = isFirst || prevStage?.stage_type === "APPLIED";
+  const isMoveDownDisabled = isLast || isApplied;
 
   const cardContent = (
     <>
@@ -94,22 +99,31 @@ function ReorderableStageItem({
       <div className="flex items-start md:items-center gap-3 min-w-0">
         {/* Drag Handle & Ordering Controls */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onPointerDown={(e) => dragControls.start(e)}
-            className="cursor-grab active:cursor-grabbing p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/80 transition-colors touch-none"
-            title="Drag to reorder stage"
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
+          {isApplied ? (
+            <div
+              className="p-1.5 rounded-md text-muted-foreground/30 cursor-not-allowed"
+              title="First stage is fixed and cannot be reordered"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onPointerDown={(e) => dragControls.start(e)}
+              className="cursor-grab active:cursor-grabbing p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/80 transition-colors touch-none"
+              title="Drag to reorder stage"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
 
           <div className="flex flex-col items-center justify-center shrink-0 gap-0.5 pt-0.5 md:pt-0">
             <button
               type="button"
-              disabled={isFirst}
+              disabled={isMoveUpDisabled}
               onClick={onMoveUp}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              title="Move Up"
+              title={isMoveUpDisabled ? "Cannot move above initial application stage" : "Move Up"}
             >
               <ArrowUp className="h-3 w-3" />
             </button>
@@ -118,10 +132,10 @@ function ReorderableStageItem({
             </span>
             <button
               type="button"
-              disabled={isLast}
+              disabled={isMoveDownDisabled}
               onClick={onMoveDown}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-              title="Move Down"
+              title={isMoveDownDisabled ? "Initial application stage cannot be moved down" : "Move Down"}
             >
               <ArrowDown className="h-3 w-3" />
             </button>
@@ -273,10 +287,10 @@ function ReorderableStageItem({
       transition={{
         layout: { type: "spring", stiffness: 450, damping: 32 },
       }}
-      className={`group relative rounded-xl border border-border/80 bg-card transition-colors select-none ${
+      className={`group relative rounded-xl transition-colors select-none ${
         isDeleting
-          ? "overflow-visible pointer-events-none border-destructive/60"
-          : "hover:border-primary/40 hover:shadow-xs"
+          ? "overflow-visible pointer-events-none border-transparent bg-transparent shadow-none"
+          : "border border-border/80 bg-card hover:border-primary/40 hover:shadow-xs"
       }`}
     >
       {isDeleting ? (
@@ -543,7 +557,7 @@ export default function PipelineSettingsTab() {
               </Badge>
             ) : null}
             <span className="text-muted-foreground">
-              &bull; Version {selectedPipeline.version} &bull; {sortedStages.length} Stages
+               {sortedStages.length} Stages
             </span>
           </div>
 
@@ -593,6 +607,7 @@ export default function PipelineSettingsTab() {
                 key={stage.id}
                 stage={stage}
                 index={index}
+                prevStage={index > 0 ? sortedStages[index - 1] : undefined}
                 totalStages={sortedStages.length}
                 stageMap={stageMap}
                 isDeleting={deletingStageId === stage.id}

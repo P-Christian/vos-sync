@@ -2,6 +2,7 @@
 
 import {
   CanonicalStageType,
+  CUSTOM_ALLOWED_STAGE_TYPES,
   JobPipelineStage,
   JobPipelineTransition,
   JobPipelineVersion,
@@ -11,8 +12,6 @@ import {
 } from "../types";
 import {
   getPipelineWithDetails,
-  isValidStageType,
-  isTerminalStageType,
   seedDefaultCompanyPipeline,
 } from "./pipeline.service";
 import { copyCompanyTasksToJobStage } from "./job-assessment-task.service";
@@ -93,19 +92,19 @@ async function compensateJobSnapshot(
 export async function getJobApplicationCount(jobId: number): Promise<number> {
   try {
     const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[withdrawal_reason][_null]=true&aggregate[count]=application_id`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[application_status][_neq]=WITHDRAWN&aggregate[count]=application_id`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
     if (res.ok) {
       const json = await res.json();
       const count = Number(json.data?.[0]?.count?.application_id ?? json.data?.[0]?.count ?? 0);
-      if (!isNaN(count) && count > 0) return count;
+      if (!isNaN(count)) return count;
     }
 
     // Fallback direct count fetch
     const listRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&fields=application_id&limit=100`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_eq]=${jobId}&filter[application_status][_neq]=WITHDRAWN&fields=application_id&limit=100`,
       { headers: getHeaders(), cache: "no-store" }
     );
     if (listRes.ok) {
@@ -113,21 +112,30 @@ export async function getJobApplicationCount(jobId: number): Promise<number> {
       return (listJson.data ?? []).length;
     }
 
-    return 0;
+    // Both queries failed - return -1 to signal failure instead of failing open
+    return -1;
   } catch (err) {
     console.error(`[job-pipeline.service] Error checking applications for job #${jobId}:`, err);
-    return 0;
+    return -1;
   }
 }
 
 /**
  * Validates whether the active job pipeline version can be modified.
  * Immutability rule: active job pipeline version is locked if application_count > 0.
+ * Fail-closed policy: modification is refused if application count cannot be determined safely.
  */
 export async function canModifyJobPipeline(
   jobId: number
 ): Promise<{ canModify: boolean; applicationCount: number; error?: string }> {
   const count = await getJobApplicationCount(jobId);
+  if (count < 0) {
+    return {
+      canModify: false,
+      applicationCount: 0,
+      error: "Unable to verify application lock status. Pipeline modification is temporarily locked for safety.",
+    };
+  }
   if (count > 0) {
     return {
       canModify: false,
@@ -182,7 +190,7 @@ export async function snapshotCompanyPipeline(
   };
 
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Resolve source company pipeline template
     let sourcePipeline = sourcePipelineId
@@ -236,7 +244,7 @@ export async function snapshotCompanyPipeline(
         source_pipeline_id: sourcePipeline.id,
         version: nextVersion,
         is_active: true,
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 
@@ -268,7 +276,7 @@ export async function snapshotCompanyPipeline(
           is_terminal: compStage.is_terminal,
           is_system: compStage.is_system,
           assessment_submission_window_days: compStage.assessment_submission_window_days ?? null,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
 
@@ -303,7 +311,7 @@ export async function snapshotCompanyPipeline(
             job_pipeline_id: jobPipeline.id,
             from_stage_id: mappedFromId,
             to_stage_id: mappedToId,
-            created_at: nowUtc,
+            created_at: nowPH,
           }),
         });
 
@@ -416,7 +424,7 @@ export async function bootstrapJobPipeline(
       }
 
       const appliedStage = stageByType.get("APPLIED") ?? stages[0];
-      const nowUtc = new Date().toISOString();
+      const nowPH = getPHTimeString();
 
       for (const app of applications) {
         if (!app.current_stage_id) {
@@ -442,7 +450,7 @@ export async function bootstrapJobPipeline(
                 to_stage_id: matchedStage.id,
                 changed_by: null,
                 change_reason: `Legacy ATS migration (${rawStatus} → ${canonicalType})`,
-                created_at: nowUtc,
+                created_at: nowPH,
               }),
             });
           }
@@ -554,16 +562,24 @@ export async function addJobPipelineStage(
     const pipeline = await getJobPipeline(jobId);
     if (!pipeline) return { success: false, error: "Job pipeline not found." };
 
-    if (!isValidStageType(data.stage_type)) {
-      return { success: false, error: "Invalid canonical stage type." };
+    const currentStages = pipeline.stages ?? [];
+    if (currentStages.length >= 25) {
+      return { success: false, error: "Maximum 25 stages allowed per pipeline." };
     }
 
-    const isTerminal = isTerminalStageType(data.stage_type);
-    const maxOrder = (pipeline.stages ?? []).reduce((max, s) => Math.max(max, s.stage_order), 0);
+    if (!CUSTOM_ALLOWED_STAGE_TYPES.includes(data.stage_type)) {
+      return {
+        success: false,
+        error: `Custom stages must be an intermediate evaluation step (${CUSTOM_ALLOWED_STAGE_TYPES.join(", ")}).`,
+      };
+    }
+
+    const isTerminal = false;
+    const maxOrder = currentStages.reduce((max, s) => Math.max(max, s.stage_order), 0);
     const stageOrder = maxOrder + 1;
 
     const defaultColor = STAGE_TYPE_DETAILS[data.stage_type]?.defaultColor || "sky";
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_stages`, {
       method: "POST",
@@ -577,7 +593,7 @@ export async function addJobPipelineStage(
         description: data.description?.trim() || null,
         is_terminal: isTerminal,
         is_system: false,
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 
@@ -726,6 +742,10 @@ export async function updateJobPipelineTransitions(
       if (toId === fromStageId) {
         return { success: false, error: "Self-transitions are not permitted." };
       }
+      const targetStage = stages.find((s) => s.id === toId);
+      if (targetStage?.stage_type === "APPLIED") {
+        return { success: false, error: "Transitions targeting the initial intake stage (APPLIED) are not permitted." };
+      }
     }
 
     // 1. Delete existing transitions for this from_stage_id
@@ -738,7 +758,7 @@ export async function updateJobPipelineTransitions(
     }
 
     // 2. Insert new transitions
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     for (const toId of targetStageIds) {
       await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_transitions`, {
         method: "POST",
@@ -747,7 +767,7 @@ export async function updateJobPipelineTransitions(
           job_pipeline_id: pipeline.id,
           from_stage_id: fromStageId,
           to_stage_id: toId,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
     }
@@ -779,13 +799,27 @@ export async function reorderJobPipelineStages(
     const stages = pipeline.stages ?? [];
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
+    // Deduplicate requested stage IDs to guard against payload anomalies
+    const deduplicatedIds = Array.from(new Set(orderedStageIds));
+
+    // Pin entry stage: APPLIED must always remain at position 1
+    const appliedStage = stages.find((s) => s.stage_type === "APPLIED" || (s.is_system && s.stage_order === 1));
+    const filteredOrderedIds = deduplicatedIds.filter(
+      (id) => (appliedStage ? id !== appliedStage.id : true)
+    );
+    const finalOrderedIds = appliedStage ? [appliedStage.id, ...filteredOrderedIds] : deduplicatedIds;
+
+    const nowPH = getPHTimeString();
     let order = 1;
-    for (const stageId of orderedStageIds) {
+    for (const stageId of finalOrderedIds) {
       if (stageMap.has(stageId)) {
         await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_stages/${stageId}`, {
           method: "PATCH",
           headers: getHeaders(),
-          body: JSON.stringify({ stage_order: order++ }),
+          body: JSON.stringify({
+            stage_order: order++,
+            updated_at: nowPH,
+          }),
         });
       }
     }
@@ -815,7 +849,7 @@ export async function assignInitialStageToApplication(
     const appliedStage =
       pipeline.stages.find((s) => s.stage_type === "APPLIED") ?? pipeline.stages[0];
 
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Update application with current_stage_id and canonical status
     await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${applicationId}`, {
@@ -824,7 +858,7 @@ export async function assignInitialStageToApplication(
       body: JSON.stringify({
         current_stage_id: appliedStage.id,
         application_status: "APPLIED",
-        status_updated_at: nowUtc,
+        status_updated_at: nowPH,
       }),
     });
 
@@ -843,7 +877,7 @@ export async function assignInitialStageToApplication(
           stage_name: appliedStage.stage_name,
           stage_type: appliedStage.stage_type,
         },
-        created_at: nowUtc,
+        created_at: nowPH,
       }),
     });
 
@@ -1179,8 +1213,11 @@ export async function transitionApplicationStage({
       };
     }
 
-    // 6. Guard: Cannot move OUT of a terminal stage
-    if (fromStage.is_terminal) {
+    // 6. Guard: Cannot move OUT of a terminal stage or terminal status
+    const rawAppStatus = String(appData.application_status || "").toUpperCase();
+    const isTerminalStatus = rawAppStatus === "REJECTED" || rawAppStatus === "WITHDRAWN" || rawAppStatus === "HIRED";
+
+    if (fromStage.is_terminal || isTerminalStatus) {
       return {
         success: false,
         error: `Candidate is in terminal stage "${fromStage.stage_name}" and cannot be transitioned further.`,

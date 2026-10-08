@@ -4,6 +4,7 @@
 // Gemini does NOT modify scores. It explains deterministic evidence and gaps only.
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import {
   CampusCandidate,
@@ -17,18 +18,13 @@ import { generateCampusMatchExplanation } from "@/lib/gemini/campusMatchExplaine
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+function getHeaders(): Record<string, string> {
+  const h: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
+  if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+  return h;
 }
 
 interface MatchRequestBody {
@@ -39,15 +35,12 @@ interface MatchRequestBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified || !companyId) {
       return NextResponse.json(
@@ -61,6 +54,21 @@ export async function POST(req: NextRequest) {
 
     if (!job || !Array.isArray(candidates)) {
       return NextResponse.json({ error: "Missing job or candidates." }, { status: 400 });
+    }
+
+    // Verify job ownership to prevent cross-tenant IDOR
+    if (job.job_id) {
+      const jobCheckRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_posting/${job.job_id}?fields=job_id,company_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!jobCheckRes.ok) {
+        return NextResponse.json({ error: "Job posting not found." }, { status: 404 });
+      }
+      const jobCheckData = await jobCheckRes.json();
+      if (Number(jobCheckData.data?.company_id) !== Number(companyId)) {
+        return NextResponse.json({ error: "Forbidden: You do not own this job posting." }, { status: 403 });
+      }
     }
 
     if (candidates.length > 200) {

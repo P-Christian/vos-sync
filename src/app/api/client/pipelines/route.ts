@@ -1,10 +1,9 @@
-// src/app/api/client/pipelines/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   createCompanyPipeline,
   getCompanyPipelines,
 } from "@/modules/client/pipeline/services/pipeline.service";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,20 +25,6 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 async function getCompanyId(userId: number): Promise<number | null> {
   try {
     const res = await fetch(
@@ -55,19 +40,12 @@ async function getCompanyId(userId: number): Promise<number | null> {
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
@@ -82,7 +60,7 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error("GET /api/client/pipelines error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to retrieve pipelines." },
+      { error: "Failed to retrieve pipelines." },
       { status: 500 }
     );
   }
@@ -90,31 +68,28 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 404 });
     }
 
     const body = await req.json().catch(() => null);
-    if (!body?.name?.trim()) {
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    if (!name) {
       return NextResponse.json({ error: "Pipeline name is required." }, { status: 400 });
+    }
+    if (name.length > 100) {
+      return NextResponse.json({ error: "Pipeline name cannot exceed 100 characters." }, { status: 400 });
     }
 
     const newPipeline = await createCompanyPipeline(companyId, {
-      name: body.name.trim(),
+      name,
       is_default: Boolean(body.is_default),
     });
 
@@ -129,7 +104,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("POST /api/client/pipelines error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to create pipeline." },
+      { error: "Failed to create pipeline." },
       { status: 500 }
     );
   }

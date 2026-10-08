@@ -1,5 +1,3 @@
-// src/app/api/client/applicants/[id]/stage/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAssessmentMoveRequirement,
@@ -117,6 +115,37 @@ export async function PATCH(
       return NextResponse.json({ error: scope.error }, { status: scope.status });
     }
     const userId = scope.userId;
+    const companyId = scope.companyId;
+
+    // IDOR Protection: Verify application belongs to a job owned by this company
+    const appCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_application/${applicationId}?fields=application_id,job_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!appCheckRes.ok) {
+      return NextResponse.json({ error: "Application not found." }, { status: 404 });
+    }
+    const appCheckJson = await appCheckRes.json();
+    const targetJobId = Number(appCheckJson.data?.job_id);
+    if (!targetJobId) {
+      return NextResponse.json({ error: "Application is not associated with a valid job." }, { status: 400 });
+    }
+
+    const jobCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,company_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!jobCheckRes.ok) {
+      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
+    }
+    const jobCheckJson = await jobCheckRes.json();
+    const jobCompanyId = Number(jobCheckJson.data?.company_id);
+    if (jobCompanyId !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
+      );
+    }
 
     const body = await req.json().catch(() => null);
     const toStageId = body?.to_stage_id ? Number(body.to_stage_id) : null;
@@ -139,13 +168,14 @@ export async function PATCH(
       }
       assessmentOutcome = rawOutcome;
     }
+    const notes = typeof body?.notes === "string" ? body.notes.trim().slice(0, 1000) : undefined;
 
     const result = await transitionApplicationStage({
       applicationId,
       toStageId,
       changedByUserId: userId,
-      changeReason: body?.notes,
-      notes: body?.notes,
+      changeReason: notes,
+      notes,
       assessmentOutcome,
     });
 
@@ -205,14 +235,21 @@ export async function PATCH(
       }
 
       if (jobseekerId) {
+        // Sanitize dynamic stage name to prevent phishing/markup injection
+        const cleanStageName =
+          result.toStage.stage_name
+            .replace(/[^\w\s\-().,/]/g, "")
+            .trim()
+            .slice(0, 50) || "Updated Stage";
+
         createNotification({
           event_type: "application_status_changed",
           recipient_user_id: jobseekerId,
           entity_type: "job_application",
           entity_id: applicationId,
           category: "APPLICATION_STATUS_UPDATED",
-          title: `Application Moved to ${result.toStage.stage_name}`,
-          message: `Your application for "${jobTitle}" has progressed to "${result.toStage.stage_name}".`,
+          title: `Application Moved to ${cleanStageName}`,
+          message: `Your application for "${jobTitle}" has progressed to "${cleanStageName}".`,
           action_url: "/vos-sync/freelancer/applications",
         }).catch((err) => console.error("[Candidate Stage Notification] Error:", err));
 
@@ -220,7 +257,7 @@ export async function PATCH(
         const systemText =
           result.toStage.stage_type === "HIRED"
             ? "Client hired you."
-            : `Application moved to stage: ${result.toStage.stage_name}`;
+            : `Application moved to stage: ${cleanStageName}`;
 
         const statusEventType =
           result.toStage.stage_type === "HIRED" ? "HIRED" : "APPLICATION_STATUS_CHANGED";
@@ -262,7 +299,7 @@ export async function PATCH(
   } catch (err: unknown) {
     console.error("PATCH /api/client/applicants/[id]/stage error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

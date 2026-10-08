@@ -326,16 +326,20 @@ export async function GET(req: NextRequest) {
     // 7. Time-series aggregation for Hiring Overview chart (7d, 30d, 3m, 6m)
     const chartData = generateChartData(applicantsList, shortlistedApplicants, upcomingInterviews, now);
 
-    // 8. Job Performance List — Prioritize ACTIVE jobs first, sorted by applicant count
-    const sortedJobsList = [...jobsList].sort((a, b) => {
-      const aActive = isActiveStatus(a.status) ? 1 : 0;
-      const bActive = isActiveStatus(b.status) ? 1 : 0;
-      if (aActive !== bActive) return bActive - aActive;
-      const aApps = applicantsList.filter((app) => app.job_id === a.job_id).length;
-      const bApps = applicantsList.filter((app) => app.job_id === b.job_id).length;
-      if (aApps !== bApps) return bApps - aApps;
-      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-    });
+    // 8. Job Performance List — Sorted by applicant count, then created_at, limited to top 10
+    const appCountByJob: Record<number, number> = {};
+    for (const app of applicantsList) {
+      appCountByJob[app.job_id] = (appCountByJob[app.job_id] || 0) + 1;
+    }
+
+    const sortedJobsList = [...jobsList]
+      .sort((a, b) => {
+        const aApps = appCountByJob[a.job_id] || 0;
+        const bApps = appCountByJob[b.job_id] || 0;
+        if (aApps !== bApps) return bApps - aApps;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      })
+      .slice(0, 10);
 
     const jobPerformance = sortedJobsList.map((j) => {
       const jobApps = applicantsList.filter((a) => a.job_id === j.job_id);

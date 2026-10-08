@@ -4,11 +4,13 @@ import {
   CanonicalStageType,
   CANONICAL_STAGE_TYPES,
   CompanyPipeline,
+  CUSTOM_ALLOWED_STAGE_TYPES,
   PipelineStage,
   PipelineTransition,
   STAGE_TYPE_DETAILS,
   TERMINAL_STAGE_TYPES,
 } from "../types";
+import { getPHTimeString } from "@/lib/utils";
 
 const DIRECTUS_BASE = (
   process.env.DIRECTUS_URL ||
@@ -256,7 +258,7 @@ export async function getPipelineWithDetails(
  */
 export async function seedDefaultCompanyPipeline(companyId: number): Promise<CompanyPipeline | null> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     // 1. Create pipeline header
     const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines`, {
@@ -268,8 +270,8 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
         is_default: true,
         version: 1,
         status: "ACTIVE",
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -297,8 +299,8 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
           description: s.description,
           is_terminal: s.is_terminal,
           is_system: s.is_system,
-          created_at: nowUtc,
-          updated_at: nowUtc,
+          created_at: getPHTimeString(),
+          updated_at: getPHTimeString(),
         }),
       });
 
@@ -341,7 +343,7 @@ export async function seedDefaultCompanyPipeline(companyId: number): Promise<Com
             pipeline_id: newPipeline.id,
             from_stage_id: fromSt.id,
             to_stage_id: toSt.id,
-            created_at: nowUtc,
+            created_at: getPHTimeString(),
           }),
         });
         if (tRes.ok) {
@@ -370,7 +372,21 @@ export async function createCompanyPipeline(
   data: { name: string; is_default?: boolean }
 ): Promise<CompanyPipeline | null> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
+
+    // Enforce quota: maximum 20 pipeline templates per company
+    const countRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company_pipelines?filter[company_id][_eq]=${companyId}&filter[status][_neq]=ARCHIVED&aggregate[count]=id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (countRes.ok) {
+      const countJson = await countRes.json();
+      const currentCount = Number(countJson.data?.[0]?.count?.id ?? countJson.data?.[0]?.count ?? 0);
+      if (currentCount >= 20) {
+        console.warn(`[pipeline.service] Company ${companyId} reached maximum 20 pipeline templates limit.`);
+        return null;
+      }
+    }
 
     if (data.is_default) {
       // Unset previous defaults by ID
@@ -388,7 +404,7 @@ export async function createCompanyPipeline(
             await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines/${pipe.id}`, {
               method: "PATCH",
               headers: getHeaders(),
-              body: JSON.stringify({ is_default: false, updated_at: nowUtc }),
+              body: JSON.stringify({ is_default: false, updated_at: nowPH }),
             });
           }
         }
@@ -404,8 +420,8 @@ export async function createCompanyPipeline(
         is_default: Boolean(data.is_default),
         version: 1,
         status: "ACTIVE",
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -429,8 +445,8 @@ export async function createCompanyPipeline(
           description: s.description,
           is_terminal: s.is_terminal,
           is_system: s.is_system,
-          created_at: nowUtc,
-          updated_at: nowUtc,
+          created_at: nowPH,
+          updated_at: nowPH,
         }),
       });
 
@@ -466,7 +482,7 @@ export async function createCompanyPipeline(
             pipeline_id: newPipeline.id,
             from_stage_id: fromSt.id,
             to_stage_id: toSt.id,
-            created_at: nowUtc,
+            created_at: nowPH,
           }),
         });
       }
@@ -488,7 +504,14 @@ export async function updateCompanyPipeline(
   payload: { name?: string; is_default?: boolean; status?: "ACTIVE" | "ARCHIVED" }
 ): Promise<boolean> {
   try {
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
+
+    // Verify pipeline belongs to company
+    const pipeline = await getPipelineWithDetails(pipelineId, companyId);
+    if (!pipeline || pipeline.company_id !== companyId) {
+      console.warn(`[pipeline.service] Unauthorized update attempt for pipeline ${pipelineId} by company ${companyId}`);
+      return false;
+    }
 
     if (payload.is_default) {
       // Unset previous defaults by ID
@@ -506,7 +529,7 @@ export async function updateCompanyPipeline(
             await fetch(`${DIRECTUS_BASE}/items/vs_company_pipelines/${pipe.id}`, {
               method: "PATCH",
               headers: getHeaders(),
-              body: JSON.stringify({ is_default: false, updated_at: nowUtc }),
+              body: JSON.stringify({ is_default: false, updated_at: nowPH }),
             });
           }
         }
@@ -520,7 +543,7 @@ export async function updateCompanyPipeline(
         headers: getHeaders(),
         body: JSON.stringify({
           ...payload,
-          updated_at: nowUtc,
+          updated_at: nowPH,
         }),
       }
     );
@@ -550,20 +573,26 @@ export async function addPipelineStage(
     const pipeline = await getPipelineWithDetails(pipelineId, companyId);
     if (!pipeline) throw new Error("Pipeline not found or unauthorized.");
 
-    if (!isValidStageType(data.stage_type)) {
-      throw new Error(`Invalid stage type. Must be one of: ${CANONICAL_STAGE_TYPES.join(", ")}`);
+    const currentStages = pipeline.stages ?? [];
+    if (currentStages.length >= 25) {
+      throw new Error("Maximum 25 stages allowed per pipeline.");
     }
 
-    // Terminal integrity: HIRED, REJECTED, WITHDRAWN must be terminal
-    const isTerminal = isTerminalStageType(data.stage_type);
+    if (!CUSTOM_ALLOWED_STAGE_TYPES.includes(data.stage_type)) {
+      throw new Error(
+        `Custom stages must be an intermediate evaluation step (${CUSTOM_ALLOWED_STAGE_TYPES.join(", ")}).`
+      );
+    }
+
+    // Terminal integrity: custom stages are evaluation steps and cannot be terminal
+    const isTerminal = false;
 
     // Calculate next stage_order
-    const currentStages = pipeline.stages ?? [];
     const maxOrder = currentStages.reduce((max, s) => Math.max(max, s.stage_order), 0);
     const stageOrder = maxOrder + 1;
 
     const defaultColor = STAGE_TYPE_DETAILS[data.stage_type]?.defaultColor || "sky";
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_stages`, {
       method: "POST",
@@ -577,8 +606,8 @@ export async function addPipelineStage(
         description: data.description?.trim() || null,
         is_terminal: isTerminal,
         is_system: false,
-        created_at: nowUtc,
-        updated_at: nowUtc,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
@@ -617,9 +646,9 @@ export async function updatePipelineStage(
     const stage = pipeline.stages?.find((s) => s.id === stageId);
     if (!stage) return false;
 
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     const updatePayload: Record<string, unknown> = {
-      updated_at: nowUtc,
+      updated_at: nowPH,
     };
 
     if (data.stage_name !== undefined) updatePayload.stage_name = data.stage_name.trim();
@@ -717,6 +746,10 @@ export async function updateStageTransitions(
       if (toId === fromStageId) {
         return { success: false, error: "Self-transitions are not permitted." };
       }
+      const targetStage = stages.find((s) => s.id === toId);
+      if (targetStage?.stage_type === "APPLIED") {
+        return { success: false, error: "Transitions targeting the initial intake stage (APPLIED) are not permitted." };
+      }
     }
 
     // 1. Delete existing transitions where from_stage_id === fromStageId
@@ -729,7 +762,7 @@ export async function updateStageTransitions(
     }
 
     // 2. Insert new transitions
-    const nowUtc = new Date().toISOString();
+    const nowPH = getPHTimeString();
     for (const toId of targetStageIds) {
       await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions`, {
         method: "POST",
@@ -738,7 +771,7 @@ export async function updateStageTransitions(
           pipeline_id: pipelineId,
           from_stage_id: fromStageId,
           to_stage_id: toId,
-          created_at: nowUtc,
+          created_at: nowPH,
         }),
       });
     }
@@ -765,16 +798,26 @@ export async function reorderPipelineStages(
     const stages = pipeline.stages ?? [];
     const stageMap = new Map(stages.map((s) => [s.id, s]));
 
-    const nowUtc = new Date().toISOString();
+    // Deduplicate requested stage IDs to guard against payload anomalies
+    const deduplicatedIds = Array.from(new Set(orderedStageIds));
+
+    // Pin entry stage: APPLIED must always remain at position 1
+    const appliedStage = stages.find((s) => s.stage_type === "APPLIED" || (s.is_system && s.stage_order === 1));
+    const filteredOrderedIds = deduplicatedIds.filter(
+      (id) => (appliedStage ? id !== appliedStage.id : true)
+    );
+    const finalOrderedIds = appliedStage ? [appliedStage.id, ...filteredOrderedIds] : deduplicatedIds;
+
+    const nowPH = getPHTimeString();
     let order = 1;
-    for (const stageId of orderedStageIds) {
+    for (const stageId of finalOrderedIds) {
       if (stageMap.has(stageId)) {
         await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_stages/${stageId}`, {
           method: "PATCH",
           headers: getHeaders(),
           body: JSON.stringify({
             stage_order: order++,
-            updated_at: nowUtc,
+            updated_at: nowPH,
           }),
         });
       }

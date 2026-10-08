@@ -2,7 +2,7 @@
 // src/modules/client/campus-talent/CampusTalentModule.tsx
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useSpring } from "framer-motion";
 import {
   GraduationCap,
   Search,
@@ -99,60 +99,135 @@ const PIPELINE_STAGES = [
   },
 ];
 
+// ── Isolated Leaf Progress Counter ──────────────────────────────────────────
+function ProgressPercentDisplay({
+  motionValue,
+}: {
+  motionValue: ReturnType<typeof useSpring>;
+}) {
+  const [percent, setPercent] = useState(0);
+
+  useEffect(() => {
+    let lastRounded = 0;
+    return motionValue.on("change", (latest) => {
+      const rounded = Math.min(100, Math.max(0, Math.round(latest * 100)));
+      if (rounded !== lastRounded) {
+        lastRounded = rounded;
+        setPercent(rounded);
+      }
+    });
+  }, [motionValue]);
+
+  return (
+    <span className="tabular-nums font-semibold text-foreground">
+      {percent}%
+    </span>
+  );
+}
+
 function MatchPipelineLoadingState({
   jobTitle,
   schoolName,
+  isDataReady,
+  onComplete,
 }: {
   jobTitle: string;
   schoolName: string;
+  isDataReady: boolean;
+  onComplete: () => void;
 }) {
   const [stageIndex, setStageIndex] = useState(0);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setStageIndex((prev) => (prev + 1) % PIPELINE_STAGES.length);
-    }, 2200);
-    return () => clearInterval(timer);
-  }, []);
+  // Motion spring for fluid compositor-friendly interpolation (0.00 to 1.00)
+  const springProgress = useSpring(0, { stiffness: 65, damping: 18 });
 
   const currentStage = PIPELINE_STAGES[stageIndex];
-  const progressPercent = Math.round(
-    ((stageIndex + 1) / PIPELINE_STAGES.length) * 100
-  );
+
+  // Stage progression coordinator
+  useEffect(() => {
+    const isLastStage = stageIndex === PIPELINE_STAGES.length - 1;
+
+    if (!isLastStage) {
+      const base = stageIndex * 0.2;
+      const target = (stageIndex + 1) * 0.2;
+
+      // Incremental micro-crawl within stage
+      springProgress.set(base + 0.04);
+      const t1 = setTimeout(() => springProgress.set(base + 0.11), 160);
+      const t2 = setTimeout(() => springProgress.set(target), 360);
+      const tNext = setTimeout(() => {
+        setStageIndex((prev) => prev + 1);
+      }, 550);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(tNext);
+      };
+    } else {
+      // Stage 5 (Final Step):
+      // If network response is still pending, cap smoothly at 0.94
+      // If data is already ready, glide directly to 1.00
+      springProgress.set(0.85);
+      const t1 = setTimeout(() => {
+        if (!isDataReady) {
+          springProgress.set(0.94);
+        } else {
+          springProgress.set(1.0);
+        }
+      }, 200);
+
+      return () => clearTimeout(t1);
+    }
+  }, [stageIndex, isDataReady, springProgress]);
+
+  // When in the final stage and data is ready, glide to 100% and transition
+  useEffect(() => {
+    const isLastStage = stageIndex === PIPELINE_STAGES.length - 1;
+    if (isLastStage && isDataReady) {
+      springProgress.set(1.0);
+      const completionTimer = setTimeout(() => {
+        onComplete();
+      }, 400);
+      return () => clearTimeout(completionTimer);
+    }
+  }, [stageIndex, isDataReady, springProgress, onComplete]);
 
   return (
     <motion.div
       className="flex flex-col items-center justify-center py-16 px-4 max-w-lg mx-auto text-center"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
     >
-      {/* Glowing icon pulse */}
-      <div className="relative mb-6">
+      {/* Glowing icon pulse with AI Bot */}
+      <div className="relative mb-6 flex items-center justify-center">
         <motion.div
           className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
-          animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
+          animate={{ scale: [1, 1.25, 1], opacity: [0.4, 0.8, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
- 
+        <div className="relative h-14 w-14 rounded-2xl bg-card border border-border shadow-sm flex items-center justify-center">
+          <Bot className="h-7 w-7 text-primary animate-pulse" />
+        </div>
       </div>
 
-      {/* Dynamic Stage Text with Crossfade */}
-      <div className="min-h-[64px] flex flex-col items-center justify-center">
-        <AnimatePresence mode="wait">
+      {/* Dynamic Stage Text with PopLayout Crossfade */}
+      <div className="min-h-[68px] flex flex-col items-center justify-center">
+        <AnimatePresence mode="popLayout">
           <motion.div
             key={stageIndex}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="space-y-1"
           >
-            <p className="text-base font-bold text-foreground">
+            <p className="text-base sm:text-lg font-bold text-foreground tracking-tight">
               {currentStage.title}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {currentStage.subtitle}
             </p>
           </motion.div>
@@ -160,27 +235,25 @@ function MatchPipelineLoadingState({
       </div>
 
       {/* Target Info Pill */}
-      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/60 border border-border/80 px-3.5 py-1.5 rounded-full shadow-2xs">
-        <span className="font-medium text-foreground">{schoolName}</span>
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground bg-muted/60 border border-border/80 px-4 py-1.5 rounded-full shadow-2xs">
+        <span className="font-semibold text-foreground">{schoolName}</span>
         <span>•</span>
-        <span className="truncate max-w-[220px]">{jobTitle}</span>
+        <span className="truncate max-w-[240px] font-medium text-foreground/85">{jobTitle}</span>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full max-w-xs mt-6 space-y-1.5">
-        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+      {/* Compositor-friendly Progress Bar */}
+      <div className="w-full max-w-xs mt-6 space-y-2">
+        <div className="h-2 w-full bg-muted/80 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-primary rounded-full"
-            initial={{ width: "15%" }}
-            animate={{ width: `${progressPercent}%` }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="h-full w-full bg-primary rounded-full origin-left"
+            style={{ scaleX: springProgress }}
           />
         </div>
-        <div className="flex justify-between text-[11px] text-muted-foreground">
+        <div className="flex justify-between items-center text-xs text-muted-foreground font-medium">
           <span>
             Stage {stageIndex + 1} of {PIPELINE_STAGES.length}
           </span>
-          <span>{progressPercent}%</span>
+          <ProgressPercentDisplay motionValue={springProgress} />
         </div>
       </div>
     </motion.div>
@@ -223,6 +296,8 @@ export default function CampusTalentModule() {
   // ── Match Results ─────────────────────────────────────────────────────────
   const [matchResults, setMatchResults] = useState<CampusMatchResult[]>([]);
   const [matchLoading, setMatchLoading] = useState(false);
+  const [isMatchDataReady, setIsMatchDataReady] = useState(false);
+  const [pendingMatchResults, setPendingMatchResults] = useState<CampusMatchResult[] | null>(null);
   const [matchError, setMatchError] = useState<string | null>(null);
 
   // ── Drawer & Dialog ───────────────────────────────────────────────────────
@@ -330,6 +405,8 @@ export default function CampusTalentModule() {
   const handleRunMatch = useCallback(async () => {
     if (!selectedJob || candidates.length === 0) return;
     setMatchLoading(true);
+    setIsMatchDataReady(false);
+    setPendingMatchResults(null);
     setMatchError(null);
     setView("MATCH");
     try {
@@ -341,13 +418,20 @@ export default function CampusTalentModule() {
           body: JSON.stringify({ job: selectedJob, candidates }),
         }
       );
-      setMatchResults(data.results ?? []);
+      setPendingMatchResults(data.results ?? []);
+      setIsMatchDataReady(true);
     } catch (e: unknown) {
       setMatchError(e instanceof Error ? e.message : "Match failed.");
-    } finally {
       setMatchLoading(false);
     }
   }, [selectedJob, candidates]);
+
+  const handleMatchPipelineComplete = useCallback(() => {
+    if (pendingMatchResults) {
+      setMatchResults(pendingMatchResults);
+    }
+    setMatchLoading(false);
+  }, [pendingMatchResults]);
 
   // ── Filtered students for student view ────────────────────────────────────
   const filteredCandidates = useMemo(() => {
@@ -804,20 +888,32 @@ export default function CampusTalentModule() {
                 </div>
               )}
 
-              {matchLoading ? (
-                <MatchPipelineLoadingState
-                  jobTitle={selectedJob?.job_title ?? "Selected Position"}
-                  schoolName={selectedSchool?.school_name ?? "Selected School"}
-                />
-              ) : (
-                <StudentMatchTable
-                  candidates={filteredCandidates}
-                  matchResults={matchResults}
-                  showScores
-                  onViewDetails={(r) => setDrawerResult(r)}
-                  onInvite={(r) => setInviteTarget(r)}
-                />
-              )}
+              <AnimatePresence mode="wait">
+                {matchLoading ? (
+                  <MatchPipelineLoadingState
+                    key="match-pipeline-loader"
+                    jobTitle={selectedJob?.job_title ?? "Selected Position"}
+                    schoolName={selectedSchool?.school_name ?? "Selected School"}
+                    isDataReady={isMatchDataReady}
+                    onComplete={handleMatchPipelineComplete}
+                  />
+                ) : (
+                  <motion.div
+                    key="match-table"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <StudentMatchTable
+                      candidates={filteredCandidates}
+                      matchResults={matchResults}
+                      showScores
+                      onViewDetails={(r) => setDrawerResult(r)}
+                      onInvite={(r) => setInviteTarget(r)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
         </div>
