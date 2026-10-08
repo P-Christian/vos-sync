@@ -1,7 +1,13 @@
 // src/app/api/client/talent-invitation/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { getPHTimeString } from "@/lib/utils";
+import { createSystemMessage } from "@/lib/messaging/system-message";
+import { sendInvitationEmail } from "@/lib/mail/services/job-mail";
+import { isEmailEnabledForUser } from "@/lib/mail/preference-check";
+import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,37 +24,15 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
-import { createSystemMessage } from "@/lib/messaging/system-message";
-import { sendInvitationEmail } from "@/lib/mail/services/job-mail";
-import { isEmailEnabledForUser } from "@/lib/mail/preference-check";
-import { isInAppEnabledForUser } from "@/lib/notifications/preference-check";
-
 // POST — send a talent invitation
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json({ error: `Company not verified: ${verification_status}` }, { status: 403 });
@@ -59,18 +43,46 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { talent_user_id, job_id, message } = body;
+    const { talent_user_id, job_id, message, subject } = body;
 
-    if (!talent_user_id) {
-      return NextResponse.json({ error: "talent_user_id is required." }, { status: 400 });
+    const candidateUserId = Number(talent_user_id);
+    if (!candidateUserId || isNaN(candidateUserId) || candidateUserId <= 0) {
+      return NextResponse.json({ error: "A valid talent_user_id is required." }, { status: 400 });
     }
 
-    if (!message || !message.trim()) {
+    if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "A message is required for the invitation." }, { status: 400 });
     }
 
-    // Add UTC+8 for PH timezone
-    const nowUTC8 = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace("Z", "");
+    // Input bounds enforcement
+    const trimmedMessage = message.trim().slice(0, 2000);
+    const trimmedSubject = subject && typeof subject === "string" ? subject.trim().slice(0, 200) : null;
+
+    // Strict Multi-Tenant IDOR Ownership Gate on Job Posting
+    let verifiedJob: Record<string, unknown> | null = null;
+    if (job_id) {
+      const jobIdNum = Number(job_id);
+      if (isNaN(jobIdNum) || jobIdNum <= 0) {
+        return NextResponse.json({ error: "Invalid job_id provided." }, { status: 400 });
+      }
+
+      const jobVerifyUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_eq]=${jobIdNum}&filter[company_id][_eq]=${companyId}&fields=job_id,job_title,job_description,job_location,work_arrangement,job_type,salary_min,salary_max,currency&limit=1`;
+      const jobVerifyRes = await fetch(jobVerifyUrl, { headers: getHeaders(), cache: "no-store" });
+      if (!jobVerifyRes.ok) {
+        return NextResponse.json({ error: "Failed to verify job ownership." }, { status: 502 });
+      }
+      const jobVerifyJson = await jobVerifyRes.json();
+      verifiedJob = jobVerifyJson.data?.[0] ?? null;
+
+      if (!verifiedJob) {
+        return NextResponse.json(
+          { error: "Forbidden: Job posting not found or does not belong to your company." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const nowPH = getPHTimeString();
 
     // 1. Create invitation record
     const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_applicant_invitation`, {
@@ -78,27 +90,27 @@ export async function POST(req: NextRequest) {
       headers: getHeaders(),
       body: JSON.stringify({
         company_id: companyId,
-        applicant_user_id: Number(talent_user_id),
-        job_id: job_id ? Number(job_id) : null,
-        subject: body.subject || null,
-        message: message.trim(),
+        applicant_user_id: candidateUserId,
+        job_id: verifiedJob ? Number(verifiedJob.job_id) : null,
+        subject: trimmedSubject,
+        message: trimmedMessage,
         status: "PENDING",
         created_by: userId,
-        created_at: nowUTC8,
-        updated_at: nowUTC8,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      return NextResponse.json({ error: `Failed to send invitation: ${errText}` }, { status: 502 });
+      console.error("[talent-invitation POST] Failed to insert invitation:", await createRes.text());
+      return NextResponse.json({ error: "Failed to send invitation." }, { status: 502 });
     }
 
     const created = (await createRes.json()).data;
 
-    // 2. Fetch candidate & job details to send email and in-app message
-    const [candRes, compRes, jobRes] = await Promise.all([
-      fetch(`${DIRECTUS_BASE}/items/vs_user/${talent_user_id}?fields=user_email,user_fname,user_lname`, {
+    // 2. Fetch candidate & company details to dispatch notifications
+    const [candRes, compRes] = await Promise.all([
+      fetch(`${DIRECTUS_BASE}/items/vs_user/${candidateUserId}?fields=user_email,user_fname,user_lname`, {
         headers: getHeaders(),
         cache: "no-store",
       }),
@@ -106,30 +118,23 @@ export async function POST(req: NextRequest) {
         headers: getHeaders(),
         cache: "no-store",
       }),
-      job_id
-        ? fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${job_id}?fields=job_title,job_description,job_location,work_arrangement,job_type,salary_min,salary_max,currency`, {
-            headers: getHeaders(),
-            cache: "no-store",
-          })
-        : Promise.resolve(null),
     ]);
 
     const candidate = candRes.ok ? (await candRes.json()).data : null;
     const company = compRes.ok ? (await compRes.json()).data : null;
-    const job = jobRes && jobRes.ok ? (await jobRes.json()).data : null;
 
-    const companyName = company?.company_name || "a company on VOS-Sync";
-    const jobTitle = job?.job_title || null;
-    const jobDescription = job?.job_description || null;
-    const jobLocation = job?.job_location || null;
-    const workArrangement = job?.work_arrangement || null;
-    const jobType = job?.job_type || null;
+    const companyName = (company?.company_name as string) || "a company on VOS-Sync";
+    const jobTitle = (verifiedJob?.job_title as string) || null;
+    const jobDescription = (verifiedJob?.job_description as string) || null;
+    const jobLocation = (verifiedJob?.job_location as string) || null;
+    const workArrangement = (verifiedJob?.work_arrangement as string) || null;
+    const jobType = (verifiedJob?.job_type as string) || null;
 
     let salaryRange: string | null = null;
-    if (job?.salary_min || job?.salary_max) {
-      const curr = job.currency || "PHP";
-      const minStr = job.salary_min ? Number(job.salary_min).toLocaleString() : null;
-      const maxStr = job.salary_max ? Number(job.salary_max).toLocaleString() : null;
+    if (verifiedJob && (verifiedJob.salary_min || verifiedJob.salary_max)) {
+      const curr = (verifiedJob.currency as string) || "PHP";
+      const minStr = verifiedJob.salary_min ? Number(verifiedJob.salary_min).toLocaleString() : null;
+      const maxStr = verifiedJob.salary_max ? Number(verifiedJob.salary_max).toLocaleString() : null;
       if (minStr && maxStr) {
         salaryRange = `${curr} ${minStr} - ${maxStr}`;
       } else if (minStr) {
@@ -139,16 +144,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const candidateUserId = Number(talent_user_id);
-
     // 3. Dispatch In-App Message (if user preference allows)
     const canSendInApp = await isInAppEnabledForUser(candidateUserId, "INVITATION_RECEIVED");
     if (canSendInApp) {
       await createSystemMessage({
         clientId: companyId,
         freelancerId: candidateUserId,
-        jobId: job_id ? Number(job_id) : null,
-        text: message.trim(),
+        jobId: verifiedJob ? Number(verifiedJob.job_id) : null,
+        text: trimmedMessage,
         senderId: userId,
       }).catch((e) => console.error("Failed to create in-app message:", e));
     }
@@ -166,7 +169,7 @@ export async function POST(req: NextRequest) {
         workArrangement,
         jobType,
         salaryRange,
-        message: message.trim(),
+        message: trimmedMessage,
       }).catch((e) =>
         console.error("Failed to send notification email:", e)
       );
@@ -174,24 +177,20 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, invitation: created }, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("[talent-invitation POST] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
 
 // GET — list sent invitations for this company
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified || !companyId) {
       return NextResponse.json({ invitations: [] }, { status: 200 });
@@ -209,8 +208,8 @@ export async function GET(req: NextRequest) {
     const invJson = await invRes.json();
     return NextResponse.json({ invitations: invJson.data ?? [] });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("[talent-invitation GET] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
+

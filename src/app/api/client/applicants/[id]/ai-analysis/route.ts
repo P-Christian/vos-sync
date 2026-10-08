@@ -1,6 +1,7 @@
 // src/app/api/client/applicants/[id]/ai-analysis/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
 
 import {
@@ -53,17 +54,47 @@ export async function GET(
       return NextResponse.json({ error: "Invalid application ID" }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const requesterId = getUserIdFromToken(token);
-    if (!requesterId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const requesterId = Number(session.userId);
+    const { isVerified, companyId } = await checkCompanyVerificationStatus(requesterId);
+    if (!isVerified || !companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Restricted to verified employer accounts." },
+        { status: 403 }
+      );
+    }
+
+    // Verify application belongs to caller's company
+    const appRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_application/${applicationId}?fields=application_id,job_id`,
+      { headers: getDirectusHeaders(), cache: "no-store" }
+    );
+    if (!appRes.ok) {
+      return NextResponse.json({ error: "Application not found" }, { status: 404 });
+    }
+    const appData = (await appRes.json()).data;
+    const targetJobId = Number(appData?.job_id);
+    if (!targetJobId) {
+      return NextResponse.json({ error: "Application is not associated with a valid job." }, { status: 400 });
+    }
+
+    const jobCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,company_id`,
+      { headers: getDirectusHeaders(), cache: "no-store" }
+    );
+    if (!jobCheckRes.ok) {
+      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
+    }
+    const jobCheckJson = await jobCheckRes.json();
+    if (Number(jobCheckJson.data?.company_id) !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
+      );
     }
 
     // Query active evaluation via shared persistence layer
@@ -128,22 +159,16 @@ export async function POST(
       return NextResponse.json({ error: "Invalid application ID" }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const requesterId = getUserIdFromToken(token);
-    if (!requesterId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const requesterId = Number(session.userId);
 
     // Verify company authorization
-    const { isVerified } = await checkCompanyVerificationStatus(requesterId);
-    if (!isVerified) {
+    const { isVerified, companyId } = await checkCompanyVerificationStatus(requesterId);
+    if (!isVerified || !companyId) {
       return NextResponse.json(
         { error: "Only verified employers can run AI candidate evaluations." },
         { status: 403 }
@@ -172,21 +197,18 @@ export async function POST(
     );
 
     const jobPosting = jobRes.ok ? (await jobRes.json()).data : null;
-
-    // Robust Company ID resolution
-    let resolvedCompanyId: number | null = null;
-    const rawCompanyId = jobPosting?.company_id;
-    if (rawCompanyId) {
-      if (typeof rawCompanyId === "object" && rawCompanyId !== null) {
-        resolvedCompanyId =
-          Number(
-            (rawCompanyId as Record<string, unknown>).id ||
-              (rawCompanyId as Record<string, unknown>).company_id
-          ) || null;
-      } else {
-        resolvedCompanyId = Number(rawCompanyId) || null;
-      }
+    if (!jobPosting) {
+      return NextResponse.json({ error: "Associated job posting not found" }, { status: 404 });
     }
+
+    if (Number(jobPosting.company_id) !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
+      );
+    }
+
+    let resolvedCompanyId: number | null = companyId;
 
     if (!resolvedCompanyId) {
       try {

@@ -1,7 +1,9 @@
 // src/app/api/client/saved-talent/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,32 +20,15 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 // GET — list all saved talents for this company
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json({ error: `Company not verified: ${verification_status}`, saved: [] }, { status: 403 });
@@ -136,15 +121,12 @@ export async function GET(req: NextRequest) {
 // POST — save a talent
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json({ error: `Company not verified: ${verification_status}` }, { status: 403 });
@@ -157,13 +139,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { talent_user_id, notes } = body;
 
-    if (!talent_user_id) {
-      return NextResponse.json({ error: "talent_user_id is required." }, { status: 400 });
+    const talentUserIdNum = Number(talent_user_id);
+    if (!talentUserIdNum || isNaN(talentUserIdNum)) {
+      return NextResponse.json({ error: "Valid talent_user_id is required." }, { status: 400 });
     }
 
     // Check if already saved
     const existingRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&filter[applicant_user_id][_eq]=${talent_user_id}&fields=saved_applicant_id&limit=1`,
+      `${DIRECTUS_BASE}/items/vs_saved_applicant?filter[company_id][_eq]=${companyId}&filter[applicant_user_id][_eq]=${talentUserIdNum}&fields=saved_applicant_id&limit=1`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -174,32 +157,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Add UTC+8 for PH timezone
-    const nowUTC8 = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace("Z", "");
+    const nowPH = getPHTimeString();
+    const sanitizedNotes = typeof notes === "string" ? notes.trim().slice(0, 1000) : null;
 
     const createRes = await fetch(`${DIRECTUS_BASE}/items/vs_saved_applicant`, {
       method: "POST",
       headers: getHeaders(),
       body: JSON.stringify({
         company_id: companyId,
-        applicant_user_id: Number(talent_user_id),
-        notes: notes || null,
+        applicant_user_id: talentUserIdNum,
+        notes: sanitizedNotes,
         created_by: userId,
-        created_at: nowUTC8,
-        updated_at: nowUTC8,
+        created_at: nowPH,
+        updated_at: nowPH,
       }),
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      return NextResponse.json({ error: `Failed to save talent: ${errText}` }, { status: 502 });
+      console.error("[saved-talent POST] Failed to save talent in Directus:", await createRes.text());
+      return NextResponse.json({ error: "Failed to save talent." }, { status: 502 });
     }
 
     const created = (await createRes.json()).data;
     return NextResponse.json({ success: true, saved: created }, { status: 201 });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("[saved-talent POST] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }
+

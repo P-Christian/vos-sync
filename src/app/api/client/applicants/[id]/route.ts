@@ -6,7 +6,8 @@ import { createNotification } from "@/lib/notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { getPHTimeString } from "@/lib/utils";
 import { transitionApplicationStage, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
-import { JobPipelineStage } from "@/modules/client/pipeline/types";
+import { JobPipelineStage, LEGACY_STATUS_TO_CANONICAL_MAP } from "@/modules/client/pipeline/types";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,29 +135,19 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json(
         { error: "Unauthorized." },
         { status: 401 }
       );
     }
 
-    const requesterId = getUserIdFromToken(token);
-
-    if (!requesterId) {
-      return NextResponse.json(
-        { error: "Invalid token." },
-        { status: 401 }
-      );
-    }
+    const requesterId = Number(session.userId);
 
     // BUSINESS RULE: Only VERIFIED companies can view candidate details
-    const { isVerified, verification_status } = await checkCompanyVerificationStatus(requesterId);
-    if (!isVerified) {
+    const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(requesterId);
+    if (!isVerified || !companyId) {
       return NextResponse.json(
         {
           error: `Restricted: Your company verification status is currently ${verification_status}. Viewing candidate details is restricted until your company is verified by an admin.`,
@@ -193,6 +184,31 @@ export async function GET(
       return NextResponse.json(
         { error: "Application not found." },
         { status: 404 }
+      );
+    }
+
+    // IDOR / BOLA Prevention: Verify application belongs to a job owned by requester's company
+    const targetJobId = Number(application.job_id);
+    if (!targetJobId) {
+      return NextResponse.json(
+        { error: "Application is not associated with a valid job." },
+        { status: 400 }
+      );
+    }
+
+    const jobCheckRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,job_title,company_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!jobCheckRes.ok) {
+      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
+    }
+    const jobCheckJson = await jobCheckRes.json();
+    const verifiedJob = jobCheckJson.data;
+    if (Number(verifiedJob?.company_id) !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
       );
     }
 
@@ -807,29 +823,59 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    const body = await req.json().catch(() => null);
+    const body = await req.json();
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    const userId = token ? getUserIdFromToken(token) : null;
+    const requesterId = Number(session.userId);
+    const { isVerified, companyId } = await checkCompanyVerificationStatus(requesterId);
+    if (!isVerified || !companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 403 });
+    }
+
+    // Verify application belongs to a job owned by this company
+    const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,job_id`, {
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+    if (!appRes.ok) {
+      return NextResponse.json({ error: "Application not found." }, { status: 404 });
+    }
+    const aData = (await appRes.json()).data;
+    const targetJobId = Number(aData?.job_id);
+    if (!targetJobId) {
+      return NextResponse.json({ error: "Application is not associated with a valid job." }, { status: 400 });
+    }
+
+    const jobCheckRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,company_id`, {
+      headers: getHeaders(),
+      cache: "no-store",
+    });
+    if (!jobCheckRes.ok) {
+      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
+    }
+    const jobCheckJson = await jobCheckRes.json();
+    if (Number(jobCheckJson.data?.company_id) !== companyId) {
+      return NextResponse.json(
+        { error: "Forbidden: Candidate application belongs to another organization." },
+        { status: 403 }
+      );
+    }
+
     let targetStageId: number | null = body?.to_stage_id ? Number(body.to_stage_id) : null;
 
     // If legacy application_status was sent without to_stage_id, resolve targetStageId from pipeline
     if (!targetStageId && body?.application_status) {
       try {
-        const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=job_id`, {
-          headers: getHeaders(),
-          cache: "no-store",
-        });
-        if (appRes.ok) {
-          const aData = (await appRes.json()).data;
-          if (aData?.job_id) {
-            const pipe = await getJobPipeline(Number(aData.job_id));
-            const matched = pipe?.stages?.find((s) => s.stage_type === body.application_status);
-            if (matched) targetStageId = matched.id;
-          }
-        }
+        const pipe = await getJobPipeline(targetJobId);
+        const rawStatus = String(body.application_status).toUpperCase();
+        const canonicalType = LEGACY_STATUS_TO_CANONICAL_MAP[rawStatus] || rawStatus;
+        const matched = pipe?.stages?.find(
+          (s) => s.stage_type === canonicalType || s.stage_type === rawStatus
+        );
+        if (matched) targetStageId = matched.id;
       } catch (err) {
         console.error("Error mapping legacy application_status to stage:", err);
       }
@@ -839,7 +885,7 @@ export async function PATCH(
       const result = await transitionApplicationStage({
         applicationId: Number(id),
         toStageId: targetStageId,
-        changedByUserId: userId,
+        changedByUserId: requesterId,
         notes: body?.client_notes ?? body?.notes,
       });
 
@@ -859,6 +905,22 @@ export async function PATCH(
         from_stage: result.fromStage,
         to_stage: result.toStage,
       });
+    }
+
+    // If only updating notes without changing stage
+    if (body?.client_notes !== undefined) {
+      const nowPH = getPHTimeString();
+      const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,client_notes,status_updated_at`, {
+        method: "PATCH",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          client_notes: String(body.client_notes).trim().slice(0, 1000),
+          status_updated_at: nowPH,
+        }),
+      });
+      if (res.ok) {
+        return NextResponse.json({ success: true, message: "Client notes updated." });
+      }
     }
 
     if (!body?.application_status) {
@@ -972,7 +1034,7 @@ export async function PATCH(
         }
 
         // 2. Team Activity: Notify OTHER team members in the company (suppress for the acting recruiter)
-        const requestingEmployerId = token ? getUserIdFromToken(token) : null;
+        const requestingEmployerId = requesterId;
         if (companyId && requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED", "UNDER_REVIEW"].includes(body.application_status)) {
           const teamUsersRes = await fetch(
             `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&filter[user_id][_neq]=${requestingEmployerId}&fields=user_id`,
@@ -1074,7 +1136,6 @@ export async function PATCH(
               }
 
               // Create System Message for Conversation
-              const requesterId = token ? getUserIdFromToken(token) : null;
               if (requesterId && appData.user_id) {
                 const systemText =
                   body.application_status === "HIRED"

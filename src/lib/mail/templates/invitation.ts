@@ -1,6 +1,16 @@
 // src/lib/mail/templates/invitation.ts
 import { InvitationTemplateData } from "../types";
 
+function escapeHtml(str?: string | null): string {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export function invitationTemplate(data: InvitationTemplateData) {
   const {
     candidateName,
@@ -15,9 +25,20 @@ export function invitationTemplate(data: InvitationTemplateData) {
     actionUrl,
   } = data;
 
-  const targetUrl =
+  const safeCandidateName = escapeHtml(candidateName);
+  const safeCompanyName = escapeHtml(companyName);
+  const safeJobTitle = escapeHtml(jobTitle);
+  const safeJobDescription = escapeHtml(jobDescription);
+  const safeJobLocation = escapeHtml(jobLocation);
+  const safeWorkArrangement = escapeHtml(workArrangement);
+  const safeJobType = escapeHtml(jobType ? jobType.replace("_", " ") : null);
+  const safeSalaryRange = escapeHtml(salaryRange);
+  const safeMessage = escapeHtml(message);
+
+  const rawTargetUrl =
     actionUrl ||
     `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/vos-sync/freelancer/applications`;
+  const targetUrl = encodeURI(rawTargetUrl);
 
   const subjectTitle = jobTitle
     ? `Job Opportunity Invitation: ${jobTitle} at ${companyName}`
@@ -32,18 +53,18 @@ export function invitationTemplate(data: InvitationTemplateData) {
           <p style="font-size: 12px; color: #71717a; margin: 4px 0 0 0;">Job Invitation</p>
         </div>
 
-        <h2 style="font-size: 18px; font-weight: 700; color: #09090b; margin-top: 0;">Hello ${candidateName || "Candidate"},</h2>
+        <h2 style="font-size: 18px; font-weight: 700; color: #09090b; margin-top: 0;">Hello ${safeCandidateName || "Candidate"},</h2>
         
         <p style="font-size: 14px; line-height: 1.6; color: #3f3f46;">
-          Great news! <strong>${companyName}</strong> has reviewed your profile on <strong>VOS Sync</strong> and extended a direct job opportunity invitation to you.
+          Great news! <strong>${safeCompanyName}</strong> has reviewed your profile on <strong>VOS Sync</strong> and extended a direct job opportunity invitation to you.
         </p>
 
         <!-- Message Box (No 'Message from Company' header) -->
         ${
-          message
+          safeMessage
             ? `
         <div style="background-color: #f8fafc; border-left: 4px solid #14a800; padding: 16px; border-radius: 8px; margin: 20px 0;">
-          <p style="font-size: 13px; color: #334155; margin: 0; white-space: pre-line;">${message}</p>
+          <p style="font-size: 13px; color: #334155; margin: 0; white-space: pre-line;">${safeMessage}</p>
         </div>
         `
             : ""
@@ -57,46 +78,46 @@ export function invitationTemplate(data: InvitationTemplateData) {
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 140px;">🏢 Company:</td>
-              <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${companyName}</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${safeCompanyName}</td>
             </tr>
             ${
-              jobTitle
+              safeJobTitle
                 ? `
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600;">💼 Position:</td>
-              <td style="padding: 6px 0; color: #14a800; font-weight: 700;">${jobTitle}</td>
+              <td style="padding: 6px 0; color: #14a800; font-weight: 700;">${safeJobTitle}</td>
             </tr>
             `
                 : ""
             }
             ${
-              jobLocation || workArrangement
+              safeJobLocation || safeWorkArrangement
                 ? `
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600;">📍 Location:</td>
               <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">
-                ${jobLocation || ""}${jobLocation && workArrangement ? ` (${workArrangement})` : workArrangement || ""}
+                ${safeJobLocation || ""}${safeJobLocation && safeWorkArrangement ? ` (${safeWorkArrangement})` : safeWorkArrangement || ""}
               </td>
             </tr>
             `
                 : ""
             }
             ${
-              jobType
+              safeJobType
                 ? `
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600;">⏰ Employment Type:</td>
-              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${jobType.replace("_", " ")}</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${safeJobType}</td>
             </tr>
             `
                 : ""
             }
             ${
-              salaryRange
+              safeSalaryRange
                 ? `
             <tr>
               <td style="padding: 6px 0; color: #64748b; font-weight: 600;">💰 Compensation:</td>
-              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${salaryRange}</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${safeSalaryRange}</td>
             </tr>
             `
                 : ""
@@ -104,14 +125,14 @@ export function invitationTemplate(data: InvitationTemplateData) {
           </table>
 
           ${
-            jobDescription
+            safeJobDescription
               ? `
           <div style="margin-top: 16px; border-top: 1px dashed #e2e8f0; padding-top: 14px;">
             <h4 style="font-size: 12px; font-weight: 700; color: #64748b; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.05em;">
               Job Description:
             </h4>
             <div style="font-size: 13px; line-height: 1.6; color: #334155; white-space: pre-line; background-color: #f8fafc; padding: 14px; border-radius: 8px; border: 1px solid #f1f5f9;">
-              ${jobDescription}
+              ${safeJobDescription}
             </div>
           </div>
           `
