@@ -1,7 +1,16 @@
 // src/app/api/client/applicants/[id]/stage/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { transitionApplicationStage } from "@/modules/client/pipeline/services/job-pipeline.service";
+import {
+  getAssessmentMoveRequirement,
+  notifyFreelancerOfAssessmentOutcome,
+  transitionApplicationStage,
+} from "@/modules/client/pipeline/services/job-pipeline.service";
+import {
+  loadCompanyApplication,
+  resolveReviewerCompany,
+} from "@/modules/client/assessment-review/services/context";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
 import { createNotification } from "@/lib/notifications";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 
@@ -25,31 +34,71 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
+type ClientScope =
+  | { ok: true; userId: number; companyId: number }
+  | { ok: false; error: string; status: number };
+
+// Signed session required; proves the application's job belongs to the
+// caller's company and fails closed (404) so existence is not leaked.
+async function resolveClientScope(
+  req: NextRequest,
+  applicationId: number
+): Promise<ClientScope> {
+  const session = await authenticateRequest(req);
+  if (!session) return { ok: false, error: "Unauthorized.", status: 401 };
+  if (!isClientSession(session)) {
+    return { ok: false, error: "Client account required.", status: 403 };
   }
+  const companyId = await resolveReviewerCompany(session.userId);
+  if (!companyId) {
+    return { ok: false, error: "Company association not found.", status: 403 };
+  }
+  const application = await loadCompanyApplication(applicationId, companyId);
+  if (!application) {
+    return { ok: false, error: "Application not found.", status: 404 };
+  }
+  return { ok: true, userId: Number(session.userId), companyId };
 }
 
-async function getCompanyId(userId: number): Promise<number | null> {
-  try {
-    const res = await fetch(
-      `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`,
-      { headers: getHeaders(), cache: "no-store" }
-    );
-    const json = await res.json();
-    return json.data?.[0]?.company_id ?? null;
-  } catch {
-    return null;
+// Move-time pre-check for the assessment confirm flow: reports whether moving
+// the application to `to_stage_id` requires an assessment_outcome. Read-only;
+// the PATCH below remains authoritative.
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const applicationId = Number(id);
+  if (!applicationId || isNaN(applicationId)) {
+    return NextResponse.json({ error: "Invalid application ID." }, { status: 400 });
   }
+
+  const scope = await resolveClientScope(req, applicationId);
+  if (!scope.ok) {
+    return NextResponse.json({ error: scope.error }, { status: scope.status });
+  }
+
+  const toStageId = Number(new URL(req.url).searchParams.get("to_stage_id"));
+  if (!toStageId || isNaN(toStageId)) {
+    return NextResponse.json(
+      { error: "to_stage_id query parameter is required and must be a valid number." },
+      { status: 400 }
+    );
+  }
+
+  const requirement = await getAssessmentMoveRequirement({ applicationId, toStageId });
+  if (requirement.error) {
+    return NextResponse.json(
+      { error: requirement.error },
+      { status: requirement.statusCode ?? 422 }
+    );
+  }
+
+  return NextResponse.json({
+    requires_outcome: requirement.requiresOutcome,
+    from_stage: requirement.fromStage ?? null,
+    to_stage: requirement.toStage ?? null,
+  });
 }
 
 export async function PATCH(
@@ -63,23 +112,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid application ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const scope = await resolveClientScope(req, applicationId);
+    if (!scope.ok) {
+      return NextResponse.json({ error: scope.error }, { status: scope.status });
     }
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid authentication token." }, { status: 401 });
-    }
-
-    const companyId = await getCompanyId(userId);
-    if (!companyId) {
-      return NextResponse.json({ error: "Company association not found." }, { status: 403 });
-    }
+    const userId = scope.userId;
 
     const body = await req.json().catch(() => null);
     const toStageId = body?.to_stage_id ? Number(body.to_stage_id) : null;
@@ -91,12 +128,25 @@ export async function PATCH(
       );
     }
 
+    const rawOutcome = body?.assessment_outcome;
+    let assessmentOutcome: "PASS" | "FAIL" | undefined;
+    if (rawOutcome !== undefined && rawOutcome !== null) {
+      if (rawOutcome !== "PASS" && rawOutcome !== "FAIL") {
+        return NextResponse.json(
+          { error: 'assessment_outcome must be "PASS" or "FAIL" when provided.' },
+          { status: 400 }
+        );
+      }
+      assessmentOutcome = rawOutcome;
+    }
+
     const result = await transitionApplicationStage({
       applicationId,
       toStageId,
       changedByUserId: userId,
       changeReason: body?.notes,
       notes: body?.notes,
+      assessmentOutcome,
     });
 
     if (!result.success) {
@@ -106,7 +156,34 @@ export async function PATCH(
       );
     }
 
-    // Dispatch background notifications if moved to a new stage
+    // FAIL outcome records on the attempt and STAYS: no transition, no
+    // history write (service returns before those steps). The service
+    // already emitted ASSESSMENT_FAILED best-effort; this backup covers
+    // the FAIL-stay path idempotently if the service write raced.
+    if (result.moved === false) {
+      const failApp = result.application as Record<string, unknown> | undefined;
+      const failFreelancerId = failApp?.user_id ? Number(failApp.user_id) : null;
+      if (result.outcome === "FAIL" && failFreelancerId && result.fromStage) {
+        notifyFreelancerOfAssessmentOutcome({
+          applicationId,
+          freelancerUserId: failFreelancerId,
+          actingUserId: userId,
+          fromStageName: result.fromStage.stage_name,
+          outcome: "FAIL",
+        }).catch((err) => console.error("[Candidate Stage Notification] Error:", err));
+      }
+      return NextResponse.json({
+        success: true,
+        moved: false,
+        outcome: result.outcome ?? assessmentOutcome ?? null,
+        message: `Assessment marked as failed — candidate stays at "${result.fromStage?.stage_name ?? "the assessment stage"}".`,
+        application: result.application,
+        from_stage: result.fromStage,
+        to_stage: result.toStage,
+        noop: result.noop ?? false,
+      });
+    }
+    // Dispatch background notifications if moved to a new stage.
     if (!result.noop && result.toStage && result.application) {
       const appData = result.application as Record<string, unknown>;
       const jobseekerId = appData.user_id ? Number(appData.user_id) : null;
@@ -158,10 +235,22 @@ export async function PATCH(
           applicationId: applicationId,
         }).catch((e) => console.error("[Stage System Message] Error:", e));
       }
+
+      if (result.outcome === "PASS" && jobseekerId && result.fromStage) {
+        notifyFreelancerOfAssessmentOutcome({
+          applicationId,
+          freelancerUserId: jobseekerId,
+          actingUserId: userId,
+          fromStageName: result.fromStage.stage_name,
+          outcome: "PASS",
+        }).catch((err) => console.error("[Candidate Stage Notification] Error:", err));
+      }
     }
 
     return NextResponse.json({
       success: true,
+      moved: result.moved ?? true,
+      outcome: result.outcome ?? assessmentOutcome ?? null,
       message: result.noop
         ? `Application is already in "${result.toStage?.stage_name}".`
         : `Application moved to "${result.toStage?.stage_name}".`,

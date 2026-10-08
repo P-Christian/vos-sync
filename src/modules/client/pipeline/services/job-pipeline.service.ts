@@ -15,7 +15,14 @@ import {
   isTerminalStageType,
   seedDefaultCompanyPipeline,
 } from "./pipeline.service";
-import { getPHTimeString } from "@/lib/utils";
+import { copyCompanyTasksToJobStage } from "./job-assessment-task.service";
+import { checkAssessmentGate, isQualifyingAssessmentMove, isValidAssessmentOutcome, recordAssessmentMoveOutcome } from "@/modules/client/assessment-review/services/gate";
+import {
+  deriveAssessmentDeadline,
+  parseWindowDays,
+} from "@/modules/freelancer/freelancer-applications/services/assessment/deadline";
+import { createNotification } from "@/lib/notifications";
+import { formatDateLong, getPHTimeString } from "@/lib/utils";
 
 const DIRECTUS_BASE = (
   process.env.DIRECTUS_URL ||
@@ -32,6 +39,51 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+/**
+ * Best-effort delete of one Directus item during snapshot compensation.
+ */
+async function deleteJobSnapshotItem(
+  collection: string,
+  id: number
+): Promise<void> {
+  try {
+    await fetch(`${DIRECTUS_BASE}/items/${collection}/${id}`, {
+      method: "DELETE",
+      headers: getHeaders(),
+    });
+  } catch (err) {
+    console.error(
+      `[job-pipeline.service] compensation delete failed for ${collection}#${id}:`,
+      err
+    );
+  }
+}
+
+/**
+ * Snapshot compensation: deletes every created job task, transition, stage,
+ * and pipeline version in reverse child-to-parent order so no partial active
+ * version remains after a failed snapshot.
+ */
+async function compensateJobSnapshot(
+  versionId: number | null,
+  stageIds: number[],
+  transitionIds: number[],
+  taskIds: number[]
+): Promise<void> {
+  for (const taskId of taskIds) {
+    await deleteJobSnapshotItem("vs_job_pipeline_assessment_tasks", taskId);
+  }
+  for (let i = transitionIds.length - 1; i >= 0; i--) {
+    await deleteJobSnapshotItem("vs_job_pipeline_transitions", transitionIds[i]);
+  }
+  for (let i = stageIds.length - 1; i >= 0; i--) {
+    await deleteJobSnapshotItem("vs_job_pipeline_stages", stageIds[i]);
+  }
+  if (versionId !== null) {
+    await deleteJobSnapshotItem("vs_job_pipeline_versions", versionId);
+  }
 }
 
 /**
@@ -113,6 +165,22 @@ export async function snapshotCompanyPipeline(
   companyId: number,
   sourcePipelineId?: number
 ): Promise<JobPipelineVersion | null> {
+  let createdVersionId: number | null = null;
+  const createdJobStageIds: number[] = [];
+  const createdJobTransitionIds: number[] = [];
+  const createdJobTaskIds: number[] = [];
+
+  const rollbackAndFail = async (message: string): Promise<null> => {
+    console.error(`[job-pipeline.service] snapshotCompanyPipeline aborting: ${message}`);
+    await compensateJobSnapshot(
+      createdVersionId,
+      createdJobStageIds,
+      createdJobTransitionIds,
+      createdJobTaskIds
+    );
+    return null;
+  };
+
   try {
     const nowUtc = new Date().toISOString();
 
@@ -156,15 +224,6 @@ export async function snapshotCompanyPipeline(
       const latest = prevJson.data?.[0];
       if (latest) {
         nextVersion = (latest.version ?? 0) + 1;
-        // Deactivate previous active version
-        await fetch(
-          `${DIRECTUS_BASE}/items/vs_job_pipeline_versions?filter[job_id][_eq]=${jobId}&filter[is_active][_eq]=true`,
-          {
-            method: "PATCH",
-            headers: getHeaders(),
-            body: JSON.stringify({ is_active: false }),
-          }
-        );
       }
     }
 
@@ -189,6 +248,7 @@ export async function snapshotCompanyPipeline(
     const verJson = await createVerRes.json();
     const jobPipeline = verJson.data as JobPipelineVersion;
     if (!jobPipeline?.id) return null;
+    createdVersionId = jobPipeline.id;
 
     // 4. Copy Stages into vs_job_pipeline_stages & build ID map: companyStageId -> jobStageId
     const companyToJobStageMap = new Map<number, number>();
@@ -207,18 +267,26 @@ export async function snapshotCompanyPipeline(
           description: compStage.description,
           is_terminal: compStage.is_terminal,
           is_system: compStage.is_system,
+          assessment_submission_window_days: compStage.assessment_submission_window_days ?? null,
           created_at: nowUtc,
         }),
       });
 
-      if (stRes.ok) {
-        const stJson = await stRes.json();
-        const newJobStage = stJson.data as JobPipelineStage;
-        if (newJobStage?.id) {
-          companyToJobStageMap.set(compStage.id, newJobStage.id);
-          createdJobStages.push(newJobStage);
-        }
+      if (!stRes.ok) {
+        return rollbackAndFail(
+          `job stage creation failed for company stage #${compStage.id}`
+        );
       }
+      const stJson = await stRes.json();
+      const newJobStage = stJson.data as JobPipelineStage;
+      if (!newJobStage?.id) {
+        return rollbackAndFail(
+          `job stage creation returned no id for company stage #${compStage.id}`
+        );
+      }
+      companyToJobStageMap.set(compStage.id, newJobStage.id);
+      createdJobStages.push(newJobStage);
+      createdJobStageIds.push(newJobStage.id);
     }
 
     // 5. Copy Transitions into vs_job_pipeline_transitions with remapped IDs
@@ -239,13 +307,56 @@ export async function snapshotCompanyPipeline(
           }),
         });
 
-        if (trRes.ok) {
-          const trJson = await trRes.json();
-          const newTr = trJson.data as JobPipelineTransition;
-          if (newTr) createdJobTransitions.push(newTr);
+        if (!trRes.ok) {
+          return rollbackAndFail(
+            `job transition creation failed (${mappedFromId} -> ${mappedToId})`
+          );
         }
+        const trJson = await trRes.json();
+        const newTr = trJson.data as JobPipelineTransition;
+        if (!newTr?.id) {
+          return rollbackAndFail(
+            `job transition creation returned no id (${mappedFromId} -> ${mappedToId})`
+          );
+        }
+        createdJobTransitions.push(newTr);
+        createdJobTransitionIds.push(newTr.id);
       }
     }
+
+    // 6. Copy assessment tasks for each ASSESSMENT stage into frozen job rows.
+    // Supports zero or multiple ASSESSMENT stages in the template.
+    for (const compStage of sourcePipeline.stages) {
+      if (compStage.stage_type !== "ASSESSMENT") continue;
+      const jobStageId = companyToJobStageMap.get(compStage.id);
+      if (!jobStageId) {
+        return rollbackAndFail(
+          `missing job stage mapping for company ASSESSMENT stage #${compStage.id}`
+        );
+      }
+      const copied = await copyCompanyTasksToJobStage(jobStageId, compStage.id);
+      // Thread partial ids into compensation BEFORE checking ok, so a
+      // mid-loop copy failure still rolls back rows created before it.
+      for (const taskId of copied.createdIds) {
+        createdJobTaskIds.push(taskId);
+      }
+      if (!copied.ok) {
+        return rollbackAndFail(
+          `assessment task snapshot failed for company stage #${compStage.id}`
+        );
+      }
+    }
+
+    // 7. Deactivate previous active versions only after the full snapshot
+    // succeeded, so a failed snapshot never leaves a partial active version.
+    await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_pipeline_versions?filter[job_id][_eq]=${jobId}&filter[is_active][_eq]=true&filter[id][_neq]=${jobPipeline.id}`,
+      {
+        method: "PATCH",
+        headers: getHeaders(),
+        body: JSON.stringify({ is_active: false }),
+      }
+    );
 
     return {
       ...jobPipeline,
@@ -256,6 +367,12 @@ export async function snapshotCompanyPipeline(
     };
   } catch (err) {
     console.error("[job-pipeline.service] snapshotCompanyPipeline error:", err);
+    await compensateJobSnapshot(
+      createdVersionId,
+      createdJobStageIds,
+      createdJobTransitionIds,
+      createdJobTaskIds
+    );
     return null;
   }
 }
@@ -488,6 +605,7 @@ export async function updateJobPipelineStage(
     color?: string;
     description?: string;
     stage_order?: number;
+    assessment_submission_window_days?: number | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -507,6 +625,9 @@ export async function updateJobPipelineStage(
     if (data.color !== undefined) updatePayload.color = data.color;
     if (data.description !== undefined) updatePayload.description = data.description.trim() || null;
     if (data.stage_order !== undefined) updatePayload.stage_order = data.stage_order;
+    if (data.assessment_submission_window_days !== undefined) {
+      updatePayload.assessment_submission_window_days = data.assessment_submission_window_days;
+    }
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_pipeline_stages/${stageId}`, {
       method: "PATCH",
@@ -733,12 +854,161 @@ export async function assignInitialStageToApplication(
   }
 }
 
+interface StageMoveContext {
+  appData: Record<string, unknown>;
+  pipeline: JobPipelineVersion;
+  fromStage: JobPipelineStage;
+  toStage: JobPipelineStage;
+  hasConfiguredTransition: boolean;
+  isUniversalExit: boolean;
+}
+
+type StageMoveResolution =
+  | { ok: true; context: StageMoveContext }
+  | { ok: false; error: string; statusCode: number };
+
+/**
+ * Resolves the endpoints of a stage move against the job's active pipeline
+ * and classifies the route as a configured transition or a universal
+ * REJECTED/WITHDRAWN exit. Shared by the move itself and the assessment
+ * move-time pre-check.
+ */
+async function resolveStageMoveContext(
+  applicationId: number,
+  toStageId: number
+): Promise<StageMoveResolution> {
+  // 1. Fetch application
+  const appRes = await fetch(
+    `${DIRECTUS_BASE}/items/vs_job_application/${applicationId}?fields=application_id,job_id,user_id,application_status,current_stage_id,client_notes`,
+    { headers: getHeaders(), cache: "no-store" }
+  );
+  if (!appRes.ok) {
+    return { ok: false, error: "Application not found.", statusCode: 404 };
+  }
+  const appJson = await appRes.json();
+  const appData = appJson.data;
+  if (!appData) {
+    return { ok: false, error: "Application not found.", statusCode: 404 };
+  }
+
+  const jobId = Number(appData.job_id);
+  if (!jobId) {
+    return { ok: false, error: "Application is not associated with a valid job.", statusCode: 400 };
+  }
+
+  // 2. Fetch active job pipeline version
+  const pipeline = await getJobPipeline(jobId);
+  if (!pipeline || !pipeline.stages || pipeline.stages.length === 0) {
+    return { ok: false, error: "Job pipeline not found or has no stages.", statusCode: 500 };
+  }
+
+  const stages = pipeline.stages;
+  const transitions = pipeline.transitions ?? [];
+
+  // 3. Resolve fromStage
+  const unresolvedFrom = appData.current_stage_id
+    ? stages.find((s) => s.id === Number(appData.current_stage_id))
+    : undefined;
+  const canonicalStatus = (appData.application_status || "APPLIED").toUpperCase();
+  const fromStage =
+    unresolvedFrom ||
+    stages.find((s) => s.stage_type === canonicalStatus) ||
+    stages.find((s) => s.stage_type === "APPLIED") ||
+    stages[0];
+
+  if (!fromStage) {
+    return { ok: false, error: "Could not resolve candidate current stage in this pipeline.", statusCode: 422 };
+  }
+
+  // 4. Resolve toStage (Must belong to the same pipeline version!)
+  const toStage = stages.find((s) => s.id === Number(toStageId));
+  if (!toStage) {
+    return {
+      ok: false,
+      error: `Target stage #${toStageId} does not belong to this job's active pipeline.`,
+      statusCode: 422,
+    };
+  }
+
+  // Transition classification:
+  // Either explicit transition exists, OR target is a Universal Exit (REJECTED / WITHDRAWN) from non-terminal stage
+  const hasConfiguredTransition = transitions.some(
+    (t) => t.from_stage_id === fromStage.id && t.to_stage_id === toStage.id
+  );
+  const isUniversalExit = toStage.stage_type === "REJECTED" || toStage.stage_type === "WITHDRAWN";
+
+  return {
+    ok: true,
+    context: { appData, pipeline, fromStage, toStage, hasConfiguredTransition, isUniversalExit },
+  };
+}
+
+export interface AssessmentMoveRequirement {
+  requiresOutcome: boolean;
+  fromStage?: JobPipelineStage;
+  toStage?: JobPipelineStage;
+  error?: string;
+  statusCode?: number;
+}
+
+/**
+ * Move-time pre-check for the client confirm flow: reports whether moving
+ * the application to `toStageId` qualifies for the assessment outcome gate
+ * (task-bearing ASSESSMENT stage, configured non-universal route). Never
+ * writes; the PATCH remains authoritative.
+ */
+export async function getAssessmentMoveRequirement(input: {
+  applicationId: number;
+  toStageId: number;
+}): Promise<AssessmentMoveRequirement> {
+  try {
+    const resolved = await resolveStageMoveContext(input.applicationId, input.toStageId);
+    if (!resolved.ok) {
+      return { requiresOutcome: false, error: resolved.error, statusCode: resolved.statusCode };
+    }
+    const { fromStage, toStage, hasConfiguredTransition, isUniversalExit } = resolved.context;
+
+    if (fromStage.id === toStage.id) {
+      return { requiresOutcome: false, fromStage, toStage };
+    }
+    if (fromStage.is_terminal) {
+      return {
+        requiresOutcome: false,
+        error: `Candidate is in terminal stage "${fromStage.stage_name}" and cannot be transitioned further.`,
+        statusCode: 422,
+      };
+    }
+    if (!hasConfiguredTransition && !isUniversalExit) {
+      return {
+        requiresOutcome: false,
+        error: `Transition from "${fromStage.stage_name}" to "${toStage.stage_name}" is not configured in this job's pipeline.`,
+        statusCode: 422,
+      };
+    }
+
+    const qualifying = await isQualifyingAssessmentMove({
+      fromStage,
+      isUniversalExit,
+      hasConfiguredTransition,
+    });
+    return { requiresOutcome: qualifying, fromStage, toStage };
+  } catch (err) {
+    console.error("[job-pipeline.service] getAssessmentMoveRequirement error:", err);
+    return {
+      requiresOutcome: false,
+      error: err instanceof Error ? err.message : "Internal error checking assessment requirement.",
+      statusCode: 500,
+    };
+  }
+}
+
 export interface TransitionStageParams {
   applicationId: number;
   toStageId: number;
   changedByUserId?: number | null;
   changeReason?: string | null;
   notes?: string | null;
+  assessmentOutcome?: string | null;
 }
 
 export interface TransitionStageResult {
@@ -746,9 +1016,134 @@ export interface TransitionStageResult {
   error?: string;
   statusCode?: number;
   noop?: boolean;
+  moved?: boolean;
+  outcome?: "PASS" | "FAIL" | null;
   application?: Record<string, unknown>;
   fromStage?: JobPipelineStage;
   toStage?: JobPipelineStage;
+}
+
+async function hasStageTasks(stageId: number): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_job_pipeline_assessment_tasks?filter[job_stage_id][_eq]=${stageId}&fields=id&limit=1`,
+      { headers: getHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return false;
+    const json = await res.json();
+    return Array.isArray(json.data) && json.data.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function hasAssessmentAssignedEvent(applicationId: number): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_notification_event?filter[event_type][_eq]=ASSESSMENT_ASSIGNED&filter[entity_type][_eq]=job_application&filter[entity_id][_eq]=${applicationId}&fields=event_id&limit=1`,
+      { headers: getHeaders(), cache: "no-store" },
+    );
+    if (!res.ok) return false;
+    const json = await res.json();
+    return Array.isArray(json.data) && json.data.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Best-effort arrival notification for a move INTO an ASSESSMENT stage.
+ * Sends only to the application's freelancer (never the acting client),
+ * only when the stage carries a submission window and at least one task,
+ * and only once per application (existing ASSESSMENT_ASSIGNED event skips).
+ * Never throws; notification failure must not fail the stage move.
+ */
+async function notifyFreelancerOfAssessmentAssignment(input: {
+  applicationId: number;
+  freelancerUserId: number;
+  actingUserId?: number | null;
+  toStage: JobPipelineStage;
+  entryTime: string;
+}): Promise<void> {
+  try {
+    const freelancerId = input.freelancerUserId;
+    if (!Number.isSafeInteger(freelancerId) || freelancerId <= 0) return;
+    if (input.actingUserId !== null && input.actingUserId !== undefined && freelancerId === input.actingUserId) return;
+    const windowDays = parseWindowDays(input.toStage.assessment_submission_window_days);
+    if (windowDays === null) return;
+    if (!(await hasStageTasks(input.toStage.id))) return;
+    if (await hasAssessmentAssignedEvent(input.applicationId)) return;
+    const deadline = deriveAssessmentDeadline(input.entryTime, windowDays);
+    if (!deadline) return;
+    const formatted = formatDateLong(new Date(deadline));
+    await createNotification({
+      event_type: "ASSESSMENT_ASSIGNED",
+      recipient_user_id: freelancerId,
+      entity_type: "job_application",
+      entity_id: input.applicationId,
+      category: "ASSESSMENT_ASSIGNED",
+      title: "Assessment assigned",
+      message: `You have until ${formatted} to complete your assessment.`,
+      action_url: `/vos-sync/freelancer/applications?assessment=${input.applicationId}`,
+    }).catch((error: unknown) => console.error("[job-pipeline.service] assessment arrival notify error:", error));
+  } catch (error) {
+    console.error("[job-pipeline.service] assessment arrival notification failed:", error);
+  }
+}
+
+/**
+ * Best-effort move-time assessment outcome notification to the freelancer.
+ * Exactly once per decision: PASS -> ASSESSMENT_PASSED, FAIL ->
+ * ASSESSMENT_FAILED. Mirrors the ASSESSMENT_ASSIGNED idempotency (existing
+ * event type + entity check). Never notifies the acting client. Never
+ * throws; notification failure must not fail the stage move.
+ */
+async function hasAssessmentOutcomeEvent(
+  applicationId: number,
+  eventType: "ASSESSMENT_PASSED" | "ASSESSMENT_FAILED"
+): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_notification_event?filter[event_type][_eq]=${eventType}&filter[entity_type][_eq]=job_application&filter[entity_id][_eq]=${applicationId}&fields=event_id&limit=1`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!res.ok) return false;
+    const json = await res.json();
+    return Array.isArray(json.data) && json.data.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export async function notifyFreelancerOfAssessmentOutcome(input: {
+  applicationId: number;
+  freelancerUserId: number;
+  actingUserId?: number | null;
+  fromStageName: string;
+  outcome: "PASS" | "FAIL";
+}): Promise<void> {
+  try {
+    const freelancerId = input.freelancerUserId;
+    if (!Number.isSafeInteger(freelancerId) || freelancerId <= 0) return;
+    if (input.actingUserId !== null && input.actingUserId !== undefined && freelancerId === input.actingUserId) return;
+    const eventType = input.outcome === "PASS" ? "ASSESSMENT_PASSED" : "ASSESSMENT_FAILED";
+    if (await hasAssessmentOutcomeEvent(input.applicationId, eventType)) return;
+    const passed = input.outcome === "PASS";
+    await createNotification({
+      event_type: eventType,
+      recipient_user_id: freelancerId,
+      entity_type: "job_application",
+      entity_id: input.applicationId,
+      category: eventType,
+      title: passed ? "Assessment passed" : "Assessment not passed",
+      message: passed
+        ? `Your assessment for "${input.fromStageName}" was marked as passed.`
+        : `Your assessment for "${input.fromStageName}" was marked as failed.`,
+      action_url: `/vos-sync/freelancer/applications?assessment=${input.applicationId}`,
+    }).catch((error: unknown) => console.error("[job-pipeline.service] assessment outcome notify error:", error));
+  } catch (error) {
+    console.error("[job-pipeline.service] assessment outcome notification failed:", error);
+  }
 }
 
 /**
@@ -761,64 +1156,17 @@ export async function transitionApplicationStage({
   changedByUserId,
   changeReason,
   notes,
+  assessmentOutcome,
 }: TransitionStageParams): Promise<TransitionStageResult> {
   try {
     const nowPH = getPHTimeString();
 
-    // 1. Fetch application
-    const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application/${applicationId}?fields=application_id,job_id,user_id,application_status,current_stage_id,client_notes`,
-      { headers: getHeaders(), cache: "no-store" }
-    );
-    if (!appRes.ok) {
-      return { success: false, error: "Application not found.", statusCode: 404 };
+    const resolved = await resolveStageMoveContext(applicationId, toStageId);
+    if (!resolved.ok) {
+      return { success: false, error: resolved.error, statusCode: resolved.statusCode };
     }
-    const appJson = await appRes.json();
-    const appData = appJson.data;
-    if (!appData) {
-      return { success: false, error: "Application not found.", statusCode: 404 };
-    }
-
-    const jobId = Number(appData.job_id);
-    if (!jobId) {
-      return { success: false, error: "Application is not associated with a valid job.", statusCode: 400 };
-    }
-
-    // 2. Fetch active job pipeline version
-    const pipeline = await getJobPipeline(jobId);
-    if (!pipeline || !pipeline.stages || pipeline.stages.length === 0) {
-      return { success: false, error: "Job pipeline not found or has no stages.", statusCode: 500 };
-    }
-
-    const stages = pipeline.stages;
-    const transitions = pipeline.transitions ?? [];
-
-    // 3. Resolve fromStage
-    let fromStage: JobPipelineStage | undefined;
-    if (appData.current_stage_id) {
-      fromStage = stages.find((s) => s.id === Number(appData.current_stage_id));
-    }
-    if (!fromStage) {
-      const canonicalStatus = (appData.application_status || "APPLIED").toUpperCase();
-      fromStage =
-        stages.find((s) => s.stage_type === canonicalStatus) ||
-        stages.find((s) => s.stage_type === "APPLIED") ||
-        stages[0];
-    }
-
-    if (!fromStage) {
-      return { success: false, error: "Could not resolve candidate current stage in this pipeline.", statusCode: 422 };
-    }
-
-    // 4. Resolve toStage (Must belong to the same pipeline version!)
-    const toStage = stages.find((s) => s.id === Number(toStageId));
-    if (!toStage) {
-      return {
-        success: false,
-        error: `Target stage #${toStageId} does not belong to this job's active pipeline.`,
-        statusCode: 422,
-      };
-    }
+    const { appData, pipeline, fromStage, toStage, hasConfiguredTransition, isUniversalExit } =
+      resolved.context;
 
     // 5. Guard: No-op if already in the target stage
     if (fromStage.id === toStage.id) {
@@ -840,19 +1188,72 @@ export async function transitionApplicationStage({
       };
     }
 
-    // 7. Transition validation:
-    // Either explicit transition exists, OR target is a Universal Exit (REJECTED / WITHDRAWN) from non-terminal stage
-    const hasConfiguredTransition = transitions.some(
-      (t) => t.from_stage_id === fromStage!.id && t.to_stage_id === toStage.id
-    );
-    const isUniversalExit = toStage.stage_type === "REJECTED" || toStage.stage_type === "WITHDRAWN";
-
+    // 7. Transition validation: the route must be a configured transition
+    // or a universal REJECTED/WITHDRAWN exit (flags resolved above).
     if (!hasConfiguredTransition && !isUniversalExit) {
       return {
         success: false,
         error: `Transition from "${fromStage.stage_name}" to "${toStage.stage_name}" is not configured in this job's pipeline.`,
         statusCode: 422,
       };
+    }
+
+    // 7b. ASSESSMENT progression gate: a configured (non-universal) move out
+    // of a task-bearing ASSESSMENT stage requires a move-time
+    // assessment_outcome. Universal REJECTED/WITHDRAWN exits and task-free
+    // stages always pass.
+    const gateError = await checkAssessmentGate({
+      applicationId,
+      fromStage,
+      isUniversalExit,
+      hasConfiguredTransition,
+      assessmentOutcome,
+    });
+    if (gateError) {
+      return { success: false, error: gateError, statusCode: 409 };
+    }
+
+    // 7c. Record the move-time outcome on the latest attempt before
+    // performing the move. Non-qualifying moves never reach a write here:
+    // the gate above rejects a missing outcome, and the qualifying re-check
+    // below guards a gratuitous one. FAIL records and STAYS (no transition,
+    // no history write); PASS records then moves exactly as before.
+    let moveOutcome: "PASS" | "FAIL" | null = null;
+    if (isValidAssessmentOutcome(assessmentOutcome)) {
+      const qualifying = await isQualifyingAssessmentMove({
+        fromStage,
+        isUniversalExit,
+        hasConfiguredTransition,
+      });
+      if (qualifying) {
+        const recordError = await recordAssessmentMoveOutcome({
+          applicationId,
+          jobStageId: fromStage.id,
+          outcome: assessmentOutcome,
+          reviewedBy: changedByUserId ?? null,
+        });
+        if (recordError) {
+          return { success: false, error: recordError, statusCode: 502 };
+        }
+        moveOutcome = assessmentOutcome;
+        if (assessmentOutcome === "FAIL") {
+          await notifyFreelancerOfAssessmentOutcome({
+            applicationId,
+            freelancerUserId: Number(appData.user_id),
+            actingUserId: changedByUserId ?? null,
+            fromStageName: fromStage.stage_name,
+            outcome: "FAIL",
+          });
+          return {
+            success: true,
+            moved: false,
+            outcome: "FAIL",
+            application: appData,
+            fromStage,
+            toStage: fromStage,
+          };
+        }
+      }
     }
 
     // 8. Update vs_job_application:
@@ -903,8 +1304,32 @@ export async function transitionApplicationStage({
       }),
     });
 
+    // 10. Arrival notification: the history row above is the stage-entry
+    // timestamp, so the deadline derives from the same nowPH instant.
+    if (toStage.stage_type === "ASSESSMENT") {
+      await notifyFreelancerOfAssessmentAssignment({
+        applicationId,
+        freelancerUserId: Number(appData.user_id),
+        actingUserId: changedByUserId ?? null,
+        toStage,
+        entryTime: nowPH,
+      });
+    }
+
+    if (moveOutcome === "PASS") {
+      await notifyFreelancerOfAssessmentOutcome({
+        applicationId,
+        freelancerUserId: Number(appData.user_id),
+        actingUserId: changedByUserId ?? null,
+        fromStageName: fromStage.stage_name,
+        outcome: "PASS",
+      });
+    }
+
     return {
       success: true,
+      moved: true,
+      outcome: moveOutcome,
       application: updatedAppJson.data ?? { ...appData, ...patchPayload },
       fromStage,
       toStage,

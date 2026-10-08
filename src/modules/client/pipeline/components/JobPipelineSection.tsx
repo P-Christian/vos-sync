@@ -15,6 +15,7 @@ import {
 } from "../types";
 import StageEditModal from "./StageEditModal";
 import TransitionConfigModal from "./TransitionConfigModal";
+import JobAssessmentTaskBlock from "./JobAssessmentTaskBlock";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -764,9 +765,18 @@ export default function JobPipelineSection({
                     layout: { type: "spring", stiffness: 450, damping: 32 },
                     opacity: { duration: 0.2 },
                   }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border/70 bg-card hover:border-border transition-colors gap-2"
+                  className="flex flex-col flex-wrap sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-border/70 bg-card hover:border-border transition-colors gap-2"
                 >
                   {cardContent}
+                  {st.stage_type === "ASSESSMENT" && jobId ? (
+                    <JobAssessmentTaskBlock
+                      jobId={jobId}
+                      stageId={st.id}
+                      stageType={st.stage_type}
+                      readOnly={isLocked}
+                      initialWindowDays={st.assessment_submission_window_days ?? null}
+                    />
+                  ) : null}
                 </motion.div>
               );
             })}

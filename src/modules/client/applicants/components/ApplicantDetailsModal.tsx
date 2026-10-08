@@ -43,6 +43,7 @@ import {
   FileText,
 } from "lucide-react";
 import dynamic from "next/dynamic";
+import AssessmentReviewSection from "@/modules/client/assessment-review/components/AssessmentReviewSection";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ApplicantAiAnalysisModal } from "./ApplicantAiAnalysisModal";
 import {
@@ -289,8 +290,11 @@ export default function ApplicantDetailsModal({
 
   const isInterviewEligible =
     detail?.stage_type === "INTERVIEW" ||
-    detail?.stage_type === "ASSESSMENT" ||
     (!detail?.stage_type && (status === "INTERVIEWING" || status === "SHORTLISTED"));
+
+  const isAssessmentStage =
+    detail?.stage_type === "ASSESSMENT" ||
+    (!detail?.stage_type && activeApplicant?.stage_type === "ASSESSMENT");
 
   const rawImage = detail?.profile_image ?? activeApplicant?.applicant_profile_image_url ?? activeApplicant?.profile_image_url;
   const avatarUrl = getApplicantAvatarUrl(rawImage);
@@ -548,6 +552,15 @@ export default function ApplicantDetailsModal({
                     )}
                   </SectionCard>
                 </AnimatedSection>
+
+                {/* Assessment Review (employer) */}
+                {(activeApplicant?.application_id ?? detail?.application_id) && (
+                  <AnimatedSection delay={0.22}>
+                    <AssessmentReviewSection
+                      applicationId={Number(activeApplicant?.application_id ?? detail?.application_id)}
+                    />
+                  </AnimatedSection>
+                )}
 
                 {/* Social Media Links */}
                 {detail.social_links && detail.social_links.length > 0 && (
@@ -821,7 +834,7 @@ export default function ApplicantDetailsModal({
             </Button>
           </Link>
 
-          {!isTerminal && (
+          {!isTerminal && !isAssessmentStage && (
             <Button variant="outline" onClick={onUpdateStatus} className="border-border max-md:w-full max-md:min-h-10">
               Update Stage
             </Button>

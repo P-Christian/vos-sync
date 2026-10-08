@@ -2,7 +2,12 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import {
+  authenticateRequest,
+  isClientSession,
+} from "@/lib/authenticated-session";
+import {
   deletePipelineStage,
+  parseAssessmentSubmissionWindow,
   updatePipelineStage,
 } from "@/modules/client/pipeline/services/pipeline.service";
 
@@ -62,26 +67,60 @@ export async function PATCH(
     const pipelineId = Number(id);
     const sId = Number(stageId);
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
-    const companyId = await getCompanyId(userId);
+    const companyId = await getCompanyId(Number(session.userId));
     if (!companyId) return NextResponse.json({ error: "Company association not found." }, { status: 404 });
 
     const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    }
+
+    let windowDays: number | null | undefined;
+    let windowProvided = false;
+    if ("assessment_submission_window_days" in body) {
+      windowProvided = true;
+      const parsed = parseAssessmentSubmissionWindow(
+        (body as { assessment_submission_window_days?: unknown }).assessment_submission_window_days
+      );
+      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+      windowDays = parsed.days;
+    }
+
+    if (windowProvided) {
+      const stageRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_company_pipeline_stages/${sId}?fields=id,pipeline_id,stage_type`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!stageRes.ok) {
+        return NextResponse.json({ error: "Pipeline stage not found." }, { status: 404 });
+      }
+      const stageJson = (await stageRes.json()) as {
+        data?: { id?: number; pipeline_id?: number; stage_type?: string };
+      };
+      const row = stageJson.data;
+      if (!row || Number(row.pipeline_id) !== pipelineId) {
+        return NextResponse.json({ error: "Pipeline stage not found." }, { status: 404 });
+      }
+      if (row.stage_type !== "ASSESSMENT") {
+        return NextResponse.json(
+          { error: "Submission window can only be set on ASSESSMENT stages." },
+          { status: 422 }
+        );
+      }
+    }
 
     const success = await updatePipelineStage(pipelineId, sId, companyId, {
       stage_name: body.stage_name,
       color: body.color,
       description: body.description,
       stage_order: body.stage_order,
+      ...(windowProvided ? { assessment_submission_window_days: windowDays as number | null } : {}),
     });
 
     if (!success) {

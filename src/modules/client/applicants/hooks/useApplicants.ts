@@ -5,9 +5,20 @@ import {
   Applicant,
   ApplicantFilterStatus,
   ApplicationStatus,
+  AssessmentMoveOutcome,
   CandidateDetail,
 } from "../types";
 import { JobPipelineVersion } from "@/modules/client/pipeline/types";
+
+export interface UpdateStatusResult {
+  ok: boolean;
+  /** True when the move left an ASSESSMENT stage toward a non-exit target and
+   *  must be routed through requestStageMove (assessment decision modal)
+   *  instead of a direct stage PATCH. No mutation was performed. */
+  gated: boolean;
+  toStageId?: number;
+  stageName?: string;
+}
 
 export function useApplicants() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
@@ -94,8 +105,9 @@ export function useApplicants() {
     async (
       applicationId: number,
       toStageId: number,
-      notes?: string
-    ) => {
+      notes?: string,
+      assessmentOutcome?: AssessmentMoveOutcome
+    ): Promise<{ ok: boolean; moved: boolean }> => {
       setSaving(true);
       setError("");
 
@@ -133,6 +145,7 @@ export function useApplicants() {
           body: JSON.stringify({
             to_stage_id: toStageId,
             notes,
+            ...(assessmentOutcome ? { assessment_outcome: assessmentOutcome } : {}),
           }),
         });
 
@@ -140,6 +153,11 @@ export function useApplicants() {
 
         if (!res.ok) {
           throw new Error(json.error || "Failed to update stage.");
+        }
+
+        if (json.moved === false) {
+          setApplicants(rollbackList);
+          return { ok: true, moved: false };
         }
 
         if (json.to_stage) {
@@ -174,7 +192,7 @@ export function useApplicants() {
           );
         }
 
-        return true;
+        return { ok: true, moved: true };
       } catch (err: unknown) {
         setApplicants(rollbackList);
         setError(
@@ -182,7 +200,7 @@ export function useApplicants() {
             ? err.message
             : "An error occurred."
         );
-        return false;
+        return { ok: false, moved: false };
       } finally {
         setSaving(false);
       }
@@ -199,7 +217,7 @@ export function useApplicants() {
       applicationId: number,
       status: ApplicationStatus,
       notes: string
-    ) => {
+    ): Promise<UpdateStatusResult> => {
       // Find candidate
       const target = applicants.find((a) => a.application_id === applicationId);
       const stageMatch =
@@ -207,7 +225,20 @@ export function useApplicants() {
         jobPipeline?.stages?.find((s) => s.stage_type === status);
 
       if (stageMatch) {
-        return updateApplicantStage(applicationId, stageMatch.id, notes);
+        const isAssessmentSource = target?.stage_type === "ASSESSMENT";
+        const isUniversalExit =
+          stageMatch.stage_type === "REJECTED" ||
+          stageMatch.stage_type === "WITHDRAWN";
+        if (isAssessmentSource && !isUniversalExit) {
+          return {
+            ok: false,
+            gated: true,
+            toStageId: stageMatch.id,
+            stageName: stageMatch.stage_name,
+          };
+        }
+        const moved = await updateApplicantStage(applicationId, stageMatch.id, notes);
+        return { ok: moved.ok, gated: false };
       }
 
       setSaving(true);
@@ -251,7 +282,7 @@ export function useApplicants() {
           );
         }
 
-        return true;
+        return { ok: true, gated: false };
       } catch (err: unknown) {
         setApplicants(rollbackList);
         setError(
@@ -260,7 +291,7 @@ export function useApplicants() {
             : "An error occurred."
         );
 
-        return false;
+        return { ok: false, gated: false };
       } finally {
         setSaving(false);
       }

@@ -1,5 +1,7 @@
 // src/modules/freelancer/freelancer-applications/types/index.ts
 
+import type { AttemptStatus } from "@/modules/shared/assessment";
+
 export type ApplicationStatus =
   | 'DRAFT'
   | 'APPLIED'
@@ -9,6 +11,19 @@ export type ApplicationStatus =
   | 'HIRED'
   | 'REJECTED'
   | 'WITHDRAWN';
+
+/**
+ * Compact assessment state exposed on each freelancer application row:
+ * `available` requires an ASSESSMENT current stage with frozen tasks,
+ * `status` mirrors the latest attempt (null when no tasks), and
+ * `needs_action` is true only for NOT_STARTED / IN_PROGRESS / NEEDS_REVISION.
+ */
+export interface ApplicationAssessmentInfo {
+  available: boolean;
+  status: AttemptStatus | null;
+  needs_action: boolean;
+  deadline?: string | null;
+}
 
 export interface CompanyProfile {
   company_id: number;
@@ -73,6 +88,8 @@ export interface ApplicationItem {
   referral_letter?: string | null;
   school_name?: string | null;
   referrer_name?: string | null;
+  // Populated client-side from the per-application assessment endpoint.
+  assessment?: ApplicationAssessmentInfo | null;
 }
 
 export interface ApplicationSummary {

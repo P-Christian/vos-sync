@@ -25,6 +25,8 @@ export interface ApplicantStageOption {
   is_terminal: boolean;
 }
 
+export type AssessmentMoveOutcome = "PASS" | "FAIL";
+
 export interface Applicant {
   application_id: number;
 

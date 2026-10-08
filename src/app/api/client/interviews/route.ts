@@ -4,6 +4,9 @@ import { createSystemMessage } from "@/lib/messaging/system-message";
 import { createFreelancerNotification } from "@/lib/notifications/services/freelancer-notifications";
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { getPHTimeString } from "@/lib/utils";
+import { getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
+import { resolveReviewerCompany } from "@/modules/client/assessment-review/services/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,20 +21,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 function formatAvatarUrl(url?: string | null): string | null {
@@ -70,15 +59,6 @@ export function formatInterviewDateTime(dateTimeStr: string): string {
   } catch {
     return dateTimeStr;
   }
-}
-
-async function getCompanyId(userId: number): Promise<number | null> {
-  const res = await fetch(
-    `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`,
-    { headers: getHeaders(), cache: "no-store" }
-  );
-  const json = await res.json();
-  return json.data?.[0]?.company_id ?? null;
 }
 
 interface DirectusInterview {
@@ -134,15 +114,16 @@ interface DirectusJob {
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = Number(session.userId);
+    if (!userId || isNaN(userId)) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
 
-    const companyId = await getCompanyId(userId);
+    const companyId = await resolveReviewerCompany(session.userId);
     if (!companyId) return NextResponse.json({ error: "Company not found." }, { status: 404 });
 
     const { searchParams } = new URL(req.url);
@@ -260,15 +241,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = Number(session.userId);
+    if (!userId || isNaN(userId)) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
 
-    const companyId = await getCompanyId(userId);
+    const companyId = await resolveReviewerCompany(session.userId);
     if (!companyId) return NextResponse.json({ error: "Company not found." }, { status: 404 });
 
     const body = await req.json().catch(() => null);
@@ -292,6 +274,35 @@ export async function POST(req: NextRequest) {
     let scheduledAt = body.scheduled_at;
     if (!scheduledAt && body.interview_date && body.interview_time) {
       scheduledAt = `${body.interview_date} ${body.interview_time}:00`;
+    }
+
+    // Tenant ownership gate: every scheduled application must belong to the
+    // caller's company (application -> job_id -> vs_job_posting.company_id).
+    // Reject before any interview, junction, or notification side effect.
+    for (const appId of rawAppIds) {
+      const appRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_application/${appId}?fields=application_id,job_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!appRes.ok) {
+        return NextResponse.json({ error: "Application not found." }, { status: 404 });
+      }
+      const appRow = (await appRes.json()).data;
+      const jobId = Number(appRow?.job_id);
+      if (!Number.isSafeInteger(jobId) || jobId <= 0) {
+        return NextResponse.json({ error: "Application not found." }, { status: 404 });
+      }
+      const jobRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_job_posting/${jobId}?fields=job_id,company_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!jobRes.ok) {
+        return NextResponse.json({ error: "Application not found." }, { status: 404 });
+      }
+      const jobRow = (await jobRes.json()).data;
+      if (!jobRow || Number(jobRow.company_id) !== companyId) {
+        return NextResponse.json({ error: "Application not found." }, { status: 404 });
+      }
     }
 
     // Check if any selected candidate already has an active, uncompleted scheduled interview session
@@ -445,11 +456,37 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${appId}`, {
-        method: "PATCH",
-        headers: getHeaders(),
-        body: JSON.stringify({ application_status: "INTERVIEWING" }),
-      }).catch((e) => console.error("Error updating app status:", e));
+      // Only system-advance candidates whose current pipeline stage is an
+      // INTERVIEW stage. Candidates at ASSESSMENT (or other) stages keep
+      // their stage; the interview record above is still created.
+      let shouldAdvanceToInterviewing = false;
+      try {
+        const appStageRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_application/${appId}?fields=job_id,current_stage_id`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (appStageRes.ok) {
+          const appStage = (await appStageRes.json()).data;
+          if (appStage?.job_id) {
+            const pipe = await getJobPipeline(Number(appStage.job_id));
+            const current =
+              appStage.current_stage_id === null || appStage.current_stage_id === undefined
+                ? undefined
+                : pipe?.stages?.find((s) => s.id === Number(appStage.current_stage_id));
+            shouldAdvanceToInterviewing = current?.stage_type === "INTERVIEW";
+          }
+        }
+      } catch (e) {
+        console.error("Error resolving stage for interview status advance:", e);
+      }
+
+      if (shouldAdvanceToInterviewing) {
+        await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${appId}`, {
+          method: "PATCH",
+          headers: getHeaders(),
+          body: JSON.stringify({ application_status: "INTERVIEWING" }),
+        }).catch((e) => console.error("Error updating app status:", e));
+      }
 
       // Dispatch notifications to candidate
       try {

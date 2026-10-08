@@ -70,13 +70,14 @@ export default function ApplicantCard({
   const initials = getInitials(applicant.applicant_name);
 
   // Canonical stage authority for interview operations:
-  // Available when candidate is in an INTERVIEW or ASSESSMENT stage (or legacy unmigrated status)
+  // Available when candidate is in an INTERVIEW stage (or legacy unmigrated status)
   const isInterviewEligible =
     applicant.stage_type === "INTERVIEW" ||
-    applicant.stage_type === "ASSESSMENT" ||
     (!applicant.stage_type &&
       (applicant.application_status === "SHORTLISTED" ||
         applicant.application_status === "INTERVIEWING"));
+
+  const isAssessmentStage = applicant.stage_type === "ASSESSMENT";
 
   return (
     <Card
@@ -373,6 +374,8 @@ export default function ApplicantCard({
                     </div>
                   )}
 
+                  {isAssessmentStage ? null : (
+                  <>
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem
@@ -385,6 +388,8 @@ export default function ApplicantCard({
                     <Edit3 className="h-3.5 w-3.5 text-muted-foreground" />
                     Update Candidate Stage...
                   </DropdownMenuItem>
+                  </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
 

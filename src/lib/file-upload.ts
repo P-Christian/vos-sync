@@ -48,6 +48,13 @@ export const FREELANCER_ADDRESS_UPLOAD_POLICY: FileUploadPolicy = {
   extensions: ["pdf", "jpg", "jpeg", "png", "webp"],
 };
 
+export const ASSESSMENT_PROOF_UPLOAD_POLICY: FileUploadPolicy = {
+  label: "assessment proof",
+  maxBytes: 10 * 1024 * 1024,
+  mimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
+  extensions: ["pdf", "jpg", "jpeg", "png", "webp"],
+};
+
 // Signup keeps these files in browser memory until email verification has
 // completed. These policies mirror the limits shown by the signup form.
 export const REGISTRATION_ID_DOCUMENT_UPLOAD_POLICY: FileUploadPolicy = {

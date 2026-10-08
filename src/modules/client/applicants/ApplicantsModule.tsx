@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
@@ -7,11 +6,12 @@ import { useApplicants } from "./hooks/useApplicants";
 import ApplicantList from "./components/ApplicantList";
 import ApplicantFilters from "./components/ApplicantFilters";
 import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
+import AssessmentMoveConfirmModal from "./components/AssessmentMoveConfirmModal";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
-import { Applicant, ApplicationStatus, STATUS_LABELS } from "./types";
+import { Applicant, ApplicationStatus, AssessmentMoveOutcome, STATUS_LABELS } from "./types";
 import {
   Dialog,
   DialogContent,
@@ -96,6 +96,15 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
 
+  const [gatePending, setGatePending] = useState<{
+    applicant: Applicant;
+    toStageId: number;
+    stageName: string;
+    notes: string;
+  } | null>(null);
+  const [gateConfirming, setGateConfirming] = useState(false);
+  const [gateError, setGateError] = useState("");
+
   // Sync selectedApplicant from applicants list if effectiveApplicationId is passed
   const [syncedInitialId, setSyncedInitialId] = useState<number | null>(null);
   if (
@@ -179,6 +188,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   useEffect(() => {
     if (effectiveApplicationId) {
       fetchApplicantDetail(effectiveApplicationId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL-driven drawer open
       setDetailOpen(true);
     }
   }, [effectiveApplicationId, fetchApplicantDetail]);
@@ -227,8 +237,25 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     status: ApplicationStatus,
     notes: string
   ) => {
-    const ok = await updateStatus(applicationId, status, notes);
-    if (ok) setDrawerOpen(false);
+    const result = await updateStatus(applicationId, status, notes);
+    if (result.gated && result.toStageId !== undefined) {
+      const applicant =
+        (selectedApplicant?.application_id === applicationId
+          ? selectedApplicant
+          : rawApplicants.find((a) => a.application_id === applicationId)) ??
+        selectedApplicant;
+      if (applicant) {
+        const routed = await requestStageMove(
+          applicant,
+          result.toStageId,
+          result.stageName ?? "the next stage",
+          notes
+        );
+        if (routed.gated || routed.ok) setDrawerOpen(false);
+        return;
+      }
+    }
+    if (result.ok) setDrawerOpen(false);
   };
 
   const handleSaveStage = async (
@@ -236,8 +263,21 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     toStageId: number,
     notes: string
   ) => {
-    const ok = await updateApplicantStage(applicationId, toStageId, notes);
-    if (ok) setDrawerOpen(false);
+    const applicant =
+      (selectedApplicant?.application_id === applicationId
+        ? selectedApplicant
+        : rawApplicants.find((a) => a.application_id === applicationId)) ??
+      selectedApplicant;
+    if (!applicant) {
+      const result = await updateApplicantStage(applicationId, toStageId, notes);
+      if (result.ok) setDrawerOpen(false);
+      return;
+    }
+    const targetName =
+      applicant.allowed_next_stages?.find((s) => s.id === toStageId)?.stage_name ??
+      "the next stage";
+    const result = await requestStageMove(applicant, toStageId, targetName, notes);
+    if (result.gated || result.ok) setDrawerOpen(false);
   };
 
   const handleQuickStatusUpdate = async (
@@ -248,13 +288,23 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
       applicant.applicant_name || `Applicant #${applicant.application_id}`;
     const statusLabel = STATUS_LABELS[newStatus] || newStatus;
 
-    const ok = await updateStatus(
+    const result = await updateStatus(
       applicant.application_id,
       newStatus,
       applicant.client_notes || ""
     );
 
-    if (ok) {
+    if (result.gated && result.toStageId !== undefined) {
+      await requestStageMove(
+        applicant,
+        result.toStageId,
+        result.stageName ?? statusLabel,
+        applicant.client_notes || ""
+      );
+      return;
+    }
+
+    if (result.ok) {
       toast.success(`${candidateName} moved to ${statusLabel}`);
       if (applicant.application_id === selectedApplicant?.application_id) {
         setSelectedApplicant((prev) =>
@@ -271,30 +321,136 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     toStageId: number,
     stageName: string
   ) => {
+    await requestStageMove(
+      applicant,
+      toStageId,
+      stageName,
+      applicant.client_notes || ""
+    );
+  };
+
+  const performStageMove = async (
+    applicant: Applicant,
+    toStageId: number,
+    stageName: string,
+    notes: string,
+    outcome?: AssessmentMoveOutcome
+  ): Promise<boolean> => {
     const candidateName =
       applicant.applicant_name || `Applicant #${applicant.application_id}`;
 
-    const ok = await updateApplicantStage(
+    const result = await updateApplicantStage(
       applicant.application_id,
       toStageId,
-      applicant.client_notes || ""
+      notes,
+      outcome
     );
 
-    if (ok) {
-      toast.success(`${candidateName} moved to ${stageName}`);
-      if (applicant.application_id === selectedApplicant?.application_id) {
-        setSelectedApplicant((prev) =>
-          prev
-            ? {
-                ...prev,
-                current_stage_id: toStageId,
-                stage_name: stageName,
-              }
-            : null
-        );
-      }
-    } else {
+    if (!result.ok) {
       toast.error(`Failed to update ${candidateName}'s stage.`);
+      return false;
+    }
+    if (!result.moved) {
+      toast.success("Marked as failed — candidate stays at the assessment stage");
+      return true;
+    }
+    toast.success(`${candidateName} moved to ${stageName}`);
+    // Plan v3-6: a successful PASS into an INTERVIEW destination lands the recruiter in scheduling.
+    const targetStageType = applicant.allowed_next_stages?.find(
+      (s) => s.id === toStageId
+    )?.stage_type;
+    if (targetStageType === "INTERVIEW") {
+      handleOpenSchedule(applicant);
+    }
+    if (applicant.application_id === selectedApplicant?.application_id) {
+      setSelectedApplicant((prev) =>
+        prev
+          ? {
+              ...prev,
+              current_stage_id: toStageId,
+              stage_name: stageName,
+            }
+          : null
+      );
+    }
+    return true;
+  };
+
+  // Routes a stage move through the assessment confirm modal when it leaves
+  // an ASSESSMENT stage toward a task-bearing, configured, non-universal
+  // target. The server pre-check decides; the PATCH remains authoritative.
+  // Never auto-moves: the recorded outcome applies the caller's chosen target.
+  const requestStageMove = async (
+    applicant: Applicant,
+    toStageId: number,
+    stageName: string,
+    notes: string
+  ): Promise<{ gated: boolean; ok: boolean }> => {
+    const target = applicant.allowed_next_stages?.find((s) => s.id === toStageId);
+    const isUniversalExit =
+      target?.stage_type === "REJECTED" || target?.stage_type === "WITHDRAWN";
+
+    if (applicant.stage_type === "ASSESSMENT" && !isUniversalExit) {
+      let requiresOutcome = false;
+      try {
+        const res = await fetch(
+          `/api/client/applicants/${applicant.application_id}/stage?to_stage_id=${toStageId}`,
+          { cache: "no-store" }
+        );
+        const json = await res.json().catch(() => null);
+        requiresOutcome = res.ok && json?.requires_outcome === true;
+      } catch {
+        requiresOutcome = false;
+      }
+      if (requiresOutcome) {
+        clearError();
+        setGateError("");
+        setGatePending({ applicant, toStageId, stageName, notes });
+        return { gated: true, ok: false };
+      }
+    }
+
+    const ok = await performStageMove(applicant, toStageId, stageName, notes);
+    return { gated: false, ok };
+  };
+
+  const handleGateConfirm = async (outcome: AssessmentMoveOutcome) => {
+    if (!gatePending || gateConfirming) return;
+    setGateConfirming(true);
+    setGateError("");
+    const { applicant, toStageId, stageName, notes } = gatePending;
+    const ok = await performStageMove(applicant, toStageId, stageName, notes, outcome);
+    setGateConfirming(false);
+    if (ok) {
+      setGatePending(null);
+      setDrawerOpen(false);
+    } else {
+      setGateError("Failed to record the assessment decision. Please try again.");
+    }
+  };
+
+  const handleGateCancel = () => {
+    if (gateConfirming) return;
+    setGatePending(null);
+    setGateError("");
+  };
+
+  // A requested revision never moves the candidate: it closes the decision
+  // modal, then refreshes the list and the open detail so the new
+  // IN_PROGRESS attempt surfaces.
+  const handleGateRevisionDone = () => {
+    const applicationId = gatePending?.applicant.application_id;
+    setGatePending(null);
+    setGateError("");
+    toast.success("Revision requested — candidate stays at the assessment stage");
+    fetchApplicants(undefined, jobId);
+    if (applicationId !== undefined) {
+      if (
+        selectedApplicant?.application_id === applicationId ||
+        detail?.application_id === applicationId
+      ) {
+        fetchApplicantDetail(applicationId);
+      }
     }
   };
 
@@ -481,6 +637,23 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           onSaveStage={handleSaveStage}
           saving={saving}
           error={drawerOpen ? error : ""}
+        />
+
+        {/* Assessment move-time decision */}
+        <AssessmentMoveConfirmModal
+          open={gatePending !== null}
+          applicationId={gatePending?.applicant.application_id ?? null}
+          applicantName={
+            gatePending?.applicant.applicant_name ??
+            (gatePending ? `Applicant #${gatePending.applicant.application_id}` : "")
+          }
+          fromStageName={gatePending?.applicant.stage_name ?? "the current stage"}
+          toStageName={gatePending?.stageName ?? ""}
+          confirming={gateConfirming}
+          error={gateError}
+          onCancel={handleGateCancel}
+          onConfirm={handleGateConfirm}
+          onRevisionDone={handleGateRevisionDone}
         />
 
         {/* Schedule Interview Dialog */}

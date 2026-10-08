@@ -108,6 +108,9 @@ export interface PipelineStage {
   description?: string | null;
   is_terminal: boolean;
   is_system: boolean;
+  // Nullable employer-editable submission window (days) for ASSESSMENT
+  // stages. Null/undefined means no limit. Part 1: storage only.
+  assessment_submission_window_days?: number | null;
   created_at?: string;
   updated_at?: string;
   // Computed IDs of destination stages for easy UI lookup
@@ -170,6 +173,12 @@ export interface JobPipelineStage {
   is_system: boolean;
   created_at?: string;
   allowed_next_stage_ids?: number[];
+  /**
+   * Nullable submission window (days) for ASSESSMENT stages. Mirrors the
+   * vs_job_pipeline_stages.assessment_submission_window_days column, which
+   * is employer-authored elsewhere; null means no deadline.
+   */
+  assessment_submission_window_days?: number | null;
 }
 
 export interface JobPipelineTransition {

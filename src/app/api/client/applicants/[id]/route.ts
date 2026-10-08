@@ -7,6 +7,11 @@ import { createEmployerNotification } from "@/lib/notifications/services/employe
 import { getPHTimeString } from "@/lib/utils";
 import { transitionApplicationStage, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
 import { JobPipelineStage } from "@/modules/client/pipeline/types";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
+import {
+  loadCompanyApplication,
+  resolveReviewerCompany,
+} from "@/modules/client/assessment-review/services/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,18 +106,6 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch { return null; }
-}
-
 const VALID_STATUSES = [
   "APPLIED",
   "UNDER_REVIEW",
@@ -133,21 +126,49 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const applicationId = Number(id);
+    if (!applicationId || isNaN(applicationId)) {
+      return NextResponse.json(
+        { error: "Invalid application ID." },
+        { status: 400 }
+      );
+    }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
 
-    if (!token) {
+    if (!session) {
       return NextResponse.json(
         { error: "Unauthorized." },
         { status: 401 }
       );
     }
 
-    const requesterId = getUserIdFromToken(token);
+    if (!isClientSession(session)) {
+      return NextResponse.json(
+        { error: "Client account required." },
+        { status: 403 }
+      );
+    }
 
-    if (!requesterId) {
+    const companyId = await resolveReviewerCompany(session.userId);
+    if (!companyId) {
+      return NextResponse.json(
+        { error: "Company association not found." },
+        { status: 403 }
+      );
+    }
+
+    const owned = await loadCompanyApplication(applicationId, companyId);
+    if (!owned) {
+      return NextResponse.json(
+        { error: "Application not found." },
+        { status: 404 }
+      );
+    }
+
+    const requesterId = Number(session.userId);
+
+    if (!requesterId || isNaN(requesterId)) {
       return NextResponse.json(
         { error: "Invalid token." },
         { status: 401 }
@@ -807,12 +828,33 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const applicationId = Number(id);
+    if (!applicationId || isNaN(applicationId)) {
+      return NextResponse.json(
+        { error: "Invalid application ID." },
+        { status: 400 }
+      );
+    }
+
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
+    const companyId = await resolveReviewerCompany(session.userId);
+    if (!companyId) {
+      return NextResponse.json({ error: "Company association not found." }, { status: 403 });
+    }
+    const owned = await loadCompanyApplication(applicationId, companyId);
+    if (!owned) {
+      return NextResponse.json({ error: "Application not found." }, { status: 404 });
+    }
+    const userId = Number(session.userId);
+
     const body = await req.json().catch(() => null);
 
-    const userId = token ? getUserIdFromToken(token) : null;
     let targetStageId: number | null = body?.to_stage_id ? Number(body.to_stage_id) : null;
 
     // If legacy application_status was sent without to_stage_id, resolve targetStageId from pipeline
@@ -837,7 +879,7 @@ export async function PATCH(
 
     if (targetStageId) {
       const result = await transitionApplicationStage({
-        applicationId: Number(id),
+        applicationId,
         toStageId: targetStageId,
         changedByUserId: userId,
         notes: body?.client_notes ?? body?.notes,
@@ -875,6 +917,25 @@ export async function PATCH(
         },
         { status: 400 }
       );
+    }
+
+    // Assessment-gate guard: never direct-write application_status while the
+    // candidate sits at an ASSESSMENT stage. Stage moves (with the gate)
+    // go through transitionApplicationStage above; the assessment decision
+    // flow owns ASSESSMENT-stage moves.
+    if (owned.current_stage_id !== null) {
+      try {
+        const pipe = await getJobPipeline(owned.job_id);
+        const current = pipe?.stages?.find((s) => s.id === owned.current_stage_id);
+        if (current?.stage_type === "ASSESSMENT") {
+          return NextResponse.json(
+            { error: "This candidate is at an assessment stage. Use the assessment decision flow to move them." },
+            { status: 409 }
+          );
+        }
+      } catch (err) {
+        console.error("Error resolving current stage for assessment guard:", err);
+      }
     }
 
     const nowPH = getPHTimeString();
@@ -972,7 +1033,7 @@ export async function PATCH(
         }
 
         // 2. Team Activity: Notify OTHER team members in the company (suppress for the acting recruiter)
-        const requestingEmployerId = token ? getUserIdFromToken(token) : null;
+        const requestingEmployerId = userId;
         if (companyId && requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED", "UNDER_REVIEW"].includes(body.application_status)) {
           const teamUsersRes = await fetch(
             `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&filter[user_id][_neq]=${requestingEmployerId}&fields=user_id`,
@@ -1074,7 +1135,7 @@ export async function PATCH(
               }
 
               // Create System Message for Conversation
-              const requesterId = token ? getUserIdFromToken(token) : null;
+              const requesterId = userId;
               if (requesterId && appData.user_id) {
                 const systemText =
                   body.application_status === "HIRED"

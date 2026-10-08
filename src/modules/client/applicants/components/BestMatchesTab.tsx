@@ -62,6 +62,12 @@ export default function BestMatchesTab({
     return calculateMatch(job, selectedApplicant);
   }, [selectedApplicant, job]);
 
+  const isSelectedInterviewEligible =
+    selectedApplicant?.stage_type === "INTERVIEW" ||
+    (!selectedApplicant?.stage_type &&
+      (selectedApplicant?.application_status === "INTERVIEWING" ||
+        selectedApplicant?.application_status === "SHORTLISTED"));
+
   useEffect(() => {
     if (loading || !job || applicants.length === 0) {
       queueMicrotask(() => setCandidateMatches([]));
@@ -455,10 +461,9 @@ export default function BestMatchesTab({
                   View Profile
                 </Button>
 
-                {selectedApplicant.application_status !== "REJECTED" &&
-                  selectedApplicant.application_status !== "HIRED" && (
-                    <Button
-                      onClick={() => onScheduleInterview(selectedApplicant)}
+                {isSelectedInterviewEligible && (
+                  <Button
+                    onClick={() => onScheduleInterview(selectedApplicant)}
                       size="sm"
                       className="flex-1 h-9 max-md:min-h-10 rounded-lg gap-1.5 font-semibold text-sm bg-emerald-600 hover:bg-emerald-700 text-white md:text-xs"
                     >
