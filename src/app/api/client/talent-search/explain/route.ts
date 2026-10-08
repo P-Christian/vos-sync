@@ -1,41 +1,21 @@
 // src/app/api/client/talent-search/explain/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { generateMatchExplanation, ExplainCandidate } from "@/lib/gemini/matchExplainer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json(
@@ -50,14 +30,33 @@ export async function POST(req: NextRequest) {
       candidate?: ExplainCandidate;
     };
 
-    if (!keyword || !candidate) {
+    if (!keyword || typeof keyword !== "string" || !candidate || typeof candidate !== "object") {
       return NextResponse.json({ explanation: null });
     }
 
-    const explanation = await generateMatchExplanation(keyword, candidate, { userId: userId ?? undefined, companyId: companyId ?? undefined });
+    // Input sanitization & bounds enforcement to prevent prompt injection and cost drain
+    const sanitizedKeyword = keyword.trim().slice(0, 120);
+    const sanitizedCandidate: ExplainCandidate = {
+      name: String(candidate.name || "Candidate").trim().slice(0, 100),
+      title: candidate.title ? String(candidate.title).trim().slice(0, 100) : null,
+      summary: candidate.summary ? String(candidate.summary).trim().slice(0, 500) : null,
+      skills: Array.isArray(candidate.skills)
+        ? candidate.skills.slice(0, 20).map((s) => String(s).trim().slice(0, 50)).filter(Boolean)
+        : [],
+      experience_years: typeof candidate.experience_years === "number" && !isNaN(candidate.experience_years)
+        ? Math.min(50, Math.max(0, candidate.experience_years))
+        : 0,
+    };
+
+    const explanation = await generateMatchExplanation(sanitizedKeyword, sanitizedCandidate, {
+      userId: userId ?? undefined,
+      companyId: companyId ?? undefined,
+    });
+
     return NextResponse.json({ explanation });
   } catch (err: unknown) {
     console.error("[talent-search/explain POST] Error:", err);
     return NextResponse.json({ explanation: null });
   }
 }
+

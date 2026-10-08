@@ -1,6 +1,7 @@
 // src/app/api/client/talent-search/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import {
   runMatchingEngine,
@@ -31,18 +32,13 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+function maskEmail(email?: string | null): string {
+  if (!email || typeof email !== "string") return "";
+  const parts = email.trim().split("@");
+  if (parts.length !== 2) return "***";
+  const [name, domain] = parts;
+  if (name.length <= 2) return `${name.slice(0, 1)}***@${domain}`;
+  return `${name.slice(0, 2)}***@${domain}`;
 }
 
 // ── DB-Backed Taxonomy Types ──────────────────────────────────────────────────
@@ -218,21 +214,14 @@ export interface TalentResult {  user_id: number;
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(userId);
-    if (!isVerified) {
+    if (!isVerified || !companyId) {
       return NextResponse.json(
         {
           error: `Restricted: Your company verification status is ${verification_status}. Talent Search is only available to verified companies.`,
@@ -417,10 +406,10 @@ export async function GET(req: NextRequest) {
             { headers: getHeaders(), cache: "no-store" }
           )
         : Promise.resolve(null),
-      // vs_job_posting — if job_id provided for AI match
-      jobIdForMatch
+      // vs_job_posting — if job_id provided for AI match (strictly scoped to caller's company)
+      jobIdForMatch && companyId
         ? fetch(
-            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_eq]=${jobIdForMatch}&fields=job_id,job_title,job_location,experience_level&limit=1`,
+            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_eq]=${jobIdForMatch}&filter[company_id][_eq]=${companyId}&fields=job_id,job_title,job_location,experience_level&limit=1`,
             { headers: getHeaders(), cache: "no-store" }
           )
         : Promise.resolve(null),
@@ -476,18 +465,24 @@ export async function GET(req: NextRequest) {
       (savedJson.data ?? []).forEach((s: { applicant_user_id: number }) => savedUserIds.add(s.applicant_user_id));
     }
 
-    // Job for match
+    // Job for match (verified against caller's company)
     let jobData: { job_title?: string; job_location?: string; experience_level?: string } | null = null;
+    let verifiedJobIdForMatch = jobIdForMatch;
     if (jobRes && jobRes.ok) {
       const jobJson = await jobRes.json();
       jobData = jobJson.data?.[0] ?? null;
+      if (!jobData) {
+        verifiedJobIdForMatch = "";
+      }
+    } else if (jobIdForMatch) {
+      verifiedJobIdForMatch = "";
     }
 
     // Job skills for match
     let jobSkills: string[] = [];
-    if (jobIdForMatch) {
+    if (verifiedJobIdForMatch) {
       const jsRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_job_skills_map?filter[job_id][_eq]=${jobIdForMatch}&fields=skill_id.skill_name&limit=-1`,
+        `${DIRECTUS_BASE}/items/vs_job_skills_map?filter[job_id][_eq]=${verifiedJobIdForMatch}&fields=skill_id.skill_name&limit=-1`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (jsRes.ok) {
@@ -579,8 +574,8 @@ export async function GET(req: NextRequest) {
     const matchContext: MatchContext = {
       mode: activeEngineMode,
       keyword: matchKeyword, // Use Gemini-resolved role keyword for scoring
-      requestedSkills: jobIdForMatch ? jobSkills : effectiveRequestedSkills,
-      jobId: jobIdForMatch ? Number(jobIdForMatch) : undefined,
+      requestedSkills: verifiedJobIdForMatch ? jobSkills : effectiveRequestedSkills,
+      jobId: verifiedJobIdForMatch ? Number(verifiedJobIdForMatch) : undefined,
       location,
       requiredExperience: requiredExpYears,
       taxonomyContext,
@@ -647,8 +642,8 @@ export async function GET(req: NextRequest) {
         const relYearsMatch = expEvidence?.value.match(/([\d\.]+)\s*yrs/);
         const relYears = relYearsMatch ? Number(relYearsMatch[1]) : 0;
 
-        // Match score percentage & badges are shown ONLY when matching against a specific Job Posting (jobIdForMatch)
-        const showMatchScore = Boolean(jobIdForMatch);
+        // Match score percentage & badges are shown ONLY when matching against a specific Job Posting (verifiedJobIdForMatch)
+        const showMatchScore = Boolean(verifiedJobIdForMatch);
 
         // Full education history in shared deterministic order; compact
         // surfaces preview from this array and expose the remainder via
@@ -664,7 +659,7 @@ export async function GET(req: NextRequest) {
           user_id: profile.user_id,
           profile_id: profile.profile_id,
           name: normalized.name,
-          email: normalized.email,
+          email: maskEmail(normalized.email),
           profile_image_url: user.profile_image_url ?? null,
           headline: normalized.headline,
           summary: normalized.summary,
@@ -727,7 +722,7 @@ export async function GET(req: NextRequest) {
     console.log(`[talent-search] ✅ Layer 2 candidates entering ranking: ${filtered.length}`);
 
     // Filter by user-specified skills only (not expanded DB role skills — those are for scoring only)
-    if (requestedSkills.length > 0 && !jobIdForMatch) {
+    if (requestedSkills.length > 0 && !verifiedJobIdForMatch) {
       filtered = filtered.filter((t) => {
         const lowerSkills = t.skills.map((s: string) => s.toLowerCase());
         return requestedSkills.some((rs) => lowerSkills.includes(rs.toLowerCase()));
@@ -818,8 +813,7 @@ export async function GET(req: NextRequest) {
       ai_reranked: aiReranked,
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "Internal server error";
     console.error("[talent-search GET] Error:", err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Failed to search talent profiles." }, { status: 500 });
   }
 }

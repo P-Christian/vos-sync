@@ -3,7 +3,8 @@
 // src/modules/client/talent-search/components/TalentSearchBar.tsx
 
 import React from "react";
-import { Search, X,  } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -21,8 +22,6 @@ export default function TalentSearchBar({
   keyword,
   jobIdForMatch,
   onKeywordChange,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onJobIdChange,
   onSearch,
   onReset,
   loading,
@@ -36,68 +35,62 @@ export default function TalentSearchBar({
       {/* Primary search */}
       <div className="relative flex-1 flex gap-2 max-md:flex-wrap">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             id="talent-search-keyword"
             placeholder="Search by name, skill, title, school…"
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="pl-10 h-10 rounded-xl border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 md:text-sm max-md:text-base"
+            className="pl-10 pr-9 h-10 rounded-xl border-border bg-background text-foreground shadow-2xs md:text-sm max-md:text-base focus-visible:ring-primary/20"
           />
-          {keyword && (
-            <button
-              onClick={() => onKeywordChange("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 max-md:size-10"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+          <AnimatePresence>
+            {keyword && (
+              <motion.button
+                type="button"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => onKeywordChange("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+                title="Clear input"
+              >
+                <X className="h-4 w-4" />
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
 
-        <Button
-          id="talent-search-btn"
-          onClick={onSearch}
-          disabled={loading}
-          className="h-10 px-6 max-md:px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm border-0 gap-2 shrink-0"
-        >
-          {loading ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-          Search
-        </Button>
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <Button
+            id="talent-search-btn"
+            onClick={onSearch}
+            disabled={loading}
+            className="h-10 px-6 max-md:px-4 rounded-xl font-semibold text-sm gap-2 shrink-0 shadow-2xs"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Search
+          </Button>
+        </motion.div>
 
         {(keyword || jobIdForMatch) && (
-          <Button
-            id="talent-search-reset"
-            variant="outline"
-            onClick={onReset}
-            className="h-10 px-4 max-md:px-3 rounded-xl text-sm max-md:text-xs shrink-0"
-          >
-            Clear All
-          </Button>
+          <motion.div whileTap={{ scale: 0.98 }}>
+            <Button
+              id="talent-search-reset"
+              variant="outline"
+              onClick={onReset}
+              className="h-10 px-4 max-md:px-3 rounded-xl text-sm max-md:text-xs shrink-0 shadow-2xs"
+            >
+              Clear All
+            </Button>
+          </motion.div>
         )}
       </div>
-
-      {/* AI Match by Job ID */}
-      {/* <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
-        
-          <Input
-            id="talent-ai-match-job-id"
-            placeholder="Enter Job ID to auto-filter best matches"
-            value={jobIdForMatch}
-            onChange={(e) => onJobIdChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9 h-9 rounded-lg border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 text-sm md:text-xs placeholder:text-violet-400"
-          />
-        </div>
-        <span className="text-sm md:text-xs text-zinc-400">
-          Provide a Job ID to score candidates against your job requirements
-        </span>
-      </div> */}
     </div>
   );
 }
