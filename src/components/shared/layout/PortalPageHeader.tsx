@@ -58,19 +58,21 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
   const [hasSeenHelp, setHasSeenHelp] = React.useState<boolean>(true);
 
   React.useEffect(() => {
-    try {
-      const seen = localStorage.getItem(storageKey);
-      if (seen === "true" || pathname === helpRoute) {
-        setHasSeenHelp(true);
-        if (seen !== "true") {
-          localStorage.setItem(storageKey, "true");
+    queueMicrotask(() => {
+      try {
+        const seen = localStorage.getItem(storageKey);
+        if (seen === "true" || pathname === helpRoute) {
+          setHasSeenHelp(true);
+          if (seen !== "true") {
+            localStorage.setItem(storageKey, "true");
+          }
+        } else {
+          setHasSeenHelp(false);
         }
-      } else {
-        setHasSeenHelp(false);
+      } catch {
+        setHasSeenHelp(true);
       }
-    } catch {
-      setHasSeenHelp(true);
-    }
+    });
   }, [storageKey, pathname, helpRoute]);
 
   const handleHelpClick = React.useCallback(() => {

@@ -12,8 +12,6 @@ import {
 } from "../types";
 import {
   getPipelineWithDetails,
-  isValidStageType,
-  isTerminalStageType,
   seedDefaultCompanyPipeline,
 } from "./pipeline.service";
 import { getPHTimeString } from "@/lib/utils";
