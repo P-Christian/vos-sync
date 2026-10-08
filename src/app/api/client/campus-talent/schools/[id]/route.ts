@@ -2,6 +2,7 @@
 // GET: Fetch school profile details for Campus Talent client view.
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { PublicSchoolAdminProfile } from "@/modules/public/public-profile/services/public-profile.service";
 
@@ -15,20 +16,6 @@ function getHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 function resolveAssetUrl(fileId?: string | null): string | null {
@@ -47,15 +34,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-
+    const userId = Number(session.userId);
     const { isVerified, verification_status } = await checkCompanyVerificationStatus(userId);
     if (!isVerified) {
       return NextResponse.json(
