@@ -30,6 +30,7 @@ import {
   Eye,
   MoreVertical,
   Edit3,
+  ClipboardCheck,
 } from "lucide-react";
 import { Applicant, ApplicationStatus, STATUS_LABELS } from "../types";
 import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
@@ -54,6 +55,7 @@ interface ApplicantCardProps {
   onScheduleInterview: (applicant: Applicant) => void;
   onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
+  onReviewAssessment?: (applicant: Applicant) => void;
 }
 
 export default function ApplicantCard({
@@ -63,6 +65,7 @@ export default function ApplicantCard({
   onScheduleInterview,
   onViewScheduledInterview,
   onViewDetails,
+  onReviewAssessment,
 }: ApplicantCardProps) {
   const [imageError, setImageError] = useState(false);
   const rawImage = applicant.applicant_profile_image_url || applicant.profile_image_url;
@@ -220,7 +223,7 @@ export default function ApplicantCard({
           {/* Right Side: Status Badge Column + Action Buttons */}
           <div className="flex items-center gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50 w-full lg:w-auto justify-between lg:justify-end max-md:flex-col max-md:items-start max-md:gap-3">
             {/* Status Badge - Anchored to a fixed column */}
-            <div className="shrink-0 flex items-center">
+            <div className="shrink-0 flex items-center gap-1.5 flex-wrap">
               <motion.div
                 key={applicant.current_stage_id ?? applicant.application_status}
                 initial={{ scale: 0.82, opacity: 0 }}
@@ -238,6 +241,14 @@ export default function ApplicantCard({
                   {applicant.stage_name || STATUS_LABELS[applicant.application_status] || applicant.application_status}
                 </Badge>
               </motion.div>
+              {applicant.assessment_needs_review ? (
+                <Badge
+                  variant="outline"
+                  className="text-[11px] font-medium px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300 whitespace-nowrap"
+                >
+                  Assessment to review
+                </Badge>
+              ) : null}
             </div>
 
             {/* Action Buttons Group */}
@@ -321,6 +332,22 @@ export default function ApplicantCard({
                   <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider md:text-[10px]">
                     Stage Progression
                   </DropdownMenuLabel>
+
+                  {isAssessmentStage && (
+                    <>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReviewAssessment?.(applicant);
+                        }}
+                        className="text-sm gap-2 cursor-pointer py-1.5 max-md:min-h-10 font-medium md:text-xs"
+                      >
+                        <ClipboardCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                        Review Assessment
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
                   {/* Dynamic Destinations from Active Job Pipeline */}
                   {applicant.allowed_next_stages && applicant.allowed_next_stages.length > 0 ? (

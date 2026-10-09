@@ -7,6 +7,7 @@ import ApplicantList from "./components/ApplicantList";
 import ApplicantFilters from "./components/ApplicantFilters";
 import StatusUpdateDrawer from "./components/StatusUpdateDrawer";
 import AssessmentMoveConfirmModal from "./components/AssessmentMoveConfirmModal";
+import AssessmentReviewModal from "./components/AssessmentReviewModal";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, AlertCircle, ArrowLeft } from "lucide-react";
@@ -92,6 +93,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(() => Boolean(effectiveApplicationId));
+  const [assessmentReviewApp, setAssessmentReviewApp] = useState<Applicant | null>(null);
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [interviewFormData, setInterviewFormData] = useState<InterviewFormData>(EMPTY_INTERVIEW_FORM);
   const [interviewErrors, setInterviewErrors] = useState<Partial<Record<keyof InterviewFormData, string>>>({});
@@ -311,6 +313,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           prev ? { ...prev, application_status: newStatus } : null
         );
       }
+      fetchApplicants(undefined, jobId);
     } else {
       toast.error(`Failed to update ${candidateName}'s status.`);
     }
@@ -373,6 +376,9 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           : null
       );
     }
+    // Resync the list so each row's allowed_next_stages reflects the new stage;
+    // the optimistic update rewrites only stage fields, not the transition set.
+    fetchApplicants(undefined, jobId);
     return true;
   };
 
@@ -622,6 +628,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                   onScheduleInterview={handleOpenSchedule}
                   onViewScheduledInterview={handleViewScheduledInterview}
                   onViewDetails={handleViewDetails}
+                  onReviewAssessment={setAssessmentReviewApp}
                 />
               )}
             </CardContent>
@@ -655,6 +662,25 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           onConfirm={handleGateConfirm}
           onRevisionDone={handleGateRevisionDone}
         />
+
+        {/* Assessment review (read-only view of the freelancer's submission) */}
+          <AssessmentReviewModal
+            open={assessmentReviewApp !== null}
+            applicationId={assessmentReviewApp?.application_id ?? null}
+            applicantName={assessmentReviewApp?.applicant_name}
+            onClose={() => setAssessmentReviewApp(null)}
+            onReviewed={() => {
+              fetchApplicants(undefined, jobId);
+              const reviewedId = assessmentReviewApp?.application_id;
+              if (
+                reviewedId !== undefined &&
+                (selectedApplicant?.application_id === reviewedId ||
+                  detail?.application_id === reviewedId)
+              ) {
+                fetchApplicantDetail(reviewedId);
+              }
+            }}
+          />
 
         {/* Schedule Interview Dialog */}
         <Dialog open={interviewDialogOpen} onOpenChange={setInterviewDialogOpen}>

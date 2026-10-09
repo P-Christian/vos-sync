@@ -85,6 +85,13 @@ interface RawApplication {
   status_updated_at?: string;
 }
 
+interface AssessmentAttemptRow {
+  application_id: number;
+  job_stage_id: number | null;
+  attempt_number?: number | null;
+  status?: string | null;
+}
+
 interface VsUser {
   user_id: number;
   user_fname: string;
@@ -633,6 +640,33 @@ export async function GET(req: NextRequest) {
     );
 
     // ------------------------------
+    // Batched latest assessment attempt lookup (single query, no N+1)
+    // ------------------------------
+    const attemptMap: Record<string, string | null> = {};
+    try {
+      const attemptAppIds = rawApps.map((a) => a.application_id).filter(Boolean);
+      if (attemptAppIds.length > 0) {
+        const attemptRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_application_assessment_attempts?filter[application_id][_in]=${attemptAppIds.join(",")}&sort[]=-attempt_number&fields=application_id,job_stage_id,attempt_number,status&limit=-1`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (attemptRes.ok) {
+          const attemptRows: AssessmentAttemptRow[] =
+            (await attemptRes.json()).data ?? [];
+          for (const row of attemptRows) {
+            const key = `${Number(row.application_id)}:${Number(row.job_stage_id)}`;
+            if (!(key in attemptMap)) {
+              attemptMap[key] =
+                typeof row.status === "string" ? row.status : null;
+            }
+          }
+        }
+      }
+    } catch {
+      // Fail gracefully: rows fall back to null/false below.
+    }
+
+    // ------------------------------
     // Response
     // ------------------------------
 
@@ -714,6 +748,15 @@ export async function GET(req: NextRequest) {
         stage_type: currentStage?.stage_type ?? application.application_status,
         stage_color: currentStage?.color ?? "sky",
         allowed_next_stages: allowedNextStages,
+
+        assessment_status:
+          currentStage?.stage_type === "ASSESSMENT" && currentStage
+            ? attemptMap[`${application.application_id}:${currentStage.id}`] ?? null
+            : null,
+        assessment_needs_review:
+          currentStage?.stage_type === "ASSESSMENT" && currentStage
+            ? attemptMap[`${application.application_id}:${currentStage.id}`] === "SUBMITTED"
+            : false,
         
         applicant_profile_image_url: 
           user?.profile_image_url ?? "",

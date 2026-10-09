@@ -18,7 +18,13 @@ interface ReviewPayload {
   deadline: string | null;
 }
 
-export default function AssessmentReviewSection({ applicationId }: { applicationId: number }) {
+export default function AssessmentReviewSection({
+  applicationId,
+  onChanged,
+}: {
+  applicationId: number;
+  onChanged?: () => void;
+}) {
   const [payload, setPayload] = useState<ReviewPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [notesByAttempt, setNotesByAttempt] = useState<Record<number, string>>({});
@@ -77,6 +83,7 @@ export default function AssessmentReviewSection({ applicationId }: { application
         return;
       }
       await reload();
+      onChanged?.();
     } catch {
       setMessage("Review action failed.");
     } finally {
