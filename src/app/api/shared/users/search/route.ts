@@ -1,6 +1,7 @@
 // src/app/api/shared/users/search/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { UserSearchResult } from "@/modules/shared/search/types";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,41 +24,24 @@ function resolveAssetUrl(fileId?: string | null): string | undefined {
   return `${DIRECTUS_BASE}/assets/${fileId}`;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
+function maskEmail(email?: string | null): string | undefined {
+  if (!email || !email.includes("@")) return undefined;
+  const [local, domain] = email.split("@");
+  if (local.length <= 2) return `${local[0]}***@${domain}`;
+  return `${local[0]}***${local[local.length - 1]}@${domain}`;
 }
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    const callerId = token ? getUserIdFromToken(token) : null;
-
-    let callerRole = 0;
-    if (callerId) {
-      try {
-        const callerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${callerId}?fields=role_id`, {
-          headers: getHeaders(),
-        });
-        if (callerRes.ok) {
-          const callerJson = await callerRes.json();
-          callerRole = callerJson.data?.role_id || 0;
-        }
-      } catch (err) {
-        console.warn("Could not retrieve caller role:", err);
-      }
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { error: "Unauthorized. Authentication required to search directory." },
+        { status: 401 }
+      );
     }
+
+    const callerRole = session.roleId || 0;
 
     const { searchParams } = new URL(req.url);
     const query = (searchParams.get("q") || "").trim();
@@ -103,7 +87,7 @@ export async function GET(req: NextRequest) {
               name: `${u.user_fname || ""} ${u.user_lname || ""}`.trim() || "Freelancer",
               user_fname: u.user_fname,
               user_lname: u.user_lname,
-              user_email: u.user_email,
+              user_email: maskEmail(u.user_email),
               avatar_url: avatar,
               headline,
               entity_type: "freelancer",

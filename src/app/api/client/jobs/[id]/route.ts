@@ -4,26 +4,17 @@ import { NextRequest, NextResponse } from "next/server";
 import * as jobService from "../service.directus";
 import { checkRestriction } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
+import {
+  authenticateRequest,
+  isAdministratorSession,
+  isClientSession,
+} from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -32,6 +23,19 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+async function getCompanyId(userId: number): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    const json = await res.json();
+    return json.data?.[0]?.company_id ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function attachCompanyToJob(job: any) {
@@ -110,20 +114,50 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (token) {
-      const userId = getUserIdFromToken(token);
-      if (userId) {
-        const isRestricted = await checkRestriction(userId, "PUBLISH_JOBS");
-        if (isRestricted) {
-          return NextResponse.json(
-            { error: "Your job posting privileges are temporarily suspended." },
-            { status: 403 }
-          );
-        }
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isAdmin = isAdministratorSession(session);
+    const isClient = isClientSession(session);
+    if (!isAdmin && !isClient) {
+      return NextResponse.json(
+        { error: "Forbidden: Client or Admin access required." },
+        { status: 403 }
+      );
+    }
+
+    const userId = Number(session.userId);
+    let callerCompanyId: number | null = null;
+    if (!isAdmin) {
+      callerCompanyId = await getCompanyId(userId);
+      if (!callerCompanyId) {
+        return NextResponse.json(
+          { error: "Company association not found." },
+          { status: 403 }
+        );
       }
+    }
+
+    const existingJob = await jobService.getJob(id);
+    if (!existingJob) {
+      return NextResponse.json({ error: "Job posting not found." }, { status: 404 });
+    }
+
+    if (!isAdmin && existingJob.company_id !== callerCompanyId) {
+      return NextResponse.json(
+        { error: "Forbidden: job belongs to another organization." },
+        { status: 403 }
+      );
+    }
+
+    const isRestricted = await checkRestriction(userId, "PUBLISH_JOBS");
+    if (isRestricted) {
+      return NextResponse.json(
+        { error: "Your job posting privileges are temporarily suspended." },
+        { status: 403 }
+      );
     }
 
     const body = await req.json().catch(() => null);
@@ -150,7 +184,6 @@ export async function PATCH(
     }
 
     const nowPH = getPHTimeString();
-
     safePayload.updated_at = nowPH;
 
     const updatedJob = await jobService.updateJob(id, safePayload);
@@ -167,11 +200,45 @@ export async function PATCH(
 
 // DELETE — Soft-delete
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isAdmin = isAdministratorSession(session);
+    const isClient = isClientSession(session);
+    if (!isAdmin && !isClient) {
+      return NextResponse.json(
+        { error: "Forbidden: Client or Admin access required." },
+        { status: 403 }
+      );
+    }
+
+    if (!isAdmin) {
+      const callerCompanyId = await getCompanyId(Number(session.userId));
+      if (!callerCompanyId) {
+        return NextResponse.json(
+          { error: "Company association not found." },
+          { status: 403 }
+        );
+      }
+      const existingJob = await jobService.getJob(id);
+      if (!existingJob) {
+        return NextResponse.json({ error: "Job posting not found." }, { status: 404 });
+      }
+      if (existingJob.company_id !== callerCompanyId) {
+        return NextResponse.json(
+          { error: "Forbidden: job belongs to another organization." },
+          { status: 403 }
+        );
+      }
+    }
+
     await jobService.deleteJob(id);
     return NextResponse.json({ success: true, message: "Job posting closed." });
   } catch (err: unknown) {

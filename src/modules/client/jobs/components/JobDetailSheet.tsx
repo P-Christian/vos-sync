@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { PublicJobPosting, JobPosting, JobStatus, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
 import JobPipelineSection from "@/modules/client/pipeline/components/JobPipelineSection";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -146,7 +147,7 @@ function renderFormattedContent(text: string | null | undefined) {
           [&_b]:font-bold [&_b]:text-foreground 
           [&_strong]:font-bold [&_strong]:text-foreground
           [&_p]:my-1.5 [&_p]:leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: trimmed }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(trimmed) }}
       />
     );
   }
@@ -424,7 +425,7 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
               {/* Hiring Pipeline Workflow */}
               <Separator />
               <Section title="Hiring Pipeline Workflow">
-                <JobPipelineSection jobId={job.job_id} />
+                <JobPipelineSection jobId={job.job_id} readOnly />
               </Section>
             </div>
 
