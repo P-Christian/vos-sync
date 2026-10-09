@@ -13,6 +13,7 @@ import {
 } from "../types";
 import StageEditModal from "./StageEditModal";
 import TransitionConfigModal from "./TransitionConfigModal";
+import AssessmentTaskEditor from "./AssessmentTaskEditor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -53,6 +54,7 @@ interface ReorderableStageItemProps {
   onOpenTransitions: () => void;
   onOpenEditStage: () => void;
   onDeleteStage: () => void;
+  belowCard?: React.ReactNode;
 }
 
 function ReorderableStageItem({
@@ -68,6 +70,7 @@ function ReorderableStageItem({
   onOpenTransitions,
   onOpenEditStage,
   onDeleteStage,
+  belowCard,
 }: ReorderableStageItemProps) {
   const dragControls = useDragControls();
 
@@ -350,6 +353,9 @@ function ReorderableStageItem({
           {cardContent}
         </div>
       )}
+      {belowCard ? (
+        <div className="px-3.5 pb-3.5 md:px-4 md:pb-4">{belowCard}</div>
+      ) : null}
     </Reorder.Item>
   );
 }
@@ -611,6 +617,25 @@ export default function PipelineSettingsTab() {
                 onOpenTransitions={() => handleOpenTransitions(stage)}
                 onOpenEditStage={() => handleOpenEditStage(stage)}
                 onDeleteStage={() => handleDeleteStage(stage.id)}
+                belowCard={
+                  stage.stage_type === "ASSESSMENT" && selectedPipeline ? (
+                    <AssessmentTaskEditor
+                      stageId={stage.id}
+                      stageType={stage.stage_type}
+                      initialWindowDays={stage.assessment_submission_window_days ?? null}
+                      endpoints={{
+                        list: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
+                        create: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
+                        update: (taskId: number) =>
+                          `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
+                        remove: (taskId: number) =>
+                          `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
+                        reorder: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/reorder`,
+                        window: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}`,
+                      }}
+                    />
+                  ) : undefined
+                }
               />
             ))}
           </Reorder.Group>

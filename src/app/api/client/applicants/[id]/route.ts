@@ -7,7 +7,11 @@ import { createEmployerNotification } from "@/lib/notifications/services/employe
 import { getPHTimeString } from "@/lib/utils";
 import { transitionApplicationStage, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
 import { JobPipelineStage, LEGACY_STATUS_TO_CANONICAL_MAP } from "@/modules/client/pipeline/types";
-import { authenticateRequest } from "@/lib/authenticated-session";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
+import {
+  loadCompanyApplication,
+  resolveReviewerCompany,
+} from "@/modules/client/assessment-review/services/context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -102,7 +106,6 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-
 const VALID_STATUSES = [
   "APPLIED",
   "UNDER_REVIEW",
@@ -123,6 +126,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const applicationId = Number(id);
+    if (!applicationId || isNaN(applicationId)) {
+      return NextResponse.json(
+        { error: "Invalid application ID." },
+        { status: 400 }
+      );
+    }
 
     const session = await authenticateRequest(req);
     if (!session) {
@@ -132,7 +142,37 @@ export async function GET(
       );
     }
 
+    if (!isClientSession(session)) {
+      return NextResponse.json(
+        { error: "Client account required." },
+        { status: 403 }
+      );
+    }
+
+    const reviewerCompanyId = await resolveReviewerCompany(session.userId);
+    if (!reviewerCompanyId) {
+      return NextResponse.json(
+        { error: "Company association not found." },
+        { status: 403 }
+      );
+    }
+
+    const owned = await loadCompanyApplication(applicationId, reviewerCompanyId);
+    if (!owned) {
+      return NextResponse.json(
+        { error: "Application not found." },
+        { status: 404 }
+      );
+    }
+
     const requesterId = Number(session.userId);
+
+    if (!requesterId || isNaN(requesterId)) {
+      return NextResponse.json(
+        { error: "Invalid token." },
+        { status: 401 }
+      );
+    }
 
     // BUSINESS RULE: Only VERIFIED companies can view candidate details
     const { isVerified, verification_status, companyId } = await checkCompanyVerificationStatus(requesterId);
@@ -812,46 +852,33 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await req.json();
+    const applicationId = Number(id);
+    if (!applicationId || isNaN(applicationId)) {
+      return NextResponse.json(
+        { error: "Invalid application ID." },
+        { status: 400 }
+      );
+    }
+
     const session = await authenticateRequest(req);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
-
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
     const requesterId = Number(session.userId);
     const { isVerified, companyId } = await checkCompanyVerificationStatus(requesterId);
     if (!isVerified || !companyId) {
       return NextResponse.json({ error: "Company association not found." }, { status: 403 });
     }
-
-    // Verify application belongs to a job owned by this company
-    const appRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_application/${id}?fields=application_id,job_id`, {
-      headers: getHeaders(),
-      cache: "no-store",
-    });
-    if (!appRes.ok) {
+    const owned = await loadCompanyApplication(applicationId, Number(companyId));
+    if (!owned) {
       return NextResponse.json({ error: "Application not found." }, { status: 404 });
     }
-    const aData = (await appRes.json()).data;
-    const targetJobId = Number(aData?.job_id);
-    if (!targetJobId) {
-      return NextResponse.json({ error: "Application is not associated with a valid job." }, { status: 400 });
-    }
-
-    const jobCheckRes = await fetch(`${DIRECTUS_BASE}/items/vs_job_posting/${targetJobId}?fields=job_id,company_id`, {
-      headers: getHeaders(),
-      cache: "no-store",
-    });
-    if (!jobCheckRes.ok) {
-      return NextResponse.json({ error: "Associated job posting not found." }, { status: 404 });
-    }
-    const jobCheckJson = await jobCheckRes.json();
-    if (Number(jobCheckJson.data?.company_id) !== companyId) {
-      return NextResponse.json(
-        { error: "Forbidden: Candidate application belongs to another organization." },
-        { status: 403 }
-      );
-    }
+    const targetJobId = Number(owned.job_id);
+    const userId = requesterId;
+    const body = await req.json().catch(() => null);
 
     let targetStageId: number | null = body?.to_stage_id ? Number(body.to_stage_id) : null;
 
@@ -872,7 +899,7 @@ export async function PATCH(
 
     if (targetStageId) {
       const result = await transitionApplicationStage({
-        applicationId: Number(id),
+        applicationId,
         toStageId: targetStageId,
         changedByUserId: requesterId,
         notes: body?.client_notes ?? body?.notes,
@@ -926,6 +953,25 @@ export async function PATCH(
         },
         { status: 400 }
       );
+    }
+
+    // Assessment-gate guard: never direct-write application_status while the
+    // candidate sits at an ASSESSMENT stage. Stage moves (with the gate)
+    // go through transitionApplicationStage above; the assessment decision
+    // flow owns ASSESSMENT-stage moves.
+    if (owned.current_stage_id !== null) {
+      try {
+        const pipe = await getJobPipeline(owned.job_id);
+        const current = pipe?.stages?.find((s) => s.id === owned.current_stage_id);
+        if (current?.stage_type === "ASSESSMENT") {
+          return NextResponse.json(
+            { error: "This candidate is at an assessment stage. Use the assessment decision flow to move them." },
+            { status: 409 }
+          );
+        }
+      } catch (err) {
+        console.error("Error resolving current stage for assessment guard:", err);
+      }
     }
 
     const nowPH = getPHTimeString();
@@ -1023,7 +1069,7 @@ export async function PATCH(
         }
 
         // 2. Team Activity: Notify OTHER team members in the company (suppress for the acting recruiter)
-        const requestingEmployerId = requesterId;
+        const requestingEmployerId = userId;
         if (companyId && requestingEmployerId && ["SHORTLISTED", "HIRED", "REJECTED", "UNDER_REVIEW"].includes(body.application_status)) {
           const teamUsersRes = await fetch(
             `${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&filter[user_id][_neq]=${requestingEmployerId}&fields=user_id`,

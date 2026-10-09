@@ -15,6 +15,7 @@ interface ApplicantListProps {
   onScheduleInterview: (applicant: Applicant) => void;
   onViewScheduledInterview?: (interviewId: number) => void;
   onViewDetails: (applicant: Applicant) => void;
+  onReviewAssessment?: (applicant: Applicant) => void;
 }
 
 export default function ApplicantList({
@@ -25,6 +26,7 @@ export default function ApplicantList({
   onScheduleInterview,
   onViewScheduledInterview,
   onViewDetails,
+  onReviewAssessment,
 }: ApplicantListProps) {
   if (applicants.length === 0) {
     return (
@@ -74,6 +76,7 @@ export default function ApplicantList({
               onScheduleInterview={onScheduleInterview}
               onViewScheduledInterview={onViewScheduledInterview}
               onViewDetails={onViewDetails}
+              onReviewAssessment={onReviewAssessment}
             />
           </motion.div>
         ))}

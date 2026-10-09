@@ -127,6 +127,30 @@ export function isTerminalStageType(stageType: CanonicalStageType): boolean {
   return TERMINAL_STAGE_TYPES.includes(stageType);
 }
 
+export const MAX_ASSESSMENT_SUBMISSION_WINDOW_DAYS = 365;
+
+export function parseAssessmentSubmissionWindow(
+  value: unknown
+): { ok: true; days: number | null } | { ok: false; error: string } {
+  if (value === null) return { ok: true, days: null };
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return {
+      ok: false,
+      error: "Submission window must be a whole number of days, or null to clear.",
+    };
+  }
+  if (value < 0) {
+    return { ok: false, error: "Submission window must be a non-negative number of days." };
+  }
+  if (value > MAX_ASSESSMENT_SUBMISSION_WINDOW_DAYS) {
+    return {
+      ok: false,
+      error: `Submission window must not exceed ${MAX_ASSESSMENT_SUBMISSION_WINDOW_DAYS} days.`,
+    };
+  }
+  return { ok: true, days: value };
+}
+
 /**
  * Retrieves all company pipelines, seeding the default template if none exist.
  */
@@ -612,6 +636,7 @@ export async function updatePipelineStage(
     color?: string;
     description?: string;
     stage_order?: number;
+    assessment_submission_window_days?: number | null;
   }
 ): Promise<boolean> {
   try {
@@ -630,6 +655,9 @@ export async function updatePipelineStage(
     if (data.color !== undefined) updatePayload.color = data.color;
     if (data.description !== undefined) updatePayload.description = data.description.trim() || null;
     if (data.stage_order !== undefined) updatePayload.stage_order = data.stage_order;
+    if (data.assessment_submission_window_days !== undefined) {
+      updatePayload.assessment_submission_window_days = data.assessment_submission_window_days;
+    }
 
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_stages/${stageId}`, {
       method: "PATCH",

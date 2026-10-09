@@ -9,6 +9,7 @@ export type ProtectedAssetKind =
   | "CLIENT_DOCUMENT"
   | "FREELANCER_RESUME"
   | "FREELANCER_IDENTITY"
+  | "ASSESSMENT_PROOF"
   | "UNKNOWN";
 
 export interface AssetAuthorization {
@@ -37,6 +38,10 @@ interface IdentityRecord {
   user_id?: string | number | { user_id?: string | number } | null;
 }
 
+interface AssessmentProofRecord {
+  attempt_id?: string | number | null;
+}
+
 interface DirectusCollectionResponse<T> {
   data?: T[];
 }
@@ -46,6 +51,7 @@ const KNOWN_PROTECTED_FOLDER_IDS = [
   // and are the required configuration for new environments.
   "e81cc874-8036-4655-8bbb-1524a194866b", // freelancer identity documents
   "c380f14b-75d1-4b61-b2b4-9a6e596f3162", // freelancer resumes
+  "49ce8918-ac09-476f-9b25-14a2c9dfad48", // assessment proofs
 ];
 
 const PROTECTED_FOLDER_NAMES = new Set([
@@ -56,6 +62,7 @@ const PROTECTED_FOLDER_NAMES = new Set([
   "identity_documents",
   "resume_documents",
   "resumes",
+  "assessment_proofs",
   "protected_documents",
 ]);
 
@@ -93,6 +100,7 @@ function protectedFolderIds(): Set<string> {
     process.env.DIRECTUS_PROTECTED_FREELANCER_RESUMES_FOLDER_ID,
     process.env.DIRECTUS_PROTECTED_RESUME_FOLDER_ID,
     process.env.DIRECTUS_RESUME_FOLDER_ID,
+    process.env.DIRECTUS_ASSESSMENT_PROOF_FOLDER_ID,
   ];
   return new Set(
     [...KNOWN_PROTECTED_FOLDER_IDS, ...configured]
@@ -236,6 +244,24 @@ async function findIdentityRecords(
   return { records, lookupFailed };
 }
 
+async function findAssessmentProofs(
+  baseUrl: string,
+  token: string,
+  fileId: string,
+): Promise<{ records: AssessmentProofRecord[]; lookupFailed: boolean }> {
+  const params = new URLSearchParams({
+    "filter[proof_file_id][_eq]": fileId,
+    fields: "attempt_id",
+    limit: "20",
+  });
+  const result = await getJson<DirectusCollectionResponse<AssessmentProofRecord>>(
+    baseUrl,
+    token,
+    `/items/vs_application_assessment_responses?${params.toString()}`,
+  );
+  return { records: result.data?.data ?? [], lookupFailed: !result.ok };
+}
+
 async function resolveClientCompany(
   baseUrl: string,
   token: string,
@@ -311,6 +337,58 @@ async function clientMayViewResume(
   return (saved.data?.data?.length ?? 0) > 0;
 }
 
+async function clientMayViewAssessmentProof(
+  baseUrl: string,
+  token: string,
+  session: AuthenticatedSession,
+  attemptId: string | number,
+): Promise<boolean> {
+  const companyId = await resolveClientCompany(baseUrl, token, session.userId);
+  if (companyId === null) return false;
+
+  const attemptParams = new URLSearchParams({
+    "filter[id][_eq]": String(attemptId),
+    fields: "application_id",
+    limit: "1",
+  });
+  const attempts = await getJson<DirectusCollectionResponse<{ application_id?: string | number }>>(
+    baseUrl,
+    token,
+    `/items/vs_application_assessment_attempts?${attemptParams.toString()}`,
+  );
+  if (!attempts.ok) return false;
+  const applicationId = attempts.data?.data?.[0]?.application_id ?? null;
+  if (applicationId === null || applicationId === undefined) return false;
+
+  const applicationParams = new URLSearchParams({
+    "filter[application_id][_eq]": String(applicationId),
+    fields: "job_id",
+    limit: "1",
+  });
+  const applications = await getJson<DirectusCollectionResponse<{ job_id?: string | number }>>(
+    baseUrl,
+    token,
+    `/items/vs_job_application?${applicationParams.toString()}`,
+  );
+  if (!applications.ok) return false;
+  const jobId = applications.data?.data?.[0]?.job_id ?? null;
+  if (jobId === null || jobId === undefined) return false;
+
+  const jobParams = new URLSearchParams({
+    "filter[job_id][_eq]": String(jobId),
+    "filter[company_id][_eq]": String(companyId),
+    fields: "job_id",
+    limit: "1",
+  });
+  const jobs = await getJson<DirectusCollectionResponse<{ job_id?: string | number }>>(
+    baseUrl,
+    token,
+    `/items/vs_job_posting?${jobParams.toString()}`,
+  );
+  if (!jobs.ok) return false;
+  return (jobs.data?.data?.length ?? 0) > 0;
+}
+
 /**
  * Classify a file from Directus metadata and authorize access to protected
  * registration-derived documents. Unknown files in a protected folder fail
@@ -330,6 +408,7 @@ export async function authorizeAssetAccess(
   const companyDocs = await findCompanyDocument(config.baseUrl, config.token, fileId);
   const resumes = await findResumes(config.baseUrl, config.token, fileId);
   const identities = await findIdentityRecords(config.baseUrl, config.token, fileId);
+  const proofs = await findAssessmentProofs(config.baseUrl, config.token, fileId);
 
   const kind: ProtectedAssetKind = companyDocs.records.length
     ? "CLIENT_DOCUMENT"
@@ -337,7 +416,9 @@ export async function authorizeAssetAccess(
       ? "FREELANCER_IDENTITY"
       : resumes.records.length
         ? "FREELANCER_RESUME"
-        : "UNKNOWN";
+        : proofs.records.length
+          ? "ASSESSMENT_PROOF"
+          : "UNKNOWN";
   const protectedByFolder = Boolean(
     folder.id && protectedFolderIds().has(folder.id),
   ) || Boolean(folder.name && PROTECTED_FOLDER_NAMES.has(folder.name));
@@ -345,7 +426,7 @@ export async function authorizeAssetAccess(
   // lookup fails, fail closed: availability loss is safer than exposing a
   // protected document through a service-token proxy.
   const associationLookupFailed =
-    companyDocs.lookupFailed || resumes.lookupFailed || identities.lookupFailed;
+    companyDocs.lookupFailed || resumes.lookupFailed || identities.lookupFailed || proofs.lookupFailed;
   const isProtected =
     metadata.lookupFailed ||
     folder.lookupFailed ||
@@ -388,6 +469,50 @@ export async function authorizeAssetAccess(
       const allowed = await clientMayViewResume(config.baseUrl, config.token, session, ownerUserId);
       return { allowed, protected: true, notFound: false, kind };
     }
+  }
+
+  if (kind === "ASSESSMENT_PROOF") {
+    const attemptId = proofs.records[0]?.attempt_id ?? null;
+    if (attemptId === null || attemptId === undefined) {
+      return { allowed: false, protected: true, notFound: false, kind };
+    }
+    const attemptParams = new URLSearchParams({
+      "filter[id][_eq]": String(attemptId),
+      fields: "application_id",
+      limit: "1",
+    });
+    const attempts = await getJson<DirectusCollectionResponse<{ application_id?: string | number }>>(
+      config.baseUrl,
+      config.token,
+      `/items/vs_application_assessment_attempts?${attemptParams.toString()}`,
+    );
+    if (!attempts.ok) return { allowed: false, protected: true, notFound: false, kind };
+    const applicationId = attempts.data?.data?.[0]?.application_id ?? null;
+    if (applicationId === null || applicationId === undefined) {
+      return { allowed: false, protected: true, notFound: false, kind };
+    }
+    const applicationLookupParams = new URLSearchParams({
+      "filter[application_id][_eq]": String(applicationId),
+      fields: "job_id,user_id",
+      limit: "1",
+    });
+    const proofApplications = await getJson<
+      DirectusCollectionResponse<{ job_id?: string | number; user_id?: string | number }>
+    >(
+      config.baseUrl,
+      config.token,
+      `/items/vs_job_application?${applicationLookupParams.toString()}`,
+    );
+    if (!proofApplications.ok) return { allowed: false, protected: true, notFound: false, kind };
+    const ownerUserId = nestedId(proofApplications.data?.data?.[0]?.user_id, "user_id");
+    if (ownerUserId !== null && isFreelancerSession(session) && sameId(ownerUserId, session.userId)) {
+      return { allowed: true, protected: true, notFound: false, kind };
+    }
+    if (isClientSession(session)) {
+      const allowed = await clientMayViewAssessmentProof(config.baseUrl, config.token, session, attemptId);
+      return { allowed, protected: true, notFound: false, kind };
+    }
+    return { allowed: false, protected: true, notFound: false, kind };
   }
 
   // A protected file without a matching owner/authorized reviewer is denied.

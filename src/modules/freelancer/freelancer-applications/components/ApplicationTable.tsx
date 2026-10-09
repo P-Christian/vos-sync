@@ -1,38 +1,26 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ApplicationItem, ApplicationStatus, STATUS_LABELS, PublicJobPosting } from '../types';
-import { CheckCircle, Calendar, Star, Clock, XCircle, MoreVertical, Eye, XOctagon, FileText, Link as LinkIcon, DollarSign, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { JobDetailSheet } from './JobDetailSheet';
-import CompanyPreviewModal from './CompanyPreviewModal';
-import { CompanyProfile } from '../types';
-import { DataTable } from './NewDataTable';
-import { ColumnDef } from '@tanstack/react-table';
+import React, { useState } from "react";
+import { ApplicationItem, CompanyProfile } from "../types";
+import { Eye, MoreVertical, XOctagon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import CompanyPreviewModal from "./CompanyPreviewModal";
+import { DataTable } from "./NewDataTable";
+import { ColumnDef } from "@tanstack/react-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+} from "@/components/ui/dropdown-menu";
+import { ApplicationStatusBadge } from "./application-table/ApplicationStatusBadge";
+import { AssessmentActionItem } from "./application-table/AssessmentActionItem";
+import { AssessmentDueBadge } from "./application-table/AssessmentDueBadge";
+import { ApplicationDetailsDrawer } from "./application-table/ApplicationDetailsDrawer";
+import { ApplicationMobileList } from "./application-table/ApplicationMobileList";
+import { WithdrawApplicationDialog } from "./application-table/WithdrawApplicationDialog";
+import { formatDate, getInitials } from "./application-table/formatters";
+import { AssessmentSubmissionDialog } from "./AssessmentSubmissionDialog";
 
 interface Props {
   applications: ApplicationItem[];
@@ -40,209 +28,85 @@ interface Props {
   mobileSearch?: string;
 }
 
-type StatusConfigEntry = { icon: React.ElementType; className: string; style?: React.CSSProperties };
-
-const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
-  DRAFT: {
-    icon: Clock,
-    className: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800/30 dark:text-zinc-400 dark:border-zinc-700',
-  },
-  APPLIED: {
-    icon: Clock,
-    className: 'bg-secondary text-muted-foreground border-transparent',
-  },
-  UNDER_REVIEW: {
-    icon: Eye,
-    className: 'bg-blue-50 text-blue-700 border-transparent dark:bg-blue-950/30 dark:text-blue-300',
-  },
-  SHORTLISTED: {
-    icon: Star,
-    className: 'bg-purple-50 text-purple-700 border-transparent dark:bg-purple-950/30 dark:text-purple-300',
-  },
-  INTERVIEWING: {
-    icon: Calendar,
-    className: 'bg-primary/15 text-primary border-transparent',
-  },
-  HIRED: {
-    icon: CheckCircle,
-    className: 'border-transparent',
-    style: { backgroundColor: '#16a34a', color: '#fff' },
-  },
-  REJECTED: {
-    icon: XCircle,
-    className: 'bg-rose-50 text-rose-600 border-transparent dark:bg-rose-950/30 dark:text-rose-400',
-  },
-  WITHDRAWN: {
-    icon: XOctagon,
-    className: 'bg-zinc-100 text-zinc-500 border-transparent dark:bg-zinc-800 dark:text-zinc-400',
-  },
-};
-
-const StatusBadge: React.FC<{ status: ApplicationStatus }> = ({ status }) => {
-  const config = statusConfig[status] ?? statusConfig.APPLIED;
-  const Icon = config.icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${config.className}`}
-      style={config.style}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      {STATUS_LABELS[status] ?? status}
-    </span>
-  );
-};
-
-function formatDate(dateStr?: string): string {
-  if (!dateStr) return '—';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-PH', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateStr;
-  }
-}
-
-function getInitials(name?: string): string {
-  if (!name) return '?';
-  return name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mobileSearch }) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
-  const [originalJob, setOriginalJob] = useState<PublicJobPosting | null>(null);
-  const [isJobSheetOpen, setIsJobSheetOpen] = useState(false);
-  const [loadingJob, setLoadingJob] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<CompanyProfile | null>(null);
   const [isCompanyOpen, setIsCompanyOpen] = useState(false);
-
-  // Custom withdrawal modal states
   const [withdrawApp, setWithdrawApp] = useState<ApplicationItem | null>(null);
-  const [withdrawReason, setWithdrawReason] = useState("");
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [assessmentApp, setAssessmentApp] = useState<ApplicationItem | null>(null);
 
-  const handleOpenJobPost = async (jobId: number) => {
-    try {
-      setLoadingJob(true);
-      const res = await fetch("/api/freelancer/jobs");
-      if (res.ok) {
-        const data = await res.json();
-        const jobs: PublicJobPosting[] = data.jobs || [];
-        const found = jobs.find(j => j.job_id === jobId);
-        if (found) {
-          setOriginalJob(found);
-          setIsJobSheetOpen(true);
-        } else {
-          toast.error("Could not find the original job post. It might have been closed or deleted.");
-        }
-      } else {
-        toast.error("Failed to load original job post.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error loading job post.");
-    } finally {
-      setLoadingJob(false);
-    }
+  const refreshList = () => {
+    if (onRefresh) onRefresh();
+    else window.location.reload();
   };
 
-  const executeWithdrawal = async () => {
-    if (!withdrawApp) return;
-    setIsWithdrawing(true);
-    try {
-      const res = await fetch("/api/freelancer/applications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          application_id: withdrawApp.application_id,
-          action: "withdraw",
-          reason: withdrawReason.trim() || "Withdrawn by candidate",
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok) {
-        toast.error(json.error || "Failed to withdraw application.");
-      } else {
-        toast.success("Application withdrawn successfully!");
-        setWithdrawApp(null);
-        setWithdrawReason("");
-        if (onRefresh) {
-          onRefresh();
-        } else {
-          window.location.reload();
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("An error occurred while withdrawing the application.");
-    } finally {
-      setIsWithdrawing(false);
-    }
+  const openCompany = (company: CompanyProfile | null) => {
+    setSelectedCompany(company);
+    setIsCompanyOpen(true);
   };
 
   const columns: ColumnDef<ApplicationItem>[] = [
     {
-      accessorKey: 'job_title',
-      header: 'Job Title',
+      accessorKey: "job_title",
+      header: "Job Title",
       cell: ({ row }) => {
         const app = row.original;
         return (
           <div>
-            <div className="text-sm font-semibold text-foreground">{app.job_title ?? '—'}</div>
+            <div className="text-sm font-semibold text-foreground">{app.job_title ?? "—"}</div>
             <div className="text-sm md:text-xs text-muted-foreground mt-0.5">
-              {[app.job_type, app.job_location].filter(Boolean).join(' • ')}
+              {[app.job_type, app.job_location].filter(Boolean).join(" • ")}
             </div>
           </div>
         );
       },
     },
     {
-      accessorKey: 'company_name',
-      header: 'Company',
+      accessorKey: "company_name",
+      header: "Company",
       cell: ({ row }) => {
         const app = row.original;
         const isClickable = !!app.company_details;
         return (
-          <div 
-            className={`flex items-center gap-2.5 ${isClickable ? 'group cursor-pointer' : ''}`}
+          <div
+            className={`flex items-center gap-2.5 ${isClickable ? "group cursor-pointer" : ""}`}
             onClick={(e) => {
               if (isClickable) {
                 e.stopPropagation();
-                setSelectedCompany(app.company_details ?? null);
-                setIsCompanyOpen(true);
+                openCompany(app.company_details ?? null);
               }
             }}
           >
-            <div className={`w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0 overflow-hidden ${isClickable ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
+            <div
+              className={`w-10 h-10 rounded border bg-muted flex items-center justify-center text-xs font-bold text-foreground shrink-0 overflow-hidden ${isClickable ? "group-hover:border-primary/50 transition-colors" : ""}`}
+            >
               {app.company_details?.company_logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img 
-                  src={app.company_details.company_logo.startsWith("http") ? app.company_details.company_logo : `/api/client/assets/${app.company_details.company_logo}`} 
-                  alt={app.company_name ?? ""} 
-                  className="w-full h-full object-cover" 
+                <img
+                  src={
+                    app.company_details.company_logo.startsWith("http")
+                      ? app.company_details.company_logo
+                      : `/api/client/assets/${app.company_details.company_logo}`
+                  }
+                  alt={app.company_name ?? ""}
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 getInitials(app.company_name)
               )}
             </div>
-            <span className={`text-sm text-foreground ${isClickable ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
-              {app.company_name ?? '—'}
+            <span
+              className={`text-sm text-foreground ${isClickable ? "group-hover:text-primary group-hover:underline transition-all" : ""}`}
+            >
+              {app.company_name ?? "—"}
             </span>
           </div>
         );
       },
     },
     {
-      accessorKey: 'applied_at',
-      header: 'Date Applied',
+      accessorKey: "applied_at",
+      header: "Date Applied",
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {formatDate(row.original.applied_at)}
@@ -250,14 +114,20 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
       ),
     },
     {
-      accessorKey: 'application_status',
-      header: 'Status',
+      accessorKey: "application_status",
+      header: "Status",
       cell: ({ row }) => (
-        <StatusBadge status={row.original.application_status} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {row.original.assessment?.needs_action ? (
+            <AssessmentDueBadge deadline={row.original.assessment?.deadline ?? null} />
+          ) : (
+            <ApplicationStatusBadge status={row.original.application_status} />
+          )}
+        </div>
       ),
     },
     {
-      id: 'actions',
+      id: "actions",
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
         const app = row.original;
@@ -265,16 +135,29 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
           <div className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground max-md:size-11">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground max-md:size-11"
+                >
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSelectedApp(app)} className="cursor-pointer gap-2">
+                {app.assessment?.available && (
+                  <AssessmentActionItem application={app} onOpen={setAssessmentApp} />
+                )}
+                <DropdownMenuItem
+                  onClick={() => setSelectedApp(app)}
+                  className="cursor-pointer gap-2"
+                >
                   <Eye className="w-4 h-4" />
                   View Application
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setWithdrawApp(app); setWithdrawReason(""); }} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
+                <DropdownMenuItem
+                  onClick={() => setWithdrawApp(app)}
+                  className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500"
+                >
                   <XOctagon className="w-4 h-4" />
                   Withdraw Application
                 </DropdownMenuItem>
@@ -285,15 +168,6 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
       },
     },
   ];
-
-  const mobileQuery = (mobileSearch ?? "").trim().toLowerCase();
-  const mobileApplications = mobileQuery
-    ? applications.filter(
-        (app) =>
-          (app.job_title ?? "").toLowerCase().includes(mobileQuery) ||
-          (app.company_name ?? "").toLowerCase().includes(mobileQuery),
-      )
-    : applications;
 
   return (
     <>
@@ -307,380 +181,42 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
         />
       </div>
 
-      <div className="md:hidden space-y-3">
-        {mobileApplications.length === 0 ? (
-          <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
-            {mobileQuery ? (
-              <>
-                <p className="text-base font-semibold text-foreground">No matching applications</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Try a different search term or clear the filter.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-base font-semibold text-foreground">No applications found</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  You haven&apos;t applied to any jobs yet.
-                </p>
-              </>
-            )}
-          </div>
-        ) : (
-          mobileApplications.map((app) => (
-            <div key={app.application_id} className="rounded-xl border bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold text-foreground">{app.job_title ?? '—'}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5 break-words">
-                    {[app.job_type, app.job_location].filter(Boolean).join(' • ')}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5 break-words">
-                    {app.company_name ?? '—'}
-                  </p>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground max-md:size-11">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setSelectedApp(app)} className="cursor-pointer gap-2">
-                      <Eye className="w-4 h-4" />
-                      View Application
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { setWithdrawApp(app); setWithdrawReason(""); }} className="cursor-pointer gap-2 text-rose-500 focus:text-rose-500">
-                      <XOctagon className="w-4 h-4" />
-                      Withdraw Application
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <span className="text-sm text-muted-foreground">{formatDate(app.applied_at)}</span>
-                <StatusBadge status={app.application_status} />
-              </div>
-            </div>
-          ))
-        )}
+      <div className="md:hidden">
+        <ApplicationMobileList
+          applications={applications}
+          mobileSearch={mobileSearch}
+          onView={(app) => setSelectedApp(app)}
+          onWithdraw={(app) => setWithdrawApp(app)}
+          onOpenAssessment={(app) => setAssessmentApp(app)}
+        />
       </div>
 
-      <Drawer direction="right" open={!!selectedApp} onOpenChange={(open) => !open && setSelectedApp(null)}>
-        <DrawerContent className="h-full !w-[90vw] sm:!w-[800px] !max-w-none ml-auto right-0 rounded-none border-l">
-          <DrawerHeader className="border-b pb-4">
-            <DrawerTitle className="text-xl">Application Details</DrawerTitle>
-            <DrawerDescription>
-              Submitted on {formatDate(selectedApp?.applied_at)}
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="p-6 overflow-y-auto space-y-6">
-            {selectedApp && (
-              <>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div 
-                    className={`flex items-center gap-4 ${!!selectedApp.company_details ? 'group cursor-pointer' : ''}`}
-                    onClick={(e) => {
-                      if (selectedApp.company_details) {
-                        e.stopPropagation();
-                        setSelectedCompany(selectedApp.company_details ?? null);
-                        setIsCompanyOpen(true);
-                      }
-                    }}
-                  >
-                    <div className={`w-12 h-12 rounded-lg border bg-muted flex items-center justify-center text-lg font-bold text-foreground shrink-0 overflow-hidden ${!!selectedApp.company_details ? 'group-hover:border-primary/50 transition-colors' : ''}`}>
-                      {selectedApp.company_details?.company_logo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img 
-                          src={selectedApp.company_details.company_logo.startsWith("http") ? selectedApp.company_details.company_logo : `/api/client/assets/${selectedApp.company_details.company_logo}`} 
-                          alt={selectedApp.company_name ?? ""} 
-                          className="w-full h-full object-cover" 
-                        />
-                      ) : (
-                        getInitials(selectedApp.company_name)
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{selectedApp.job_title ?? '—'}</h3>
-                      <p className={`text-sm text-muted-foreground ${!!selectedApp.company_details ? 'group-hover:text-primary group-hover:underline transition-all' : ''}`}>
-                        {selectedApp.company_name ?? '—'}
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="shrink-0 max-md:min-h-11"
-                    disabled={loadingJob}
-                    onClick={() => handleOpenJobPost(selectedApp.job_id)}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      {loadingJob ? "Loading..." : "View Original Job Post"}
-                    </span>
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2 pt-1 border-b border-border/50 pb-6">
-                  {selectedApp.job_location && (
-                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-muted-foreground/10 capitalize">
-                      {selectedApp.job_location.toLowerCase()}
-                    </span>
-                  )}
-                  {selectedApp.job_type && (
-                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-muted-foreground/10 capitalize">
-                      {selectedApp.job_type.replace(/_/g, ' ').toLowerCase()}
-                    </span>
-                  )}
-                  {selectedApp.work_arrangement && (
-                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-muted-foreground/10 capitalize">
-                      {selectedApp.work_arrangement.replace(/_/g, ' ').toLowerCase()}
-                    </span>
-                  )}
-                  {selectedApp.experience_level && (
-                    <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-muted-foreground/10 capitalize">
-                      {selectedApp.experience_level.replace(/_/g, ' ').toLowerCase()}
-                    </span>
-                  )}
-                </div>
-
-                {selectedApp.job_description && (
-                  <div className="space-y-2">
-                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Job Description</p>
-                    <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto">
-                      {selectedApp.job_description}
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Current Status</p>
-                    <div><StatusBadge status={selectedApp.application_status} /></div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">Expected Salary</p>
-                    <div className="flex items-center gap-1 text-sm font-medium">
-                      <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      {selectedApp.expected_salary ? selectedApp.expected_salary.toLocaleString() : 'Not specified'}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedApp.is_referred && (
-                  <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">🎓</span>
-                      <div>
-                        <h4 className="font-bold text-sm text-purple-700 dark:text-purple-300">
-                          {selectedApp.school_name ? `Endorsed by ${selectedApp.school_name}` : "Official Academic Referral"}
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedApp.referrer_name ? `Submitted via ${selectedApp.referrer_name}, School Administrator` : "Verified Academic Endorsement"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {selectedApp.referral_letter && (
-                      <div className="rounded-lg border border-purple-200/70 dark:border-purple-900/50 bg-background/85 p-3 text-xs sm:text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                        <p className="font-semibold text-purple-600 dark:text-purple-400 mb-1 text-[11px] uppercase tracking-wider">
-                          Recommendation Letter Attached to Application
-                        </p>
-                        {selectedApp.referral_letter}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> Cover Letter
-                  </p>
-                  <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground">
-                    {selectedApp.cover_letter || <span className="text-muted-foreground italic">No cover letter provided.</span>}
-                  </div>
-                </div>
-
-                {selectedApp.portfolio_url && (
-                  <div className="space-y-2">
-                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                      <LinkIcon className="w-3.5 h-3.5" /> Portfolio
-                    </p>
-                    <a
-                      href={selectedApp.portfolio_url.startsWith('http') ? selectedApp.portfolio_url : `https://${selectedApp.portfolio_url}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-primary hover:underline block truncate"
-                    >
-                      {selectedApp.portfolio_url}
-                    </a>
-                  </div>
-                )}
-
-                {selectedApp.resume && (
-                  <div className="space-y-2">
-                    <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> Attached Resume
-                    </p>
-                    <a
-                      href={selectedApp.resume.file_url.startsWith('http') ? selectedApp.resume.file_url : `/api/freelancer/assets/${selectedApp.resume.file_url}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-3 p-3 w-full rounded-lg border bg-background hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm font-medium text-foreground truncate block flex-1">
-                        {selectedApp.resume.file_name || 'Resume Document'}
-                      </span>
-                    </a>
-                  </div>
-                )}
-
-                {/* Application Progress Timeline */}
-                <div className="border border-border bg-muted/20 p-5 rounded-xl space-y-4">
-                  <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-bold">Application Progress</p>
-                  
-                  <div className="relative pl-8 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
-                    {selectedApp.application_status === "REJECTED" ? (
-                      <>
-                        {/* Step 1: Applied */}
-                        <div className="relative flex gap-4 items-start">
-                          <span className="absolute -left-[29px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-emerald-500 text-white ring-4 ring-background">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">Applied</p>
-                            <p className="text-sm md:text-xs text-muted-foreground mt-0.5">Your application was successfully submitted.</p>
-                          </div>
-                        </div>
-
-                        {/* Step 2: Rejected */}
-                        <div className="relative flex gap-4 items-start">
-                          <span className="absolute -left-[29px] flex h-[22px] w-[22px] items-center justify-center rounded-full bg-rose-500 text-white ring-4 ring-background">
-                            <XCircle className="h-3.5 w-3.5" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Rejected</p>
-                            <p className="text-sm md:text-xs text-muted-foreground mt-0.5">The employer decided not to move forward with your application.</p>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      (() => {
-                        const statusOrder = ["APPLIED", "SHORTLISTED", "INTERVIEWING", "HIRED"];
-                        const currentIndex = statusOrder.indexOf(selectedApp.application_status);
-                        
-                        const steps = [
-                          { label: "Applied", desc: "Your application was successfully submitted." },
-                          { label: "Shortlisted", desc: "The employer has shortlisted you for potential opportunities." },
-                          { label: "Interviewing", desc: "You have entered the interview phase with the employer." },
-                          { label: "Hired", desc: "Congratulations! You have been hired for this role." }
-                        ];
-
-                        return steps.map((step, idx) => {
-                          const isCompleted = idx < currentIndex || selectedApp.application_status === "HIRED";
-                          const isActive = idx === currentIndex && selectedApp.application_status !== "HIRED";
-                          
-                          let iconBg = "bg-muted text-muted-foreground";
-                          let labelColor = "text-muted-foreground";
-                          let Icon = Clock;
-
-                          if (isCompleted) {
-                            iconBg = "bg-emerald-500 text-white";
-                            labelColor = "text-foreground font-medium";
-                            Icon = CheckCircle;
-                          } else if (isActive) {
-                            iconBg = "bg-primary text-primary-foreground ring-4 ring-primary/20";
-                            labelColor = "text-primary font-semibold";
-                            if (idx === 1) Icon = Star;
-                            else if (idx === 2) Icon = Calendar;
-                            else Icon = Clock;
-                          } else {
-                            if (idx === 1) Icon = Star;
-                            else if (idx === 2) Icon = Calendar;
-                            else if (idx === 3) Icon = CheckCircle;
-                          }
-
-                          return (
-                            <div key={idx} className="relative flex gap-4 items-start">
-                              <span className={`absolute -left-[29px] flex h-[22px] w-[22px] items-center justify-center rounded-full text-white ring-4 ring-background ${iconBg}`}>
-                                <Icon className="h-3.5 w-3.5" />
-                              </span>
-                              <div>
-                                <p className={`text-sm ${labelColor}`}>{step.label}</p>
-                                <p className="text-sm md:text-xs text-muted-foreground mt-0.5">{step.desc}</p>
-                              </div>
-                            </div>
-                          );
-                        });
-                      })()
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      <JobDetailSheet 
-        job={originalJob}
-        open={isJobSheetOpen}
-        onClose={() => setIsJobSheetOpen(false)}
+      <ApplicationDetailsDrawer
+        application={selectedApp}
+        onClose={() => setSelectedApp(null)}
+        onSelectCompany={openCompany}
       />
 
-      <CompanyPreviewModal 
+      <CompanyPreviewModal
         company={selectedCompany}
         open={isCompanyOpen}
         onClose={() => setIsCompanyOpen(false)}
       />
 
-      <Dialog open={!!withdrawApp} onOpenChange={(open) => !open && setWithdrawApp(null)}>
-        <DialogContent className="sm:max-w-[500px] rounded-2xl max-md:[&>[data-slot=dialog-close]]:p-3.5 max-md:[&>[data-slot=dialog-close]]:-m-3.5">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-foreground">Withdraw Application</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground mt-2">
-              Are you sure you want to withdraw your application for <strong className="text-foreground">{withdrawApp?.job_title}</strong> at <strong className="text-foreground">{withdrawApp?.company_name}</strong>?
-              <br /><br />
-              <span className="text-rose-600 dark:text-rose-400 font-medium">⚠️ Warning: This action cannot be undone and will retract your candidacy from the employer.</span>
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2.5 py-4">
-            <Label htmlFor="withdraw-reason-input" className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Reason for withdrawal (optional)
-            </Label>
-            <Textarea
-              id="withdraw-reason-input"
-              placeholder="e.g. I have accepted another offer, salary misalignment, etc."
-              value={withdrawReason}
-              onChange={(e) => setWithdrawReason(e.target.value)}
-              className="resize-none text-base md:text-sm rounded-xl bg-background"
-              rows={3}
-              disabled={isWithdrawing}
-            />
-          </div>
-          <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button
-              variant="outline"
-              onClick={() => { setWithdrawApp(null); setWithdrawReason(""); }}
-              disabled={isWithdrawing}
-              className="rounded-xl h-9 text-sm max-md:min-h-11"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={executeWithdrawal}
-              disabled={isWithdrawing}
-              className="rounded-xl h-9 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium border-0 max-md:min-h-11"
-            >
-              {isWithdrawing ? "Withdrawing..." : "Confirm Withdrawal"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <WithdrawApplicationDialog
+        application={withdrawApp}
+        onClose={() => setWithdrawApp(null)}
+        onWithdrawn={refreshList}
+      />
+
+      <AssessmentSubmissionDialog
+        application={assessmentApp}
+        open={assessmentApp !== null}
+        onOpenChange={(open) => {
+          if (!open) setAssessmentApp(null);
+        }}
+        onMutated={onRefresh}
+      />
     </>
   );
 };

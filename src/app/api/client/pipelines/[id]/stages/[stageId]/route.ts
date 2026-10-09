@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  authenticateRequest,
+  isClientSession,
+} from "@/lib/authenticated-session";
+import {
   deletePipelineStage,
+  parseAssessmentSubmissionWindow,
   updatePipelineStage,
 } from "@/modules/client/pipeline/services/pipeline.service";
-import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +60,9 @@ export async function PATCH(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
-
+    if (!isClientSession(session)) {
+      return NextResponse.json({ error: "Client account required." }, { status: 403 });
+    }
     const userId = Number(session.userId);
     const companyId = await getCompanyId(userId);
     if (!companyId) {
@@ -64,7 +70,43 @@ export async function PATCH(
     }
 
     const body = await req.json().catch(() => null);
-    if (!body) return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Request payload required." }, { status: 400 });
+    }
+
+    let windowDays: number | null | undefined;
+    let windowProvided = false;
+    if ("assessment_submission_window_days" in body) {
+      windowProvided = true;
+      const parsed = parseAssessmentSubmissionWindow(
+        (body as { assessment_submission_window_days?: unknown }).assessment_submission_window_days
+      );
+      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+      windowDays = parsed.days;
+    }
+
+    if (windowProvided) {
+      const stageRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_company_pipeline_stages/${sId}?fields=id,pipeline_id,stage_type`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!stageRes.ok) {
+        return NextResponse.json({ error: "Pipeline stage not found." }, { status: 404 });
+      }
+      const stageJson = (await stageRes.json()) as {
+        data?: { id?: number; pipeline_id?: number; stage_type?: string };
+      };
+      const row = stageJson.data;
+      if (!row || Number(row.pipeline_id) !== pipelineId) {
+        return NextResponse.json({ error: "Pipeline stage not found." }, { status: 404 });
+      }
+      if (row.stage_type !== "ASSESSMENT") {
+        return NextResponse.json(
+          { error: "Submission window can only be set on ASSESSMENT stages." },
+          { status: 422 }
+        );
+      }
+    }
 
     const stageName = body.stage_name !== undefined ? String(body.stage_name).trim() : undefined;
     if (stageName !== undefined) {
@@ -85,6 +127,7 @@ export async function PATCH(
       color,
       description,
       stage_order: stageOrder,
+      ...(windowProvided ? { assessment_submission_window_days: windowDays as number | null } : {}),
     });
 
     if (!success) {

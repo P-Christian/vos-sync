@@ -25,6 +25,8 @@ export interface ApplicantStageOption {
   is_terminal: boolean;
 }
 
+export type AssessmentMoveOutcome = "PASS" | "FAIL";
+
 export interface Applicant {
   application_id: number;
 
@@ -42,6 +44,8 @@ export interface Applicant {
   stage_type?: CanonicalStageType;
   stage_color?: string;
   allowed_next_stages?: ApplicantStageOption[];
+  assessment_status?: string | null;
+  assessment_needs_review?: boolean;
 
   client_notes?: string | null;
 

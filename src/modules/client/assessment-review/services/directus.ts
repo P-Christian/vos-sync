@@ -1,0 +1,109 @@
+// Directus connection + JSON helpers for the employer assessment-review APIs.
+// Mirrors the freelancer assessment directus module conventions.
+
+const DIRECTUS_BASE = (
+  process.env.DIRECTUS_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  ""
+).replace(/\/$/, "");
+
+const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+export function directusBase(): string {
+  return DIRECTUS_BASE;
+}
+
+export function directusHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+  return headers;
+}
+
+/** Philippine local-time string, matching the pipeline/job services. */
+export function nowPH(): string {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+}
+
+async function parseJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function collectionData(json: unknown): Record<string, unknown>[] {
+  if (typeof json !== "object" || json === null) return [];
+  const data = (json as { data?: unknown }).data;
+  return Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+}
+
+export async function directusList(
+  collection: string,
+  params: URLSearchParams,
+): Promise<Record<string, unknown>[]> {
+  const response = await fetch(`${DIRECTUS_BASE}/items/${collection}?${params.toString()}`, {
+    headers: directusHeaders(),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Directus list ${collection} failed: ${response.status}`);
+  return collectionData(await parseJson(response));
+}
+
+export async function directusGetOne(
+  collection: string,
+  id: number | string,
+  fields: string,
+): Promise<Record<string, unknown> | null> {
+  const response = await fetch(
+    `${DIRECTUS_BASE}/items/${collection}/${encodeURIComponent(String(id))}?fields=${encodeURIComponent(fields)}`,
+    { headers: directusHeaders(), cache: "no-store" },
+  );
+  if (!response.ok) return null;
+  const json = (await parseJson(response)) as { data?: unknown } | null;
+  const data = json?.data;
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  return data as Record<string, unknown>;
+}
+
+export async function directusPost(
+  collection: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: boolean; status: number; row: Record<string, unknown> | null }> {
+  const response = await fetch(`${DIRECTUS_BASE}/items/${collection}`, {
+    method: "POST",
+    headers: directusHeaders(),
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = (await parseJson(response)) as { data?: unknown } | null;
+  const data = json?.data;
+  const row =
+    typeof data === "object" && data !== null && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null;
+  return { ok: response.ok, status: response.status, row };
+}
+
+export async function directusPatch(
+  collection: string,
+  id: number | string,
+  body: Record<string, unknown>,
+): Promise<boolean> {
+  const response = await fetch(
+    `${DIRECTUS_BASE}/items/${collection}/${encodeURIComponent(String(id))}`,
+    {
+      method: "PATCH",
+      headers: directusHeaders(),
+      body: JSON.stringify(body),
+      cache: "no-store",
+    },
+  );
+  return response.ok;
+}
