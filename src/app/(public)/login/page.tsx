@@ -114,7 +114,9 @@ function LoginForm() {
              error === "linkedin_not_linked") &&
             queryEmail
         ) {
-            setEmail(queryEmail)
+            queueMicrotask(() => {
+                setEmail(queryEmail)
+            })
         }
     }, [searchParams])
 

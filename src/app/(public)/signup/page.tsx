@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Briefcase, User, Eye, EyeOff, Check, ArrowLeft, ChevronDown, Search,
-  Upload, X, FileText, Shield, Building2, GraduationCap, CheckCircle2, Info,
+  Upload, X, FileText, Shield, Building2, GraduationCap, CheckCircle2,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';

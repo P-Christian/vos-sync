@@ -149,7 +149,9 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
   }, []);
 
   useEffect(() => {
-    fetchStatuses();
+    queueMicrotask(() => {
+      fetchStatuses();
+    });
   }, [fetchStatuses]);
 
   // Handle URL redirect query feedback
@@ -170,8 +172,10 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
     }
 
     if (pendingLink === "google" && pendingEmail) {
-      setPendingLinkEmail(pendingEmail);
-      setPendingLinkOpen(true);
+      queueMicrotask(() => {
+        setPendingLinkEmail(pendingEmail);
+        setPendingLinkOpen(true);
+      });
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.delete("pending_link");
       nextUrl.searchParams.delete("email");
@@ -182,7 +186,9 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
       toast.success("Google account connected", {
         description: "Your Google identity was successfully linked to this account.",
       });
-      fetchStatuses();
+      queueMicrotask(() => {
+        fetchStatuses();
+      });
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.delete("linked");
       router.replace(nextUrl.pathname + nextUrl.search);
@@ -190,7 +196,9 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
       toast.success("LinkedIn account connected", {
         description: "Your LinkedIn identity was successfully linked to this account.",
       });
-      fetchStatuses();
+      queueMicrotask(() => {
+        fetchStatuses();
+      });
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.delete("linked");
       router.replace(nextUrl.pathname + nextUrl.search);
@@ -198,7 +206,9 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
       toast.success("Facebook account connected", {
         description: "Your Facebook identity was successfully linked to this account.",
       });
-      fetchStatuses();
+      queueMicrotask(() => {
+        fetchStatuses();
+      });
       const nextUrl = new URL(window.location.href);
       nextUrl.searchParams.delete("linked");
       router.replace(nextUrl.pathname + nextUrl.search);

@@ -150,7 +150,9 @@ export function AiModelConfigModule() {
   }, []);
 
   useEffect(() => {
-    fetchConfig();
+    queueMicrotask(() => {
+      fetchConfig();
+    });
   }, [fetchConfig]);
 
   // Open provider edit modal

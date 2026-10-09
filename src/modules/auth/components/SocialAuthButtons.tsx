@@ -94,7 +94,7 @@ export function SocialAuthButtons({
 
     if (provider.href) {
       setLoadingProvider(provider.id);
-      window.location.href = provider.href;
+      window.location.assign(provider.href);
     }
   };
 
