@@ -242,6 +242,16 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             ))}
           </div>
         </FilterSection>
+
+        {/* School */}
+        <FilterSection title="School">
+          <Input
+            placeholder="School name or acronym…"
+            value={filters.school_id}
+            onChange={(e) => onFilterChange("school_id", e.target.value)}
+            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
+          />
+        </FilterSection>
       </div>
 
       <motion.div whileTap={{ scale: 0.98 }}>
