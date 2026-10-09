@@ -632,6 +632,7 @@ export default function PipelineSettingsTab() {
                           `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
                         reorder: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/reorder`,
                         window: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}`,
+                        library: "/api/client/assessment-tasks/library",
                       }}
                     />
                   ) : undefined
