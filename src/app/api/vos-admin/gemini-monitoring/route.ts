@@ -3,6 +3,7 @@
 // All cost/billing computed dynamically from GEMINI_MODELS_CONFIG — nothing stored in DB.
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 import {
   fetchTelemetryRequests,
   fetchRecentRequests,
@@ -17,7 +18,34 @@ import {
 
 export const revalidate = 0;
 
+/** Authorize caller as Administrator (Role ID 3 or ADMIN role) */
+async function authorizeAdmin(req: NextRequest) {
+  const session = await authenticateRequest(req);
+  if (!session) {
+    return {
+      authorized: false,
+      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+    };
+  }
+
+  const roleName = (session.roleName || "").toUpperCase();
+  if (session.roleId !== 3 && roleName !== "ADMIN") {
+    return {
+      authorized: false,
+      response: NextResponse.json(
+        { error: "Forbidden: Restricted to administrators." },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { authorized: true, session };
+}
+
 export async function GET(req: NextRequest) {
+  const auth = await authorizeAdmin(req);
+  if (!auth.authorized) return auth.response;
+
   const url = new URL(req.url);
   const timeRange = url.searchParams.get("time_range") || null;
   const provider = url.searchParams.get("provider") || null;

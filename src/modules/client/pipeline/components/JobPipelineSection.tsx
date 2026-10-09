@@ -40,12 +40,14 @@ interface JobPipelineSectionProps {
   jobId?: number | null;
   onSourcePipelineChange?: (pipelineId: number | undefined) => void;
   selectedSourcePipelineId?: number | null;
+  readOnly?: boolean;
 }
 
 export default function JobPipelineSection({
   jobId,
   onSourcePipelineChange,
   selectedSourcePipelineId,
+  readOnly = false,
 }: JobPipelineSectionProps) {
   const {
     pipeline,
@@ -371,28 +373,14 @@ export default function JobPipelineSection({
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary" /> Hiring Pipeline Workflow
             </Label>
-            {isLocked ? (
-              <Badge
-                variant="destructive"
-                className="text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 py-0.5 px-2"
-              >
-                <Lock className="h-3 w-3" /> Locked ({applicationCount} Apps)
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 border-emerald-500/30 bg-emerald-500/10 py-0.5 px-2"
-              >
-                Editable (0 Apps)
-              </Badge>
-            )}
+
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Dedicated candidate progression workflow for this job posting.
           </p>
         </div>
 
-        {!isLocked && mode === "CUSTOM" && (
+        {!readOnly && !isLocked && mode === "CUSTOM" && (
           <Button
             type="button"
             size="sm"
@@ -431,8 +419,8 @@ export default function JobPipelineSection({
         </div>
       )}
 
-      {/* Radio Choice (Disabled if locked) */}
-      {!isLocked && (
+      {/* Radio Choice (Disabled if locked or readOnly) */}
+      {!readOnly && !isLocked && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <label
             onClick={() => setMode("DEFAULT")}
@@ -482,8 +470,8 @@ export default function JobPipelineSection({
         </div>
       )}
 
-      {/* If Mode is DEFAULT and not locked, offer Reset button */}
-      {!isLocked && mode === "DEFAULT" && (
+      {/* If Mode is DEFAULT and not locked/readOnly, offer Reset button */}
+      {!readOnly && !isLocked && mode === "DEFAULT" && (
         <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50 text-xs">
           <span className="text-muted-foreground">
             Want to re-synchronize with your latest company default template?
@@ -492,7 +480,7 @@ export default function JobPipelineSection({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => resetToCompanyDefault()}
+            onClick={() => resetToCompanyDefault(pipeline?.source_pipeline_id ?? undefined)}
             disabled={saving}
             className="h-7 text-xs font-semibold gap-1.5"
           >
@@ -625,8 +613,8 @@ export default function JobPipelineSection({
                   </div>
                 </div>
 
-                {/* Actions (Only enabled if !isLocked and mode === "CUSTOM") */}
-                {!isLocked && mode === "CUSTOM" && (
+                {/* Actions (Only enabled if !readOnly, !isLocked, and mode === "CUSTOM") */}
+                {!readOnly && !isLocked && mode === "CUSTOM" && (
                   <div className="flex items-center gap-1 self-end sm:self-center shrink-0">
                     <Button
                       type="button"

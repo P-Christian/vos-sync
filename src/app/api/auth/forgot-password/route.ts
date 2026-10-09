@@ -16,10 +16,10 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-        const { userId } = await requestPasswordReset(email);
+        await requestPasswordReset(email);
 
         return NextResponse.json(
-            { ok: true, message: "If that email is registered, a reset code has been sent.", userId },
+            { ok: true, message: "If that email is registered, a reset code has been sent." },
             { status: 200 }
         );
 

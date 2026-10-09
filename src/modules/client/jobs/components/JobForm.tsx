@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -466,7 +467,7 @@ export default function JobForm({
       return (
         <div
           className="text-xs text-zinc-650 dark:text-zinc-350 leading-relaxed space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold"
-          dangerouslySetInnerHTML={{ __html: text }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
         />
       );
     }

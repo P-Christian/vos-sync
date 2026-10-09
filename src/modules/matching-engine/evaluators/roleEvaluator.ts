@@ -6,6 +6,8 @@ import { EvaluatorResult, EvidenceItem } from "../types/evaluatorTypes";
 import { ROLE_SIMILARITY_SCORES } from "../config/scoringConfig";
 import { cleanText } from "../normalizers/textNormalizer";
 import { computeJaccardSimilarity } from "../normalizers/tokenExtractor";
+import { matchCandidateName } from "../retrieval/nameMatcher";
+import { matchSchool } from "../retrieval/schoolMatcher";
 
 export function evaluateRole(profile: NormalizedProfile, context: MatchContext, weight: number): EvaluatorResult {
   const maxScore = 45;
@@ -134,6 +136,60 @@ export function evaluateRole(profile: NormalizedProfile, context: MatchContext, 
       explanationCode: "ROLE_SUMMARY_MATCH",
       explanationMessage: "Matched search keyword in profile summary.",
     };
+  }
+
+  // 4. Candidate Name Match (High Priority for explicit talent lookups)
+  const nameMatch = matchCandidateName(rawKeyword, profile.name);
+  if (nameMatch.matched) {
+    const rawScore = 45;
+    return {
+      factor: "ROLE",
+      label: "Role Similarity",
+      score: rawScore,
+      maxScore,
+      weight,
+      evidence: [
+        {
+          type: "ROLE",
+          label: "Candidate Name Match",
+          value: `Direct candidate name match: '${profile.name}'`,
+          scoreContribution: rawScore,
+        },
+      ],
+      strengths: [`Direct name match for candidate '${profile.name}'`],
+      weaknesses: [],
+      explanationCode: "ROLE_NAME_MATCH",
+      explanationMessage: `Direct name match for candidate '${profile.name}'.`,
+    };
+  }
+
+  // 5. Institution / School Match
+  for (const edu of profile.education) {
+    if (edu.school) {
+      const sMatch = matchSchool(rawKeyword, edu.school);
+      if (sMatch.matched) {
+        const rawScore = 38;
+        return {
+          factor: "ROLE",
+          label: "Role Similarity",
+          score: rawScore,
+          maxScore,
+          weight,
+          evidence: [
+            {
+              type: "ROLE",
+              label: "Institution Match",
+              value: `Candidate attended '${edu.school}' matching search '${rawKeyword}'`,
+              scoreContribution: rawScore,
+            },
+          ],
+          strengths: [`Candidate attended searched institution: ${edu.school}`],
+          weaknesses: [],
+          explanationCode: "ROLE_INSTITUTION_MATCH",
+          explanationMessage: `Matched candidate institution '${edu.school}' with search query '${rawKeyword}'.`,
+        };
+      }
+    }
   }
 
   return {

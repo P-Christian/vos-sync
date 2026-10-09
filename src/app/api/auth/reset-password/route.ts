@@ -7,19 +7,21 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => null);
     
+    const email = typeof body?.email === "string" ? body.email.trim() : null;
     const userId = body?.userId;
-    const otp = body?.otp;
+    const otp = typeof body?.otp === "string" ? body.otp.trim() : "";
     const newPassword = body?.newPassword;
 
-    if (!userId || !otp || !newPassword) {
+    const identifier = email || userId;
+    if (!identifier || !otp || !newPassword) {
         return NextResponse.json(
-            { ok: false, message: "User ID, OTP code, and new password are required." },
+            { ok: false, message: "Email or user ID, OTP code, and new password are required." },
             { status: 400 }
         );
     }
 
     try {
-        await confirmPasswordReset(userId, otp, newPassword);
+        await confirmPasswordReset(identifier, otp, newPassword);
 
         return NextResponse.json(
             { ok: true, message: "Password updated successfully." },

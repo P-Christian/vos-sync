@@ -16,6 +16,8 @@ export * from "./retrieval/queryAnalyzer";
 export * from "./retrieval/taxonomyResolver";
 export * from "./retrieval/fuzzyMatcher";
 export * from "./retrieval/tokenMatcher";
+export * from "./retrieval/schoolMatcher";
+export * from "./retrieval/nameMatcher";
 export * from "./retrieval/candidateRetriever";
 
 export * from "./engine/matcher";

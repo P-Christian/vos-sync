@@ -1,11 +1,18 @@
 // src/app/api/client/company-profile/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+const ALLOWED_PUBLIC_COLLECTIONS = new Set([
+  "vs_industry",
+  "vs_organization_type",
+  "vs_company_size",
+]);
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -14,21 +21,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-/** Resolve user_id from JWT cookie */
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Recalculate company profile completion percentage */
@@ -96,6 +88,12 @@ export async function GET(req: NextRequest) {
     const directusCollection = searchParams.get("directusCollection");
 
     if (directusCollection) {
+      if (!ALLOWED_PUBLIC_COLLECTIONS.has(directusCollection)) {
+        return NextResponse.json(
+          { error: "Access to the requested collection is not permitted." },
+          { status: 403 }
+        );
+      }
       if (!DIRECTUS_BASE) {
         return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
       }
@@ -114,11 +112,8 @@ export async function GET(req: NextRequest) {
     // ─────────────────────────────────────────────
     // AUTH CHECK
     // ─────────────────────────────────────────────
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
@@ -129,13 +124,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Could not resolve user identity from token." },
-        { status: 401 }
-      );
-    }
+    const userId = Number(session.userId);
 
     const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id,company_user_role,is_primary_contact&limit=1`;
     // console.log("[DEBUG] Fetching linkUrl:", linkUrl);
@@ -234,32 +223,8 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const directusCollection = searchParams.get("directusCollection");
-
-    if (directusCollection) {
-      if (!DIRECTUS_BASE) {
-        return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
-      }
-      const body = await req.json().catch(() => null);
-      const target = `${DIRECTUS_BASE}/items/${encodeURIComponent(directusCollection)}`;
-      const res = await fetch(target, {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(body),
-      });
-      const text = await res.text();
-      return new NextResponse(text, {
-        status: res.status,
-        headers: { "content-type": res.headers.get("content-type") || "application/json" },
-      });
-    }
-
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
@@ -270,13 +235,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Could not resolve user identity from token." },
-        { status: 401 }
-      );
-    }
+    const userId = Number(session.userId);
 
     // Check if company association already exists
     const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`;
@@ -413,11 +372,8 @@ export async function POST(req: NextRequest) {
 // ─────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
@@ -428,13 +384,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Could not resolve user identity from token." },
-        { status: 401 }
-      );
-    }
+    const userId = Number(session.userId);
 
     const body = await req.json().catch(() => null);
     if (!body) {

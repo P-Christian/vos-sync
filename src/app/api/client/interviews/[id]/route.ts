@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { getPHTimeString } from "@/lib/utils";
+import {
+  authenticateRequest,
+  isAdministratorSession,
+  isClientSession,
+} from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,15 +23,14 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
+async function getCompanyId(userId: number): Promise<number | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id&limit=1`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    const json = await res.json();
+    return json.data?.[0]?.company_id ?? null;
   } catch {
     return null;
   }
@@ -70,13 +74,27 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid ID parameter." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const isAdmin = isAdministratorSession(session);
+    if (!isAdmin && !isClientSession(session)) {
+      return NextResponse.json({ error: "Forbidden: Clients only." }, { status: 403 });
+    }
+
+    const userId = Number(session.userId);
+    let callerCompanyId: number | null = null;
+    if (!isAdmin) {
+      callerCompanyId = await getCompanyId(userId);
+      if (!callerCompanyId) {
+        return NextResponse.json(
+          { error: "Forbidden: No company profile found for user." },
+          { status: 403 }
+        );
+      }
+    }
 
     const body = await req.json().catch(() => ({}));
     const type = body?.type;
@@ -86,6 +104,27 @@ export async function PATCH(
 
     if (type === "DETAILS") {
       const interviewId = targetId;
+
+      // Check current interview existence and verify company ownership
+      const currIvRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=company_id,duration_minutes`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (!currIvRes.ok) {
+        return NextResponse.json({ error: "Interview not found." }, { status: 404 });
+      }
+      const currIv = (await currIvRes.json()).data;
+      if (!currIv) {
+        return NextResponse.json({ error: "Interview not found." }, { status: 404 });
+      }
+
+      if (!isAdmin && Number(currIv.company_id) !== Number(callerCompanyId)) {
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to modify this interview." },
+          { status: 403 }
+        );
+      }
+
       const updateData: Record<string, unknown> = {
         updated_by_user_id: userId,
         updated_at: nowPH,
@@ -102,46 +141,39 @@ export async function PATCH(
       if (payload?.cancel_reason !== undefined) updateData.cancel_reason = payload.cancel_reason;
 
       if (payload?.scheduled_at) {
-        const currIvRes = await fetch(
-          `${DIRECTUS_BASE}/items/vs_interview/${interviewId}?fields=company_id,duration_minutes`,
-          { headers: getHeaders(), cache: "no-store" }
-        );
-        if (currIvRes.ok) {
-          const currIv = (await currIvRes.json()).data;
-          const targetCompanyId = currIv?.company_id;
+        const targetCompanyId = currIv?.company_id;
 
-          if (targetCompanyId) {
-            const newStart = new Date(payload.scheduled_at.replace(" ", "T")).getTime();
-            if (!isNaN(newStart)) {
-              const durMinutes = Number(payload.duration_minutes || currIv?.duration_minutes) || 60;
-              const durationMs = durMinutes * 60 * 1000;
-              const includeBuffer = payload.include_buffer !== false;
-              const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
+        if (targetCompanyId) {
+          const newStart = new Date(payload.scheduled_at.replace(" ", "T")).getTime();
+          if (!isNaN(newStart)) {
+            const durMinutes = Number(payload.duration_minutes || currIv?.duration_minutes) || 60;
+            const durationMs = durMinutes * 60 * 1000;
+            const includeBuffer = payload.include_buffer !== false;
+            const bufferMs = includeBuffer ? 15 * 60 * 1000 : 0;
 
-              const overlapRes = await fetch(
-                `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${targetCompanyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&filter[interview_id][_neq]=${interviewId}&fields=interview_id,scheduled_at,duration_minutes&limit=100`,
-                { headers: getHeaders(), cache: "no-store" }
-              );
+            const overlapRes = await fetch(
+              `${DIRECTUS_BASE}/items/vs_interview?filter[company_id][_eq]=${targetCompanyId}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&filter[interview_id][_neq]=${interviewId}&fields=interview_id,scheduled_at,duration_minutes&limit=100`,
+              { headers: getHeaders(), cache: "no-store" }
+            );
 
-              if (overlapRes.ok) {
-                const existingActive = (await overlapRes.json()).data ?? [];
-                const newEnd = newStart + durationMs;
-                for (const existing of existingActive) {
-                  const exStart = new Date(existing.scheduled_at.replace(" ", "T")).getTime();
-                  if (isNaN(exStart)) continue;
-                  const exEnd = exStart + (existing.duration_minutes || 60) * 60 * 1000;
+            if (overlapRes.ok) {
+              const existingActive = (await overlapRes.json()).data ?? [];
+              const newEnd = newStart + durationMs;
+              for (const existing of existingActive) {
+                const exStart = new Date(existing.scheduled_at.replace(" ", "T")).getTime();
+                if (isNaN(exStart)) continue;
+                const exEnd = exStart + (existing.duration_minutes || 60) * 60 * 1000;
 
-                  const isDirectOverlap = (newStart >= exStart && newStart < exEnd) || (newStart < exStart && newEnd > exStart);
-                  const isBufferOverlap = bufferMs > 0 && (newStart >= exEnd && newStart < (exEnd + bufferMs));
+                const isDirectOverlap = (newStart >= exStart && newStart < exEnd) || (newStart < exStart && newEnd > exStart);
+                const isBufferOverlap = bufferMs > 0 && (newStart >= exEnd && newStart < (exEnd + bufferMs));
 
-                  if (isDirectOverlap || isBufferOverlap) {
-                    return NextResponse.json(
-                      {
-                        error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)}${includeBuffer ? " (including 15m buffer)" : ""}.`,
-                      },
-                      { status: 409 }
-                    );
-                  }
+                if (isDirectOverlap || isBufferOverlap) {
+                  return NextResponse.json(
+                    {
+                      error: `Schedule Conflict: An active interview is already scheduled for this company at ${formatInterviewDateTime(existing.scheduled_at)}${includeBuffer ? " (including 15m buffer)" : ""}.`,
+                    },
+                    { status: 409 }
+                  );
                 }
               }
             }
@@ -177,7 +209,48 @@ export async function PATCH(
       const attendanceStatus = payload?.attendance_status || "ATTENDED";
       const decision = payload?.decision; // "HIRED", "REJECTED", "NO_ACTION"
 
-      // 1. Update vs_interview_application junction row
+      // 1. Fetch junction row first to verify existence and check ownership
+      const fetchJunctionRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_interview_application/${interviewApplicationId}?fields=application_id,interview_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+
+      if (!fetchJunctionRes.ok) {
+        return NextResponse.json(
+          { error: "Interview application record not found." },
+          { status: 404 }
+        );
+      }
+
+      const jaData = (await fetchJunctionRes.json()).data;
+      if (!jaData) {
+        return NextResponse.json(
+          { error: "Interview application record not found." },
+          { status: 404 }
+        );
+      }
+
+      if (!isAdmin) {
+        if (!jaData.interview_id) {
+          return NextResponse.json({ error: "Invalid interview reference." }, { status: 400 });
+        }
+        const parentIvRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_interview/${jaData.interview_id}?fields=company_id`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (!parentIvRes.ok) {
+          return NextResponse.json({ error: "Parent interview not found." }, { status: 404 });
+        }
+        const parentIv = (await parentIvRes.json()).data;
+        if (Number(parentIv?.company_id) !== Number(callerCompanyId)) {
+          return NextResponse.json(
+            { error: "Forbidden: You do not have permission to evaluate this candidate." },
+            { status: 403 }
+          );
+        }
+      }
+
+      // 2. Update vs_interview_application junction row
       const patchJunctionRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_interview_application/${interviewApplicationId}`,
         {
@@ -199,12 +272,6 @@ export async function PATCH(
           { status: patchJunctionRes.status }
         );
       }
-
-      // 2. Fetch junction row to get application_id and interview_id
-      const fetchJunctionRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_interview_application/${interviewApplicationId}?fields=application_id,interview_id`,
-        { headers: getHeaders(), cache: "no-store" }
-      );
 
       if (fetchJunctionRes.ok) {
         const jaData = (await fetchJunctionRes.json()).data;

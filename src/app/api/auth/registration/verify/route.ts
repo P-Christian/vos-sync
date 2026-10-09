@@ -24,6 +24,13 @@ import {
 } from "@/modules/auth/student-invitation/invitation.repo";
 import { getInvitationState } from "@/modules/auth/student-invitation/invitation.service";
 import { issueWelcomeDeferral } from "@/modules/auth/student-invitation/welcome-deferral";
+import {
+  decryptGoogleRegistration,
+  linkUserIdentity,
+} from "@/modules/auth/google/google.service";
+import { decryptLinkedInRegistration } from "@/modules/auth/linkedin/linkedin.service";
+import { decryptFacebookRegistration } from "@/modules/auth/facebook/facebook.service";
+import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,6 +96,88 @@ export async function POST(request: NextRequest) {
       lease.leaseId
     );
 
+    // Link federated provider identities (Google / LinkedIn) if registration was initiated via social OAuth
+    const googleRegCookie = request.cookies.get("vos_sync_google_reg")?.value;
+    if (googleRegCookie) {
+      try {
+        const googlePayload = await decryptGoogleRegistration(googleRegCookie);
+        if (googlePayload?.sub && googlePayload?.email) {
+          await linkUserIdentity({
+            userId: user.user_id,
+            provider: "google",
+            providerSubject: googlePayload.sub,
+            providerEmail: googlePayload.email,
+          });
+
+          createAuditRecordRepo({
+            event_type: "USER_IDENTITY_LINKED",
+            event_category: "AUTHENTICATION",
+            action: "LINK_IDENTITY",
+            status: "SUCCESS",
+            actor_type: user.role_id === 3 ? "ADMIN" : "USER",
+            actor_user_id: Number(user.user_id),
+            reason: `Automatically linked Google identity upon user registration for ${googlePayload.email}`,
+          });
+        }
+      } catch (err) {
+        console.error("[registration/verify] Failed to link Google identity:", err);
+      }
+    }
+
+    const linkedInRegCookie = request.cookies.get("vos_sync_linkedin_reg")?.value;
+    if (linkedInRegCookie) {
+      try {
+        const linkedInPayload = await decryptLinkedInRegistration(linkedInRegCookie);
+        if (linkedInPayload?.sub && linkedInPayload?.email) {
+          await linkUserIdentity({
+            userId: user.user_id,
+            provider: "linkedin",
+            providerSubject: linkedInPayload.sub,
+            providerEmail: linkedInPayload.email,
+          });
+
+          createAuditRecordRepo({
+            event_type: "USER_IDENTITY_LINKED",
+            event_category: "AUTHENTICATION",
+            action: "LINK_IDENTITY",
+            status: "SUCCESS",
+            actor_type: user.role_id === 3 ? "ADMIN" : "USER",
+            actor_user_id: Number(user.user_id),
+            reason: `Automatically linked LinkedIn identity upon user registration for ${linkedInPayload.email}`,
+          });
+        }
+      } catch (err) {
+        console.error("[registration/verify] Failed to link LinkedIn identity:", err);
+      }
+    }
+
+    const facebookRegCookie = request.cookies.get("vos_sync_facebook_reg")?.value;
+    if (facebookRegCookie) {
+      try {
+        const facebookPayload = await decryptFacebookRegistration(facebookRegCookie);
+        if (facebookPayload?.id && facebookPayload?.email) {
+          await linkUserIdentity({
+            userId: user.user_id,
+            provider: "facebook",
+            providerSubject: facebookPayload.id,
+            providerEmail: facebookPayload.email,
+          });
+
+          createAuditRecordRepo({
+            event_type: "USER_IDENTITY_LINKED",
+            event_category: "AUTHENTICATION",
+            action: "LINK_IDENTITY",
+            status: "SUCCESS",
+            actor_type: user.role_id === 3 ? "ADMIN" : "USER",
+            actor_user_id: Number(user.user_id),
+            reason: `Automatically linked Facebook identity upon user registration for ${facebookPayload.email}`,
+          });
+        }
+      } catch (err) {
+        console.error("[registration/verify] Failed to link Facebook identity:", err);
+      }
+    }
+
     const session = await issueRegistrationSession(user);
     const attachmentToken = await issueRegistrationAttachmentToken(user);
     let response = registrationJson({
@@ -101,6 +190,30 @@ export async function POST(request: NextRequest) {
     // last. This is robust to development proxies that incorrectly retain
     // only the final Set-Cookie header from a multi-cookie response.
     response = clearRegistrationChallengeCookie(response);
+    if (googleRegCookie) {
+      response.cookies.set({
+        name: "vos_sync_google_reg",
+        value: "",
+        maxAge: 0,
+        path: "/",
+      });
+    }
+    if (linkedInRegCookie) {
+      response.cookies.set({
+        name: "vos_sync_linkedin_reg",
+        value: "",
+        maxAge: 0,
+        path: "/",
+      });
+    }
+    if (facebookRegCookie) {
+      response.cookies.set({
+        name: "vos_sync_facebook_reg",
+        value: "",
+        maxAge: 0,
+        path: "/",
+      });
+    }
     if (deferWelcomeEmail && welcomeDeferralInvitationId !== null) {
       response.cookies.set({
         name: WELCOME_DEFERRAL_COOKIE_NAME,

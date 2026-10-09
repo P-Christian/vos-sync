@@ -1,7 +1,5 @@
-// src/app/api/freelancer/messaging/upload/route.ts
-// Re-exports same upload logic as client since it uses the same Directus files endpoint
-
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,33 +10,28 @@ const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(
 );
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/zip",
+  "application/x-zip-compressed",
+]);
+
+const FORBIDDEN_EXTENSIONS = /\.(svg|html?|xhtml|php\d*|phtml|exe|bat|cmd|sh|ps1|vbs|js|mjs|ts|jsx|tsx|jar|apk)$/i;
 
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
     }
 
     if (!DIRECTUS_BASE) {
@@ -55,6 +48,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "No file provided." },
         { status: 400 }
+      );
+    }
+
+    // Validate MIME type and file extension
+    const mimeType = (file.type || "").toLowerCase().trim();
+    if (!ALLOWED_MIME_TYPES.has(mimeType) || FORBIDDEN_EXTENSIONS.test(file.name)) {
+      return NextResponse.json(
+        {
+          error:
+            "File type not supported. Allowed formats: images (JPEG, PNG, WebP, GIF), documents (PDF, Word, Excel, text), and ZIP archives.",
+        },
+        { status: 415 }
       );
     }
 

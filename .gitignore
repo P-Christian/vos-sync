@@ -65,3 +65,4 @@ ztest/
 progress_report.md
 .gitignore
 profile.md
+.vos-ai-config.json

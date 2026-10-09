@@ -1,4 +1,5 @@
 // src/modules/auth/services/auth.service.ts
+import { randomInt, randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import { getUserByEmail, createUser, updateUserOTP, getUserById, markOTPVerified, updateFailedAttempts, resetFailedAttempts, saveResetToken, clearResetToken } from "./auth.repo";
 import { sendOTP, sendPasswordResetOTP } from "./email.service";
@@ -291,10 +292,9 @@ export async function registerUser(body: unknown) {
         reason: `New user registration for ${email}`,
     });
 
-    // Generate 6-digit OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 6-digit OTP using CSPRNG
+    const otpCode = randomInt(100000, 1000000).toString();
 
-    
     const now = new Date();
     const expiry = new Date(now.getTime() + 10 * 60 * 1000);
 
@@ -317,7 +317,14 @@ export async function confirmOTP(userId: string | number, code: string) {
         throw new Error('User not found.');
     }
 
+    const currentAttempts = user.failed_attempts || 0;
+    if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+        throw new Error('Too many failed attempts. Please request a new verification code.');
+    }
+
     if (String(user.otp_code) !== String(code)) {
+        const nextAttempts = currentAttempts + 1;
+        await updateFailedAttempts(userId, nextAttempts);
         createAuditRecordRepo({
             event_type: "OTP_VERIFY_FAILED",
             event_category: "AUTHENTICATION",
@@ -325,7 +332,7 @@ export async function confirmOTP(userId: string | number, code: string) {
             status: "FAILED",
             actor_type: "USER",
             actor_user_id: Number(userId),
-            reason: "Invalid OTP code entered",
+            reason: `Invalid OTP code entered (attempt ${nextAttempts})`,
         });
         throw new Error('Invalid verification code.');
     }
@@ -348,6 +355,7 @@ export async function confirmOTP(userId: string | number, code: string) {
     }
 
     await markOTPVerified(userId);
+    await resetFailedAttempts(userId);
 
     // Send Welcome Account Creation email for Client/Employer accounts
     if (user.role_id === 2 || String(user.role).toUpperCase() === 'CLIENT' || String(user.role).toUpperCase() === 'EMPLOYER') {
@@ -413,11 +421,11 @@ export async function requestPasswordReset(email: string) {
     const user = await getUserByEmail(email);
     if (!user) {
         // Silent success: Do not reveal if email exists
-        return { ok: true, userId: null };
+        return { ok: true };
     }
 
-    // Generate 6-digit OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate 6-digit OTP using CSPRNG
+    const otpCode = randomInt(100000, 1000000).toString();
     
     const now = new Date();
     const expiry = new Date(now.getTime() + RESET_OTP_EXPIRY_MS);
@@ -426,9 +434,7 @@ export async function requestPasswordReset(email: string) {
     
     const saltRounds = 10;
     const hashedOtp = await bcrypt.hash(otpCode, saltRounds);
-    
-    // Use crypto.randomUUID() if available, else standard JS random
-    const tokenId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    const tokenId = randomUUID();
     
     await saveResetToken(user.user_id, tokenId, hashedOtp, otpExpiryPH);
     await sendPasswordResetOTP(email, otpCode);
@@ -443,19 +449,20 @@ export async function requestPasswordReset(email: string) {
         reason: "Password reset OTP requested",
     });
     
-    return { ok: true, userId: user.user_id };
+    return { ok: true };
 }
 
-export async function confirmPasswordReset(userId: string | number, code: string, newPassword: string) {
-    if (!userId || !code || !newPassword) {
-        throw new Error('User ID, OTP code, and new password are required.');
+export async function confirmPasswordReset(identifier: string | number, code: string, newPassword: string) {
+    if (!identifier || !code || !newPassword) {
+        throw new Error('Email or user identifier, OTP code, and new password are required.');
     }
 
     if (!validatePasswordStrict(newPassword)) {
         throw new Error('New password does not meet security requirements.');
     }
 
-    const user = await getUserById(userId);
+    const isEmail = typeof identifier === "string" && identifier.includes("@");
+    const user = isEmail ? await getUserByEmail(identifier) : await getUserById(identifier);
     if (!user) {
         throw new Error('User not found.');
     }
@@ -463,17 +470,30 @@ export async function confirmPasswordReset(userId: string | number, code: string
     if (!user.reset_token_hash) {
         throw new Error('No password reset requested.');
     }
+
+    // Prevent OTP brute-forcing by tracking failed attempts and invalidating after max attempts
+    const currentAttempts = user.failed_attempts || 0;
+    if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+        await clearResetToken(user.user_id);
+        throw new Error('Too many failed attempts. This reset code has been invalidated for security.');
+    }
     
     const isValid = await bcrypt.compare(code, user.reset_token_hash);
     if (!isValid) {
+        const nextAttempts = currentAttempts + 1;
+        if (nextAttempts >= MAX_FAILED_ATTEMPTS) {
+            await clearResetToken(user.user_id);
+        } else {
+            await updateFailedAttempts(user.user_id, nextAttempts);
+        }
         createAuditRecordRepo({
             event_type: "PASSWORD_RESET_FAILED",
             event_category: "AUTHENTICATION",
             action: "PASSWORD_RESET",
             status: "FAILED",
             actor_type: "USER",
-            actor_user_id: Number(userId),
-            reason: "Invalid password reset code submitted",
+            actor_user_id: Number(user.user_id),
+            reason: `Invalid password reset code submitted (attempt ${nextAttempts})`,
         });
         throw new Error('Invalid or expired code.');
     }
@@ -489,7 +509,7 @@ export async function confirmPasswordReset(userId: string | number, code: string
             action: "PASSWORD_RESET",
             status: "FAILED",
             actor_type: "USER",
-            actor_user_id: Number(userId),
+            actor_user_id: Number(user.user_id),
             reason: "Expired password reset code submitted",
         });
         throw new Error('Reset code has expired.');
@@ -498,7 +518,9 @@ export async function confirmPasswordReset(userId: string | number, code: string
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    await clearResetToken(userId, hashedPassword, newPassword);
+    // Retain user_password column parameter as explicitly requested by user
+    await clearResetToken(user.user_id, hashedPassword, newPassword);
+    await resetFailedAttempts(user.user_id);
 
     createAuditRecordRepo({
         event_type: "PASSWORD_RESET_COMPLETED",
@@ -506,7 +528,7 @@ export async function confirmPasswordReset(userId: string | number, code: string
         action: "PASSWORD_RESET",
         status: "SUCCESS",
         actor_type: "USER",
-        actor_user_id: Number(userId),
+        actor_user_id: Number(user.user_id),
         reason: "Password reset completed successfully",
     });
 

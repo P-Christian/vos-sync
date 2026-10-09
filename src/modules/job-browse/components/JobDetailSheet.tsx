@@ -109,13 +109,15 @@ const renderInlineMarkdown = (str: string) => {
   });
 };
 
+import { sanitizeHtml } from "@/lib/sanitize-html";
+
 function renderFormattedContent(text: string | null | undefined) {
   if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
   if (/<(b|strong|ul|ol|li|p|div|br)\b[^>]*>/i.test(text)) {
     return (
       <div
         className="text-sm text-foreground/80 leading-relaxed space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold"
-        dangerouslySetInnerHTML={{ __html: text }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(text) }}
       />
     );
   }

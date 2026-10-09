@@ -1,6 +1,7 @@
 // src/app/api/vos-admin/job-roles/categories/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +15,36 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-export async function GET() {
+async function authorizeAdmin(req: NextRequest) {
+  const session = await authenticateRequest(req);
+  if (!session) {
+    return {
+      authorized: false,
+      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+    };
+  }
+
+  const roleName = (session.roleName || "").toUpperCase();
+  if (session.roleId !== 3 && roleName !== "ADMIN") {
+    return {
+      authorized: false,
+      response: NextResponse.json(
+        { error: "Forbidden: Restricted to administrators." },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { authorized: true, session };
+}
+
+export async function GET(req: NextRequest) {
   try {
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_role_category?limit=-1`, {
       headers: getHeaders(),
       cache: "no-store",
@@ -30,6 +59,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await authorizeAdmin(req);
+    if (!auth.authorized) return auth.response;
     const body = await req.json();
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_role_category`, {
       method: "POST",
@@ -46,6 +77,9 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const auth = await authorizeAdmin(req);
+    if (!auth.authorized) return auth.response;
+
     const body = await req.json();
     const { category_id, ...updates } = body;
     if (!category_id) return NextResponse.json({ error: "Category ID required." }, { status: 400 });
@@ -65,6 +99,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await authorizeAdmin(req);
+    if (!auth.authorized) return auth.response;
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Category ID required." }, { status: 400 });

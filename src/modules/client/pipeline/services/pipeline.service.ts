@@ -213,7 +213,7 @@ export async function getPipelineWithDetails(
 
     // 2. Fetch stages
     const stagesRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_company_pipeline_stages?filter[pipeline_id][_eq]=${pipelineId}&sort=stage_order`,
+      `${DIRECTUS_BASE}/items/vs_company_pipeline_stages?filter[pipeline_id][_eq]=${pipelineId}&sort=stage_order&limit=-1`,
       { headers: getHeaders(), cache: "no-store" }
     );
     const stagesJson = (await stagesRes.json()) as { data?: PipelineStage[] };
@@ -221,7 +221,7 @@ export async function getPipelineWithDetails(
 
     // 3. Fetch transitions
     const transRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_company_pipeline_transitions?filter[pipeline_id][_eq]=${pipelineId}`,
+      `${DIRECTUS_BASE}/items/vs_company_pipeline_transitions?filter[pipeline_id][_eq]=${pipelineId}&limit=-1`,
       { headers: getHeaders(), cache: "no-store" }
     );
     const transJson = (await transRes.json()) as { data?: PipelineTransition[] };
@@ -230,16 +230,20 @@ export async function getPipelineWithDetails(
     // 4. Enrich stages with allowed_next_stage_ids
     const transitionMap = new Map<number, number[]>();
     for (const t of transitions) {
-      const list = transitionMap.get(t.from_stage_id) ?? [];
-      list.push(t.to_stage_id);
-      transitionMap.set(t.from_stage_id, list);
+      const fromId = Number(typeof t.from_stage_id === "object" && t.from_stage_id !== null ? (t.from_stage_id as { id?: unknown }).id : t.from_stage_id);
+      const toId = Number(typeof t.to_stage_id === "object" && t.to_stage_id !== null ? (t.to_stage_id as { id?: unknown }).id : t.to_stage_id);
+      if (!isNaN(fromId) && !isNaN(toId)) {
+        const list = transitionMap.get(fromId) ?? [];
+        list.push(toId);
+        transitionMap.set(fromId, list);
+      }
     }
 
     const enrichedStages = stages.map((s) => ({
       ...s,
       is_system: Boolean(s.is_system),
       is_terminal: Boolean(s.is_terminal),
-      allowed_next_stage_ids: transitionMap.get(s.id) ?? [],
+      allowed_next_stage_ids: transitionMap.get(Number(s.id)) ?? [],
     }));
 
     return {

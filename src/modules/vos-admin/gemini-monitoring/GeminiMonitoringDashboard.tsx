@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Search,
   X,
+  Sliders,
 } from "lucide-react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 
@@ -584,6 +585,17 @@ export default function GeminiMonitoringDashboard() {
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-primary" : "text-muted-foreground"}`} />
                 <span>Refresh</span>
               </Button>
+
+              <Link href="/vos-sync/vos-admin/ai-config">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 text-xs rounded-xl font-semibold gap-1.5 border-border bg-card hover:bg-muted text-foreground transition-all"
+                >
+                  <Sliders className="h-3.5 w-3.5 text-primary" />
+                  <span>Configure Models</span>
+                </Button>
+              </Link>
             </div>
           </div>
 
