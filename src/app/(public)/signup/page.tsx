@@ -2,10 +2,11 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Briefcase, User, Eye, EyeOff, Check, ArrowLeft, ChevronDown, Search,
-  Upload, X, FileText, Shield, Building2, GraduationCap
+  Upload, X, FileText, Shield, Building2, GraduationCap, CheckCircle2, Info,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -34,6 +35,7 @@ import { useRegistrationChallenge } from '@/modules/auth/registration/client/use
 import { SkillMultiSelect } from '@/modules/auth/registration/client/SkillMultiSelect';
 import type { SelectedSkill } from '@/modules/auth/registration/client/SkillMultiSelect';
 import { toSkillPayload } from '@/modules/auth/registration/client/skill-selection';
+import { SocialAuthButtons } from '@/modules/auth/components/SocialAuthButtons';
 
 // ─── Types & Country Data ─────────────────────────────────────────────────────
 
@@ -358,6 +360,105 @@ function SignupPageContent() {
   const [userType, setUserType] = useState<'client' | 'freelancer' | 'school' | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [socialEmail, setSocialEmail] = useState<string | null>(null);
+  const [socialFirstName, setSocialFirstName] = useState<string>('');
+  const [socialLastName, setSocialLastName] = useState<string>('');
+  const [socialProvider, setSocialProvider] = useState<'google' | 'linkedin' | 'facebook' | null>(null);
+  const [socialAvatar, setSocialAvatar] = useState<string | null>(null);
+  const socialHandledRef = useRef(false);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      const errorMap: Record<string, string> = {
+        account_not_found: 'No account found with this email. Please sign up first.',
+        account_blocked: 'Your account is blocked. Please contact support.',
+        account_inactive: 'Your account is not active or verified.',
+        google_cancelled: 'Google sign-up was cancelled.',
+        linkedin_cancelled: 'LinkedIn sign-up was cancelled.',
+        facebook_cancelled: 'Facebook sign-up was cancelled.',
+        state_mismatch: 'Authentication state mismatch. Please try again.',
+        invalid_oauth_state: 'Authentication session expired or invalid. Please try again.',
+        transaction_replayed: 'Authentication transaction was already consumed. Please try again.',
+        oauth_callback_failed: 'Sign up could not be completed.',
+        linkedin_callback_failed: 'Sign up with LinkedIn could not be completed.',
+        facebook_callback_failed: 'Sign up with Facebook could not be completed.',
+        oauth_init_failed: 'Failed to connect to authentication provider. Please try again.',
+        linkedin_init_failed: 'Failed to connect to LinkedIn. Please try again.',
+        facebook_init_failed: 'Failed to connect to Facebook. Please try again.',
+      };
+      const message = errorMap[error] || 'Social authentication failed. Please try again.';
+      toast.error('Sign up failed', { id: 'signup-auth-error', description: message });
+    }
+
+    const isGoogle = searchParams.get('google') === '1';
+    const isLinkedIn = searchParams.get('linkedin') === '1';
+    const isFacebook = searchParams.get('facebook') === '1';
+
+    if ((isGoogle || isLinkedIn || isFacebook) && !socialHandledRef.current) {
+      socialHandledRef.current = true;
+      const provider = isLinkedIn ? 'linkedin' : isFacebook ? 'facebook' : 'google';
+      const providerName = isLinkedIn ? 'LinkedIn' : isFacebook ? 'Facebook' : 'Google';
+      setSocialProvider(provider);
+      const isNoAccount = searchParams.get('notice') === 'no_account';
+
+      fetch(`/api/auth/${provider}/registration-data`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          if (json?.ok && json.data?.email) {
+            const verifiedEmail = String(json.data.email);
+            const verifiedFirstName = String(json.data.given_name || '');
+            const verifiedLastName = String(json.data.family_name || '');
+            setSocialEmail(verifiedEmail);
+            setSocialFirstName(verifiedFirstName);
+            setSocialLastName(verifiedLastName);
+            if (json.data.picture) {
+              setSocialAvatar(String(json.data.picture));
+            }
+            setStep1((prev) => ({
+              ...prev,
+              email: verifiedEmail,
+              firstName: verifiedFirstName || prev.firstName,
+              lastName: verifiedLastName || prev.lastName,
+            }));
+            setFormData((prev) => ({
+              ...prev,
+              email: verifiedEmail,
+              firstName: verifiedFirstName || prev.firstName,
+              lastName: verifiedLastName || prev.lastName,
+            }));
+            setSchoolFormData((prev) => ({
+              ...prev,
+              email: verifiedEmail,
+              firstName: verifiedFirstName || prev.firstName,
+              lastName: verifiedLastName || prev.lastName,
+            }));
+            if (isNoAccount) {
+              toast.info(`${providerName} account verified`, {
+                id: `${provider}-registration-status`,
+                description: `No account was found for ${verifiedEmail}. Please select your account type to complete registration.`,
+              });
+            } else {
+              toast.info(`${providerName} account verified`, {
+                id: `${provider}-registration-status`,
+                description: `Completing registration for ${verifiedEmail}. Please select your account type.`,
+              });
+            }
+          } else {
+            toast.error(`${providerName} verification expired`, {
+              id: `${provider}-registration-status`,
+              description: `Your ${providerName} registration session has expired or is invalid. Please sign in or register with ${providerName} again.`,
+            });
+          }
+        })
+        .catch(() => {
+          toast.error(`${providerName} verification expired`, {
+            id: `${provider}-registration-status`,
+            description: `Unable to retrieve ${providerName} registration details. Please try again.`,
+          });
+        });
+    }
+  }, [searchParams]);
 
 
   // ── Client Step 1: Basic Info ─────────────────────────────────────────────
@@ -655,31 +756,63 @@ function SignupPageContent() {
 
   const handleProceedToForm = () => {
     if (!userType) return;
+    const socialQuery = socialProvider === 'google' ? '&google=1' : socialProvider === 'linkedin' ? '&linkedin=1' : socialProvider === 'facebook' ? '&facebook=1' : '';
+
+    if (socialEmail) {
+      if (userType === 'client') {
+        setStep1(prev => ({
+          ...prev,
+          email: prev.email || socialEmail,
+          firstName: prev.firstName || socialFirstName,
+          lastName: prev.lastName || socialLastName,
+        }));
+      } else if (userType === 'school') {
+        setSchoolFormData(prev => ({
+          ...prev,
+          email: prev.email || socialEmail,
+          firstName: prev.firstName || socialFirstName,
+          lastName: prev.lastName || socialLastName,
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          email: prev.email || socialEmail,
+          firstName: prev.firstName || socialFirstName,
+          lastName: prev.lastName || socialLastName,
+        }));
+      }
+    }
+
     if (userType === 'client') {
       setStep('client');
       setClientStep(1);
-      router.replace('/signup?role=employer', { scroll: false });
+      router.replace(`/signup?role=employer${socialQuery}`, { scroll: false });
     } else if (userType === 'school') {
       setStep('school');
-      router.replace('/signup?role=school', { scroll: false });
+      router.replace(`/signup?role=school${socialQuery}`, { scroll: false });
     } else {
       setStep('freelancer');
-      router.replace('/signup?role=employee', { scroll: false });
+      router.replace(`/signup?role=employee${socialQuery}`, { scroll: false });
     }
     window.scrollTo(0, 0);
   };
 
   const handleBackToSelection = () => {
     resetRegistrationState(true);
-    router.replace('/signup', { scroll: false });
+    const backQuery = socialProvider === 'google' ? '?google=1' : socialProvider === 'linkedin' ? '?linkedin=1' : socialProvider === 'facebook' ? '?facebook=1' : '';
+    router.replace(`/signup${backQuery}`, { scroll: false });
     setClientStep(1);
     setFreelancerStep(1);
     setErrors({});
     setFreelancerErrors({});
     setSchoolErrors({});
 
-    // Reset Client Form
-    setStep1({ email: '', password: '', confirmPassword: '', firstName: '', lastName: '', jobTitle: '', contact: '' });
+    const baseEmail = socialEmail || '';
+    const baseFirstName = socialFirstName || '';
+    const baseLastName = socialLastName || '';
+
+    // Reset Client Form (preserving social prefill if present)
+    setStep1({ email: baseEmail, password: '', confirmPassword: '', firstName: baseFirstName, lastName: baseLastName, jobTitle: '', contact: '' });
     setCompany({
       companyName: '', industry: '', websiteUrl: '', companySize: '',
       companyCountryCode: 'PH', companyCountryName: 'Philippines',
@@ -696,9 +829,9 @@ function SignupPageContent() {
     setMarketingConsent(false);
     setTurnstileToken('');
 
-    // Reset Freelancer Form
+    // Reset Freelancer Form (preserving social prefill if present)
     setFormData({
-      firstName: '', lastName: '', email: '', jobTitle: '',
+      firstName: baseFirstName, lastName: baseLastName, email: baseEmail, jobTitle: '',
       password: '', confirmPassword: '', country: 'Philippines', contact: '',
       province: '', provinceCode: '', city: '', cityCode: '', barangay: '', street: ''
     });
@@ -713,9 +846,9 @@ function SignupPageContent() {
     setFreelancerTermsAgreed(false);
     setFreelancerMarketingConsent(true);
 
-    // Reset School Form
+    // Reset School Form (preserving social prefill if present)
     setSchoolFormData({
-      firstName: '', lastName: '', contact: '', email: '', password: '', confirmPassword: '',
+      firstName: baseFirstName, lastName: baseLastName, contact: '', email: baseEmail, password: '', confirmPassword: '',
       schoolName: '', schoolType: 'University', province: '', provinceCode: '', city: '', cityCode: '',
       schoolBarangayCode: '', schoolBarangay: '', schoolStreet: ''
     });
@@ -1145,6 +1278,26 @@ function SignupPageContent() {
         <Link href="/login" className="max-md:py-3.5 max-md:-my-3.5 text-primary font-medium hover:underline">Log In</Link>
       </div>
 
+      {socialEmail && (
+        <div className="max-w-xl mx-auto mb-8 p-4 rounded-xl border border-primary/20 bg-primary/5 text-left flex items-start gap-3">
+          {socialAvatar ? (
+            <div className="relative w-11 h-11 rounded-full overflow-hidden border border-primary/30 shrink-0 mt-0.5">
+              <Image src={socialAvatar} alt="Profile photo" width={44} height={44} className="object-cover w-full h-full" unoptimized />
+            </div>
+          ) : (
+            <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          )}
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">
+              {socialProvider === 'linkedin' ? 'LinkedIn' : socialProvider === 'facebook' ? 'Facebook' : 'Google'} Identity Verified
+            </h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              We&apos;ve prefilled your details from {socialProvider === 'linkedin' ? 'LinkedIn' : socialProvider === 'facebook' ? 'Facebook' : 'Google'} for <strong className="text-foreground">{socialEmail}</strong>. Select your account type below to finish your registration (you can edit your details anytime).
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 max-w-xl mx-auto mb-10">
         {([
           { type: 'client', label: 'Employer / Client', desc: 'Recruit employees and professionals for your organization.', icon: <Briefcase size={28} /> },
@@ -1180,6 +1333,8 @@ function SignupPageContent() {
         >
           {userType === 'client' ? 'Create Employer Account' : userType === 'freelancer' ? 'Create Job Seeker Account' : userType === 'school' ? 'Create School Account' : 'Create Account'}
         </Button>
+
+        <SocialAuthButtons mode="signup" disabled={loading} />
       </div>
     </div>
   );
@@ -1213,6 +1368,11 @@ function SignupPageContent() {
                 onChange={e => s1Set('email', e.target.value)} disabled={loading}
                 placeholder="e.g. hr@company.com"
                 className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', errors.email && 'border-destructive')} />
+              {Boolean(socialEmail) ? (
+                <p className="text-xs text-primary font-medium flex items-center gap-1 mt-1">
+                  <Check size={14} /> Prefilled from {socialProvider === 'linkedin' ? 'LinkedIn' : socialProvider === 'facebook' ? 'Facebook' : 'Google'}
+                </p>
+              ) : null}
               {errors.email && <p className="text-xs text-destructive mt-1 font-medium">{errors.email}</p>}
             </div>
 
@@ -1946,6 +2106,11 @@ function SignupPageContent() {
         </label>
         <Input type="email" id="email" value={formData.email} onChange={handleFreelancerChange} disabled={loading} placeholder="e.g. jane.doe@example.com"
           className={cn('h-12 border-2 border-border focus-visible:ring-0 focus-visible:border-primary', freelancerErrors.email && 'border-destructive focus-visible:border-destructive text-destructive')} />
+        {Boolean(socialEmail) ? (
+          <p className="text-xs text-primary font-medium flex items-center gap-1 mt-1">
+            <Check size={14} /> Prefilled from {socialProvider === 'linkedin' ? 'LinkedIn' : socialProvider === 'facebook' ? 'Facebook' : 'Google'}
+          </p>
+        ) : null}
         {freelancerErrors.email && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.email}</p>}
       </div>
 
