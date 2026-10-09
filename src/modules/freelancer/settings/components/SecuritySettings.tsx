@@ -9,6 +9,7 @@ import { Loader2, KeyRound, ShieldCheck, Lock, Smartphone, Monitor, Globe, LogOu
 import { toast } from "sonner";
 import { validatePasswordStrict } from "@/lib/password-validation";
 import PasswordRequirementsChecklist from "@/components/auth/PasswordRequirementsChecklist";
+import { ConnectedAccountsCard } from "@/modules/auth/components/ConnectedAccountsCard";
 
 interface SecuritySettingsProps {
   saving: boolean;
@@ -257,6 +258,10 @@ export default function SecuritySettings({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="max-w-2xl">
+        <ConnectedAccountsCard returnTo="/vos-sync/freelancer/settings" />
       </div>
     </div>
   );
