@@ -14,7 +14,12 @@ import { AlertCircle, ClipboardList, Loader2, Plus } from "lucide-react";
 import TaskForm from "./assessment-task-editor/TaskForm";
 import TaskRow from "./assessment-task-editor/TaskRow";
 import SubmissionWindowField from "./assessment-task-editor/SubmissionWindowField";
+import TaskSourceModal from "./assessment-task-editor/TaskSourceModal";
 import { useAssessmentTasks } from "./assessment-task-editor/useAssessmentTasks";
+import {
+  formStateFromTask,
+  type TaskFormState,
+} from "./assessment-task-editor/task-form-state";
 import type {
   AssessmentTaskEditorEndpoints,
   AssessmentTaskEditorProps,
@@ -52,6 +57,9 @@ export default function AssessmentTaskEditor({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [chooserOpen, setChooserOpen] = useState(false);
+  const [reuseInitial, setReuseInitial] = useState<TaskFormState | null>(null);
+  const [reuseSeq, setReuseSeq] = useState(0);
 
   // The effect only kicks off the async load; every setState happens in
   // promise callbacks and event handlers, never synchronously here.
@@ -60,6 +68,19 @@ export default function AssessmentTaskEditor({
       void loadInitial();
     }
   }, [isAssessment, loadInitial, stageId]);
+
+  // Company pipeline stages carry a library endpoint and get the chooser
+  // modal; job stages omit it and open the blank form directly.
+  const openAddFlow = () => {
+    setEditingTaskId(null);
+    if (endpoints.library) {
+      setChooserOpen(true);
+      return;
+    }
+    setReuseInitial(null);
+    setReuseSeq((seq) => seq + 1);
+    setShowAddForm(true);
+  };
 
   if (!isAssessment) {
     return (
@@ -73,7 +94,10 @@ export default function AssessmentTaskEditor({
     payload: CreateTaskInput
   ): Promise<string | null> => {
     const failure = await createTask(payload);
-    if (!failure) setShowAddForm(false);
+    if (!failure) {
+      setShowAddForm(false);
+      setReuseInitial(null);
+    }
     return failure;
   };
 
@@ -110,10 +134,7 @@ export default function AssessmentTaskEditor({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => {
-              setEditingTaskId(null);
-              setShowAddForm(true);
-            }}
+            onClick={openAddFlow}
             className="h-8 text-xs gap-1.5 rounded-lg"
           >
             <Plus className="h-3.5 w-3.5" /> Add task
@@ -173,7 +194,7 @@ export default function AssessmentTaskEditor({
             <Button
               type="button"
               size="sm"
-              onClick={() => setShowAddForm(true)}
+              onClick={openAddFlow}
               className="mt-3 h-8 text-xs gap-1.5"
             >
               <Plus className="h-3.5 w-3.5" /> Add first task
@@ -215,13 +236,37 @@ export default function AssessmentTaskEditor({
 
       {showAddForm && !readOnly && (
         <TaskForm
-          initial={null}
+          key={`add-${reuseSeq}`}
+          initial={reuseInitial}
           sortOrder={tasks.length + 1}
           submitting={submitting}
-          onCancel={() => setShowAddForm(false)}
+          onCancel={() => {
+            setShowAddForm(false);
+            setReuseInitial(null);
+          }}
           onSubmit={handleCreate}
         />
       )}
+
+      {endpoints.library ? (
+        <TaskSourceModal
+          open={chooserOpen}
+          libraryEndpoint={endpoints.library}
+          onClose={() => setChooserOpen(false)}
+          onPickBlank={() => {
+            setReuseInitial(null);
+            setReuseSeq((seq) => seq + 1);
+            setChooserOpen(false);
+            setShowAddForm(true);
+          }}
+          onPickTask={(task) => {
+            setReuseInitial(formStateFromTask(task));
+            setReuseSeq((seq) => seq + 1);
+            setChooserOpen(false);
+            setShowAddForm(true);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
