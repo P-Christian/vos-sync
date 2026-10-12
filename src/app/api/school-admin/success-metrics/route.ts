@@ -2,12 +2,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSchoolSuccessMetrics } from '@/modules/school-admin/success-metrics/services/success-metrics.service';
 import { SuccessMetricsFilterSchema } from '@/modules/school-admin/success-metrics/types/success-metrics.schema';
+import { authenticateRequest, hasRole } from '@/lib/authenticated-session';
+import { fetchSchoolByUserIdRepo } from '@/modules/school-admin/services/school-admin.repo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await authenticateRequest(request);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isSchoolAdmin = session ? hasRole(session, [3, 4], ["ADMIN", "ADMINISTRATOR", "SCHOOL_ADMIN", "SCH_ADMIN"]) : false;
+    if (session && !isSchoolAdmin && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: school admin role required." }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
 
     const schoolId = searchParams.get('school_id');
@@ -31,6 +43,14 @@ export async function GET(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // If caller is school admin (not platform super admin), ensure they can only query their own school
+    if (session && session.roleId === 4 && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      const schoolAdminData = await fetchSchoolByUserIdRepo(Number(session.userId));
+      if (!schoolAdminData || String(schoolAdminData.school_id) !== String(parseResult.data.school_id)) {
+        return NextResponse.json({ error: "Forbidden: unauthorized school access." }, { status: 403 });
+      }
     }
 
     const metricsData = await getSchoolSuccessMetrics(parseResult.data);

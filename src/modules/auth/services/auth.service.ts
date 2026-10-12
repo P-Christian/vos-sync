@@ -301,7 +301,10 @@ export async function registerUser(body: unknown) {
     const otpSentAt = getPHTimeString(now);
     const otpExpiry = getPHTimeString(expiry);
 
-    await updateUserOTP(newUser.user_id, otpCode, otpExpiry, otpSentAt);
+    // Hash OTP before persisting to database
+    const hashedOtp = await bcrypt.hash(otpCode, 10);
+
+    await updateUserOTP(newUser.user_id, hashedOtp, otpExpiry, otpSentAt);
     await sendOTP(email, otpCode);
 
     return { requireOtp: true, userId: newUser.user_id };
@@ -322,7 +325,10 @@ export async function confirmOTP(userId: string | number, code: string) {
         throw new Error('Too many failed attempts. Please request a new verification code.');
     }
 
-    if (String(user.otp_code) !== String(code)) {
+    // Verify OTP code against hashed value
+    const isOtpValid = user.otp_code ? await bcrypt.compare(String(code), String(user.otp_code)) : false;
+
+    if (!isOtpValid) {
         const nextAttempts = currentAttempts + 1;
         await updateFailedAttempts(userId, nextAttempts);
         createAuditRecordRepo({

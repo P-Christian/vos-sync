@@ -68,6 +68,17 @@ export async function POST(req: NextRequest) {
     }
 
     const user = users[0];
+    const userId = user.user_id;
+
+    // Check failed attempts lockout
+    const MAX_FAILED_ATTEMPTS = 5;
+    const currentAttempts = Number(user.failed_attempts || 0);
+    if (currentAttempts >= MAX_FAILED_ATTEMPTS) {
+      return NextResponse.json(
+        { error: "Too many failed attempts. Please request a new verification code." },
+        { status: 429 }
+      );
+    }
 
     // Skip OTP check if auth is disabled or verify normally
     const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED === "true";
@@ -99,21 +110,34 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const otpHashDisabled = process.env.OTP_HASH_DISABLED === "true";
-      const isMatch = otpHashDisabled
-        ? otpCode === hashedOtp
-        : await bcrypt.compare(otpCode, hashedOtp);
+      // Secure comparison: support bcrypt hash or fallback to exact match if legacy plain
+      let isMatch = false;
+      try {
+        if (typeof hashedOtp === "string" && (hashedOtp.startsWith("$2a$") || hashedOtp.startsWith("$2b$") || hashedOtp.startsWith("$2y$"))) {
+          isMatch = await bcrypt.compare(otpCode, hashedOtp);
+        } else {
+          isMatch = otpCode === hashedOtp;
+        }
+      } catch {
+        isMatch = false;
+      }
 
       if (!isMatch) {
+        const nextAttempts = currentAttempts + 1;
+        await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
+          method: "PATCH",
+          headers: getHeaders(),
+          body: JSON.stringify({ failed_attempts: nextAttempts }),
+        }).catch(() => null);
+
         return NextResponse.json(
-          { error: "Invalid OTP code." },
+          { error: nextAttempts >= MAX_FAILED_ATTEMPTS ? "Too many failed attempts. Please request a new verification code." : "Invalid OTP code." },
           { status: 400 }
         );
       }
     }
 
-    // 5. Mark user as OTP-verified in Directus and clear OTP fields
-    const userId = user.user_id;
+    // 5. Mark user as OTP-verified in Directus and clear OTP fields + reset failed_attempts
     // Record PH timestamp of verification (UTC+8, naive datetime)
     const nowPHStr = getPHTimeString();
 
@@ -125,6 +149,7 @@ export async function POST(req: NextRequest) {
         otp_verified_at: nowPHStr,
         otp_code: null,
         otp_expiry: null,
+        failed_attempts: 0,
       }),
     });
 

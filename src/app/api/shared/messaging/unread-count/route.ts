@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,27 +16,12 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get("authorization")?.replace("Bearer ", "") || req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ unreadCount: 0 });
+    const session = await authenticateRequest(req);
+    if (!session) return NextResponse.json({ unreadCount: 0 });
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ unreadCount: 0 });
+    const userId = Number(session.userId);
 
     // Fetch conversations where user is client or freelancer
     const convUrl = `${DIRECTUS_BASE}/items/vs_conversation?filter[_or][0][freelancer_id][_eq]=${userId}&filter[_or][1][client_id][_eq]=${userId}&fields=conversation_id,client_id,freelancer_id,archived_by_client,archived_by_freelancer`;
