@@ -3,6 +3,7 @@ import * as jobService from "./service.directus";
 import { checkRestriction } from "@/lib/status-validator";
 import { getPHTimeString } from "@/lib/utils";
 import { snapshotCompanyPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,20 +18,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 async function resolveCompany(userId: number): Promise<{
@@ -114,13 +101,16 @@ async function attachCompanyToJob<T extends { company_id?: string | number | nul
 // ─────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    if (session && !isClientSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: employer access required." }, { status: 403 });
+    }
+
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     const { companyId, error } = await resolveCompany(userId);
     if (error || !companyId)
@@ -146,13 +136,16 @@ export async function GET(req: NextRequest) {
 // ─────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    if (session && !isClientSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: employer access required." }, { status: 403 });
+    }
+
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     // Validate PUBLISH_JOBS Restriction
     const isRestricted = await checkRestriction(userId, "PUBLISH_JOBS");

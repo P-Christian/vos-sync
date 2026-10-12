@@ -1,6 +1,5 @@
-// src/app/api/freelancer/messaging/[conversationId]/archive/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,20 +19,6 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 // ─── PATCH — Archive / Unarchive conversation (freelancer-side only) ────────
 
 export async function PATCH(
@@ -43,18 +28,16 @@ export async function PATCH(
   try {
     const { conversationId } = await params;
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    if (session && !isFreelancerSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: freelancer access required." }, { status: 403 });
     }
+
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     const body = await req.json().catch(() => null);
     const archive: boolean = body?.archive ?? true;
