@@ -3,13 +3,14 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { User, Code2, CheckCircle2, Briefcase, Eye, EyeOff } from "lucide-react"
+import { User, Code2, CheckCircle2, Briefcase, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { SocialAuthButtons } from "@/modules/auth/components/SocialAuthButtons"
 
 
 function normalizeLoginErrorMessage(rawMsg: string, httpStatus?: number) {
@@ -90,6 +91,7 @@ function LoginForm() {
     const [email, setEmail] = React.useState("")
     const [hashPassword, setHashPassword] = React.useState("")
     const [remember, setRemember] = React.useState(false)
+    const passwordInputRef = React.useRef<HTMLInputElement>(null)
 
     const [errors, setErrors] = React.useState<FieldErrors>({})
 
@@ -99,6 +101,61 @@ function LoginForm() {
             router.replace(nextParam)
         }
     }, [router, searchParams])
+
+    React.useEffect(() => {
+        const error = searchParams.get("error")
+        const queryEmail = searchParams.get("email")
+        if (
+            (error === "google_not_connected" ||
+             error === "google_not_linked" ||
+             error === "facebook_not_connected" ||
+             error === "facebook_not_linked" ||
+             error === "linkedin_not_connected" ||
+             error === "linkedin_not_linked") &&
+            queryEmail
+        ) {
+            queueMicrotask(() => {
+                setEmail(queryEmail)
+            })
+        }
+    }, [searchParams])
+
+    React.useEffect(() => {
+        const error = searchParams.get("error")
+        if (!error) return
+
+        const errorMap: Record<string, string> = {
+            account_not_found: "No account found with this email. Please sign up first.",
+            google_not_connected: "This email already has a VOS Sync account, but it isn't connected to Google.",
+            google_identity_conflict: "Google identity is linked to a different account than the entered email.",
+            google_not_linked: "This Google account is not connected to an existing account. Sign in using your original login method, then connect Google in Security & Auth → Connected Accounts & Social Logins.",
+            facebook_not_connected: "This email already has a VOS Sync account, but it isn't connected to Facebook.",
+            facebook_identity_conflict: "Facebook identity is linked to a different account than the entered email.",
+            facebook_not_linked: "This Facebook account is not connected to an existing account. Sign in using your original login method, then connect Facebook in Security & Auth → Connected Accounts & Social Logins.",
+            linkedin_not_connected: "This email already has a VOS Sync account, but it isn't connected to LinkedIn.",
+            linkedin_identity_conflict: "LinkedIn identity is linked to a different account than the entered email.",
+            linkedin_not_linked: "This LinkedIn account is not connected to an existing account. Sign in using your original login method, then connect LinkedIn in Security & Auth → Connected Accounts & Social Logins.",
+            google_already_registered: "This Google account is already registered. Please sign in.",
+            email_already_registered: "An account with this email already exists. Please sign in using your existing login method, then connect your social provider in Settings.",
+            account_blocked: "Your account is blocked. Please contact support.",
+            account_inactive: "Your account is not active or verified.",
+            google_cancelled: "Google sign-in was cancelled.",
+            facebook_cancelled: "Facebook sign-in was cancelled.",
+            linkedin_cancelled: "LinkedIn sign-in was cancelled.",
+            state_mismatch: "Authentication state mismatch. Please try again.",
+            invalid_oauth_state: "Authentication session expired or invalid. Please try again.",
+            transaction_replayed: "Authentication transaction was already consumed. Please try again.",
+            oauth_callback_failed: "Sign in could not be completed.",
+            facebook_callback_failed: "Sign in with Facebook could not be completed.",
+            linkedin_callback_failed: "Sign in with LinkedIn could not be completed.",
+            oauth_init_failed: "Failed to connect to authentication provider. Please try again.",
+            facebook_init_failed: "Failed to connect to Facebook. Please try again.",
+            linkedin_init_failed: "Failed to connect to LinkedIn. Please try again.",
+        }
+
+        const message = errorMap[error] || "Authentication failed. Please try again."
+        toast.error("Sign in failed", { id: "login-auth-error", description: message })
+    }, [searchParams])
 
     const validate = React.useCallback((): boolean => {
         const next: FieldErrors = {}
@@ -277,6 +334,176 @@ function LoginForm() {
                             <h2 className="text-3xl font-semibold text-foreground">Sign In</h2>
                             <p className="text-sm text-muted-foreground mt-1">Welcome back! Please enter your details.</p>
                         </div>
+
+                        {searchParams.get("error") === "account_not_found" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Account Not Found</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    No VoSync account was found with that email. If you are new to VoSync, please create an account.
+                                </p>
+                                <div className="pt-1">
+                                    <Link
+                                        href="/signup"
+                                        className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    >
+                                        Create an Account
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+
+                        {(searchParams.get("error") === "google_not_connected" || searchParams.get("error") === "google_not_linked") && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-3">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Google account not connected</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This email already has a VOS Sync account, but it isn&apos;t connected to Google. Sign in using your original login method, then connect your Google account in <strong>Security &amp; Auth &rarr; Connected Accounts &amp; Social Logins</strong>.
+                                </p>
+                                <div className="pt-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => {
+                                            const queryEmail = searchParams.get("email");
+                                            if (queryEmail) {
+                                                setEmail(queryEmail);
+                                                if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                                            }
+                                            passwordInputRef.current?.focus();
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                    >
+                                        Use original login
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {searchParams.get("error") === "google_identity_conflict" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Google Identity Conflict</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This Google identity is associated with a different VOS Sync account than the entered email address. Please sign in using your original login credentials.
+                                </p>
+                            </div>
+                        )}
+
+                        {(searchParams.get("error") === "facebook_not_connected" || searchParams.get("error") === "facebook_not_linked") && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-3">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Facebook account not connected</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This email already has a VOS Sync account, but it isn&apos;t connected to Facebook. Sign in using your original login method, then connect your Facebook account in <strong>Security &amp; Auth &rarr; Connected Accounts &amp; Social Logins</strong>.
+                                </p>
+                                <div className="pt-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => {
+                                            const queryEmail = searchParams.get("email");
+                                            if (queryEmail) {
+                                                setEmail(queryEmail);
+                                                if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                                            }
+                                            passwordInputRef.current?.focus();
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                    >
+                                        Use original login
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {searchParams.get("error") === "facebook_identity_conflict" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Facebook Identity Conflict</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This Facebook identity is associated with a different VOS Sync account than the entered email address. Please sign in using your original login credentials.
+                                </p>
+                            </div>
+                        )}
+
+                        {(searchParams.get("error") === "linkedin_not_connected" || searchParams.get("error") === "linkedin_not_linked") && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-3">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>LinkedIn account not connected</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This email already has a VOS Sync account, but it isn&apos;t connected to LinkedIn. Sign in using your original login method, then connect your LinkedIn account in <strong>Security &amp; Auth &rarr; Connected Accounts &amp; Social Logins</strong>.
+                                </p>
+                                <div className="pt-1">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="default"
+                                        onClick={() => {
+                                            const queryEmail = searchParams.get("email");
+                                            if (queryEmail) {
+                                                setEmail(queryEmail);
+                                                if (errors.email) setErrors((p) => ({ ...p, email: undefined }));
+                                            }
+                                            passwordInputRef.current?.focus();
+                                        }}
+                                        className="h-8 px-3 text-xs font-medium"
+                                    >
+                                        Use original login
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {searchParams.get("error") === "linkedin_identity_conflict" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>LinkedIn Identity Conflict</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This LinkedIn identity is associated with a different VOS Sync account than the entered email address. Please sign in using your original login credentials.
+                                </p>
+                            </div>
+                        )}
+
+                        {searchParams.get("error") === "google_already_registered" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Google Account Already Registered</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    This Google account is already linked to an existing account in our system. Please sign in below.
+                                </p>
+                            </div>
+                        )}
+
+                        {searchParams.get("error") === "email_already_registered" && (
+                            <div className="mb-5 p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-left space-y-2">
+                                <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    <span>Account Already Exists</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    An account with this email address already exists. Please sign in using your existing password, then connect Google in <strong>Security &amp; Auth &rarr; Connected Accounts &amp; Social Logins</strong>.
+                                </p>
+                            </div>
+                        )}
                         
                         <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
                             <div>
@@ -305,6 +532,7 @@ function LoginForm() {
                                 </div>
                                 <div className="relative">
                                     <Input 
+                                        ref={passwordInputRef}
                                         id="password" 
                                         type={showPw ? "text" : "password"} 
                                         placeholder="Enter your password"
@@ -345,6 +573,8 @@ function LoginForm() {
                                 {loading ? "Signing in..." : "Sign in"}
                             </Button>
                         </form>
+
+                        <SocialAuthButtons mode="login" disabled={loading} />
 
                         <p className="mt-6 md:mt-8 text-center text-sm text-muted-foreground">
                             Don&apos;t have an account?{" "}

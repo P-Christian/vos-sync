@@ -1,7 +1,7 @@
 // src/lib/gemini/geminiClient.ts
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const GEMINI_MODEL = process.env.GEMINI_MODEL || process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.0-flash";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 const DEFAULT_GEMINI_TIMEOUT_MS = 12000;
 const GEMINI_TIMEOUT_MS = DEFAULT_GEMINI_TIMEOUT_MS;
 
@@ -24,13 +24,20 @@ export interface GeminiRawResult {
 /**
  * Internal raw call — returns the full GCP response including usageMetadata and finishReason.
  * Used exclusively by the monitoring middleware (geminiMonitoring.ts).
- * Do NOT call this directly from application features — use callGeminiMonitored() instead.
+ * Supports model override and automatic bounded failover on HTTP 429.
  */
-export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_GEMINI_TIMEOUT_MS): Promise<GeminiRawResult> {
+export async function callGeminiRaw(
+  prompt: string,
+  timeoutMs: number = DEFAULT_GEMINI_TIMEOUT_MS,
+  modelOverride?: string,
+  fallbackModel?: string
+): Promise<GeminiRawResult> {
+  const activeModel = modelOverride || GEMINI_MODEL;
+
   if (!GEMINI_API_KEY) {
     return {
       text: "",
-      model: GEMINI_MODEL,
+      model: activeModel,
       usageMetadata: null,
       finishReason: "ERROR",
       httpStatus: 0,
@@ -39,7 +46,7 @@ export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_
     };
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${activeModel}:generateContent?key=${GEMINI_API_KEY}`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -62,11 +69,19 @@ export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_
 
     const httpStatus = res.status;
 
+    // Failover on Rate Limit (429) or Service Unavailable (503) if fallback model is configured
+    if ((httpStatus === 429 || httpStatus === 503) && fallbackModel && fallbackModel !== activeModel) {
+      console.warn(
+        `[geminiClient] 🔄 HTTP ${httpStatus} on ${activeModel}. Failing over to backup model: ${fallbackModel}`
+      );
+      return await callGeminiRaw(prompt, timeoutMs, fallbackModel, undefined);
+    }
+
     if (!res.ok) {
       const body = await res.text();
       return {
         text: "",
-        model: GEMINI_MODEL,
+        model: activeModel,
         usageMetadata: null,
         finishReason: "ERROR",
         httpStatus,
@@ -89,7 +104,7 @@ export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_
 
     return {
       text: text.trim(),
-      model: GEMINI_MODEL,
+      model: activeModel,
       usageMetadata,
       finishReason,
       httpStatus,
@@ -99,15 +114,22 @@ export async function callGeminiRaw(prompt: string, timeoutMs: number = DEFAULT_
   } catch (err) {
     clearTimeout(timeout);
     const timedOut = (err as Error)?.name === "AbortError";
+
+    // Attempt failover on timeout if fallback is provided
+    if (timedOut && fallbackModel && fallbackModel !== activeModel) {
+      console.warn(`[geminiClient] ⏱️ Timeout on ${activeModel}. Failing over to backup model: ${fallbackModel}`);
+      return await callGeminiRaw(prompt, timeoutMs, fallbackModel, undefined);
+    }
+
     return {
       text: "",
-      model: GEMINI_MODEL,
+      model: activeModel,
       usageMetadata: null,
       finishReason: timedOut ? "TIMEOUT" : "ERROR",
       httpStatus: timedOut ? 408 : 500,
       timedOut,
       errorMessage: timedOut
-        ? `Request timed out after ${GEMINI_TIMEOUT_MS}ms`
+        ? `Request timed out after ${timeoutMs}ms`
         : ((err as Error)?.message ?? "Unknown error"),
     };
   }
@@ -151,7 +173,9 @@ export async function callGemini(prompt: string): Promise<string> {
 
     const json = await res.json();
     const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    console.log(`[gemini] 📥 Response:\n${text.trim()}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[gemini] 📥 Response:\n${text.trim()}`);
+    }
     return text.trim();
   } catch (err) {
     clearTimeout(timeout);
@@ -184,9 +208,11 @@ export async function callGeminiWithFile(prompt: string, base64Data: string, mim
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
-  console.log(`[gemini] 📤 Sending multimodal request to ${GEMINI_MODEL}:`);
-  console.log(`[gemini] 📤 Prompt:\n${prompt.slice(0, 500)}${prompt.length > 500 ? "\n...(truncated)" : ""}`);
-  console.log(`[gemini] 📤 File Info: mimeType=${mimeType}, length=${base64Data.length}`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[gemini] 📤 Sending multimodal request to ${GEMINI_MODEL}:`);
+    console.log(`[gemini] 📤 Prompt:\n${prompt.slice(0, 500)}${prompt.length > 500 ? "\n...(truncated)" : ""}`);
+    console.log(`[gemini] 📤 File Info: mimeType=${mimeType}, length=${base64Data.length}`);
+  }
 
   const controller = new AbortController();
   // Extending timeout for file processing if needed
@@ -228,7 +254,9 @@ export async function callGeminiWithFile(prompt: string, base64Data: string, mim
 
     const json = await res.json();
     const text: string = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    console.log(`[gemini] 📥 Response:\n${text.trim().slice(0, 500)}${text.trim().length > 500 ? "\n...(truncated)" : ""}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[gemini] 📥 Response:\n${text.trim().slice(0, 500)}${text.trim().length > 500 ? "\n...(truncated)" : ""}`);
+    }
     return text.trim();
   } catch (err) {
     clearTimeout(timeout);

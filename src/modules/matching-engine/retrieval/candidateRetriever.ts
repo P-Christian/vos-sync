@@ -1,11 +1,11 @@
-// src/modules/matching-engine/retrieval/candidateRetriever.ts
-
 import { NormalizedProfile } from "../types/profileTypes";
 import { AnalyzedQuery } from "./queryAnalyzer";
 import { ResolvedTaxonomyContext } from "../types/matchTypes";
 import { cleanText } from "../normalizers/textNormalizer";
 import { computeJaroWinkler } from "./fuzzyMatcher";
 import { computeTokenOverlapScore } from "./tokenMatcher";
+import { matchCandidateName } from "./nameMatcher";
+import { matchSchool } from "./schoolMatcher";
 
 export interface CandidateRetrievalResult {
   candidate: NormalizedProfile;
@@ -17,12 +17,14 @@ export function retrieveCandidatePool(
   profiles: NormalizedProfile[],
   analyzedQuery: AnalyzedQuery,
   taxonomyContext?: ResolvedTaxonomyContext | null,
-  minRetrievalThreshold: number = 20
+  minRetrievalThreshold: number = 20,
+  rawSearchKeyword?: string
 ): CandidateRetrievalResult[] {
   const { cleanedQuery } = analyzedQuery;
+  const effectiveQuery = cleanText(rawSearchKeyword) || cleanedQuery;
 
   // If no query string, retrieve all candidates (Browse mode)
-  if (!cleanedQuery) {
+  if (!cleanedQuery && !effectiveQuery) {
     return profiles.map((p) => ({
       candidate: p,
       retrievalScore: 100,
@@ -33,6 +35,9 @@ export function retrieveCandidatePool(
   const expandedAliases = (taxonomyContext?.expanded_aliases ?? []).map(cleanText);
   if (taxonomyContext?.resolved_role) expandedAliases.push(cleanText(taxonomyContext.resolved_role));
   expandedAliases.push(cleanedQuery);
+  if (effectiveQuery && !expandedAliases.includes(effectiveQuery)) {
+    expandedAliases.push(effectiveQuery);
+  }
 
   const results: CandidateRetrievalResult[] = [];
 
@@ -40,10 +45,41 @@ export function retrieveCandidatePool(
     let bestScore = 0;
     let primaryReason = "NO_MATCH";
 
+    // 1. Match against Candidate Name (High Priority)
+    const nameMatch = matchCandidateName(effectiveQuery, candidate.name);
+    if (nameMatch.matched && nameMatch.score > bestScore) {
+      bestScore = nameMatch.score;
+      primaryReason = `${nameMatch.reason} (${candidate.name})`;
+    }
+
+    // 2. Match against Candidate Education (School & Course)
+    for (const edu of candidate.education) {
+      if (edu.school) {
+        const schoolMatch = matchSchool(effectiveQuery, edu.school);
+        if (schoolMatch.matched && schoolMatch.score > bestScore) {
+          bestScore = schoolMatch.score;
+          primaryReason = `${schoolMatch.reason} (${edu.school})`;
+        }
+      }
+      if (edu.course) {
+        const courseClean = cleanText(edu.course);
+        if (
+          courseClean.includes(effectiveQuery) ||
+          computeTokenOverlapScore(effectiveQuery, courseClean) >= 0.6
+        ) {
+          const score = 75;
+          if (score > bestScore) {
+            bestScore = score;
+            primaryReason = `COURSE_MATCH (${edu.course})`;
+          }
+        }
+      }
+    }
+
     const candidateTitlesClean = candidate.titles.map(cleanText);
     const candidateSkillsClean = candidate.skills.map(cleanText);
 
-    // 1. Character & Token Match against Candidate Titles
+    // 3. Character & Token Match against Candidate Titles
     for (const title of candidateTitlesClean) {
       if (!title) continue;
 

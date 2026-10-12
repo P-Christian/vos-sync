@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import {
+  authenticateRequest,
+  hasRole,
+  isAdministratorSession,
+  AuthenticatedSession,
+} from "@/lib/authenticated-session";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +13,6 @@ export const dynamic = "force-dynamic";
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 const TARGET_FOLDER = "12bdc284-8351-4c3b-bf17-80cf37536ce3";
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_super_secret_key_for_development");
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = {
@@ -19,13 +23,17 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-async function getUserIdFromToken() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("vos_sync_access_token")?.value;
-  if (!token) return null;
+function isSchoolAdminSession(session: AuthenticatedSession): boolean {
+  return hasRole(session, [4], ["SCHOOL_ADMIN", "SCHOOL ADMINISTRATOR", "SCHOOLADMIN"]);
+}
+
+async function getSchoolIdForUser(userId: number): Promise<number | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return Number(payload.sub || payload.user_id || payload.id);
+    const adminUrl = `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_eq]=${userId}&filter[is_active][_eq]=true&limit=1`;
+    const adminRes = await fetch(adminUrl, { headers: getHeaders(), cache: "no-store" });
+    if (!adminRes.ok) return null;
+    const adminJson = await adminRes.json();
+    return adminJson.data?.[0]?.school_id || null;
   } catch {
     return null;
   }
@@ -48,37 +56,50 @@ interface DirectusFile {
 
 export async function GET(req: NextRequest) {
   try {
-    const userId = await getUserIdFromToken();
-    if (!userId && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isAdmin = isAdministratorSession(session);
+    const isSchoolAdmin = isSchoolAdminSession(session);
+    if (!isAdmin && !isSchoolAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: School administrators only." },
+        { status: 403 }
+      );
     }
 
     if (!DIRECTUS_BASE) {
       return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
     }
 
+    const userId = Number(session.userId);
+    const userSchoolId = await getSchoolIdForUser(userId);
+
     const { searchParams } = new URL(req.url);
     const schoolIdParam = searchParams.get("schoolId");
 
-    let schoolId: number | null = schoolIdParam ? Number(schoolIdParam) : null;
-
-    if (!schoolId && userId) {
-      // Find school assigned to user
-      const adminUrl = `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_eq]=${userId}&filter[is_active][_eq]=true`;
-      const adminRes = await fetch(adminUrl, { headers: getHeaders(), cache: "no-store" });
-      if (adminRes.ok) {
-        const adminJson = await adminRes.json();
-        schoolId = adminJson.data?.[0]?.school_id || null;
+    let targetSchoolId: number | null = null;
+    if (isAdmin && schoolIdParam) {
+      targetSchoolId = Number(schoolIdParam);
+    } else {
+      targetSchoolId = userSchoolId;
+      if (schoolIdParam && Number(schoolIdParam) !== userSchoolId) {
+        return NextResponse.json(
+          { error: "Forbidden: You cannot access documents for another school." },
+          { status: 403 }
+        );
       }
     }
 
-    if (!schoolId) {
-      return NextResponse.json({ error: "Missing schoolId." }, { status: 400 });
+    if (!targetSchoolId) {
+      return NextResponse.json({ error: "Missing school assignment." }, { status: 400 });
     }
 
     const documentType = searchParams.get("documentType");
 
-    let docsUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[school_id][_eq]=${schoolId}&fields=*`;
+    let docsUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[school_id][_eq]=${targetSchoolId}&fields=*`;
     if (documentType) {
       docsUrl += `&filter[document_type][_eq]=${encodeURIComponent(documentType)}`;
     }
@@ -137,14 +158,26 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const userId = await getUserIdFromToken();
-    if (!userId && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isAdmin = isAdministratorSession(session);
+    const isSchoolAdmin = isSchoolAdminSession(session);
+    if (!isAdmin && !isSchoolAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: School administrators only." },
+        { status: 403 }
+      );
     }
 
     if (!DIRECTUS_BASE) {
       return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
     }
+
+    const userId = Number(session.userId);
+    const userSchoolId = await getSchoolIdForUser(userId);
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -155,18 +188,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
     }
 
-    let schoolId: number | null = schoolIdStr ? Number(schoolIdStr) : null;
-    if (!schoolId && userId) {
-      const adminUrl = `${DIRECTUS_BASE}/items/vs_school_admin?filter[user_id][_eq]=${userId}&filter[is_active][_eq]=true`;
-      const adminRes = await fetch(adminUrl, { headers: getHeaders(), cache: "no-store" });
-      if (adminRes.ok) {
-        const adminJson = await adminRes.json();
-        schoolId = adminJson.data?.[0]?.school_id || null;
+    let targetSchoolId: number | null = null;
+    if (isAdmin && schoolIdStr) {
+      targetSchoolId = Number(schoolIdStr);
+    } else {
+      targetSchoolId = userSchoolId;
+      if (schoolIdStr && Number(schoolIdStr) !== userSchoolId) {
+        return NextResponse.json(
+          { error: "Forbidden: You cannot upload documents for another school." },
+          { status: 403 }
+        );
       }
     }
 
-    if (!schoolId) {
-      return NextResponse.json({ error: "Missing school_id." }, { status: 400 });
+    if (!targetSchoolId) {
+      return NextResponse.json({ error: "Missing school assignment." }, { status: 400 });
     }
 
     // 1. Upload file to Directus storage
@@ -202,7 +238,7 @@ export async function POST(req: NextRequest) {
     // 2. If it is a singular document type, clean up any existing document record for this type
     if (documentType !== "OTHER_DOCUMENT") {
       try {
-        const existingUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[school_id][_eq]=${schoolId}&filter[document_type][_eq]=${documentType}&fields=school_document_id,directus_file_id`;
+        const existingUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[school_id][_eq]=${targetSchoolId}&filter[document_type][_eq]=${documentType}&fields=school_document_id,directus_file_id`;
         const existingRes = await fetch(existingUrl, { headers: getHeaders(), cache: "no-store" });
         if (existingRes.ok) {
           const existingJson = await existingRes.json();
@@ -228,13 +264,13 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Insert record into vs_school_document
-    const nowPH = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 19).replace("T", " ");
+    const nowPH = getPHTimeString();
     const docPayload = {
-      school_id: schoolId,
+      school_id: targetSchoolId,
       document_type: documentType,
       document_name: file.name,
       directus_file_id: fileId,
-      uploaded_by_user_id: userId || null,
+      uploaded_by_user_id: userId,
       uploaded_at: nowPH,
     };
 
@@ -274,14 +310,26 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const userId = await getUserIdFromToken();
-    if (!userId && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isAdmin = isAdministratorSession(session);
+    const isSchoolAdmin = isSchoolAdminSession(session);
+    if (!isAdmin && !isSchoolAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: School administrators only." },
+        { status: 403 }
+      );
     }
 
     if (!DIRECTUS_BASE) {
       return NextResponse.json({ error: "Directus base URL not configured." }, { status: 500 });
     }
+
+    const userId = Number(session.userId);
+    const userSchoolId = await getSchoolIdForUser(userId);
 
     const { searchParams } = new URL(req.url);
     const fileId = searchParams.get("id");
@@ -291,21 +339,46 @@ export async function DELETE(req: NextRequest) {
     }
 
     // 1. Find the vs_school_document record matching directus_file_id
-    const findUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[directus_file_id][_eq]=${fileId}&fields=school_document_id`;
+    const findUrl = `${DIRECTUS_BASE}/items/vs_school_document?filter[directus_file_id][_eq]=${encodeURIComponent(fileId)}&fields=school_document_id,school_id`;
     const findRes = await fetch(findUrl, {
       headers: getHeaders(),
       cache: "no-store",
     });
 
-    if (findRes.ok) {
-      const findJson = await findRes.json();
-      const records: SchoolDoc[] = findJson.data || [];
-      for (const record of records) {
-        await fetch(`${DIRECTUS_BASE}/items/vs_school_document/${record.school_document_id}`, {
-          method: "DELETE",
-          headers: getHeaders(),
-        });
+    if (!findRes.ok) {
+      return NextResponse.json(
+        { error: "Failed to locate school document." },
+        { status: findRes.status }
+      );
+    }
+
+    const findJson = await findRes.json();
+    const records: SchoolDoc[] = findJson.data || [];
+    if (records.length === 0) {
+      return NextResponse.json({ error: "Document not found." }, { status: 404 });
+    }
+
+    // Verify ownership of the document
+    if (!isAdmin) {
+      const unauthorizedDoc = records.find(
+        (rec) => Number(rec.school_id) !== Number(userSchoolId)
+      );
+      if (unauthorizedDoc) {
+        return NextResponse.json(
+          {
+            error:
+              "Forbidden: You do not have permission to delete documents belonging to another school.",
+          },
+          { status: 403 }
+        );
       }
+    }
+
+    for (const record of records) {
+      await fetch(`${DIRECTUS_BASE}/items/vs_school_document/${record.school_document_id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
     }
 
     // 2. Delete asset in Directus storage

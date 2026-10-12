@@ -4,7 +4,8 @@ import {
   updateSchoolRepo,
   createCourseRepo,
   updateCourseRepo,
-  fetchSchoolByIdRepo
+  fetchSchoolByIdRepo,
+  fetchCourseByIdRepo
 } from './school-admin.repo';
 import { VsSchool, VsSchoolCourse, SchoolWithStats } from '../types/school-admin.types';
 
@@ -34,6 +35,10 @@ export async function getMySchool(userId: number): Promise<SchoolWithStats | nul
 
 export async function getMyCourses(schoolId: number): Promise<VsSchoolCourse[]> {
   return fetchCoursesBySchoolIdRepo(schoolId);
+}
+
+export async function getCourseById(courseId: number): Promise<VsSchoolCourse | null> {
+  return fetchCourseByIdRepo(courseId);
 }
 
 export async function updateMySchool(schoolId: number, data: Partial<VsSchool>, adminId: number): Promise<VsSchool> {

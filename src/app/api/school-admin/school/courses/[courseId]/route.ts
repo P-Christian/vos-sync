@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-import { getMySchool, updateMyCourse } from "@/modules/school-admin/services/school-admin.service";
+import {
+  authenticateRequest,
+  hasRole,
+  isAdministratorSession,
+  AuthenticatedSession,
+} from "@/lib/authenticated-session";
+import {
+  getMySchool,
+  getCourseById,
+  updateMyCourse,
+} from "@/modules/school-admin/services/school-admin.service";
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_super_secret_key_for_development");
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-async function getUserIdFromToken() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("vos_sync_access_token")?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return Number(payload.sub || payload.user_id || payload.id);
-  } catch {
-    return null;
-  }
+function isSchoolAdminSession(session: AuthenticatedSession): boolean {
+  return hasRole(session, [4], ["SCHOOL_ADMIN", "SCHOOL ADMINISTRATOR", "SCHOOLADMIN"]);
 }
 
 export async function PATCH(
@@ -28,16 +29,44 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid course ID" }, { status: 400 });
     }
 
-    const userId = await getUserIdFromToken();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    const school = await getMySchool(userId);
-    if (!school) return NextResponse.json({ error: "School not found." }, { status: 404 });
+    const isAdmin = isAdministratorSession(session);
+    const isSchoolAdmin = isSchoolAdminSession(session);
+    if (!isAdmin && !isSchoolAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: School administrators only." },
+        { status: 403 }
+      );
+    }
 
-    const body = await req.json();
-    
-    // Note: In a stricter implementation, we should also verify that this courseId belongs to the schoolId
-    // to prevent modifying courses of other schools. We'll pass it to the service for now.
+    const userId = Number(session.userId);
+
+    // Verify course exists
+    const existingCourse = await getCourseById(courseId);
+    if (!existingCourse) {
+      return NextResponse.json({ error: "Course not found." }, { status: 404 });
+    }
+
+    // Tenant boundary check for school admins
+    if (!isAdmin) {
+      const school = await getMySchool(userId);
+      if (!school) {
+        return NextResponse.json({ error: "School assignment not found." }, { status: 404 });
+      }
+
+      if (Number(existingCourse.school_id) !== Number(school.school_id)) {
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to modify courses for another school." },
+          { status: 403 }
+        );
+      }
+    }
+
+    const body = await req.json().catch(() => ({}));
     const updated = await updateMyCourse(courseId, body, userId);
 
     return NextResponse.json({ course: updated });

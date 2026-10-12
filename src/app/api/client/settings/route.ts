@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,38 +24,15 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(
-      Buffer.from(padded, "base64").toString("utf8")
-    );
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id !== null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 // ─── GET — Fetch user profile info ─────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const userId = session.userId;
 
     const res = await fetch(
       `${DIRECTUS_BASE}/items/vs_user/${userId}?fields=user_id,user_email,user_fname,user_mname,user_lname,suffix_name,nickname,user_contact,user_position,user_department,user_province,user_city,user_brgy,gender,user_bday,civil_status,profile_image_url,user_image,role`,
@@ -85,18 +63,11 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const userId = session.userId;
 
     const body = await req.json().catch(() => ({}));
     const type = body?.type;

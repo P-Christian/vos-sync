@@ -9,7 +9,7 @@ export interface EmployerMailParams {
 }
 
 const PLATFORM_NAME = process.env.NEXT_PUBLIC_APP_NAME || "VOS-Sync";
-const BASE_APP_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+const BASE_APP_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
 
 // 1. Upon Account Creation and OTP Verified (To Employer)
 

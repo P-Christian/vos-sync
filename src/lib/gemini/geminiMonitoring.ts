@@ -4,6 +4,7 @@
 // telemetry to Directus fire-and-forget (never blocks the user response).
 
 import { callGeminiRaw } from "./geminiClient";
+import { resolveWorkloadModel } from "@/lib/ai/aiConfigStore";
 
 export type GeminiFeature =
   | "AI_RERANKER"
@@ -109,8 +110,16 @@ export async function callGeminiMonitored(params: MonitoringParams): Promise<str
   const requestId = generateRequestId();
   const startMs = Date.now();
 
+  // Resolve assigned model and fallback for this specific feature
+  const { primaryModel, fallbackModel } = resolveWorkloadModel(feature);
+
   // Call Gemini — always awaited before telemetry write so latency is accurate
-  const result = await callGeminiRaw(prompt, timeoutMs);
+  const result = await callGeminiRaw(
+    prompt,
+    timeoutMs,
+    primaryModel?.id,
+    fallbackModel?.id || undefined
+  );
 
   const latencyMs = Date.now() - startMs;
 

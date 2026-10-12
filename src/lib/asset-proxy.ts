@@ -42,12 +42,19 @@ export async function proxyDirectusAsset(
     });
     if (!response.ok) return new NextResponse(null, { status: response.status });
 
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    const isDangerousInline = /^(image\/svg\+xml|text\/html|text\/xml|application\/javascript|text\/javascript)/i.test(contentType);
+
     const responseHeaders: Record<string, string> = {
-      "Content-Type": response.headers.get("content-type") || "application/octet-stream",
+      "Content-Type": contentType,
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": access.protected
         ? "private, no-store"
         : response.headers.get("cache-control") || "public, max-age=31536000",
     };
+    if (isDangerousInline) {
+      responseHeaders["Content-Disposition"] = "attachment";
+    }
     const contentLength = response.headers.get("content-length");
     if (contentLength) responseHeaders["Content-Length"] = contentLength;
 

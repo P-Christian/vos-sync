@@ -115,3 +115,12 @@ export async function updateCourseRepo(courseId: number, payload: Partial<VsScho
   if (!res.ok) throw new Error(json.errors?.[0]?.message || "Failed to update course.");
   return json.data;
 }
+
+export async function fetchCourseByIdRepo(courseId: number): Promise<VsSchoolCourse | null> {
+  const url = `${DIRECTUS_BASE}/items/vs_school_course/${courseId}?fields=*`;
+  const res = await fetch(url, { headers: getHeaders(), cache: "no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data || null;
+}
+

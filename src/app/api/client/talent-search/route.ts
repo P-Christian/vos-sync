@@ -12,6 +12,8 @@ import {
   cleanText,
   analyzeQuery,
   retrieveCandidatePool,
+  isSchoolQuery,
+  matchSchool,
 } from "@/modules/matching-engine";
 import { expandQueryWithGemini, shouldExpandWithGemini } from "@/lib/gemini/queryUnderstanding";
 import { rerankCandidatesWithGemini } from "@/lib/gemini/aiReranker";
@@ -298,7 +300,9 @@ export async function GET(req: NextRequest) {
     let geminiQueryIntent = null;
     let matchKeyword = keyword; // effective keyword used for matching (may be Gemini-resolved)
 
-    if (keyword && shouldExpandWithGemini(keyword)) {
+    const isSchoolSearch = isSchoolQuery(keyword);
+
+    if (keyword && !isSchoolSearch && shouldExpandWithGemini(keyword)) {
       console.log(`[talent-search] 🤖 Gemini Layer A: expanding query "${keyword}"`);
       geminiQueryIntent = await expandQueryWithGemini(keyword, { userId: userId ?? undefined, companyId: companyId ?? undefined }).catch(() => null);
 
@@ -319,8 +323,10 @@ export async function GET(req: NextRequest) {
       } else {
         console.log(`[talent-search] ℹ️  Gemini Layer A: keeping original keyword → "${matchKeyword}"`);
       }
+    } else if (isSchoolSearch) {
+      console.log(`[talent-search] 🎓 School search detected — preserving original keyword "${keyword}"`);
     } else {
-      console.log(`[talent-search] ℹ️  Gemini Layer A: skipped (query too short) — keyword="${keyword}"`);
+      console.log(`[talent-search] ℹ️  Gemini Layer A: skipped (query too short or not applicable) — keyword="${keyword}"`);
     }
 
     // Resolve Role Taxonomy using the effective match keyword (Gemini-resolved or original)
@@ -623,7 +629,7 @@ export async function GET(req: NextRequest) {
 
     const analyzedQuery = analyzeQuery(matchKeyword);
     console.log(`[talent-search] 🔍 Layer 1: scanning ${normalizedProfilesList.length} total profiles...`);
-    const retrievedPool = retrieveCandidatePool(normalizedProfilesList, analyzedQuery, taxonomyContext, 15);
+    const retrievedPool = retrieveCandidatePool(normalizedProfilesList, analyzedQuery, taxonomyContext, 15, keyword);
     console.log(`[talent-search] ✅ Layer 1 pool: ${retrievedPool.length} candidates passed retrieval threshold`);
 
     // Layer 2: Run Matching Engine & Final Scoring on Retrieved Candidate Pool
@@ -748,7 +754,10 @@ export async function GET(req: NextRequest) {
 
     if (schoolId) {
       filtered = filtered.filter((t) =>
-        t.education.some((e) => String(e.school_id) === String(schoolId))
+        t.education.some((e) =>
+          String(e.school_id) === String(schoolId) ||
+          (e.school_name && matchSchool(schoolId, e.school_name).matched)
+        )
       );
     }
 

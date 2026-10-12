@@ -1,8 +1,9 @@
-// src/modules/matching-engine/evaluators/educationEvaluator.ts
-
 import { NormalizedProfile, NormalizedEduEntry } from "../types/profileTypes";
 import { MatchContext } from "../types/matchTypes";
 import { EvaluatorResult, EvidenceItem } from "../types/evaluatorTypes";
+import { matchSchool } from "../retrieval/schoolMatcher";
+import { cleanText } from "../normalizers/textNormalizer";
+import { computeTokenOverlapScore } from "../retrieval/tokenMatcher";
 
 const TECH_COURSE_KEYWORDS = [
   "computer science",
@@ -26,6 +27,69 @@ function idOrder(id: number | null): number {
 
 export function evaluateEducation(profile: NormalizedProfile, context: MatchContext, weight: number): EvaluatorResult {
   const maxScore = 10;
+  const rawKeyword = context.keyword?.trim() ?? "";
+
+  // Check if search keyword matches candidate's school or degree
+  if (rawKeyword) {
+    for (const edu of profile.education) {
+      if (edu.school) {
+        const schoolMatch = matchSchool(rawKeyword, edu.school);
+        if (schoolMatch.matched) {
+          const evidence: EvidenceItem[] = [
+            {
+              type: "EDUCATION",
+              label: "School Match",
+              value: `Attended '${edu.school}'${edu.status === "Verified" ? " (Verified)" : ""}`,
+              scoreContribution: maxScore,
+            },
+          ];
+          return {
+            factor: "EDUCATION",
+            label: "Education",
+            score: maxScore,
+            maxScore,
+            weight,
+            evidence,
+            strengths: [`Attended searched institution: ${edu.school}`],
+            weaknesses: [],
+            explanationCode: "EDUCATION_SCHOOL_MATCH",
+            explanationMessage: `Candidate attended '${edu.school}', matching search for '${rawKeyword}'.`,
+          };
+        }
+      }
+
+      if (edu.course) {
+        const courseClean = cleanText(edu.course);
+        const queryClean = cleanText(rawKeyword);
+        if (
+          courseClean.includes(queryClean) ||
+          computeTokenOverlapScore(queryClean, courseClean) >= 0.6
+        ) {
+          const evidence: EvidenceItem[] = [
+            {
+              type: "EDUCATION",
+              label: "Course Match",
+              value: `Studied '${edu.course}'${edu.status === "Verified" ? " (Verified)" : ""}`,
+              scoreContribution: maxScore,
+            },
+          ];
+          return {
+            factor: "EDUCATION",
+            label: "Education",
+            score: maxScore,
+            maxScore,
+            weight,
+            evidence,
+            strengths: [`Studied searched course: ${edu.course}`],
+            weaknesses: [],
+            explanationCode: "EDUCATION_COURSE_MATCH",
+            explanationMessage: `Candidate studied '${edu.course}', matching search for '${rawKeyword}'.`,
+          };
+        }
+      }
+    }
+  }
+
   const verified = profile.education.filter((edu) => edu.status === "Verified");
 
   if (verified.length === 0) {

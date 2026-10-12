@@ -64,7 +64,10 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to reset to company default.");
         }
         setSuccess("Hiring pipeline reset to company default snapshot.");
-        setPipeline(json.pipeline);
+        if (json.pipeline) {
+          setPipeline(json.pipeline);
+        }
+        await fetchPipeline();
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to reset pipeline.");
@@ -73,7 +76,7 @@ export function useJobPipeline(jobId?: number | null) {
         setSaving(false);
       }
     },
-    [jobId]
+    [jobId, fetchPipeline]
   );
 
   const addStage = useCallback(

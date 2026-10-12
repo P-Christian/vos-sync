@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,10 +8,19 @@ const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 const TARGET_FOLDER = "12bdc284-8351-4c3b-bf17-80cf37536ce3";
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+]);
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export async function POST(req: NextRequest) {
   try {
-    const token = req.cookies.get("vos_sync_access_token")?.value;
-    if (!token && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
@@ -21,8 +31,22 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!file) {
+    if (!file || typeof file === "string") {
       return NextResponse.json({ error: "No file provided." }, { status: 400 });
+    }
+
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG images are allowed." },
+        { status: 400 },
+      );
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "File exceeds 5MB size limit." },
+        { status: 413 },
+      );
     }
 
     const url = `${DIRECTUS_BASE}/files`;
