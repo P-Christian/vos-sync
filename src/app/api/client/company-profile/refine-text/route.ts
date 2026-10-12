@@ -1,32 +1,23 @@
 // src/app/api/client/company-profile/refine-text/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    const userId = getUserIdFromToken(token);
+    if (session && !isClientSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: employer access required." }, { status: 403 });
+    }
+
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     const body = await req.json().catch(() => ({}));
     const text = (body.text || "").trim();
