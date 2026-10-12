@@ -21,6 +21,7 @@ import {
   Upload,
 } from "lucide-react";
 import { TASK_TYPE_META } from "./types";
+import { formStateFromTask } from "./task-form-state";
 import TaskForm from "./TaskForm";
 
 function TaskTypeIcon({ taskType }: { taskType: AssessmentTaskType }) {
@@ -177,7 +178,7 @@ export default function TaskRow({
 
       {editing && !readOnly && (
         <TaskForm
-          initial={task}
+          initial={formStateFromTask(task)}
           sortOrder={task.sort_order}
           submitting={submitting}
           onCancel={onCancelEdit}

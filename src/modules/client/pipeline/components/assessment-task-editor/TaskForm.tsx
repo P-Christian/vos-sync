@@ -16,16 +16,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, Loader2 } from "lucide-react";
-import type { CompanyAssessmentTaskRow } from "../../services/assessment-task.service";
 import type {
   AssessmentTaskType,
   CreateTaskInput,
 } from "@/modules/shared/assessment";
-import {
-  blankFormState,
-  formStateFromTask,
-  type TaskFormState,
-} from "./task-form-state";
+import { blankFormState, type TaskFormState } from "./task-form-state";
 import { validateTaskForm } from "./task-form-validation";
 import { buildCreateInput } from "./task-submit";
 import { taskInputClass } from "./form-classes";
@@ -33,7 +28,7 @@ import { TASK_TYPE_META, TASK_TYPE_ORDER } from "./types";
 import SingleChoiceFields from "./SingleChoiceFields";
 
 interface TaskFormProps {
-  initial: CompanyAssessmentTaskRow | null;
+  initial: TaskFormState | null;
   sortOrder: number;
   submitting: boolean;
   onCancel: () => void;
@@ -47,8 +42,8 @@ export default function TaskForm({
   onCancel,
   onSubmit,
 }: TaskFormProps) {
-  const [form, setForm] = useState<TaskFormState>(() =>
-    initial ? formStateFromTask(initial) : blankFormState()
+  const [form, setForm] = useState<TaskFormState>(
+    () => initial ?? blankFormState()
   );
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState("");

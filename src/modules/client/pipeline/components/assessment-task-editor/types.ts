@@ -13,6 +13,7 @@ export interface AssessmentTaskEditorEndpoints {
   remove: (taskId: number) => string;
   reorder: string;
   window?: string;
+  library?: string;
 }
 
 export interface AssessmentTaskEditorProps {
