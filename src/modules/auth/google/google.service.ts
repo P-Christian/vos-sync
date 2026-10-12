@@ -1,7 +1,7 @@
 // src/modules/auth/google/google.service.ts
 import crypto from "crypto";
 import * as jose from "jose";
-
+ 
 export class GoogleOAuthError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
@@ -14,48 +14,41 @@ export class GoogleOAuthError extends Error {
   }
 }
 
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://msi-lo.tail054015.ts.net",
-  "https://desktop-1al8ql9.tail054015.ts.net",
-  "https://ubuntuserver1.tail054015.ts.net",
-  "http://localhost:4000",
-  "http://localhost:3000",
-  "https://localhost:4000",
-  "https://localhost:3000",
-  "http://127.0.0.1:4000",
-  "http://127.0.0.1:3000",
-  "https://127.0.0.1:4000",
-  "https://127.0.0.1:3000",
-];
-
+// src/modules/auth/google/google.service.ts
 export function getGoogleAllowedOrigins(): string[] {
-  const configured = process.env.GOOGLE_ALLOWED_ORIGINS ?? "";
-  const rawOrigins = [
-    ...DEFAULT_ALLOWED_ORIGINS,
-    ...configured.split(",").map((v) => v.trim()).filter(Boolean),
-  ];
+  const configured = process.env.GOOGLE_ALLOWED_ORIGINS;
 
-  const validOrigins: string[] = [];
-  for (const origin of rawOrigins) {
-    try {
-      const url = new URL(origin);
-      if (
-        url.origin !== origin ||
-        url.username ||
-        url.password ||
-        url.pathname !== "/" ||
-        url.search ||
-        url.hash
-      ) {
-        continue;
-      }
-      validOrigins.push(url.origin);
-    } catch {
-      // Ignore invalid URL formatting
-    }
+  if (!configured) {
+    throw new Error(
+      "GOOGLE_ALLOWED_ORIGINS must be configured"
+    );
   }
 
-  return [...new Set(validOrigins)];
+  const origins = configured
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const validatedOrigins = origins.map((origin) => {
+    const url = new URL(origin);
+
+    if (
+      url.origin !== origin ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error(
+        `Invalid configured Google OAuth origin: ${origin}`
+      );
+    }
+
+    return url.origin;
+  });
+
+  return [...new Set(validatedOrigins)];
 }
 
 export const GOOGLE_ALLOWED_ORIGINS = getGoogleAllowedOrigins();
@@ -568,4 +561,3 @@ export async function unsealPendingLinkToken(token: string): Promise<GooglePendi
 }
 
 export * from "./identity.repo";
-
