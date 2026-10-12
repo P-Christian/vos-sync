@@ -234,6 +234,7 @@ export async function resetFailedAttempts(userId: string | number) {
         body: JSON.stringify({
             failed_attempts: 0,
             lock_until: null,
+            session_epoch: null,
             last_login_at: new Date().toISOString(),
             update_at: new Date().toISOString()
         }),

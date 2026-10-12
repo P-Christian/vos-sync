@@ -16,6 +16,15 @@ function isProtectedPath(pathname: string) {
     return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+function parseDbTimestamp(ts: string | null | undefined): number {
+    if (!ts) return 0;
+    if (ts.includes("Z") || ts.includes("+")) return new Date(ts).getTime();
+    const normalized = ts.replace(" ", "T");
+    const withTz = normalized.includes("T") ? `${normalized}+08:00` : normalized;
+    const parsed = new Date(withTz).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export async function middleware(req: NextRequest) {
     if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
         return NextResponse.next();
@@ -48,10 +57,29 @@ export async function middleware(req: NextRequest) {
                 let roleDashboard = "/vos-sync/freelancer/dashboard";
                 if (userRoleId === 2 || roleUpper === "CLIENT" || roleUpper === "EMPLOYER") {
                     roleDashboard = "/vos-sync/client/dashboard";
-                } else if (userRoleId === 3 || roleUpper === "ADMIN") {
+                } else if (userRoleId === 3 || roleUpper === "ADMIN" || roleUpper === "ADMINISTRATOR") {
                     roleDashboard = "/vos-sync/vos-admin";
-                } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN" || roleUpper === "SCH_ADMIN") {
+                } else if (userRoleId === 4 || roleUpper === "SCHOOL_ADMIN" || roleUpper === "SCH_ADMIN" || roleUpper === "SCHOOL") {
                     roleDashboard = "/vos-sync/school-admin";
+                }
+
+                // Break redirect loop if user is already on /login?next=<dashboard>
+                const nextParam = req.nextUrl.searchParams.get("next");
+                if (nextParam && nextParam === roleDashboard) {
+                    const isHttps = req.headers.get("x-forwarded-proto") === "https" || req.nextUrl.protocol === "https:";
+                    const response = NextResponse.next();
+                    response.cookies.delete(COOKIE_NAME);
+                    response.cookies.set({
+                        name: COOKIE_NAME,
+                        value: "",
+                        httpOnly: true,
+                        sameSite: "lax",
+                        secure: isHttps,
+                        path: "/",
+                        expires: new Date(0),
+                        maxAge: 0,
+                    });
+                    return response;
                 }
 
                 const url = req.nextUrl.clone();
@@ -60,8 +88,19 @@ export async function middleware(req: NextRequest) {
                 return NextResponse.redirect(url);
             } catch {
                 // Stale or invalid token — clear and proceed to login/signup page
+                const isHttps = req.headers.get("x-forwarded-proto") === "https" || req.nextUrl.protocol === "https:";
                 const response = NextResponse.next();
                 response.cookies.delete(COOKIE_NAME);
+                response.cookies.set({
+                    name: COOKIE_NAME,
+                    value: "",
+                    httpOnly: true,
+                    sameSite: "lax",
+                    secure: isHttps,
+                    path: "/",
+                    expires: new Date(0),
+                    maxAge: 0,
+                });
                 return response;
             }
         }
@@ -114,22 +153,29 @@ export async function middleware(req: NextRequest) {
                     cache: "no-store",
                 });
 
-                if (!statusRes.ok) return redirectToLogin(req);
-                const statusJson = await statusRes.json();
-                const dbUser = statusJson.data;
-                if (!canAuthenticate(dbUser)) {
-                    const url = req.nextUrl.clone();
-                    url.pathname = "/vos-sync/suspended";
-                    return NextResponse.redirect(url);
-                }
+                if (statusRes.ok) {
+                    const statusJson = await statusRes.json();
+                    const dbUser = statusJson?.data;
+                    if (dbUser) {
+                        if (!canAuthenticate(dbUser)) {
+                            const url = req.nextUrl.clone();
+                            url.pathname = "/vos-sync/suspended";
+                            return NextResponse.redirect(url);
+                        }
 
-                const sessionEpoch = dbUser.session_epoch ? new Date(dbUser.session_epoch).getTime() : 0;
-                const tokenIat = payload.iat ? payload.iat * 1000 : 0;
-                if (!Number.isFinite(sessionEpoch) || sessionEpoch > tokenIat) {
+                        const sessionEpoch = parseDbTimestamp(dbUser.session_epoch);
+                        const tokenIat = payload.iat ? payload.iat * 1000 : 0;
+                        if (sessionEpoch > 0 && tokenIat > 0 && sessionEpoch > tokenIat) {
+                            return redirectToLogin(req);
+                        }
+                    }
+                } else if (statusRes.status === 404) {
                     return redirectToLogin(req);
+                } else {
+                    console.warn(`[Middleware] Directus returned status ${statusRes.status} for user #${userId}`);
                 }
-            } catch {
-                return redirectToLogin(req);
+            } catch (err) {
+                console.error("[Middleware] Account status check failed:", err);
             }
         }
 
@@ -138,21 +184,21 @@ export async function middleware(req: NextRequest) {
 
         if (pathLower.startsWith("/vos-sync/freelancer") && userRoleName !== "FREELANCER" && userRoleId !== 1) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN" && userRoleId !== 3) {
+        } else if (pathLower.startsWith("/vos-sync/vos-admin") && userRoleName !== "ADMIN" && userRoleName !== "ADMINISTRATOR" && userRoleId !== 3) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT" && userRoleId !== 2) {
+        } else if (pathLower.startsWith("/vos-sync/client") && userRoleName !== "CLIENT" && userRoleName !== "EMPLOYER" && userRoleId !== 2) {
             isAuthorized = false;
-        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleName !== "SCH_ADMIN" && userRoleId !== 4) {
+        } else if (pathLower.startsWith("/vos-sync/school-admin") && userRoleName !== "SCHOOL_ADMIN" && userRoleName !== "SCH_ADMIN" && userRoleName !== "SCHOOL" && userRoleId !== 4) {
             isAuthorized = false;
         }
 
         if (!isAuthorized) {
             let roleDashboard = "/vos-sync/freelancer/dashboard";
-            if (userRoleId === 2 || userRoleName === "CLIENT") {
+            if (userRoleId === 2 || userRoleName === "CLIENT" || userRoleName === "EMPLOYER") {
                 roleDashboard = "/vos-sync/client/dashboard";
-            } else if (userRoleId === 3 || userRoleName === "ADMIN") {
+            } else if (userRoleId === 3 || userRoleName === "ADMIN" || userRoleName === "ADMINISTRATOR") {
                 roleDashboard = "/vos-sync/vos-admin";
-            } else if (userRoleId === 4 || userRoleName === "SCHOOL_ADMIN" || userRoleName === "SCH_ADMIN") {
+            } else if (userRoleId === 4 || userRoleName === "SCHOOL_ADMIN" || userRoleName === "SCH_ADMIN" || userRoleName === "SCHOOL") {
                 roleDashboard = "/vos-sync/school-admin";
             }
             const url = req.nextUrl.clone();
@@ -178,13 +224,14 @@ function redirectToLogin(req: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("next", req.nextUrl.pathname);
     const response = NextResponse.redirect(url);
+    const isHttps = req.headers.get("x-forwarded-proto") === "https" || req.nextUrl.protocol === "https:";
     response.cookies.delete(COOKIE_NAME);
     response.cookies.set({
         name: COOKIE_NAME,
         value: "",
         httpOnly: true,
         sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
+        secure: isHttps,
         path: "/",
         expires: new Date(0),
         maxAge: 0,
