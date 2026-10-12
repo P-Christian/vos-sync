@@ -117,3 +117,13 @@ export function isFreelancerSession(session: AuthenticatedSession): boolean {
   return hasRole(session, [1], ["FREELANCER"]);
 }
 
+export function isSchoolAdminSession(session: AuthenticatedSession): boolean {
+  return hasRole(session, [4], [
+    "SCHOOL_ADMIN",
+    "SCH_ADMIN",
+    "SCHOOL ADMINISTRATOR",
+    "SCHOOLADMIN",
+    "SCHOOL",
+  ]);
+}
+
