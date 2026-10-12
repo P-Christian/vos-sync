@@ -16,11 +16,11 @@ export class GoogleOAuthError extends Error {
 
 // src/modules/auth/google/google.service.ts
 export function getGoogleAllowedOrigins(): string[] {
-  const configured = process.env.GOOGLE_ALLOWED_ORIGINS;
+  const configured = process.env.ALLOWED_ORIGINS;
 
   if (!configured) {
     throw new Error(
-      "GOOGLE_ALLOWED_ORIGINS must be configured"
+      "ALLOWED_ORIGINS must be configured"
     );
   }
 
@@ -50,8 +50,6 @@ export function getGoogleAllowedOrigins(): string[] {
 
   return [...new Set(validatedOrigins)];
 }
-
-export const GOOGLE_ALLOWED_ORIGINS = getGoogleAllowedOrigins();
 
 export const CANONICAL_CALLBACK_PATH = "/api/auth/google/callback";
 
