@@ -1,5 +1,12 @@
 # VOS Sync
 
+[![CI](https://github.com/P-Christian/vos-sync/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/P-Christian/vos-sync/actions/workflows/ci.yml)
+[![CD Pipeline](https://github.com/P-Christian/vos-sync/actions/workflows/deploy.yml/badge.svg?branch=master)](https://github.com/P-Christian/vos-sync/actions/workflows/deploy.yml)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)
+![React](https://img.shields.io/badge/React-19-20232A?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat&logo=typescript)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=flat&logo=tailwind-css)
+
 VOS Sync is a multi-role employment and talent management platform connecting **Job Seekers, Employers, and Schools** with intelligent candidate matching, recruitment workflows, interview management, and AI-assisted hiring capabilities.
 
 ## Key Features
@@ -22,6 +29,24 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Peak Usage Surge Analytics & Motion Transitions**: Deep analytics page with interactive metric card hover lifts, animated spring-driven 24-hour surge bar chart transitions, and popLayout animated table rows.
 * Per-user and per-company attribution for cost allocation and anomaly detection.
 * Fire-and-forget telemetry persistence to prevent monitoring from affecting AI response latency.
+
+#### AI Model & Provider Management
+
+* **Multi-Provider Architecture**: Dynamic adapter system supporting Google Gemini, OpenAI, Anthropic Claude, Mistral AI, and Local AI (Ollama / LM Studio).
+* **Encrypted Credential Storage & Security Hardening**: Server-side AES-256-GCM credential encryption at rest; strict cryptographic admin role verification (`ADMIN` / role ID 3); SSRF protection and hostname allowlisting on custom test endpoints; credential exfiltration prevention; and git tracking isolation.
+* **Workload Routing Matrix**: Granular mapping of application features (`AUTO_CREATE_JOB`, `MATCH_EXPLAINER`, `QUERY_UNDERSTANDING`, etc.) to designated primary and fallback models to prevent rate-limit bottlenecks.
+* **Automatic 429 Rate-Limit Failover**: Real-time failover switching to backup models or Local AI upon encountering rate limits or provider downtime.
+* **Live Connection Testing & Model Discovery**: In-dashboard ping diagnostics and one-click model catalog scanning for local and cloud providers with protected egress controls.
+
+#### System Security & Vulnerability Hardening
+
+* **Stored XSS Sanitization**: Lightweight zero-dependency HTML sanitizer (`src/lib/sanitize-html.ts`) stripping active scripts, dangerous embeddings, and inline event handlers from rich-text job descriptions and forms.
+* **Cryptographic Token Verification**: Enforced canonical `authenticateRequest` verification across sensitive client endpoints (settings, team management, interviews), replacing unverified base64 token splits with cryptographic `jose.jwtVerify` signature validation and account state checks.
+* **Password Reset & Account Enumeration Protection**: Sealed reset response payloads to eliminate user ID leakage and account enumeration; replaced pseudo-random OTP generation with cryptographically secure PRNG (`crypto.randomInt`); and enforced failed-attempt tracking with automatic token invalidation.
+* **Multi-Tenant Authorization & IDOR Defense**: Enforced strict company and school tenant ownership validation across interview management (`PATCH /api/client/interviews/[id]`), course modifications (`PATCH /api/school-admin/school/courses/[courseId]`), and school document uploads/deletions (`/api/school-admin/school/documents`), eliminating insecure direct object reference vulnerabilities.
+* **Directus Collection Allowlisting**: Constrained public and client proxy parameters (`directusCollection`) strictly to approved metadata sets (`vs_industry`, `vs_organization_type`, `vs_company_size`), preventing arbitrary backend table exposure.
+* **File Upload Defense & Asset Isolation**: Fortified messaging and document attachment uploads with strict MIME-type allowlists, extension validation, 5MB limits, and forced `nosniff`/attachment download headers to mitigate stored XSS via SVG/HTML assets.
+* **HTTP Security Headers**: Configured defense-in-depth headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) in `next.config.ts`.
 
 #### Autonomous Taxonomy Enrichment & Shared Governance
 
@@ -126,6 +151,16 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 ---
 
+### Client Configuration & Settings
+
+#### Account Profile & Security Settings Layout Optimization
+* **Balanced Account Profile Layout**: Constrained the account profile configuration form to a standard balanced container (`max-w-4xl`), eliminating excessive horizontal input stretching on wide viewports.
+* **Proportional Grid Hierarchy**: Reorganized identity fields into a compact 6-column responsive grid (First Name, Middle Name, Last Name alongside appropriately sized Nickname and Suffix fields), balanced 2-column contact details with aligned position inputs, and clean 3-column groupings for address and personal details.
+* **Two-Column Security & Auth Architecture**: Restructured the Security & Auth tab into a responsive two-column grid pairing password management (left) with connected social accounts and OAuth providers (right).
+* **Next.js Image Optimization**: Migrated avatar rendering to standard `<Image />` component with `unoptimized` asset handling and initials fallback.
+
+---
+
 ### Jobs Posting
 
 #### Database-Backed Role Taxonomy Integration & Canonical Categories
@@ -133,8 +168,8 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Auto Create Job with AI**: Natural-language prompt-driven job generation (`AutoCreateJobModal`) leveraging company profiles, addresses, industries, and taxonomy matching to structure rich-text descriptions, responsibilities, qualifications, and extracted skills. Enforces strict salary guardrails (zero fabricated salaries) and unifies review in the standard 5-step job creation wizard.
 * **In-Editor AI Text Refinements**: Integrated AI action bar in `RichTextEditor` (`✨ Improve`, `✂ Make Concise`, `⚙ More Technical`, `🔄 Regenerate`, and custom instructions) powered by `/api/client/jobs/refine-text` for real-time section-level polish.
 * **Searchable Category Combobox & Controlled Suggestions**: In-form searchable combobox with real-time text matching, candidate descriptions, and an integrated category suggestion modal (`SuggestCategoryModal`) featuring AI semantic deduplication pre-checks to protect taxonomy integrity while preventing employer posting friction.
-* **Configurable ATS Hiring Pipeline & Versioned Job Snapshots**: Decoupled company hiring pipeline templates (`vs_company_pipelines`) from per-job versioned workflow snapshots (`vs_job_pipeline_versions`, `vs_job_pipeline_stages`, `vs_job_pipeline_transitions`). Jobs maintain their own isolated snapshots upon creation. Changes to company defaults do not mutate existing jobs.
-* **Security Hardening, Multi-Tenant IDOR Mitigation & Data Privacy**: All 11 pipeline API endpoints use canonical `authenticateRequest` cryptographic JWT verification (`jose.jwtVerify`) with account status checks. Enforces strict tenant ownership verification on pipeline templates (`updateCompanyPipeline` & `PATCH /api/client/pipelines/[id]`), candidate inspection (`GET /api/client/applicants/[id]`), candidate stage mutations (`PATCH /api/client/applicants/[id]`), and AI candidate evaluation (`GET/POST /api/client/applicants/[id]/ai-analysis`) via `job.company_id === companyId` checks to prevent BOLA/IDOR attacks across organizations. Redacts confidential employer transition evaluations (`client_notes`) from candidate-facing application endpoints to protect hiring privacy, sanitizes dynamic stage names interpolated into notifications, and routes candidate status mutations strictly through `transitionApplicationStage` to preserve transition route integrity while syncing freelancer withdrawals with `WITHDRAWN` audit history.
+* **Configurable ATS Hiring Pipeline & Versioned Job Snapshots**: Decoupled company hiring pipeline templates (`vs_company_pipelines`) from per-job versioned workflow snapshots (`vs_job_pipeline_versions`, `vs_job_pipeline_stages`, `vs_job_pipeline_transitions`). Jobs maintain their own isolated snapshots upon creation. Changes to company defaults do not mutate existing jobs. Enhanced template re-synchronization (`snapshotCompanyPipeline`) to safely map stage IDs, copy explicit progression rules, seed linear transitions if needed, and hydrate stages with `allowed_next_stage_ids` so candidates always maintain valid pathways to Hired. Scoped pipeline customization strictly to job editing mode (`JobForm`), keeping the Hiring Pipeline Workflow in `JobDetailSheet` purely as an inspection-only read-only preview.
+* **Security Hardening, Multi-Tenant IDOR Mitigation & Data Privacy**: All job management and pipeline endpoints (including `DELETE` and `PATCH /api/client/jobs/[id]` as well as all 11 pipeline endpoints) use canonical `authenticateRequest` cryptographic JWT verification (`jose.jwtVerify`) with account status checks. Enforces strict tenant ownership verification on job modification and deletion, pipeline templates (`updateCompanyPipeline` & `PATCH /api/client/pipelines/[id]`), candidate inspection (`GET /api/client/applicants/[id]`), candidate stage mutations (`PATCH /api/client/applicants/[id]`), and AI candidate evaluation (`GET/POST /api/client/applicants/[id]/ai-analysis`) via `job.company_id === companyId` checks to prevent BOLA/IDOR attacks across organizations. Redacts confidential employer transition evaluations (`client_notes`) from candidate-facing application endpoints to protect hiring privacy, sanitizes dynamic stage names interpolated into notifications, and routes candidate status mutations strictly through `transitionApplicationStage` to preserve transition route integrity while syncing freelancer withdrawals with `WITHDRAWN` audit history.
 * **Philippine Local-Time (UTC+8) Database Audit Timestamps**: All pipeline configurations, stage transitions, version snapshots, and audit trail logs strictly persist in device Philippine local time (`getPHTimeString()`) without UTC discrepancies.
 * **Authoritative Fail-Closed Backend Immutability Locking & Stage Pinning**: Strict backend gate enforcing workflow immutability once candidate applications exist (`application_count > 0`), rejecting mutations (stage creation, deletion, reordering, renaming, transitions, and resets) with HTTP 409 Conflict with fail-closed error handling. Permanently pins `APPLIED` to position 1 across drag-and-drop and arrow ordering controls, preventing pipeline inversion.
 * **Canonical Semantic Types, Intermediate Custom Stage Enforcements & Universal Exits**: Powered by 8 stable semantic types with custom stage creation strictly restricted to intermediate evaluation categories (`SCREENING`, `ASSESSMENT`, `INTERVIEW`, `OFFER`) to protect candidate entry and exit state machines. `REJECTED` and `WITHDRAWN` serve as universal exits, and terminal states prohibit outgoing transitions.
@@ -195,6 +230,7 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 ### Client Talent Search
 
 * **Direct Talent Discovery & Outreach**: Searchable freelancer profile database with multi-dimensional filtering, profile inspection slide-over drawers, and direct talent bookmarking (`useSavedTalent`).
+* **Candidate Name & Academic Institution Search**: Multi-field search intelligence matching candidate full names, tokens, and typos alongside Philippine university names, dynamic acronyms (e.g. DLSU, UST, UP, PUP, ADMU), and degrees in candidate retrieval and relevance ranking.
 * **Fluid Framer Motion Transitions & State Transitions**: Replaced static views with smooth `<AnimatePresence mode="wait">` transitions between initial search guidance, loading skeletons, empty states, and results; orchestrated candidate cards with staggered fade-in animations and micro-hover elevations (`whileHover={{ y: -3 }}`).
 * **Collapsible Accordion Filter Controls & Skill Chip Animations**: Replaced abrupt filter toggles with height-animated accordion sections, rotating chevron indicators (`animate={{ rotate: open ? 180 : 0 }}`), and layout-animated skill chip tags (`<AnimatePresence>` + `<motion.span layout>`).
 * **Interactive Bookmark Actions & List Collapse**: Animated saved talent list (`<AnimatePresence mode="popLayout">` with `motion.div layout="position"`), enabling seamless row collapse upon unbookmarking, accompanied by responsive tap micro-interactions (`whileTap={{ scale: 0.95 }}`).
@@ -360,6 +396,18 @@ Retrieval scores remain internal. Recruiters see compatibility-based results rat
 * UTC database timestamps with Philippine local-time presentation.
 * Verification status remains administrator-controlled and independent of document uploads.
 
+## Authentication & Identity Security
+
+* **Google, LinkedIn & Facebook Social Sign-In**: Extensible `SocialAuthButtons` integration on Login (`/login`) and Signup (`/signup`) with OpenID Connect and OAuth 2.0 identity verification across Google, LinkedIn, and Facebook (Meta Graph API v20.0).
+* **Cryptographic Claim & Profile Verification**: Validates OIDC ID tokens and Meta profile endpoints, extracting standardized profile claims (`sub`/`id`, `name`, `first_name`/`given_name`, `last_name`/`family_name`, `picture`, `email`) and validating client tokens server-side.
+* **Strict Subject Anchor & Diagnostic Email Lookups on Social Login**: On `/login`, Continue with Google, Facebook, and LinkedIn authenticate strictly via the provider's permanent subject/user identifier (`sub`/`id`) in `vs_user_identity`. Email lookups in `vs_user` never automatically authenticate during login; instead, an unlinked provider identity matching an existing account is rejected with guidance to use original credentials and link via Settings, unlinked identities without an account are rejected with guidance to sign up, and cross-account identity conflicts are hard-blocked with security audit logging.
+* **Seamless Auto-Registration, Editable Prefill & Immediate Identity Linking**: When a new user signs up with Google, LinkedIn, or Facebook (`/signup`), verified profile claims (first name, last name, email, avatar) are encrypted into short-lived JWE cookies (`vos_sync_google_reg`, `vos_sync_linkedin_reg`, `vos_sync_facebook_reg`). Prefilled form fields remain completely editable. Upon completing registration verification, the federated identity is automatically persisted to `vs_user_identity` in Philippine time so the account is immediately connected without manual linking.
+* **Explicit Account Ownership Confirmation & Conflict Prevention**: When linking social providers in Security & Auth, identities already tied to another user are hard-blocked. Cross-account collisions trigger explicit confirmation dialogs backed by encrypted, short-lived pending link tokens (`A256GCM`) with single-use atomic replay protection before persisting to `vs_user_identity`.
+* **OAuth Replay & CSRF Defense**: Employs independent `state` and `nonce` parameters with single-use atomic consumption tracking to prevent replay attacks across Google, LinkedIn, and Facebook OAuth flows.
+* **Canonical Meta Graph & LinkedIn OAuth Flows**: Aligns Facebook and LinkedIn authentication with official server-side authorization code standards for confidential clients (`FACEBOOK_SECRET`, `FACEBOOK_ID`, `FACEBOOK_TOKEN` app client token), providing resilient error diagnostics.
+* **Connected Accounts & Multi-Provider Linking (Security & Auth)**: Users can link and unlink Google, LinkedIn, and Facebook identities from Client and Freelancer Security settings via the relational `vs_user_identity` collection with session revalidation, subject conflict prevention, and strict server-side lockout prevention requiring an active password before disconnecting.
+* **Proxy Origin Preservation & Dynamic Cookie Transport**: Resolves public client-facing origins (`resolveRequestOrigin`) across reverse proxies and Tailscale configurations, eliminating redirect leakage to internal listener ports and matching cookie security flags to transport protocol.
+
 ---
 
 ## Role-Aware Public Experience
@@ -463,6 +511,8 @@ VOS Sync includes dedicated infrastructure for detecting and communicating backe
 
 * Zero ESLint errors and warnings.
 * Zero TypeScript compilation errors.
+* Automated CI pipeline validating linting (`eslint --max-warnings=0`), TypeScript compilation (`typecheck`), and Next.js production builds on pull requests and pushes to `master`.
+* Automated CD pipeline managing continuous deployment to production via SSH and PM2 process synchronization.
 * Strict TypeScript typing.
 * Explicit interfaces and `unknown` types instead of unsafe `any`.
 * React hook patterns optimized to prevent cascading state updates.
