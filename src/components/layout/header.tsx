@@ -21,7 +21,7 @@ type AuthUser = {
   name: string
   email?: string
   avatar?: string
-  role: "client" | "freelancer" | "other"
+  role: "client" | "freelancer" | "admin" | "school" | "other"
 }
 
 const PUBLIC_MOBILE_MENU_ID = "public-mobile-navigation"
@@ -58,58 +58,95 @@ export function Header() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [mobileMenuOpen])
 
-  // Check logged-in user session
+  // Check logged-in user session safely via /api/auth/me
   React.useEffect(() => {
     async function checkAuth() {
       try {
-        // 1. Try Client profile first
-        const clientRes = await fetch("/api/client/company-profile", { cache: "no-store" })
-        if (clientRes.ok) {
-          const clientJson = await clientRes.json()
-          if (clientJson.company) {
-            const comp = clientJson.company
-            const logo = comp.company_logo
-              ? comp.company_logo.startsWith("http") || comp.company_logo.startsWith("/")
-                ? comp.company_logo
-                : `/api/client/assets/${comp.company_logo}`
-              : ""
-            setUser({
-              name: comp.company_name || "Client Portal",
-              email: comp.company_email || "",
-              avatar: logo,
-              role: "client",
-            })
-            setCheckingAuth(false)
-            return
-          }
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" })
+        if (!meRes.ok) {
+          setCheckingAuth(false)
+          return
         }
 
-        // 2. Fetch User / Freelancer profile from vs_user endpoint
-        const freeRes = await fetch("/api/freelancer/profile", { cache: "no-store" })
-        if (freeRes.ok) {
-          const freeJson = await freeRes.json()
-          if (freeJson.ok && freeJson.data) {
-            const f = freeJson.data
-            const name = `${f.user_fname || f.first_name || ""} ${f.user_lname || f.last_name || ""}`.trim() || "User"
-            const rawAvatar = f.profile_image_url || f.profile_picture || ""
-            const avatar = rawAvatar
-              ? rawAvatar.startsWith("http") || rawAvatar.startsWith("/")
-                ? rawAvatar
-                : `/api/client/assets/${rawAvatar}`
-              : ""
-            const isClientRole = f.role_id === 2 || String(f.role || "").toUpperCase() === "CLIENT"
-            setUser({
-              name,
-              email: f.user_email || f.email || "",
-              avatar,
-              role: isClientRole ? "client" : "freelancer",
-            })
-            setCheckingAuth(false)
-            return
+        const meJson = await meRes.json()
+        if (!meJson?.authenticated) {
+          setCheckingAuth(false)
+          return
+        }
+
+        if (meJson.role === "employer") {
+          const clientRes = await fetch("/api/client/company-profile", { cache: "no-store" })
+          if (clientRes.ok) {
+            const clientJson = await clientRes.json()
+            if (clientJson.company) {
+              const comp = clientJson.company
+              const logo = comp.company_logo
+                ? comp.company_logo.startsWith("http") || comp.company_logo.startsWith("/")
+                  ? comp.company_logo
+                  : `/api/client/assets/${comp.company_logo}`
+                : ""
+              setUser({
+                name: comp.company_name || "Client Portal",
+                email: comp.company_email || "",
+                avatar: logo,
+                role: "client",
+              })
+              setCheckingAuth(false)
+              return
+            }
           }
+          setUser({
+            name: "Client Portal",
+            email: "",
+            avatar: "",
+            role: "client",
+          })
+        } else if (meJson.role === "employee") {
+          const freeRes = await fetch("/api/freelancer/profile", { cache: "no-store" })
+          if (freeRes.ok) {
+            const freeJson = await freeRes.json()
+            if (freeJson.ok && freeJson.data) {
+              const f = freeJson.data
+              const name = `${f.user_fname || f.first_name || ""} ${f.user_lname || f.last_name || ""}`.trim() || "User"
+              const rawAvatar = f.profile_image_url || f.profile_picture || ""
+              const avatar = rawAvatar
+                ? rawAvatar.startsWith("http") || rawAvatar.startsWith("/")
+                  ? rawAvatar
+                  : `/api/client/assets/${rawAvatar}`
+                : ""
+              setUser({
+                name,
+                email: f.user_email || f.email || "",
+                avatar,
+                role: "freelancer",
+              })
+              setCheckingAuth(false)
+              return
+            }
+          }
+          setUser({
+            name: "Freelancer",
+            email: "",
+            avatar: "",
+            role: "freelancer",
+          })
+        } else if (meJson.role === "admin") {
+          setUser({
+            name: "Administrator",
+            email: "",
+            avatar: "",
+            role: "admin",
+          })
+        } else if (meJson.role === "school") {
+          setUser({
+            name: "School Admin",
+            email: "",
+            avatar: "",
+            role: "school",
+          })
         }
       } catch {
-        // Ignore fetch errors for unauthenticated guests
+        // Ignore network errors for unauthenticated guests
       }
       setCheckingAuth(false)
     }
@@ -210,6 +247,20 @@ export function Header() {
                       </Link>
                     </DropdownMenuItem>
                   </>
+                ) : user.role === "admin" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/vos-sync/vos-admin" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                      Admin Portal
+                    </Link>
+                  </DropdownMenuItem>
+                ) : user.role === "school" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/vos-sync/school-admin" className="flex min-h-11 items-center gap-2.5 cursor-pointer rounded-lg py-2 font-medium">
+                      <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
+                      School Portal
+                    </Link>
+                  </DropdownMenuItem>
                 ) : (
                   <>
                     <DropdownMenuItem asChild>
@@ -317,6 +368,18 @@ export function Header() {
                     </Link>
                   </Button>
                 </>
+              ) : user.role === "admin" ? (
+                <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Link href="/vos-sync/vos-admin">
+                    <LayoutDashboard className="w-4 h-4" /> Admin Portal
+                  </Link>
+                </Button>
+              ) : user.role === "school" ? (
+                <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
+                  <Link href="/vos-sync/school-admin">
+                    <LayoutDashboard className="w-4 h-4" /> School Portal
+                  </Link>
+                </Button>
               ) : (
                 <>
                   <Button asChild variant="outline" className="min-h-11 w-full justify-start gap-2 cursor-pointer border-border text-foreground hover:bg-muted">
