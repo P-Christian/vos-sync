@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPHTimeString } from "@/lib/utils";
 
+import { authenticateRequest } from "@/lib/authenticated-session";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -19,20 +21,6 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
-}
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
 }
 
 interface DirectusReaction {
@@ -60,18 +48,12 @@ export async function POST(
       return NextResponse.json({ error: "Invalid message ID." }, { status: 400 });
     }
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
+    const session = await authenticateRequest(req);
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const userId = Number(session.userId);
 
     const body = await req.json().catch(() => null);
     const reaction = body?.reaction;

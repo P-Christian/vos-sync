@@ -3,6 +3,8 @@ import { checkRestriction, checkCompanyVerificationStatus } from "@/lib/status-v
 import { getPHTimeString } from "@/lib/utils";
 import { encryptMessage, safeDecryptMessage } from "@/lib/message-encryption";
 
+import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -21,20 +23,6 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 // ─── GET — Fetch messages in a conversation ────────────────────────────────
 
 export async function GET(
@@ -44,18 +32,15 @@ export async function GET(
   try {
     const { conversationId } = await params;
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session || !isClientSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Client access required." : "Unauthorized." },
+        { status: session ? 403 : 401 }
+      );
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const userId = Number(session.userId);
 
     // Verify client belongs to this conversation
     const convRes = await fetch(
@@ -484,18 +469,15 @@ export async function POST(
   try {
     const { conversationId } = await params;
 
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session || !isClientSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Client access required." : "Unauthorized." },
+        { status: session ? 403 : 401 }
+      );
     }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid token." }, { status: 401 });
-    }
+    const userId = Number(session.userId);
 
     // Validate SEND_MESSAGES Restriction
     const isRestricted = await checkRestriction(userId, "SEND_MESSAGES");

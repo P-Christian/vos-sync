@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createReferralRecord } from "@/modules/freelancer/freelancer-referrals/services/referral.service";
 import { sendMail } from "@/lib/mail";
 import { createNotification } from "@/lib/notifications";
+import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -15,30 +16,18 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (session && !isFreelancerSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: freelancer role required." }, { status: 403 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     const body = await req.json().catch(() => ({}));
     const { job_id, recipient_email } = body;
@@ -128,14 +117,16 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    if (session && !isFreelancerSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: freelancer role required." }, { status: 403 });
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = session?.userId ? Number(session.userId) : 1;
 
     const res = await fetch(
       `${DIRECTUS_BASE}/items/vs_job_referral?filter[referrer_user_id][_eq]=${userId}&sort[]=-created_at&fields=*,job_id.job_id,job_id.job_title&limit=200`,

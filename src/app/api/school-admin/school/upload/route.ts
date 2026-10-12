@@ -13,7 +13,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
 ]);
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (!ALLOWED_MIME_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG images are allowed." },
+        { error: "Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed." },
         { status: 400 },
       );
     }

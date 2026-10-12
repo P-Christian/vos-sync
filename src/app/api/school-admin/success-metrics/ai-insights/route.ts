@@ -2,12 +2,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMetricsAiInsights } from '@/modules/school-admin/success-metrics/services/success-metrics-ai.service';
 import { AiMetricsInsightRequestSchema } from '@/modules/school-admin/success-metrics/types/success-metrics.schema';
+import { authenticateRequest, hasRole } from '@/lib/authenticated-session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await authenticateRequest(request);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const isSchoolAdmin = session ? hasRole(session, [3, 4], ["ADMIN", "ADMINISTRATOR", "SCHOOL_ADMIN", "SCH_ADMIN"]) : false;
+    if (session && !isSchoolAdmin && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: school admin role required." }, { status: 403 });
+    }
+
     const body = await request.json();
 
     const parseResult = AiMetricsInsightRequestSchema.safeParse(body);

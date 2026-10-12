@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ const COOKIE_NAME = "vos_sync_access_token";
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET || "default_super_secret_key_for_development"
 );
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
 export async function POST(req: NextRequest) {
     const token = req.cookies.get(COOKIE_NAME)?.value || req.headers.get("authorization")?.replace("Bearer ", "");
@@ -21,6 +24,22 @@ export async function POST(req: NextRequest) {
             userId = Number(payload.sub || payload.user_id || payload.id);
         } catch {
             // Ignore invalid token on logout
+        }
+    }
+
+    if (userId && DIRECTUS_BASE) {
+        try {
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
+            await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
+                method: "PATCH",
+                headers,
+                body: JSON.stringify({
+                    session_epoch: getPHTimeString(),
+                }),
+            });
+        } catch (err) {
+            console.error("[api/auth/logout] Failed to update session_epoch:", err);
         }
     }
 

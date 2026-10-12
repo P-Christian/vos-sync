@@ -1,6 +1,8 @@
 // src/app/api/freelancer/notifications/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
+import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -16,43 +18,41 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session || !isFreelancerSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Freelancer access required." : "Unauthorized." },
+        { status: session ? 403 : 401 }
+      );
+    }
 
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = Number(session.userId);
 
     const body = await req.json().catch(() => ({}));
     const payload: Record<string, unknown> = {};
     if (body.is_read !== undefined) payload.is_read = body.is_read;
     if (body.is_starred !== undefined) payload.is_starred = body.is_starred;
 
-    // Note: To be fully secure we should ensure the notification belongs to this userId,
-    // but typically Directus permissions handle this or we assume the ID is unguessable enough/checked.
-    // For MVP, we just PATCH the specific ID.
+    // Verify ownership
+    const checkRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_freelancer_notification/${id}?fields=user_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!checkRes.ok) {
+      return NextResponse.json({ error: "Notification not found." }, { status: 404 });
+    }
+    const checkJson = await checkRes.json();
+    if (checkJson.data?.user_id !== userId) {
+      return NextResponse.json({ error: "Forbidden. You do not own this notification." }, { status: 403 });
+    }
+
     const res = await fetch(`${DIRECTUS_BASE}/items/vs_freelancer_notification/${id}`, {
       method: "PATCH",
       headers: getHeaders(),

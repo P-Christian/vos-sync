@@ -347,8 +347,6 @@ export async function POST(req: NextRequest) {
         console.error("Nodemailer OTP dispatch failed (resend):", e);
       }
 
-      console.log(`[RESEND OTP] Email: ${email} | OTP: ${generatedOtp}`);
-
       return NextResponse.json({
         success: true,
         message: "Verification code resent successfully.",
@@ -783,8 +781,6 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error("Nodemailer OTP dispatch failed (new user):", e);
     }
-
-    console.log(`[SIGNUP OTP] Email: ${email} | OTP: ${generatedOtp}`);
 
     return NextResponse.json({
       success: true,

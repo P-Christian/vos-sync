@@ -16,30 +16,19 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
+import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
 
 export async function GET(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session || !isFreelancerSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Freelancer access required." : "Unauthorized." },
+        { status: session ? 403 : 401 }
+      );
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = Number(session.userId);
 
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unread_only") === "true";
@@ -98,14 +87,15 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
+    const session = await authenticateRequest(req);
+    if (!session || !isFreelancerSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Freelancer access required." : "Unauthorized." },
+        { status: session ? 403 : 401 }
+      );
+    }
 
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const userId = getUserIdFromToken(token);
-    if (!userId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const userId = Number(session.userId);
 
     const body = await req.json().catch(() => ({}));
     if (!body.mark_all_read) {
