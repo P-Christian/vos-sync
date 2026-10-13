@@ -22,7 +22,7 @@ export function usePushNotifications() {
       // Register Service Worker
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => {
+        .then(() => {
           console.log("⚡ [Push] Service worker registered successfully");
         })
         .catch((err) => {

@@ -20,7 +20,6 @@ export interface OAuthErrorPayload {
 
 export interface OAuthPopupOptions {
   url: string;
-  title?: string;
   width?: number;
   height?: number;
   onSuccess?: (payload: OAuthSuccessPayload) => void;
@@ -36,7 +35,6 @@ export interface OAuthPopupOptions {
  */
 export function openOAuthPopup({
   url,
-  title = "VOS Sync Social Authentication",
   width = 600,
   height = 700,
   onSuccess,

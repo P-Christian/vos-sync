@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { CalendarDays, AlertCircle, Plus, Filter, Search, Calendar, List } from "lucide-react";
+import { CalendarDays, AlertCircle, Plus, Search, Calendar, List } from "lucide-react";
 import { Interview, InterviewFormData, InterviewStatus } from "./types";
 import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";

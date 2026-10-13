@@ -155,7 +155,7 @@ export function RidgelineBackground({ interactive = true }: { interactive?: bool
 
     const STEP = 10;
 
-    const draw = (t: number, dt: number) => {
+    const draw = (t: number) => {
       // theme mix: 0 = light, 1 = dark (eased)
       const raw = mixRef.current ?? 0;
       const mix = raw * raw * (3 - 2 * raw);
@@ -291,12 +291,12 @@ export function RidgelineBackground({ interactive = true }: { interactive?: bool
       const tg = targetRef.current;
       const m = mixRef.current ?? tg;
       if (m !== tg) mixRef.current = m < tg ? Math.min(tg, m + dt * 2) : Math.max(tg, m - dt * 2);
-      draw(now / 1000, dt);
+      draw(now / 1000);
       raf = requestAnimationFrame(frame);
     };
     if (reduce) {
-      redrawRef.current = () => draw(0, 0);
-      draw(0, 0);
+      redrawRef.current = () => draw(0);
+      draw(0);
     } else raf = requestAnimationFrame(frame);
 
     let timer = 0;
@@ -304,7 +304,7 @@ export function RidgelineBackground({ interactive = true }: { interactive?: bool
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         fit();
-        if (reduce) draw(0, 0);
+        if (reduce) draw(0);
       }, 150);
     };
     const onDown = (e: PointerEvent) => {

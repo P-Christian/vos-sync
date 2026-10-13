@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Filter } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { ApplicationStatus } from '../types';
 
