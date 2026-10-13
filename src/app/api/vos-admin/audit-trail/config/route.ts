@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_super_secret_key_for_development"
+  process.env.JWT_SECRET
 );
 
 async function verifyAdminRole(req: NextRequest): Promise<{ adminId: number; roleId: number } | null> {

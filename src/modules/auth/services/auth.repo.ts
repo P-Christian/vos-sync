@@ -282,9 +282,7 @@ export async function clearResetToken(userId: string | number, newHashedPassword
     };
     if (newHashedPassword) {
         body.hash_password = newHashedPassword;
-    }
-    if (plainPassword) {
-        body.user_password = plainPassword;
+        body.user_password = newHashedPassword; // legacy compat
     }
 
     const res = await fetch(url, {

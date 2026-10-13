@@ -1,7 +1,8 @@
 // src/app/api/freelancer/settings/data-requests/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { decodeJwtPayload } from "@/lib/auth-utils";
+import { createHash } from "crypto";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,20 +21,15 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-function getUserIdFromReq(req: NextRequest): number | null {
-  const token =
-    req.headers.get("authorization")?.replace("Bearer ", "") ||
-    req.cookies.get("vos_sync_access_token")?.value;
-  if (!token) return null;
-  const decoded = decodeJwtPayload(token);
-  const id = decoded?.user_id ?? decoded?.sub ?? decoded?.id ?? null;
-  return id !== null ? Number(id) : null;
+async function getUserIdFromReq(req: NextRequest): Promise<number | null> {
+  const session = await authenticateRequest(req);
+  return session ? Number(session.userId) : null;
 }
 
 // GET: Fetch requests & artifacts
 export async function GET(req: NextRequest) {
   try {
-    const userId = getUserIdFromReq(req);
+    const userId = await getUserIdFromReq(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -74,7 +70,7 @@ export async function GET(req: NextRequest) {
 // POST: Create request
 export async function POST(req: NextRequest) {
   try {
-    const userId = getUserIdFromReq(req);
+    const userId = await getUserIdFromReq(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -151,12 +147,15 @@ export async function POST(req: NextRequest) {
       if (updateRes.ok) {
         const updatedReq = (await updateRes.json()).data;
         
-        // Mock create download artifact
+        // Create download artifact
+        const fileContent = JSON.stringify({ requestId: updatedReq.request_id, userId, exportedAt: new Date().toISOString() });
+        const integrityHash = `sha256-${createHash("sha256").update(fileContent).digest("hex")}`;
+
         const artifactPayload = {
           request_id: updatedReq.request_id,
           user_id: userId,
           storage_object_id: `export_file_${updatedReq.request_id}.json`,
-          integrity_hash: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
+          integrity_hash: integrityHash,
           status: "active",
           generated_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -185,7 +184,7 @@ export async function POST(req: NextRequest) {
 // PATCH: Cancel/confirm request
 export async function PATCH(req: NextRequest) {
   try {
-    const userId = getUserIdFromReq(req);
+    const userId = await getUserIdFromReq(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }

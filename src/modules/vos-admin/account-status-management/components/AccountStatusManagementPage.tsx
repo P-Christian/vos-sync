@@ -9,7 +9,7 @@ import { AccountStatusDetailModal } from "./AccountStatusDetailModal";
 import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { ShieldAlert, ShieldCheck, AlertOctagon, Eye, AlertTriangle } from "lucide-react";
 
 export function AccountStatusManagementPage() {
@@ -212,18 +212,13 @@ export function AccountStatusManagementPage() {
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
           <h2 className="text-xl font-semibold">User Account States</h2>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-zinc-900 dark:border-zinc-800">
-                <SelectValue placeholder="Filter by Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {statusDropdownOptions.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={statusFilter}
+              onValueChange={(val) => { setStatusFilter(val); setPage(1); }}
+              options={statusDropdownOptions}
+              placeholder="Filter by Status"
+              triggerClassName="w-full sm:w-[200px] bg-white dark:bg-zinc-900 dark:border-zinc-800"
+            />
           </div>
         </div>
 

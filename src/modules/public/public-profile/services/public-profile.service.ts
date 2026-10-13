@@ -2,6 +2,8 @@
 // src/modules/public/public-profile/services/public-profile.service.ts
 
 
+import { formatAssetUrl } from "@/lib/utils";
+
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
@@ -344,7 +346,7 @@ export async function getPublicFreelancerProfile(id: number, callerRole: number 
       user_fname: user.user_fname,
       user_lname: user.user_lname,
       user_email: user.user_email, // Depending on privacy rules, email might be hidden, but we include it for MVP
-      avatar_url: user.profile_image_url ? `${DIRECTUS_BASE}/assets/${user.profile_image_url}` : undefined,
+      avatar_url: user.profile_image_url ? (formatAssetUrl(user.profile_image_url) ?? undefined) : undefined,
       headline: user.user_position || publicProfile.professional_headline || "Freelancer",
       bio: publicProfile.professional_summary || publicProfile.about_me || "",
       skills: skillList,
@@ -440,12 +442,8 @@ export async function getPublicClientProfile(id: number): Promise<PublicClientPr
           company_website: comp.company_website || null,
           company_email: comp.company_email || null,
           company_contact: comp.company_contact || null,
-          company_logo: comp.company_logo
-            ? (comp.company_logo.startsWith("http") ? comp.company_logo : `${DIRECTUS_BASE}/assets/${comp.company_logo}`)
-            : null,
-          company_cover: comp.company_cover
-            ? (comp.company_cover.startsWith("http") ? comp.company_cover : `${DIRECTUS_BASE}/assets/${comp.company_cover}`)
-            : null,
+          company_logo: formatAssetUrl(comp.company_logo),
+          company_cover: formatAssetUrl(comp.company_cover),
           company_address: addressParts.join(", ") || null,
           industry: industryName,
           organization_type: orgTypeName,
@@ -469,7 +467,7 @@ export async function getPublicClientProfile(id: number): Promise<PublicClientPr
       user_fname: user.user_fname,
       user_lname: user.user_lname,
       user_email: user.user_email,
-      avatar_url: user.profile_image_url ? `${DIRECTUS_BASE}/assets/${user.profile_image_url}` : undefined,
+      avatar_url: user.profile_image_url ? (formatAssetUrl(user.profile_image_url) ?? undefined) : undefined,
       headline: "Client",
       company: companyDetails,
     };
@@ -526,12 +524,8 @@ export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSch
           school_id = typeof schoolStats.school_id === "object" && schoolStats.school_id !== null ? Number((schoolStats.school_id as any).school_id) : Number(schoolStats.school_id);
           school_name = schoolStats.school_name;
           school_type = schoolStats.school_type;
-          school_logo_url = schoolStats.school_logo_url
-            ? (schoolStats.school_logo_url.startsWith("http") ? schoolStats.school_logo_url : `${DIRECTUS_BASE}/assets/${schoolStats.school_logo_url}`)
-            : null;
-          school_cover = schoolStats.school_cover
-            ? (schoolStats.school_cover.startsWith("http") ? schoolStats.school_cover : `${DIRECTUS_BASE}/assets/${schoolStats.school_cover}`)
-            : null;
+          school_logo_url = formatAssetUrl(schoolStats.school_logo_url);
+          school_cover = formatAssetUrl(schoolStats.school_cover);
           school_description = schoolStats.school_description;
           school_mission = schoolStats.school_mission;
           school_values = schoolStats.school_values;
@@ -572,12 +566,8 @@ export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSch
                   school_id = Number(s.school_id);
                   school_name = s.school_name;
                   school_type = s.school_type;
-                  school_logo_url = s.school_logo_url
-                    ? (s.school_logo_url.startsWith("http") ? s.school_logo_url : `${DIRECTUS_BASE}/assets/${s.school_logo_url}`)
-                    : null;
-                  school_cover = s.school_cover
-                    ? (s.school_cover.startsWith("http") ? s.school_cover : `${DIRECTUS_BASE}/assets/${s.school_cover}`)
-                    : null;
+                  school_logo_url = formatAssetUrl(s.school_logo_url);
+                  school_cover = formatAssetUrl(s.school_cover);
                   school_description = s.school_description;
                   school_mission = s.school_mission;
                   school_values = s.school_values;
@@ -613,12 +603,8 @@ export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSch
               school_id = Number(s.school_id);
               school_name = s.school_name;
               school_type = s.school_type;
-              school_logo_url = s.school_logo_url
-                ? (s.school_logo_url.startsWith("http") ? s.school_logo_url : `${DIRECTUS_BASE}/assets/${s.school_logo_url}`)
-                : null;
-              school_cover = s.school_cover
-                ? (s.school_cover.startsWith("http") ? s.school_cover : `${DIRECTUS_BASE}/assets/${s.school_cover}`)
-                : null;
+              school_logo_url = formatAssetUrl(s.school_logo_url);
+              school_cover = formatAssetUrl(s.school_cover);
               school_description = s.school_description;
               school_mission = s.school_mission;
               school_values = s.school_values;
@@ -658,12 +644,8 @@ export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSch
             school_id = s.school_id;
             school_name = s.school_name;
             school_type = s.school_type;
-            school_logo_url = s.school_logo_url
-              ? (s.school_logo_url.startsWith("http") ? s.school_logo_url : `${DIRECTUS_BASE}/assets/${s.school_logo_url}`)
-              : null;
-            school_cover = s.school_cover
-              ? (s.school_cover.startsWith("http") ? s.school_cover : `${DIRECTUS_BASE}/assets/${s.school_cover}`)
-              : null;
+            school_logo_url = formatAssetUrl(s.school_logo_url);
+            school_cover = formatAssetUrl(s.school_cover);
             school_description = s.school_description;
             school_mission = s.school_mission;
             school_values = s.school_values;
@@ -735,7 +717,7 @@ export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSch
       user_email: school_email || user?.user_email || "",
       avatar_url: school_logo_url
         ? school_logo_url
-        : (user?.profile_image_url ? `${DIRECTUS_BASE}/assets/${user.profile_image_url}` : undefined),
+        : (user?.profile_image_url ? (formatAssetUrl(user.profile_image_url) ?? undefined) : undefined),
       headline: "School Admin",
       school_id,
       school_name,

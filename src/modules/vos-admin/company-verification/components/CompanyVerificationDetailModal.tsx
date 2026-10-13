@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import { formatAssetUrl } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -107,31 +108,17 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
     .toUpperCase() || "CO";
 
   // Resolve cover photo URL
+  const rawCompany = company as unknown as Record<string, string | null | undefined>;
   const coverPhoto =
     company.company_cover ||
-    (company as unknown as Record<string, unknown>).company_cover_photo ||
-    (company as unknown as Record<string, unknown>).company_cover_image;
+    rawCompany.company_cover_photo ||
+    rawCompany.company_cover_image;
 
-  const coverUrl = coverPhoto
-    ? String(coverPhoto).startsWith("http") || String(coverPhoto).startsWith("/")
-      ? String(coverPhoto)
-      : `/assets/${coverPhoto}`
-    : null;
-
-  // Resolve logo URL
-  const logoUrl = company.company_logo
-    ? String(company.company_logo).startsWith("http") || String(company.company_logo).startsWith("/")
-      ? String(company.company_logo)
-      : `/assets/${company.company_logo}`
-    : null;
+  const coverUrl = formatAssetUrl(coverPhoto);
+  const logoUrl = formatAssetUrl(company.company_logo);
 
   const getGovIdUrl = (uuidOrUrl: string | null | undefined): string | null => {
-    if (!uuidOrUrl || !uuidOrUrl.trim()) return null;
-    const t = uuidOrUrl.trim();
-    if (t.startsWith("http://") || t.startsWith("https://")) return t;
-    if (t.startsWith("/api/assets/")) return t;
-    if (t.startsWith("/assets/")) return `/api${t}`;
-    return `/api/assets/${t.split("/").pop()}`;
+    return formatAssetUrl(uuidOrUrl);
   };
 
   const primaryFrontUrl = getGovIdUrl(
@@ -564,7 +551,7 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                       </div>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`/assets/${doc.directus_file_id}`}
+                          href={`/api/assets/${doc.directus_file_id}`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold hover:bg-muted transition-colors"
@@ -573,7 +560,7 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                           Preview
                         </a>
                         <a
-                          href={`/assets/${doc.directus_file_id}?download`}
+                          href={`/api/assets/${doc.directus_file_id}?download`}
                           download
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
                         >

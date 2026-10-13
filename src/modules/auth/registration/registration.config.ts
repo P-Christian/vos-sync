@@ -82,12 +82,19 @@ export function getRegistrationConfig(): RegistrationConfig {
 
   const otpHmacSecret =
     process.env.REGISTRATION_OTP_HMAC_SECRET?.trim() ||
-    process.env.JWT_SECRET ||
-    "default_super_secret_key_for_development";
+    process.env.JWT_SECRET?.trim();
 
-  const turnstileSecret =
-    process.env.TURNSTILE_SECRET?.trim() ||
-    "1x0000000000000000000000000000000AA";
+  if (!otpHmacSecret) {
+    throw configurationError(
+      "REGISTRATION_OTP_HMAC_SECRET or JWT_SECRET must be configured."
+    );
+  }
+
+  const turnstileSecret = process.env.TURNSTILE_SECRET?.trim();
+
+  if (!turnstileSecret) {
+    throw configurationError("TURNSTILE_SECRET must be configured.");
+  }
 
   const directusBaseUrl = (
     process.env.DIRECTUS_URL?.trim() ||

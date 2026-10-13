@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { uploadMediaAction } from "../services/freelancer-profile.actions";
 import { VsCertification } from "../types/freelancer-profile.types";
+import { formatAssetUrl } from "@/lib/utils";
 
 interface CertificationsModalProps {
     isOpen: boolean;
@@ -141,7 +142,7 @@ export function CertificationsModal({ isOpen, onClose, userId, certificationToEd
         setShowDeleteModal(true);
     };
 
-    const previewUrl = imageUuid ? (imageUuid.startsWith("http") ? imageUuid : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${imageUuid}`) : "";
+    const previewUrl = formatAssetUrl(imageUuid) || "";
 
     return (
         <>

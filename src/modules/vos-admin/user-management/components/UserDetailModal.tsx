@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { VsUser } from "../types/user.types";
 import { UserStatusBadge } from "./UserStatusBadge";
+import { formatAssetUrl } from "@/lib/utils";
 import {
   Shield,
   Mail,
@@ -46,10 +47,8 @@ export function UserDetailModal({ user, isOpen, onClose, onReview }: Props) {
 
   if (!user) return null;
 
-  const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-
   const getImageUrl = (uuid: string) => {
-    return `${DIRECTUS_BASE}/assets/${uuid}`;
+    return formatAssetUrl(uuid) || "";
   };
 
   const getRoleName = (roleId: number | null) => {

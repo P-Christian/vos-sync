@@ -14,13 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   CanonicalStageType,
   CANONICAL_STAGE_TYPES,
@@ -170,30 +164,16 @@ export default function StageEditModal({
               )}
             </div>
 
-            <Select
+            <SearchableSelect
+              options={(isSystemStage ? CANONICAL_STAGE_TYPES : CUSTOM_ALLOWED_STAGE_TYPES).map((type) => ({
+                value: type,
+                label: STAGE_TYPE_DETAILS[type].label,
+              }))}
               value={stageType}
               onValueChange={(val) => handleStageTypeChange(val as CanonicalStageType)}
               disabled={isSystemStage}
-            >
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(isSystemStage ? CANONICAL_STAGE_TYPES : CUSTOM_ALLOWED_STAGE_TYPES).map((type) => {
-                  const details = STAGE_TYPE_DETAILS[type];
-                  return (
-                    <SelectItem key={type} value={type} className="text-xs py-2">
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{details.label}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {details.description}
-                        </span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+              className="h-9 text-xs"
+            />
 
  
           </div>

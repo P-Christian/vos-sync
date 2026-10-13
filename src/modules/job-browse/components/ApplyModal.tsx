@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { formatAssetUrl } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -78,9 +79,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   const avatarSrc = profileData?.profile_image_url
-    ? (profileData.profile_image_url.startsWith("http") || profileData.profile_image_url.startsWith("/")
-        ? profileData.profile_image_url
-        : `${(process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")}/assets/${profileData.profile_image_url}?width=256&height=256&fit=cover&quality=95`)
+    ? formatAssetUrl(profileData.profile_image_url)
     : null;
 
   // Load pre-fill whenever the modal opens with a new job

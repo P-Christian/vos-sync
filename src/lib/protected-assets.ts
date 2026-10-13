@@ -131,13 +131,20 @@ async function fetchFileMetadata(
   token: string,
   fileId: string,
 ): Promise<{ file: DirectusFile | null; lookupFailed: boolean; notFound: boolean }> {
-  const fields = encodeURIComponent("id,folder,folder.name");
-  const result = await getJson<{ data?: DirectusFile }>(
+  const params = new URLSearchParams({
+    "filter[id][_eq]": fileId,
+    fields: "id,folder,folder.name",
+    limit: "1",
+  });
+  const result = await getJson<DirectusCollectionResponse<DirectusFile>>(
     baseUrl,
     token,
-    `/files/${encodeURIComponent(fileId)}?fields=${fields}`,
+    `/files?${params.toString()}`,
   );
-  if (result.ok) return { file: result.data?.data ?? null, lookupFailed: false, notFound: false };
+  if (result.ok) {
+    const file = result.data?.data?.[0] ?? null;
+    return { file, lookupFailed: false, notFound: !file };
+  }
   return { file: null, lookupFailed: result.status !== 404, notFound: result.status === 404 };
 }
 
@@ -154,17 +161,25 @@ async function resolveFolderName(
       lookupFailed: false,
     };
   }
-  const result = await getJson<{ data?: { id?: string; name?: string } }>(
+  const folderParams = new URLSearchParams({
+    "filter[id][_eq]": String(folder),
+    fields: "id,name",
+    limit: "1",
+  });
+  const result = await getJson<DirectusCollectionResponse<{ id?: string; name?: string }>>(
     baseUrl,
     token,
-    `/folders/${encodeURIComponent(folder)}?fields=id,name`,
+    `/folders?${folderParams.toString()}`,
   );
-  if (!result.ok) return { id: folder, name: null, lookupFailed: true };
-  return {
-    id: result.data?.data?.id ?? folder,
-    name: result.data?.data?.name?.trim().toLowerCase() ?? null,
-    lookupFailed: false,
-  };
+  if (result.ok) {
+    const item = result.data?.data?.[0];
+    return {
+      id: item?.id ?? folder,
+      name: item?.name?.trim().toLowerCase() ?? null,
+      lookupFailed: false,
+    };
+  }
+  return { id: folder, name: null, lookupFailed: true };
 }
 
 async function findCompanyDocument(

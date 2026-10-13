@@ -19,15 +19,31 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "lucide-react";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
+
+const JOB_TYPE_OPTIONS = [
+  { value: "ALL", label: "All Types" },
+  { value: "FULL_TIME", label: "Full-Time" },
+  { value: "PART_TIME", label: "Part-Time" },
+  { value: "CONTRACT", label: "Contract" },
+  { value: "INTERNSHIP", label: "Internship" },
+  { value: "FREELANCE", label: "Freelance" },
+];
+
+const WORK_ARRANGEMENT_OPTIONS = [
+  { value: "ALL", label: "All Setups" },
+  { value: "Remote", label: "Remote" },
+  { value: "Hybrid", label: "Hybrid" },
+  { value: "On-site", label: "On-site" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All Status" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "DRAFT", label: "Draft" },
+  { value: "CLOSED", label: "Closed" },
+];
 import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS } from "./types";
 import { AutoCreateJobModal } from "./components/AutoCreateJobModal";
 import { useRoleCategories } from "./hooks/useRoleCategories";
@@ -459,58 +475,35 @@ export default function JobsModule() {
 
                 {/* Employment Type */}
                 <div className="w-full">
-                  <Select
+                  <SearchableSelect
+                    options={JOB_TYPE_OPTIONS}
                     value={filterJobType}
                     onValueChange={(v) => setFilterJobType(v as JobType | "ALL")}
-                  >
-                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Types</SelectItem>
-                      <SelectItem value="FULL_TIME" className="text-sm md:text-xs font-medium">Full-Time</SelectItem>
-                      <SelectItem value="PART_TIME" className="text-sm md:text-xs font-medium">Part-Time</SelectItem>
-                      <SelectItem value="CONTRACT" className="text-sm md:text-xs font-medium">Contract</SelectItem>
-                      <SelectItem value="INTERNSHIP" className="text-sm md:text-xs font-medium">Internship</SelectItem>
-                      <SelectItem value="FREELANCE" className="text-sm md:text-xs font-medium">Freelance</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="All Types"
+                    className="h-9 md:text-xs rounded-lg border-border/80 bg-background font-medium w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60"
+                  />
                 </div>
 
                 {/* Work Arrangement */}
                 <div className="w-full">
-                  <Select
+                  <SearchableSelect
+                    options={WORK_ARRANGEMENT_OPTIONS}
                     value={filterWorkArrangement}
                     onValueChange={(v) => setFilterWorkArrangement(v as WorkArrangement | "ALL")}
-                  >
-                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
-                      <SelectValue placeholder="All Setups" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Setups</SelectItem>
-                      <SelectItem value="Remote" className="text-sm md:text-xs font-medium">Remote</SelectItem>
-                      <SelectItem value="Hybrid" className="text-sm md:text-xs font-medium">Hybrid</SelectItem>
-                      <SelectItem value="On-site" className="text-sm md:text-xs font-medium">On-site</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="All Setups"
+                    className="h-9 md:text-xs rounded-lg border-border/80 bg-background font-medium w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60"
+                  />
                 </div>
 
                 {/* Status Filter */}
                 <div className="w-full">
-                  <Select
+                  <SearchableSelect
+                    options={STATUS_OPTIONS}
                     value={filterStatus}
                     onValueChange={(v) => setFilterStatus(v as JobStatus | "ALL")}
-                  >
-                    <SelectTrigger className="h-9 md:text-xs font-medium rounded-lg border-border/80 bg-background w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL" className="text-sm md:text-xs font-medium">All Status</SelectItem>
-                      <SelectItem value="ACTIVE" className="text-sm md:text-xs font-medium text-primary">Active</SelectItem>
-                      <SelectItem value="DRAFT" className="text-sm md:text-xs font-medium text-amber-600">Draft</SelectItem>
-                      <SelectItem value="CLOSED" className="text-sm md:text-xs font-medium text-rose-600">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="All Status"
+                    className="h-9 md:text-xs rounded-lg border-border/80 bg-background font-medium w-full max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60"
+                  />
                 </div>
               </div>
             </div>

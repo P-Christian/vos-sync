@@ -26,15 +26,20 @@ function getHeaders(): Record<string, string> {
 function formatAvatarUrl(url?: string | null): string | null {
   if (!url || !url.trim()) return null;
   const trimmed = url.trim();
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
-    return trimmed;
-  }
   if (trimmed.startsWith("/api/client/assets/")) {
     return trimmed;
   }
-  const parts = trimmed.split("/");
-  const fileId = parts[parts.length - 1];
-  return `/api/client/assets/${fileId}`;
+  if (trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+  const assetsMatch = trimmed.match(/\/assets\/([^/?#]+)/u);
+  if (assetsMatch?.[1]) {
+    return `/api/client/assets/${assetsMatch[1]}`;
+  }
+  if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
+    return `/api/client/assets/${encodeURIComponent(trimmed)}`;
+  }
+  return trimmed;
 }
 
 export function formatInterviewDateTime(dateTimeStr: string): string {

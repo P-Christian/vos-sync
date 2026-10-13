@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomInt } from "crypto";
 import { legacyRegistrationRetiredResponse } from "@/modules/auth/registration";
 import bcrypt from "bcrypt";
 import { sendOtpEmail, sendEmployerSubmissionEmail } from "@/lib/mail";
@@ -306,7 +307,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Unverified → regenerate OTP (resend flow)
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const generatedOtp = randomInt(100000, 1000000).toString();
       const otpExpiry = new Date(
         Date.now() + 8 * 60 * 60 * 1000 + 15 * 60 * 1000
       )
@@ -413,7 +414,7 @@ export async function POST(req: NextRequest) {
     }
     // 6. GENERATE OTP + HASH PASSWORD
     // ─────────────────────────────────────────
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const generatedOtp = randomInt(100000, 1000000).toString();
     const otpExpiry = new Date(
       Date.now() + 8 * 60 * 60 * 1000 + 15 * 60 * 1000
     )

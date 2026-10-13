@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 import { z } from 'zod';
+import { getJwtVerificationSecret } from '@/modules/auth/registration/registration.session';
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
@@ -13,7 +13,9 @@ interface AdminAuth {
 }
 
 async function verifyVosAdmin(req: Request): Promise<AdminAuth | null> {
-    if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") return { adminId: 1, roleId: 3 };
+    if (process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
+        return { adminId: 1, roleId: 3 };
+    }
 
     let token = req.headers.get("authorization")?.replace("Bearer ", "") || null;
     if (!token) {
@@ -23,7 +25,7 @@ async function verifyVosAdmin(req: Request): Promise<AdminAuth | null> {
     if (!token) return null;
 
     try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
+        const secret = getJwtVerificationSecret();
         const { payload } = await jose.jwtVerify(token, secret);
         return {
             adminId: Number(payload.sub || payload.user_id || payload.id),

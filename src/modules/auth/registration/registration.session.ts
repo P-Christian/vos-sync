@@ -30,7 +30,7 @@ export function getJwtVerificationSecret(): Uint8Array {
   }
 
   return new TextEncoder().encode(
-    configuredSecret || "default_super_secret_key_for_development"
+    configuredSecret 
   );
 }
 

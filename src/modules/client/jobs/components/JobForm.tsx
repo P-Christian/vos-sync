@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Popover,
   PopoverContent,
@@ -84,7 +85,20 @@ const EDUCATION_OPTIONS = [
   "No Education Requirement / Open to All",
 ];
 
+const JOB_TYPE_OPTIONS = (Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => ({
+  value: k,
+  label: v,
+}));
 
+const EXP_LEVEL_OPTIONS = (Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([k, v]) => ({
+  value: k,
+  label: v,
+}));
+
+const EDUCATION_SELECT_OPTIONS = EDUCATION_OPTIONS.map((edu) => ({
+  value: edu,
+  label: edu,
+}));
 
 export default function JobForm({
   data,
@@ -703,28 +717,17 @@ export default function JobForm({
                 <Label htmlFor="jf-type" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Employment Type <span className="text-rose-500">*</span>
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={JOB_TYPE_OPTIONS}
                   value={data.job_type}
                   onValueChange={(v) => {
                     onChange("job_type", v as JobType);
                     if (localErrors.job_type) setLocalErrors((p) => ({ ...p, job_type: "" }));
                   }}
-                >
-                  <SelectTrigger
-                    id="jf-type"
-                    className={`h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_type ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
-                      }`}
-                  >
-                    <SelectValue placeholder="Select Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k} className="text-sm">
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select Type"
+                  className={`h-10 md:text-sm border-zinc-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-lg ${localErrors.job_type ? "border-rose-455 focus:border-rose-500 focus:ring-rose-500" : ""
+                    }`}
+                />
                 {localErrors.job_type && (
                   <p className="text-[11px] font-medium text-rose-500 flex items-center gap-1 mt-1">
                     <AlertCircle className="h-3 w-3" /> {localErrors.job_type}
@@ -1244,40 +1247,26 @@ export default function JobForm({
                 <Label htmlFor="jf-exp" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Target Experience Level
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={EXP_LEVEL_OPTIONS}
                   value={data.experience_level || "MID"}
                   onValueChange={(v) => onChange("experience_level", v as ExperienceLevel)}
-                >
-                  <SelectTrigger id="jf-exp" className="h-10 md:text-sm border-zinc-200 rounded-lg">
-                    <SelectValue placeholder="Select Level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([k, v]) => (
-                      <SelectItem key={k} value={k} className="text-sm">
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select Level"
+                  className="h-10 md:text-sm border-zinc-200 rounded-lg"
+                />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="jf-education" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Minimum Education Required
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={EDUCATION_SELECT_OPTIONS}
                   value={data.education || "Bachelor's Degree Graduate"}
                   onValueChange={(v) => onChange("education", v)}
-                >
-                  <SelectTrigger id="jf-education" className="h-10 md:text-sm border-zinc-200 rounded-lg">
-                    <SelectValue placeholder="Select Minimum Education" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EDUCATION_OPTIONS.map((edu) => (
-                      <SelectItem key={edu} value={edu} className="text-sm">{edu}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select Minimum Education"
+                  className="h-10 md:text-sm border-zinc-200 rounded-lg"
+                />
               </div>
             </div>
 

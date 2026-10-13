@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { uploadProfileImageAction } from "../services/freelancer-profile.actions";
 import { PersonalInfoModal } from "./PersonalInfoModal";
 import { useEffect } from "react";
+import { formatAssetUrl } from "@/lib/utils";
 
 export function PersonalInfoCard() {
     const { data, pendingPersonalInfo, pendingSocialLinks, refresh, isAutofilling } = useFreelancerProfileContext();
@@ -131,7 +132,7 @@ export function PersonalInfoCard() {
                             {displayData.profile_image_url ? (
                                 /* eslint-disable @next/next/no-img-element */
                                 <img
-                                    src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${displayData.profile_image_url}`}
+                                    src={formatAssetUrl(displayData.profile_image_url) || ""}
                                     alt="Profile"
                                     className="w-full h-full object-cover"
                                 />

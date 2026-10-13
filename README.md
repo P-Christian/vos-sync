@@ -40,13 +40,16 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 
 #### System Security & Vulnerability Hardening
 
+* **End-to-End Cryptographic JWT Session Enforcement**: Replaced insecure base64 JSON token parsing across all client, freelancer, settings data requests, AI recommendations, profile views, shared messaging, and school admin API handlers with canonical `authenticateRequest` cryptographic signature verification (`jose.jwtVerify`) and real-time account status checks.
+* **Database Password Security & Hashed Compatibility**: Completely eliminated plaintext password storage in database records by persisting `bcrypt` hashes into the legacy `user_password` column across user registration, school registration, and password reset flows.
+* **Unified 4-Role Session Matrix & State-Driven Header**: Formally mapped all four platform roles (`FREELANCER`, `CLIENT`, `ADMIN`, `SCHOOL_ADMIN`) in `src/lib/authenticated-session.ts` with the canonical `isSchoolAdminSession` helper; refactored the public Header to query `/api/auth/me` first, eliminating 401 console errors on guest and admin visits.
+* **School Metrics & Unmetered AI Endpoint Shielding**: Gated `/api/school-admin/success-metrics` and `/api/school-admin/success-metrics/ai-insights` with session authentication, school administrator role authorization, and institution ID validation, blocking unauthorized telemetry scraping and unmetered Gemini AI invocations.
+* **OTP Hardening, CSPRNG & Brute-Force Lockout**: Secured client, school signup, and school registration OTP flows by generating codes using Node CSPRNG (`randomInt`), hashing one-time passwords at rest with `bcrypt.hash`, comparing securely via `bcrypt.compare`, removing console debug credential leakage, and enforcing a 5-attempt brute-force lockout on verification endpoints.
+* **Data Request Integrity & Tamper Protection**: Fortified `/api/freelancer/settings/data-requests` with canonical session authentication and cryptographic SHA-256 digest generation (`crypto.createHash`) for exported data artifacts, preventing unauthorized account exports, forged deletions, or checksum tampering.
+* **Elimination of Insecure Secret Fallbacks & Production Auth Guarding**: Migrated School Admin, Freelancer, and Client profile readers from insecure `"default_super_secret_key_for_development"` string fallbacks to centralized session validation via `getJwtVerificationSecret()`; guarded `NEXT_PUBLIC_AUTH_DISABLED` against unauthorized bypass in production builds.
+* **Server-Side Session Epoch Revocation & UTC/PH Time Normalization**: Enhanced `/api/auth/logout` to immediately invalidate active JWTs by refreshing the user's `session_epoch` in Directus with Philippine Time (`getPHTimeString()`); implemented timezone-aware epoch parsing and login epoch clearing to prevent false session invalidations on UTC servers.
+* **File Upload & Transport Security**: Stripped SVG MIME types from school admin file upload handlers to eliminate stored script execution vectors; tuned transport headers in `next.config.ts` to support plain HTTP LAN and port 4000 traffic without browser upgrade conflicts.
 * **Stored XSS Sanitization**: Lightweight zero-dependency HTML sanitizer (`src/lib/sanitize-html.ts`) stripping active scripts, dangerous embeddings, and inline event handlers from rich-text job descriptions and forms.
-* **Cryptographic Token Verification**: Enforced canonical `authenticateRequest` verification across sensitive client endpoints (settings, team management, interviews), replacing unverified base64 token splits with cryptographic `jose.jwtVerify` signature validation and account state checks.
-* **Password Reset & Account Enumeration Protection**: Sealed reset response payloads to eliminate user ID leakage and account enumeration; replaced pseudo-random OTP generation with cryptographically secure PRNG (`crypto.randomInt`); and enforced failed-attempt tracking with automatic token invalidation.
-* **Multi-Tenant Authorization & IDOR Defense**: Enforced strict company and school tenant ownership validation across interview management (`PATCH /api/client/interviews/[id]`), course modifications (`PATCH /api/school-admin/school/courses/[courseId]`), and school document uploads/deletions (`/api/school-admin/school/documents`), eliminating insecure direct object reference vulnerabilities.
-* **Directus Collection Allowlisting**: Constrained public and client proxy parameters (`directusCollection`) strictly to approved metadata sets (`vs_industry`, `vs_organization_type`, `vs_company_size`), preventing arbitrary backend table exposure.
-* **File Upload Defense & Asset Isolation**: Fortified messaging and document attachment uploads with strict MIME-type allowlists, extension validation, 5MB limits, and forced `nosniff`/attachment download headers to mitigate stored XSS via SVG/HTML assets.
-* **HTTP Security Headers**: Configured defense-in-depth headers (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`) in `next.config.ts`.
 
 #### Autonomous Taxonomy Enrichment & Shared Governance
 
@@ -91,6 +94,12 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 * **Isolated Cookie Domain Scope (`vos_sync_access_token`)**: Renamed primary JWT authentication cookie to `vos_sync_access_token` across authentication handlers, middleware guards, API routes, layout checks, and WebSocket providers. Prevents cookie namespace collisions and session overwriting with other local VOS ERP repositories or Spring Boot services sharing the `localhost` domain.
 * **Dual-Cookie Eviction on Logout**: Logout handlers proactively purge both active `vos_sync_access_token` and legacy `vos_sync_access_token` across path and hostname domains to ensure clean session termination.
 
+#### Seamless Popup-Based Social Authentication & Account Linking
+
+* **Zero Full-Page Reload Authentication**: Replaced disruptive top-level browser redirects and URL hash artifacts (`#_=_`) with centered, isolated OAuth popup windows for Google, LinkedIn, and Facebook across public login/signup (`SocialAuthButtons`) and settings account linking (`ConnectedAccountsCard`).
+* **Origin-Verified Bridge Communication**: Uses a dedicated completion bridge (`/auth/popup-callback`) that transmits structured outcome payloads (`success`, `cancelled`, `error`, `notice`) back to `window.opener` via strict origin-validated `postMessage` before automatically self-closing.
+* **Graceful Degradation & Dedicated Cancellation**: Automatically falls back to standard redirection when popups are blocked by browser security settings, and routes cancelled attempts to a dedicated cancellation screen (`/cancelled`) to prevent stranded states.
+
 ---
 
 
@@ -99,8 +108,8 @@ VOS Sync is a multi-role employment and talent management platform connecting **
 #### Searchable Filter Dropdowns & Real-Time Debounced Search
 
 * Standard Optimistic UI Transaction Pattern (`useOptimisticMutation` & `AsyncActionButton`) with state snapshotting, instant client UI updates, async API requests, Sonner toast notifications, operational telemetry logging (`meta`), and automatic error rollback.
-* Project-wide `mutation_migration_matrix.md` classifying interactive actions into Optimistic + Rollback, Server-Confirmed, or Local UI.
 * `SearchableSelect` popovers for Industry, Company Size, Job Type, and Work Setup filters (`src/modules/public/company-profile/`).
+* **Standardized Searchable Comboboxes & Trigger-Aligned Popovers**: System-wide rollout of searchable comboboxes (`SearchableSelect`) across VOS Admin, Client, Freelancer, School Admin, Job Browse, Course Builder, Main Dashboard, and Public Registration; enforced `min-w-[var(--radix-popover-trigger-width)] w-[var(--radix-popover-trigger-width)]` popover alignment to guarantee menus expand to full trigger width while keeping table pagination page sizes and short static controls (≤ 3 options) on standard native `<Select>`.
 
 * Real-time debounced search (300ms) on search inputs — automatically updates search results as users type.
 * High-fidelity skeleton card loading with 250ms minimum shimmer threshold across Find Jobs, Public Company Jobs, and Freelancer Jobs (`/vos-sync/freelancer/jobs`).
@@ -407,6 +416,8 @@ Retrieval scores remain internal. Recruiters see compatibility-based results rat
 * **Canonical Meta Graph & LinkedIn OAuth Flows**: Aligns Facebook and LinkedIn authentication with official server-side authorization code standards for confidential clients (`FACEBOOK_SECRET`, `FACEBOOK_ID`, `FACEBOOK_TOKEN` app client token), providing resilient error diagnostics.
 * **Connected Accounts & Multi-Provider Linking (Security & Auth)**: Users can link and unlink Google, LinkedIn, and Facebook identities from Client and Freelancer Security settings via the relational `vs_user_identity` collection with session revalidation, subject conflict prevention, and strict server-side lockout prevention requiring an active password before disconnecting.
 * **Proxy Origin Preservation & Dynamic Cookie Transport**: Resolves public client-facing origins (`resolveRequestOrigin`) across reverse proxies and Tailscale configurations, eliminating redirect leakage to internal listener ports and matching cookie security flags to transport protocol.
+* **Environment-Driven OAuth Origin Allowlist**: Validates OAuth redirect URIs dynamically against the centralized `ALLOWED_ORIGINS` environment configuration, enabling secure cross-origin handling without premature build-time evaluation errors.
+* **Dedicated Authentication & OAuth Cancellation Experience (`/cancelled`)**: Dedicated public route replacing generic redirects on user-cancelled authentication, account linking, or sign-up flows across Google, Facebook, and LinkedIn. Features context-aware messaging, automatic `#_=_` hash stripping, security reassurance banners, and smart return pathways ("Try Again", "Return to Settings", "Go to Dashboard").
 
 ---
 
@@ -493,6 +504,13 @@ Supported experiences include:
   * **Status Updates**: Tailored update headlines for candidates and recruiters with event date prioritization (`updated_at` / `status_updated_at`).
   * **Interview Cards**: Role- and status-aware interview cards with status-driven headers, icons, and contextual headlines (`SCHEDULED`, `CONFIRMED`, `RESCHEDULED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`). Action buttons (*"Join Online Meeting"*) are strictly gated by active interview states and automatically hidden upon completion or cancellation.
 * Integrated document viewers, resumé downloads, external portfolio links, cover letter accordions, and salary badges within the conversation thread.
+
+### Public Experience & Interactive Design
+
+* **Network Graph Background & Cross-Component Interaction**: Production-ready interactive canvas background (`NetworkBackground.tsx`) powering the Public Home Landing Page, featuring drifting constellation nodes, dynamic proximity links, rotating dashed hub rings, hopping data packets, and pointer click shockwaves.
+* **Seamless Dark/Light Theme Crossfading**: Pure CSS gradient foundation (`.net-bg`) with hardware-accelerated theme crossfades (`next-themes`) and real-time canvas color palette interpolation between light (indigo/blue/sky) and dark (vibrant neon glow) modes.
+* **Translucent Glassmorphism Architecture**: Fixed non-blocking background layer (`pointer-events: none`, `z-index: 0`) integrated smoothly with translucent cards and search bars (`backdrop-blur-md`, `bg-card/75`), letting the network graph flow beneath without interfering with clicks or scrolling.
+* **Full Accessibility & Graceful Degradation**: Honors `prefers-reduced-motion` to render a single static frame without animation loops, maintaining complete visual fidelity while protecting users with vestibular sensitivities.
 
 ---
 

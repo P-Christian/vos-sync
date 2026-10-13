@@ -18,13 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import InterviewDateTimePicker, { getInterviewDisplayLabel } from "./InterviewDateTimePicker";
 import {
   CalendarDays,
@@ -340,21 +334,13 @@ export default function InterviewForm({
               <BriefcaseBusiness className="h-4 w-4 text-indigo-500" />
               1. Choose Job Position <span className="text-rose-500">*</span>
             </Label>
-            <Select
+            <SearchableSelect
+              options={availableJobs.map((j) => ({ value: String(j.job_id), label: j.job_title }))}
               value={selectedJobId || ""}
               onValueChange={(val) => handleJobSelect(val)}
-            >
-              <SelectTrigger id="select-job" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
-                <SelectValue placeholder="-- Select Target Job Position --" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableJobs.map((j) => (
-                  <SelectItem key={j.job_id} value={String(j.job_id)} className="text-sm md:text-xs">
-                    {j.job_title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="-- Select Target Job Position --"
+              className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border"
+            />
           </div>
 
           {/* Step 2: Select Candidates by Name */}
@@ -461,21 +447,13 @@ export default function InterviewForm({
           <Label htmlFor="format" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Interview Format <span className="text-rose-500">*</span>
           </Label>
-          <Select
+          <SearchableSelect
+            options={Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => ({ value: key, label }))}
             value={data.interview_format || ""}
             onValueChange={(val) => onChange("interview_format", val as InterviewFormat)}
-          >
-            <SelectTrigger id="format" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
-              <SelectValue placeholder="-- Select Format --" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(INTERVIEW_FORMAT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key} className="text-sm md:text-xs">
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="-- Select Format --"
+            className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border"
+          />
           {errors.interview_format && (
             <p className="text-xs md:text-[11px] text-rose-500">{errors.interview_format}</p>
           )}
@@ -485,26 +463,19 @@ export default function InterviewForm({
           <Label htmlFor="timezone" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             Timezone
           </Label>
-          <Select
+          <SearchableSelect
+            options={(() => {
+              const opts = TIMEZONE_OPTIONS.map((tz) => ({ value: tz.value, label: tz.label }));
+              if (data.timezone && !opts.some((tz) => tz.value === data.timezone)) {
+                opts.push({ value: data.timezone, label: data.timezone });
+              }
+              return opts;
+            })()}
             value={data.timezone || "Asia/Manila"}
             onValueChange={(val) => onChange("timezone", val)}
-          >
-            <SelectTrigger id="timezone" className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border">
-              <SelectValue placeholder="Select Timezone" />
-            </SelectTrigger>
-            <SelectContent>
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <SelectItem key={tz.value} value={tz.value} className="text-sm md:text-xs">
-                  {tz.label}
-                </SelectItem>
-              ))}
-              {data.timezone && !TIMEZONE_OPTIONS.some((tz) => tz.value === data.timezone) && (
-                <SelectItem value={data.timezone} className="text-sm md:text-xs">
-                  {data.timezone}
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+            placeholder="Select Timezone"
+            className="w-full h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg bg-background border-border"
+          />
         </div>
       </div>
 

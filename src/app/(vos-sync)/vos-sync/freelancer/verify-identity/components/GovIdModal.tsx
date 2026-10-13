@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { uploadVerificationDocumentAction, submitIdentityVerificationAction } from "@/modules/freelancer/freelancer-profile/services/identity-verification.actions";
 import { toast } from "sonner";
 
@@ -12,6 +12,14 @@ interface GovIdModalProps {
     onSuccess: () => void;
     rejectionNote?: string;
 }
+
+const ID_TYPE_OPTIONS = [
+    { value: "driver_license", label: "Driver's License" },
+    { value: "passport", label: "Passport" },
+    { value: "national_id", label: "National ID (PhilSys)" },
+    { value: "postal_id", label: "Postal ID" },
+    { value: "umid", label: "UMID" },
+];
 
 export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }: GovIdModalProps) {
     const [idType, setIdType] = useState<string>("");
@@ -80,18 +88,13 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                     )}
                     <div className="grid gap-2">
                         <label className="text-sm font-medium">ID Type</label>
-                        <Select value={idType} onValueChange={setIdType}>
-                            <SelectTrigger className="max-md:min-h-11">
-                                <SelectValue placeholder="Select ID Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="driver_license">Driver&apos;s License</SelectItem>
-                                <SelectItem value="passport">Passport</SelectItem>
-                                <SelectItem value="national_id">National ID (PhilSys)</SelectItem>
-                                <SelectItem value="postal_id">Postal ID</SelectItem>
-                                <SelectItem value="umid">UMID</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                            value={idType}
+                            onValueChange={setIdType}
+                            options={ID_TYPE_OPTIONS}
+                            placeholder="Select ID Type"
+                            triggerClassName="max-md:min-h-11 w-full"
+                        />
                     </div>
                     <div className="grid gap-2">
                         <label className="text-sm font-medium">Front of ID</label>

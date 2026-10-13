@@ -3,29 +3,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
 import { evaluateTaxonomyProposal } from "@/modules/vos-admin/role-matching/services/taxonomy/taxonomyGovernanceService";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export async function POST(req: NextRequest) {
   try {
-    // Extract user attribution from JWT
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-    let userId: number | undefined;
-    let companyId: number | undefined;
-    if (token) {
-      try {
-        const parts = token.split(".");
-        if (parts.length >= 2) {
-          const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-          const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-          const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-          const uid = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-          if (uid !== null) userId = Number(uid);
-          const cid = payload?.company_id ?? null;
-          if (cid !== null) companyId = Number(cid);
-        }
-      } catch { /* ignore token parse errors */ }
-    }
+    const session = await authenticateRequest(req);
+    const userId = session ? Number(session.userId) : undefined;
+    const companyId = session?.payload?.company_id ? Number(session.payload.company_id) : undefined;
 
     const body = await req.json();
     const { prompt } = body;

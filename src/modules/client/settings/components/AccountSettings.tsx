@@ -15,6 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+
+const CIVIL_STATUS_OPTIONS = [
+  { value: "unspecified", label: "Select Status" },
+  { value: "Single", label: "Single" },
+  { value: "Married", label: "Married" },
+  { value: "Widowed", label: "Widowed" },
+  { value: "Separated", label: "Separated" },
+  { value: "Divorced", label: "Divorced" },
+];
 import {
   Loader2,
   User,
@@ -393,22 +403,13 @@ export default function AccountSettings({
               <Label htmlFor="civil_status" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                 <Heart className="h-3.5 w-3.5 text-zinc-400" /> Civil Status
               </Label>
-              <Select
+              <SearchableSelect
+                options={CIVIL_STATUS_OPTIONS}
                 value={formData.civil_status || "unspecified"}
                 onValueChange={(val) => handleChange("civil_status", val === "unspecified" ? "" : val)}
-              >
-                <SelectTrigger id="civil_status" className="h-9 text-sm rounded-lg border-zinc-200 dark:border-zinc-700">
-                  <SelectValue placeholder="Select Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unspecified" className="text-sm">Select Status</SelectItem>
-                  <SelectItem value="Single" className="text-sm">Single</SelectItem>
-                  <SelectItem value="Married" className="text-sm">Married</SelectItem>
-                  <SelectItem value="Widowed" className="text-sm">Widowed</SelectItem>
-                  <SelectItem value="Separated" className="text-sm">Separated</SelectItem>
-                  <SelectItem value="Divorced" className="text-sm">Divorced</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Select Status"
+                className="h-9 text-sm rounded-lg border-zinc-200 dark:border-zinc-700"
+              />
             </div>
           </div>
         </div>

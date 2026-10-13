@@ -13,13 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { SchoolVerificationRecord } from "../types";
 import { AlertCircle } from "lucide-react";
 
@@ -40,6 +34,11 @@ const SCHOOL_REASON_PRESETS = [
   "Institution profile or campus location mismatch",
   "Custom reason (see detailed notes below)",
 ];
+
+const SCHOOL_REASON_PRESET_OPTIONS = SCHOOL_REASON_PRESETS.map((preset) => ({
+  value: preset,
+  label: preset,
+}));
 
 export const SchoolRejectionReasonModal: React.FC<SchoolRejectionReasonModalProps> = ({
   isOpen,
@@ -91,24 +90,13 @@ export const SchoolRejectionReasonModal: React.FC<SchoolRejectionReasonModalProp
             <Label htmlFor="school-preset-reason" className="text-xs font-semibold text-foreground">
               Standard Reason Preset
             </Label>
-            <Select
+            <SearchableSelect
               value={selectedPreset}
-              onValueChange={(val) => setSelectedPreset(val)}
-            >
-              <SelectTrigger
-                id="school-preset-reason"
-                className="w-full text-xs h-9 rounded-lg border-border bg-background text-foreground dark:bg-zinc-900 dark:border-zinc-800"
-              >
-                <SelectValue placeholder="Select a standard preset reason..." />
-              </SelectTrigger>
-              <SelectContent position="popper" className="bg-popover text-popover-foreground dark:bg-zinc-900 dark:border-zinc-800 shadow-lg">
-                {SCHOOL_REASON_PRESETS.map((preset, i) => (
-                  <SelectItem key={i} value={preset} className="text-xs focus:bg-accent focus:text-accent-foreground cursor-pointer">
-                    {preset}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setSelectedPreset}
+              options={SCHOOL_REASON_PRESET_OPTIONS}
+              placeholder="Select a standard preset reason..."
+              triggerClassName="w-full text-xs h-9 rounded-lg border-border bg-background text-foreground dark:bg-zinc-900 dark:border-zinc-800"
+            />
           </div>
 
           {/* Public Reason Textarea */}

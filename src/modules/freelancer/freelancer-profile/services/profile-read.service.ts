@@ -5,14 +5,13 @@ import * as jose from "jose";
 import type { FreelancerProfile } from "../types/freelancer-profile.types";
 import { fetchFreelancerProfileFromDirectus } from "./freelancer-profile.repo";
 import { attachEducationVerification } from "./profile-education-verification";
-
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
+import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
 export async function getFreelancerProfile(token: string): Promise<FreelancerProfile | null> {
   if (!token) return null;
 
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
+    const secret = getJwtVerificationSecret();
     const { payload } = await jose.jwtVerify(token, secret);
     if (typeof payload.email !== "string") return null;
 

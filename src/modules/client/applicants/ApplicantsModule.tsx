@@ -24,9 +24,10 @@ import { Button } from "@/components/ui/button";
 import { useInterviews } from "../interviews/hooks/useInterviews";
 import InterviewForm from "../interviews/components/InterviewForm";
 import { InterviewFormData } from "../interviews/types";
-import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import { useJobs } from "../jobs/hooks/useJobs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { JobPosting } from "../jobs/types";
+import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import BestMatchesTab from "./components/BestMatchesTab";
 
 interface ApplicantsModuleProps {
@@ -219,7 +220,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     router.push(`/vos-sync/client/applicants?${params.toString()}`);
   };
 
-  const selectedJob = allJobs.find((j) => j.job_id === jobId);
+  const selectedJob = allJobs.find((j: JobPosting) => j.job_id === jobId);
   const selectedJobTitle = selectedJob?.job_title || "";
 
   const handleUpdateStatus = (applicant: Applicant) => {
@@ -555,19 +556,16 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
 
             {/* Job Selector Dropdown */}
             <div className="w-full sm:w-auto sm:min-w-[220px]">
-              <Select value={jobIdParam || "ALL"} onValueChange={handleJobChange}>
-                <SelectTrigger className="h-10 max-md:min-h-10 max-md:h-10 max-md:px-3 max-md:[&_svg]:size-4 max-md:[&_svg]:opacity-60 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl">
-                  <SelectValue placeholder="Filter by Job Posting" />
-                </SelectTrigger>
-                <SelectContent className="max-md:max-w-[calc(100vw-2rem)]">
-                  <SelectItem value="ALL">All Job Postings</SelectItem>
-                  {allJobs.map((j) => (
-                    <SelectItem key={j.job_id} value={String(j.job_id)}>
-                      {j.job_title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={[
+                  { value: "ALL", label: "All Job Postings" },
+                  ...allJobs.map((j: JobPosting) => ({ value: String(j.job_id), label: j.job_title })),
+                ]}
+                value={jobIdParam || "ALL"}
+                onValueChange={handleJobChange}
+                placeholder="Filter by Job Posting"
+                className="h-10 max-md:min-h-10 max-md:h-10 max-md:px-3 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl"
+              />
             </div>
           </div>
         </div>

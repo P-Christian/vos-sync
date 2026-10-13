@@ -4,6 +4,7 @@ import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
 import DashboardModule from "@/modules/client/dashboard";
 import { cookies } from "next/headers";
 import { getClientProfile } from "@/modules/client/settings/services/client-profile.service";
+import { formatAssetUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +21,7 @@ export default async function clientDashboardPage() {
             ? [profile.user_fname, profile.user_lname].filter(Boolean).join(" ")
             : "Client",
         email: profile?.user_email || "owner@company.com",
-        avatar: profile?.profile_image_url
-            ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}`
-            : "",
+        avatar: formatAssetUrl(profile?.profile_image_url) || "",
     };
 
     return (

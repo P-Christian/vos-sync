@@ -3,13 +3,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Search, Filter, X } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 
@@ -19,6 +13,17 @@ interface CompanyVerificationFiltersProps {
   searchQuery: string;
   onSearchChange: (search: string) => void;
 }
+
+const COMPANY_STATUS_OPTIONS = [
+  { value: "ALL", label: "All Statuses" },
+  { value: "PENDING_VERIFICATION", label: "Pending Verification" },
+  { value: "IN_REVIEW", label: "Pending: Under Review" },
+  { value: "CORRECTION_REQUIRED", label: "Pending: Correction Required" },
+  { value: "VERIFIED", label: "Verified" },
+  { value: "REJECTED", label: "Rejected" },
+  { value: "SUSPENDED", label: "Suspended" },
+  { value: "DRAFT", label: "Draft" },
+];
 
 export const CompanyVerificationFilters: React.FC<CompanyVerificationFiltersProps> = ({
   statusFilter,
@@ -58,21 +63,13 @@ export const CompanyVerificationFilters: React.FC<CompanyVerificationFiltersProp
       {/* Filter Dropdown */}
       <div className="flex items-center gap-2 w-full sm:w-auto">
         <Filter className="h-4 w-4 text-muted-foreground hidden sm:inline" />
-        <Select value={statusFilter} onValueChange={(val) => onStatusChange(val)}>
-          <SelectTrigger className="w-full sm:w-64 bg-background text-xs h-9 rounded-lg border-border">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="PENDING_VERIFICATION">Pending Verification</SelectItem>
-            <SelectItem value="IN_REVIEW">Pending: Under Review</SelectItem>
-            <SelectItem value="CORRECTION_REQUIRED">Pending: Correction Required</SelectItem>
-            <SelectItem value="VERIFIED">Verified</SelectItem>
-            <SelectItem value="REJECTED">Rejected</SelectItem>
-            <SelectItem value="SUSPENDED">Suspended</SelectItem>
-            <SelectItem value="DRAFT">Draft</SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          value={statusFilter}
+          onValueChange={onStatusChange}
+          options={COMPANY_STATUS_OPTIONS}
+          placeholder="All Statuses"
+          triggerClassName="w-full sm:w-64 bg-background text-xs h-9 rounded-lg border-border"
+        />
       </div>
     </motion.div>
   );

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const COOKIE_NAME = "vos_sync_access_token";
 const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "default_super_secret_key_for_development"
+    process.env.JWT_SECRET
 );
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;

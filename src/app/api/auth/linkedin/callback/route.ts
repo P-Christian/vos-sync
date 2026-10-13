@@ -55,7 +55,28 @@ export async function GET(req: NextRequest) {
   };
 
   if (errorParam) {
-    const res = NextResponse.redirect(new URL("/login?error=linkedin_cancelled", requestOrigin));
+    let mode = "login";
+    let returnTo = "";
+    let isPopup = false;
+    if (txCookie) {
+      try {
+        const tx = await unsealOAuthTransaction(txCookie);
+        if (tx) {
+          mode = tx.mode || "login";
+          returnTo = tx.returnTo || "";
+          isPopup = !!tx.popup;
+        }
+      } catch {
+        // Ignore unseal errors during cancellation
+      }
+    }
+    const targetPath = isPopup ? "/auth/popup-callback" : "/cancelled";
+    const cancelUrl = new URL(targetPath, requestOrigin);
+    cancelUrl.searchParams.set("status", "cancelled");
+    cancelUrl.searchParams.set("provider", "linkedin");
+    if (mode) cancelUrl.searchParams.set("flow", mode);
+    if (returnTo) cancelUrl.searchParams.set("returnTo", returnTo);
+    const res = NextResponse.redirect(cancelUrl);
     clearTxCookie(res);
     return res;
   }
@@ -129,6 +150,11 @@ export async function GET(req: NextRequest) {
         existingIdentity &&
         String(existingIdentity.user_id) !== String(activeSession.userId)
       ) {
+        if (transaction.popup) {
+          const res = NextResponse.redirect(new URL("/auth/popup-callback?status=error&error=linkedin_already_linked&provider=linkedin&flow=link", requestOrigin));
+          clearTxCookie(res);
+          return res;
+        }
         settingsUrl.searchParams.set("error", "linkedin_already_linked");
         const res = NextResponse.redirect(settingsUrl);
         clearTxCookie(res);
@@ -152,6 +178,12 @@ export async function GET(req: NextRequest) {
         actor_user_id: Number(activeSession.userId),
         reason: `Linked LinkedIn identity for ${normalizedEmail}`,
       });
+
+      if (transaction.popup) {
+        const res = NextResponse.redirect(new URL("/auth/popup-callback?status=success&provider=linkedin&flow=link", requestOrigin));
+        clearTxCookie(res);
+        return res;
+      }
 
       settingsUrl.searchParams.set("linked", "linkedin");
       const res = NextResponse.redirect(settingsUrl);
@@ -178,14 +210,22 @@ export async function GET(req: NextRequest) {
             reason: `LinkedIn identity conflict: LinkedIn sub (${linkedInProfile.sub}) is linked to user ${identity.user_id}, but verified email (${normalizedEmail}) belongs to user ${emailUser.user_id}`,
           });
 
-          const res = NextResponse.redirect(new URL("/login?error=linkedin_identity_conflict", requestOrigin));
+          const errorUrl = new URL("/login?error=linkedin_identity_conflict", requestOrigin);
+          const redirectTarget = transaction.popup
+            ? new URL(`/auth/popup-callback?status=error&error=linkedin_identity_conflict&provider=linkedin&flow=login`, requestOrigin)
+            : errorUrl;
+          const res = NextResponse.redirect(redirectTarget);
           clearTxCookie(res);
           return res;
         }
 
         const user = await getUserById(identity.user_id);
         if (!user) {
-          const res = NextResponse.redirect(new URL("/login?error=account_not_found", requestOrigin));
+          const errorUrl = new URL("/login?error=account_not_found", requestOrigin);
+          const redirectTarget = transaction.popup
+            ? new URL(`/auth/popup-callback?status=error&error=account_not_found&provider=linkedin&flow=login`, requestOrigin)
+            : errorUrl;
+          const res = NextResponse.redirect(redirectTarget);
           clearTxCookie(res);
           return res;
         }
@@ -201,13 +241,21 @@ export async function GET(req: NextRequest) {
             reason: "LinkedIn login denied: Account is blocked",
           });
 
-          const res = NextResponse.redirect(new URL("/login?error=account_blocked", requestOrigin));
+          const errorUrl = new URL("/login?error=account_blocked", requestOrigin);
+          const redirectTarget = transaction.popup
+            ? new URL(`/auth/popup-callback?status=error&error=account_blocked&provider=linkedin&flow=login`, requestOrigin)
+            : errorUrl;
+          const res = NextResponse.redirect(redirectTarget);
           clearTxCookie(res);
           return res;
         }
 
         if (!canAuthenticate(user)) {
-          const res = NextResponse.redirect(new URL("/login?error=account_inactive", requestOrigin));
+          const errorUrl = new URL("/login?error=account_inactive", requestOrigin);
+          const redirectTarget = transaction.popup
+            ? new URL(`/auth/popup-callback?status=error&error=account_inactive&provider=linkedin&flow=login`, requestOrigin)
+            : errorUrl;
+          const res = NextResponse.redirect(redirectTarget);
           clearTxCookie(res);
           return res;
         }
@@ -240,7 +288,10 @@ export async function GET(req: NextRequest) {
         });
 
         const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-        const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=success&provider=linkedin&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+          : new URL(targetPath, requestOrigin);
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
 
         res.cookies.set({
@@ -269,9 +320,11 @@ export async function GET(req: NextRequest) {
           reason: `LinkedIn login rejected: Email ${normalizedEmail} exists in VOS Sync but LinkedIn identity is not connected`,
         });
 
-        const res = NextResponse.redirect(
-          new URL(`/login?error=linkedin_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin)
-        );
+        const errorUrl = new URL(`/login?error=linkedin_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=linkedin_not_connected&provider=linkedin&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       } else {
@@ -285,7 +338,11 @@ export async function GET(req: NextRequest) {
           reason: `LinkedIn login rejected: No account found for email ${normalizedEmail}`,
         });
 
-        const res = NextResponse.redirect(new URL("/login?error=account_not_found", requestOrigin));
+        const errorUrl = new URL("/login?error=account_not_found", requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=account_not_found&provider=linkedin&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
@@ -333,13 +390,21 @@ export async function GET(req: NextRequest) {
           reason: "LinkedIn login denied: Account is blocked",
         });
 
-        const res = NextResponse.redirect(new URL("/login?error=account_blocked", requestOrigin));
+        const errorUrl = new URL("/login?error=account_blocked", requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=account_blocked&provider=linkedin&flow=signup`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
 
       if (!canAuthenticate(user)) {
-        const res = NextResponse.redirect(new URL("/login?error=account_inactive", requestOrigin));
+        const errorUrl = new URL("/login?error=account_inactive", requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=account_inactive&provider=linkedin&flow=signup`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
@@ -372,7 +437,10 @@ export async function GET(req: NextRequest) {
       });
 
       const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-      const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+      const redirectTarget = transaction.popup
+        ? new URL(`/auth/popup-callback?status=success&provider=linkedin&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+        : new URL(targetPath, requestOrigin);
+      const res = NextResponse.redirect(redirectTarget);
 
       clearTxCookie(res);
 
@@ -405,7 +473,11 @@ export async function GET(req: NextRequest) {
       const signupUrl = new URL("/signup", requestOrigin);
       signupUrl.searchParams.set("linkedin", "1");
 
-      const res = NextResponse.redirect(signupUrl);
+      const redirectTarget = transaction.popup
+        ? new URL(`/auth/popup-callback?status=success&provider=linkedin&flow=signup&redirectUrl=${encodeURIComponent(signupUrl.pathname + signupUrl.search)}`, requestOrigin)
+        : signupUrl;
+
+      const res = NextResponse.redirect(redirectTarget);
       clearTxCookie(res);
 
       res.cookies.set({
@@ -422,6 +494,16 @@ export async function GET(req: NextRequest) {
     }
   } catch (err: unknown) {
     console.error("[GET /api/auth/linkedin/callback] Callback failure:", err);
+    if (transaction?.popup) {
+      const res = NextResponse.redirect(
+        new URL(
+          `/auth/popup-callback?status=error&error=linkedin_callback_failed&provider=linkedin&flow=${transaction.mode || "login"}`,
+          requestOrigin
+        )
+      );
+      clearTxCookie(res);
+      return res;
+    }
     const fallbackPath = transaction?.mode === "link" ? "/vos-sync/freelancer/settings" : "/login";
     const res = NextResponse.redirect(new URL(`${fallbackPath}?error=linkedin_callback_failed`, requestOrigin));
     clearTxCookie(res);

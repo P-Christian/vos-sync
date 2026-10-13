@@ -12,7 +12,7 @@ const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(
 );
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_super_secret_key_for_development"
+  process.env.JWT_SECRET 
 );
 
 function getPHISOTimestamp(): string {

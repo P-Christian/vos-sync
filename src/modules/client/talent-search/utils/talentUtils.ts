@@ -1,14 +1,10 @@
-// src/modules/client/talent-search/utils/talentUtils.ts
+import { formatAssetUrl } from "@/lib/utils";
 
 /**
- * Resolves full Directus asset URL for image values
+ * Resolves proxied asset URL for image values
  */
 export function getImageUrl(value: string | null | undefined): string {
-  if (!value) return "";
-  if (value.startsWith("http://") || value.startsWith("https://")) return value;
-  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-  const cleanPath = value.replace(/^\//, "");
-  return `${baseUrl}/assets/${cleanPath}`;
+  return formatAssetUrl(value) || "";
 }
 /**
  * Format experience duration

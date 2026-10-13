@@ -78,7 +78,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setMode = useCallback((newMode: RealtimeMode) => {
     setModeState(newMode);
-    console.log(`🔄 [Realtime] Switched mode to '${newMode.toUpperCase()}'`);
+    // console.log(`🔄 [Realtime] Switched mode to '${newMode.toUpperCase()}'`);
   }, []);
 
   const notifySubscribers = useCallback((collection: string, event: RealtimeEventType, data: Record<string, unknown>[]) => {
@@ -237,20 +237,20 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     let timer: NodeJS.Timeout | null = null;
     if (mode === "websocket") {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
-      console.log("⚡ [Realtime] Running in WEBSOCKET mode.");
+      // console.log("⚡ [Realtime] Running in WEBSOCKET mode.");
       timer = setTimeout(() => {
         connectWebSocket();
       }, 0);
     } else {
       if (socketRef.current) {
-        console.log("⚡ [Realtime] Closing WebSocket connection for POLLING mode.");
+        // console.log("⚡ [Realtime] Closing WebSocket connection for POLLING mode.");
         socketRef.current.close();
         socketRef.current = null;
       }
       timer = setTimeout(() => {
         setIsConnected(true);
       }, 0);
-      console.log("⚡ [Realtime] Running in HTTP POLLING mode (3s interval).");
+      // console.log("⚡ [Realtime] Running in HTTP POLLING mode (3s interval).");
 
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = setInterval(() => {

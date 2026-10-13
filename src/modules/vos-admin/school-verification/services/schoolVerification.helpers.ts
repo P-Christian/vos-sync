@@ -1,5 +1,6 @@
 // src/modules/vos-admin/school-verification/services/schoolVerification.helpers.ts
 import { SchoolVerificationRecord, SchoolVerificationKPIs } from "../types";
+import { formatAssetUrl } from "@/lib/utils";
 
 export function getPHISOTimestamp(): string {
   const now = new Date();
@@ -60,14 +61,8 @@ export function formatPHDate(dateString?: string | null): string {
 }
 
 export function resolveAssetUrl(idStr: unknown): string | null {
-  if (!idStr || typeof idStr !== "string" || !idStr.trim()) return null;
-  const t = idStr.trim();
-  if (t.startsWith("http://") || t.startsWith("https://")) return t;
-  if (t.startsWith("/api/assets/")) return t;
-  if (t.startsWith("/assets/")) return `/api${t}`;
-  const parts = t.split("/");
-  const fileId = parts[parts.length - 1];
-  return fileId ? `/api/assets/${fileId}` : null;
+  if (!idStr || typeof idStr !== "string") return null;
+  return formatAssetUrl(idStr);
 }
 
 export function computeSchoolKpis(records: SchoolVerificationRecord[]): SchoolVerificationKPIs {

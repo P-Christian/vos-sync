@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { FreelancerProfilePage } from "@/modules/freelancer/freelancer-profile/FreelancerProfilePage";
 import { ProfilePageHeader } from "@/modules/freelancer/freelancer-profile/components/ProfilePageHeader";
+import { formatAssetUrl } from "@/lib/utils";
 
 export default async function FreelancerProfileRoute() {
     const cookieStore = await cookies();
@@ -13,7 +14,7 @@ export default async function FreelancerProfileRoute() {
     const user = {
         name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
         email: profile?.user_email || "guest@example.com",
-        avatar: profile?.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}` : "",
+        avatar: formatAssetUrl(profile?.profile_image_url) || "",
     };
 
     return (

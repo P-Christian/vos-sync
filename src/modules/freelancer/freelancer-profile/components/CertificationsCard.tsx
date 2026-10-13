@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CertificationsModal } from "./CertificationsModal";
 import { VsCertification } from "../types/freelancer-profile.types";
+import { formatAssetUrl } from "@/lib/utils";
 
 export function CertificationsCard() {
     const { data: profile, pendingCertifications, isAutofilling } = useFreelancerProfileContext();
@@ -96,7 +97,7 @@ export function CertificationsCard() {
                                     <div className="relative w-[120px] h-[70px] bg-muted rounded-md overflow-hidden border border-border shadow-sm transition-all hover:shadow-md cursor-pointer flex-shrink-0">
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
                                         <img 
-                                            src={cert.image_uuid.startsWith('http') ? cert.image_uuid : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${cert.image_uuid}`}
+                                            src={formatAssetUrl(cert.image_uuid) || ""}
                                             alt={cert.certificate_name || "Certification Media"} 
                                             className="object-cover w-full h-full" 
                                         />

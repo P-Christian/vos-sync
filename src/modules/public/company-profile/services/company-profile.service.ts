@@ -11,6 +11,7 @@ import {
   CompanyReview,
   CompanyReviewReport
 } from "../types";
+import { formatAssetUrl } from "@/lib/utils";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -61,7 +62,7 @@ export async function getTrustedCompanies(limit = 20): Promise<TrustedCompany[]>
       companyId: c.company_id,
       companyCode: c.company_code,
       companyName: c.company_name,
-      companyLogo: c.company_logo ? `${DIRECTUS_BASE}/assets/${c.company_logo}` : null,
+      companyLogo: formatAssetUrl(c.company_logo),
       industryName: c.industry_id?.industry_name || null,
       activeJobs: jobCounts[c.company_id] || 0,
       verified: c.verification_status === "VERIFIED",
@@ -118,8 +119,8 @@ export async function getPublicCompanyByCode(companyCode: string): Promise<Publi
       industry_name: raw.industry_id?.industry_name || null,
       company_size_name: raw.company_size_id?.company_size_name || null,
       year_established: raw.year_established ? Number(raw.year_established) : null,
-      company_logo: raw.company_logo ? `${DIRECTUS_BASE}/assets/${raw.company_logo}` : null,
-      company_cover: raw.company_cover ? `${DIRECTUS_BASE}/assets/${raw.company_cover}` : null,
+      company_logo: formatAssetUrl(raw.company_logo),
+      company_cover: formatAssetUrl(raw.company_cover),
       company_description: raw.company_description || null,
       company_mission: raw.company_mission || null,
       company_vision: raw.company_vision || null,
@@ -325,8 +326,8 @@ export async function getBrowseCompanies(
         industry_name: raw.industry_id?.industry_name || null,
         company_size_name: raw.company_size_id?.company_size_name || null,
         year_established: raw.year_established ? Number(raw.year_established) : null,
-        company_logo: raw.company_logo ? `${DIRECTUS_BASE}/assets/${raw.company_logo}` : null,
-        company_cover: raw.company_cover ? `${DIRECTUS_BASE}/assets/${raw.company_cover}` : null,
+        company_logo: formatAssetUrl(raw.company_logo),
+        company_cover: formatAssetUrl(raw.company_cover),
         company_description: raw.company_description || null,
         company_mission: raw.company_mission || null,
         company_vision: raw.company_vision || null,

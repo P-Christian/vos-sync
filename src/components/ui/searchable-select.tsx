@@ -32,6 +32,7 @@ export interface SearchableSelectProps {
     ariaLabel?: string;
     disabled?: boolean;
     className?: string;
+    triggerClassName?: string;
 }
 
 export function SearchableSelect({
@@ -45,6 +46,7 @@ export function SearchableSelect({
     ariaLabel,
     disabled = false,
     className,
+    triggerClassName,
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false);
 
@@ -61,14 +63,14 @@ export function SearchableSelect({
                     role="combobox"
                     aria-expanded={open}
                     aria-label={ariaLabel}
-                    className={cn("w-full min-w-0 justify-between", !value && "text-muted-foreground", className)}
+                    className={cn("w-full min-w-0 justify-between", !value && "text-muted-foreground", className, triggerClassName)}
                     disabled={disabled}
                 >
                     <span className="truncate">{selectedLabel || placeholder}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] min-w-[var(--radix-popover-trigger-width)] p-0" align="start">
                 <Command shouldFilter={!serverFiltered}>
                     <CommandInput
               className="text-base md:text-sm"

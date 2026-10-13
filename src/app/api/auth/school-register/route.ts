@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { randomInt } from 'crypto';
 import {
     legacyRegistrationRetiredResponse,
     parseDirectusUtcDateTime,
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
                 headers: getHeaders(),
                 body: JSON.stringify({
                     hash_password: passwordHash,
-                    user_password: password,
+                    user_password: passwordHash, // legacy compat
                     user_fname,
                     user_lname,
                     user_contact,
@@ -134,7 +135,7 @@ export async function POST(req: Request) {
                 body: JSON.stringify({
                     user_email: invitedEmail,
                     hash_password: passwordHash,
-                    user_password: password,
+                    user_password: passwordHash, // legacy compat
                     user_fname,
                     user_lname,
                     user_contact,
@@ -181,17 +182,18 @@ export async function POST(req: Request) {
         });
 
         // 6. Generate OTP and send email
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const otpCode = randomInt(100000, 1000000).toString();
         
         const getPHTimeString = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
         const now = new Date();
         const expiry = new Date(now.getTime() + 10 * 60 * 1000);
+        const hashedOtp = await bcrypt.hash(otpCode, 10);
         
         await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
             method: 'PATCH',
             headers: getHeaders(),
             body: JSON.stringify({
-                otp_code: otpCode,
+                otp_code: hashedOtp,
                 otp_expiry: getPHTimeString(expiry),
                 otp_sent_at: getPHTimeString(now),
                 otp_verified: 0

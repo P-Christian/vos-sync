@@ -26,13 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useJobCategories } from "../hooks/useJobCategories";
 import { useStandardRoles } from "../hooks/useStandardRoles";
 import { useSearchKeywords } from "../hooks/useSearchKeywords";
@@ -40,6 +34,14 @@ import { useRoleSkills } from "../hooks/useRoleSkills";
 import { RoleDetailSheet } from "./RoleDetailSheet";
 import { slugifyCode } from "../validators";
 import { JobCategory, StandardRole, ExperienceLevel } from "../types";
+
+const EXPERIENCE_LEVEL_OPTIONS = [
+  { value: "ENTRY", label: "Entry Level" },
+  { value: "MID", label: "Mid Level" },
+  { value: "SENIOR", label: "Senior Level" },
+  { value: "LEAD", label: "Lead / Manager" },
+  { value: "EXECUTIVE", label: "Executive / Director" },
+];
 
 export function MatchingTaxonomyEditor() {
   const {
@@ -756,40 +758,27 @@ export function MatchingTaxonomyEditor() {
 
               <div className="space-y-1">
                 <label className="font-semibold">Job Category</label>
-                <Select
+                <SearchableSelect
                   value={String(targetCatIdForNewRole)}
                   onValueChange={(val) => setTargetCatIdForNewRole(Number(val))}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.category_id} value={String(c.category_id)}>
-                        {c.category_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={categories.map((c) => ({
+                    value: String(c.category_id),
+                    label: c.category_name,
+                  }))}
+                  placeholder="Select category"
+                  triggerClassName="h-9 text-xs w-full"
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="font-semibold">Experience Level</label>
-                <Select
+                <SearchableSelect
                   value={roleExpLevelInput}
                   onValueChange={(val) => setRoleExpLevelInput(val as ExperienceLevel)}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ENTRY">Entry Level</SelectItem>
-                    <SelectItem value="MID">Mid Level</SelectItem>
-                    <SelectItem value="SENIOR">Senior Level</SelectItem>
-                    <SelectItem value="LEAD">Lead / Manager</SelectItem>
-                    <SelectItem value="EXECUTIVE">Executive / Director</SelectItem>
-                  </SelectContent>
-                </Select>
+                  options={EXPERIENCE_LEVEL_OPTIONS}
+                  placeholder="Select experience level"
+                  triggerClassName="h-9 text-xs w-full"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t">

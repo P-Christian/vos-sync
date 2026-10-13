@@ -30,6 +30,7 @@ export interface LinkedInOAuthTransaction {
   linkUserId?: string | number;
   linkSessionEpoch?: string | null;
   returnTo?: string;
+  popup?: boolean;
   created_at: number;
 }
 
@@ -156,13 +157,13 @@ export { resolveRequestOrigin };
 
 /** Derives 32-byte key for JWE encryption (A256GCM) */
 function getEncryptionKey(): Uint8Array {
-  const secret = process.env.JWT_SECRET || "default_super_secret_key_for_development";
+  const secret = process.env.JWT_SECRET ;
   return crypto.createHash("sha256").update(`${secret}:linkedin-oauth-encryption`).digest();
 }
 
 /** Derives key for signing transaction cookie */
 function getSigningSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || "default_super_secret_key_for_development";
+  const secret = process.env.JWT_SECRET;
   return new TextEncoder().encode(secret);
 }
 
@@ -213,6 +214,7 @@ export async function unsealOAuthTransaction(token: string): Promise<LinkedInOAu
       linkSessionEpoch:
         typeof payload.linkSessionEpoch === "string" ? payload.linkSessionEpoch : undefined,
       returnTo: typeof payload.returnTo === "string" ? payload.returnTo : undefined,
+      popup: typeof payload.popup === "boolean" ? payload.popup : undefined,
       created_at: typeof payload.created_at === "number" ? payload.created_at : Date.now(),
     };
   } catch {
@@ -228,6 +230,7 @@ export function generateOAuthParams(
     linkUserId?: string | number;
     linkSessionEpoch?: string | null;
     returnTo?: string;
+    popup?: boolean;
   }
 ): {
   transaction: LinkedInOAuthTransaction;
@@ -251,6 +254,7 @@ export function generateOAuthParams(
     linkUserId: options?.linkUserId,
     linkSessionEpoch: options?.linkSessionEpoch,
     returnTo: options?.returnTo,
+    popup: options?.popup,
     created_at: Date.now(),
   };
 

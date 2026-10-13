@@ -10,15 +10,12 @@ import {
 } from "@/modules/vos-admin/school-verification/services/schoolRouteSearch.repo";
 
 import { cookies } from "next/headers";
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_super_secret_key_for_development"
-);
+import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
 async function verifyAdminRole(
   req: NextRequest
 ): Promise<{ adminId: number; roleId: number } | null> {
-  if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
+  if (process.env.NODE_ENV !== "production" && process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
     return { adminId: 1, roleId: 3 };
   }
   // Prefer the Authorization header so handler-level verification works
@@ -37,7 +34,7 @@ async function verifyAdminRole(
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtVerificationSecret());
     const adminId = Number(payload.sub || payload.user_id || payload.id);
     const roleId = Number(payload.role_id ?? payload.role ?? 0);
     return { adminId, roleId };

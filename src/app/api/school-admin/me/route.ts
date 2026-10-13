@@ -1,21 +1,10 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
 import { getMySchool } from "@/modules/school-admin/services/school-admin.service";
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_super_secret_key_for_development");
+import { authenticateCookieSession } from "@/lib/authenticated-session";
 
 async function getUserIdFromToken() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("vos_sync_access_token")?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return Number(payload.sub || payload.user_id || payload.id);
-  } catch {
-    return null;
-  }
+  const session = await authenticateCookieSession();
+  return session ? Number(session.userId) : null;
 }
 
 export async function GET() {

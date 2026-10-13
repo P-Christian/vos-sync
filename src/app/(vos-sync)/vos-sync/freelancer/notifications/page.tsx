@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { FreelancerPageHeader } from "@/components/shared/layout/FreelancerPageHeader";
 import FreelancerNotificationsModule from "@/modules/freelancer/freelancer-notifications";
+import { formatAssetUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,9 +35,7 @@ export default async function FreelancerNotificationsPage() {
   const user = {
     name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
     email: profile?.user_email || "guest@example.com",
-    avatar: profile?.profile_image_url
-      ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}`
-      : "",
+    avatar: formatAssetUrl(profile?.profile_image_url) || "",
   };
 
   return (
