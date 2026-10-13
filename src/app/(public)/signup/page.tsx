@@ -17,9 +17,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader,
   DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+
 import { toast } from 'sonner';
 import { validatePasswordStrict } from '@/lib/password-validation';
 import PasswordRequirementsChecklist from '@/components/auth/PasswordRequirementsChecklist';
@@ -1681,16 +1679,17 @@ function SignupPageContent() {
               <label className="block text-sm font-medium text-foreground">
                 Company Size <span className="text-destructive">*</span>
               </label>
-              <Select value={company.companySize} onValueChange={val => cSet('companySize', val)} disabled={loading}>
-                <SelectTrigger className={cn('!h-12 w-full border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.companySize && 'border-destructive')}>
-                  <SelectValue placeholder="Select size..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {fetchedCompanySizes.map(s => (
-                    <SelectItem key={String(s.id)} value={String(s.id)}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={company.companySize}
+                onValueChange={val => cSet('companySize', val)}
+                disabled={loading}
+                options={fetchedCompanySizes.map(s => ({
+                  value: String(s.id),
+                  label: s.name,
+                }))}
+                placeholder="Select size..."
+                triggerClassName={cn('!h-12 w-full border-2 border-border focus:ring-0 focus:border-primary text-sm', errors.companySize && 'border-destructive')}
+              />
               {errors.companySize && <p className="text-xs text-destructive mt-1 font-medium">{errors.companySize}</p>}
             </div>
           </div>
@@ -2191,14 +2190,17 @@ function SignupPageContent() {
           <label htmlFor="country" className="block text-sm font-medium text-foreground">
             Country <span className="text-destructive">*</span>
           </label>
-          <Select value={formData.country} onValueChange={handleFreelancerCountryChange} disabled={loading}>
-            <SelectTrigger id="country" className={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-base', freelancerErrors.country && 'border-destructive focus:border-destructive text-destructive')}>
-              <SelectValue placeholder="Select Country" />
-            </SelectTrigger>
-            <SelectContent>
-              {COUNTRIES.map(c => <SelectItem key={c.code} value={c.name}>{c.flag} {c.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={formData.country}
+            onValueChange={handleFreelancerCountryChange}
+            disabled={loading}
+            options={COUNTRIES.map(c => ({
+              value: c.name,
+              label: `${c.flag} ${c.name}`,
+            }))}
+            placeholder="Select Country"
+            triggerClassName={cn('h-12 border-2 border-border focus:ring-0 focus:border-primary text-base w-full', freelancerErrors.country && 'border-destructive focus:border-destructive text-destructive')}
+          />
           {freelancerErrors.country && <p className="text-xs text-destructive mt-1 font-medium">{freelancerErrors.country}</p>}
         </div>
 
@@ -2837,18 +2839,19 @@ function SignupPageContent() {
 
           <div className="space-y-1">
             <label className="block text-sm font-medium">School Type <span className="text-destructive">*</span></label>
-            <Select value={schoolFormData.schoolType}
-              onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as 'University' | 'College' | 'Technical/Vocational' | 'Other' }))} disabled={loading}>
-              <SelectTrigger className="max-md:min-h-11 h-12 border-2 text-base">
-                <SelectValue placeholder="Select School Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="University">University</SelectItem>
-                <SelectItem value="College">College</SelectItem>
-                <SelectItem value="Technical/Vocational">Technical/Vocational</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              value={schoolFormData.schoolType}
+              onValueChange={val => setSchoolFormData(prev => ({ ...prev, schoolType: val as 'University' | 'College' | 'Technical/Vocational' | 'Other' }))}
+              disabled={loading}
+              options={[
+                { value: "University", label: "University" },
+                { value: "College", label: "College" },
+                { value: "Technical/Vocational", label: "Technical/Vocational" },
+                { value: "Other", label: "Other" },
+              ]}
+              placeholder="Select School Type"
+              triggerClassName="max-md:min-h-11 h-12 border-2 text-base w-full"
+            />
           </div>
 
           <div className="space-y-1">
