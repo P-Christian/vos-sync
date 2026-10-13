@@ -63,7 +63,7 @@ export function RoleSwitcherCards() {
         {roles.map((r, idx) => (
           <div
             key={idx}
-            className={`p-6 rounded-3xl border ${r.colorClass} space-y-4 flex flex-col justify-between shadow-2xs hover:shadow-md transition-shadow bg-card`}
+            className={`p-6 rounded-3xl border border-border/80 ${r.colorClass} space-y-4 flex flex-col justify-between shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 bg-white/85 dark:bg-card/75 backdrop-blur-xl`}
           >
             <div className="space-y-3">
               <div className="p-3 rounded-2xl border bg-background w-fit shadow-2xs">

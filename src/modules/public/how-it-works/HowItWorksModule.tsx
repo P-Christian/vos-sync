@@ -66,7 +66,7 @@ export default function HowItWorksModule({
   const currentGuide = ROLE_GUIDES[activeRole] || ROLE_GUIDES[defaultRole] || ROLE_GUIDES.employee;
 
   return (
-    <div className="min-h-screen bg-background text-foreground relative">
+    <div className="min-h-screen text-foreground relative">
       {/* Top Left Go Back button for client, employee, and school guide pages (excluding public landing page) */}
       {showBackButton && (
         <div className="absolute top-4 left-4 sm:top-6 sm:left-8 z-30">
