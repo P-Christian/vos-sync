@@ -29,17 +29,14 @@ export function JobHeroBanner({
 }: Props) {
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-b from-primary/10 via-primary/5 to-background border-b pt-4 pb-16 md:pt-22 px-4  sm:px-6 lg:px-8">
-      {/* Decorative background glows */}
-      <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-r from-primary/20 via-blue-500/20 to-purple-500/20 blur-3xl opacity-50 pointer-events-none rounded-full" />
-
+    <div className="relative overflow-hidden border-b border-border/60 pt-4 pb-16 md:pt-22 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wide uppercase shadow-2xs">
           <span>Discover Your Next Career Opportunity</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold text-foreground tracking-tight leading-tight">
-          Explore <span className="text-primary underline decoration-primary/30 underline-offset-8">{totalJobs > 0 ? `${totalJobs}+` : "Top"} Open Jobs</span> Across the Philippines
+          Explore <span className="text-primary underline decoration-primary/30 underline-offset-8">Top Open Jobs</span> Across the Philippines
         </h1>
 
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
@@ -49,7 +46,7 @@ export function JobHeroBanner({
         {/* Hero Search Bar Box */}
         <form
           onSubmit={onSearchSubmit}
-          className="bg-card border rounded-2xl shadow-xl p-3 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-3 backdrop-blur-md"
+          className="bg-white/90 dark:bg-card/75 border border-border/80 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-3 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-3 backdrop-blur-xl"
         >
           {/* Keyword Search Input */}
           <div className="md:col-span-5 relative flex items-center">

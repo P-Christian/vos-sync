@@ -41,8 +41,20 @@ export default function DashboardHeader({ company, userName }: DashboardHeaderPr
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className="relative rounded-2xl border bg-card p-4 sm:p-7 shadow-xs overflow-hidden"
+      className="relative rounded-2xl border border-[#E6EAF2] dark:border-[#1E2942] bg-white dark:bg-[#121A2E] p-4 sm:p-7 shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:shadow-none overflow-hidden"
     >
+      {/* Landing page dotted texture at 5-6% opacity */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.055] dark:opacity-[0.06] text-zinc-900 dark:text-zinc-100"
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+          backgroundSize: `20px 20px`,
+        }}
+      />
+
+      {/* Subtle radial blue glow in top-right corner */}
+      <div className="absolute -top-14 -right-14 w-60 h-60 rounded-full bg-blue-500/20 dark:bg-blue-600/15 blur-3xl pointer-events-none" />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 relative z-10">
         <div className="flex items-start gap-4">
           <div className="h-13 w-13 max-md:h-11 max-md:w-11 rounded-2xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
@@ -50,7 +62,7 @@ export default function DashboardHeader({ company, userName }: DashboardHeaderPr
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
+              <h1 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground dark:text-[#E6EAF5]">
                 {greeting}, {displayName}
               </h1>
               {isVerified ? (
@@ -63,7 +75,7 @@ export default function DashboardHeader({ company, userName }: DashboardHeaderPr
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap pt-0.5">
+            <p className="text-sm text-muted-foreground dark:text-[#8A94AD] flex items-center gap-2 flex-wrap pt-0.5">
               <span>Here&apos;s an overview of your hiring activity.</span>
               {locationStr && (
                 <>
