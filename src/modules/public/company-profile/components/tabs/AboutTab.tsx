@@ -130,7 +130,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         
         {/* 1. About / Description */}
         {company_description && (
-          <div className="bg-card border border-border rounded-2xl p-6 max-md:order-1">
+          <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-1">
             <h2 className="text-xl font-bold text-foreground mb-4">About the Company</h2>
             <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
               {company_description}
@@ -142,7 +142,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         {(company_mission || company_vision) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-md:order-2 max-md:hidden">
             {company_mission && (
-              <div className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-between">
+              <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 flex flex-col justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-foreground mb-3">Our Mission</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
@@ -153,7 +153,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
             )}
 
             {company_vision && (
-              <div className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-between">
+              <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 flex flex-col justify-between">
                 <div>
                   <h3 className="text-lg font-bold text-foreground mb-3">Our Vision</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed">
@@ -166,9 +166,8 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         )}
 
         {/* 2. Life & Culture Summary */}
-        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-3 max-md:hidden">
+        <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-3 max-md:hidden">
           <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-          
             Life & Culture
           </h2>
           <p className="text-muted-foreground text-sm leading-relaxed mb-6 whitespace-pre-line">
@@ -178,7 +177,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
           {/* Benefits List */}
           {company_benefits && (
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border/80">
               <h3 className="text-sm font-semibold text-foreground mb-3">Benefits & Perks</h3>
               <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
                 {company_benefits}
@@ -188,7 +187,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* 3. Featured Open Jobs Preview */}
-        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-5">
+        <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-5">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <Briefcase className="w-5 h-5 text-blue-500" />
@@ -215,11 +214,11 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
               {jobs.map((job) => (
                 <div
                   key={job.id}
-                  className="p-4 rounded-xl border border-border hover:border-zinc-300 dark:hover:border-zinc-700 transition-all bg-muted/20 flex flex-col justify-between gap-3"
+                  className="p-4 rounded-xl border border-border/70 hover:border-primary/40 transition-all bg-card/60 hover:bg-card/90 hover:shadow-sm flex flex-col justify-between gap-3 group"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <h4 className="font-bold text-foreground text-sm hover:text-primary transition-colors cursor-pointer">
+                      <h4 className="font-bold text-foreground text-sm group-hover:text-primary transition-colors cursor-pointer">
                         {job.title}
                       </h4>
                       {job.department && (
@@ -257,13 +256,13 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
               {onTabChange && activeJobsCount > 0 && (
                 <div className="pt-2 text-center">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => onTabChange("jobs")}
-                    className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer h-11 md:h-8"
+                    className="rounded-full border-primary/20 bg-background/80 hover:bg-primary hover:text-white dark:hover:text-white text-xs font-semibold px-4 py-2 transition-all duration-200 hover:scale-[1.03] shadow-sm flex items-center gap-1.5 mx-auto cursor-pointer h-10 md:h-9 group"
                   >
                     View all {activeJobsCount} open positions
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
                   </Button>
                 </div>
               )}
@@ -272,7 +271,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* 4. Recent Employee Reviews Preview */}
-        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-6">
+        <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-amber-500" />
@@ -297,7 +296,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
                 const reviewerRole = rev.is_anonymous ? "Anonymous Employee" : (rev.job_title || "Employee");
                 const statusLabel = rev.employment_status === "CURRENT_EMPLOYEE" ? "Current Employee" : "Former Employee";
                 return (
-                  <div key={rev.review_id} className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                  <div key={rev.review_id} className="p-4 rounded-xl border border-border/70 bg-card/60 space-y-3">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded-lg text-xs">
                         <Star className="w-3 h-3 fill-current" />
@@ -345,13 +344,13 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
             {onTabChange && (
               <div className="pt-2 text-center">
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => onTabChange("reviews")}
-                  className="font-semibold text-xs text-primary hover:text-primary/95 flex items-center gap-1 mx-auto cursor-pointer h-11 md:h-8"
+                  className="rounded-full border-primary/20 bg-background/80 hover:bg-primary hover:text-white dark:hover:text-white text-xs font-semibold px-4 py-2 transition-all duration-200 hover:scale-[1.03] shadow-sm flex items-center gap-1.5 mx-auto cursor-pointer h-10 md:h-9 group"
                 >
                   Read all employee insights & reviews
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-1" />
                 </Button>
               </div>
             )}
@@ -362,7 +361,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
       {/* Corporate Metadata & Directory (Right 1/3) */}
       <div className="space-y-6 max-md:contents max-md:space-y-0">
-        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-4">
+        <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-4">
           <h2 className="text-lg font-bold text-foreground mb-6">Company Information</h2>
 
           <div className="space-y-5">
@@ -425,7 +424,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
         </div>
 
         {/* Contacts & Social links */}
-        <div className="bg-card border border-border rounded-2xl p-6 max-md:order-7">
+        <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-7">
           <h2 className="text-lg font-bold text-foreground mb-4">Contact & Media</h2>
 
           <div className="space-y-4 mb-6">
@@ -461,14 +460,14 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
           {/* Social icons row */}
           {socialLinks.length > 0 && (
-            <div className="pt-4 border-t border-border flex items-center gap-3">
+            <div className="pt-4 border-t border-border/80 flex items-center gap-3">
               {socialLinks.map((link) => (
                 <a
                   key={link.label}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-11 h-11 md:w-9 md:h-9 rounded-xl bg-muted/60 text-muted-foreground hover:text-primary hover:bg-muted transition-all flex items-center justify-center border border-border"
+                  className="w-11 h-11 md:w-9 md:h-9 rounded-xl bg-muted/60 text-muted-foreground hover:text-primary hover:bg-muted transition-all flex items-center justify-center border border-border/80"
                   title={link.label}
                 >
                   {link.icon}
@@ -480,7 +479,7 @@ export function AboutTab({ company, onTabChange }: AboutTabProps) {
 
         {/* Tags */}
         {tagsList.length > 0 && (
-          <div className="bg-card border border-border rounded-2xl p-6 max-md:order-8">
+          <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 max-md:order-8">
             <h2 className="text-lg font-bold text-foreground mb-4">Keywords</h2>
             <div className="flex flex-wrap gap-2">
               {tagsList.map((tag) => (

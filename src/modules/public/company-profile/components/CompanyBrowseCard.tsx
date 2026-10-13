@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MapPin, Briefcase } from "lucide-react";
@@ -35,6 +36,9 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
     activeJobsCount,
   } = company;
 
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
   const verified = verification_status === "VERIFIED";
 
   return (
@@ -44,23 +48,32 @@ export function CompanyBrowseCard({ company, index = 0 }: BrowseCardProps) {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4), ease: [0.21, 0.45, 0.27, 0.9] }}
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
-      className="bg-card border border-border rounded-2xl p-6 hover:shadow-xl hover:border-primary/40 transition-shadow duration-300 flex flex-col md:flex-row gap-6 items-start max-md:grid max-md:grid-cols-[4rem_minmax(0,1fr)] max-md:gap-x-4 max-md:gap-y-0"
+      className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 flex flex-col md:flex-row gap-6 items-start max-md:grid max-md:grid-cols-[4rem_minmax(0,1fr)] max-md:gap-x-4 max-md:gap-y-0"
     >
 
       {/* Brand logo container */}
-      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden relative max-md:col-start-1 max-md:row-start-2 max-md:row-end-4">
-        {company_logo ? (
-          <Image
-            src={company_logo}
-            alt={company_name}
-            width={64}
-            height={64}
-            className="object-cover w-full h-full"
-            loading="lazy"
-            unoptimized
-          />
+      <div className="w-16 h-16 rounded-2xl bg-muted/60 border border-border flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden relative max-md:col-start-1 max-md:row-start-2 max-md:row-end-4 select-none">
+        {company_logo && !imgError ? (
+          <>
+            {!imgLoaded && (
+              <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm font-bold">
+                {getInitials(company_name)}
+              </span>
+            )}
+            <Image
+              src={company_logo}
+              alt={company_name}
+              width={64}
+              height={64}
+              decoding="async"
+              unoptimized
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgError(true)}
+              className={`object-cover w-full h-full transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
         ) : (
-          <span className="text-zinc-500 dark:text-zinc-400">
+          <span className="text-muted-foreground text-sm font-bold">
             {getInitials(company_name)}
           </span>
         )}

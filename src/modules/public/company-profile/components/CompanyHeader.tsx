@@ -1,10 +1,12 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
-import { Globe, MapPin, Share2, CheckCircle2, Check, Maximize2 } from "lucide-react";
+import { Globe, MapPin, Share2, CheckCircle2, Check, Maximize2, Building2 } from "lucide-react";
 import { PublicCompanyProfile } from "../types";
 import { Button } from "@/components/ui/button";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +45,10 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
   } = company;
 
   const [copied, setCopied] = useState(false);
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  const [coverError, setCoverError] = useState(false);
+  const [logoLoaded, setLogoLoaded] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const [previewImage, setPreviewImage] = useState<{
     src: string;
     title: string;
@@ -50,6 +56,14 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
   } | null>(null);
 
   const verified = verification_status === "VERIFIED";
+
+  const session = useAuthSession();
+  const isOwnCompany = Boolean(
+    session.isEmployer &&
+    session.companyId &&
+    company.company_id &&
+    Number(session.companyId) === Number(company.company_id)
+  );
 
   const handleShare = () => {
     const url = window.location.href;
@@ -60,13 +74,14 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
   };
 
   return (
-    <div className="w-full bg-card border-b border-border font-sans">
+    <div className="w-full bg-card/85 dark:bg-card/75 backdrop-blur-xl border-b border-border/80 font-sans">
       {/* Cover Image Banner */}
       <div
-        className={`relative h-48 md:h-72 w-full bg-muted overflow-hidden ${company_cover ? "cursor-pointer group" : ""
+        className={`relative h-72 sm:h-80 md:h-[380px] w-full bg-muted/60 overflow-hidden ${company_cover && !coverError ? "cursor-pointer group" : ""
           }`}
         onClick={() =>
           company_cover &&
+          !coverError &&
           setPreviewImage({
             src: company_cover,
             title: `${company_name} Cover Photo`,
@@ -74,24 +89,30 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
           })
         }
       >
-        {company_cover ? (
+        {/* Top Vignette Scrim for Navigation Bar Contrast */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background/80 via-background/30 to-transparent pointer-events-none z-10" />
+
+        {company_cover && !coverError ? (
           <>
             <Image
               src={company_cover}
               alt={`${company_name} cover`}
               fill
-              className="object-cover transition-transform duration-300 group-hover:scale-[1.015]"
+              decoding="async"
+              className={`object-cover transition-all duration-500 group-hover:scale-[1.015] ${coverLoaded ? "opacity-100" : "opacity-0"}`}
               priority
               unoptimized
+              onLoad={() => setCoverLoaded(true)}
+              onError={() => setCoverError(true)}
             />
-            <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors duration-300 flex items-center justify-center">
+            <div className="absolute inset-0 z-20 bg-background/0 group-hover:bg-background/20 transition-colors duration-300 flex items-center justify-center">
               <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-background/80 text-foreground text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 backdrop-blur-xs border border-border shadow-md">
                 <Maximize2 className="w-3.5 h-3.5" /> Click to view cover photo
               </span>
             </div>
           </>
         ) : (
-          <div className="absolute inset-0 bg-muted/50" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-sky-500/10 to-primary/5" />
         )}
       </div>
 
@@ -102,10 +123,11 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
           <div className="flex flex-col md:flex-row items-start md:items-end gap-5">
             {/* Logo box */}
             <div
-              className={`w-24 h-24 md:w-36 md:h-36 rounded-3xl bg-card border-4 border-card shadow-lg flex items-center justify-center text-4xl font-bold overflow-hidden shrink-0 relative ${company_logo ? "cursor-pointer group" : ""
+              className={`w-24 h-24 md:w-36 md:h-36 rounded-3xl bg-card border-4 border-card shadow-lg flex items-center justify-center text-4xl font-bold overflow-hidden shrink-0 relative select-none ${company_logo && !logoError ? "cursor-pointer group" : ""
                 }`}
               onClick={() =>
                 company_logo &&
+                !logoError &&
                 setPreviewImage({
                   src: company_logo,
                   title: `${company_name} Logo`,
@@ -113,16 +135,24 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
                 })
               }
             >
-              {company_logo ? (
+              {company_logo && !logoError ? (
                 <>
+                  {!logoLoaded && (
+                    <span className="absolute inset-0 flex items-center justify-center text-muted-foreground text-2xl md:text-3xl font-bold">
+                      {getInitials(company_name)}
+                    </span>
+                  )}
                   <Image
                     src={company_logo}
                     alt={company_name}
                     width={144}
                     height={144}
-                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    decoding="async"
+                    className={`object-cover w-full h-full transition-all duration-300 group-hover:scale-105 ${logoLoaded ? "opacity-100" : "opacity-0"}`}
                     priority
                     unoptimized
+                    onLoad={() => setLogoLoaded(true)}
+                    onError={() => setLogoError(true)}
                   />
                   <div className="absolute inset-0 bg-background/0 group-hover:bg-background/20 transition-colors duration-300 flex items-center justify-center">
                     <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-background/80 text-foreground p-2 rounded-full backdrop-blur-xs border border-border shadow-md">
@@ -131,7 +161,7 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
                   </div>
                 </>
               ) : (
-                <span className="text-muted-foreground">
+                <span className="text-muted-foreground text-2xl md:text-3xl font-bold">
                   {getInitials(company_name)}
                 </span>
               )}
@@ -214,6 +244,20 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
                 disabled
               >
                 No Open Positions
+              </Button>
+            )}
+
+            {/* Owner action: Go to Client Portal */}
+            {isOwnCompany && (
+              <Button
+                size="default"
+                className="rounded-xl font-semibold shadow-sm cursor-pointer h-11 md:h-9 w-full md:w-auto"
+                asChild
+              >
+                <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Go to Client Portal
+                </Link>
               </Button>
             )}
           </div>

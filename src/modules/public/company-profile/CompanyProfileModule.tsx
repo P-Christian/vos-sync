@@ -40,7 +40,7 @@ export default function CompanyProfileModule({ company }: ProfileModuleProps) {
   };
 
   return (
-    <div className="w-full min-h-screen bg-background pb-24 font-sans">
+    <div className="w-full min-h-screen pb-24 font-sans -mt-24">
       {/* Dynamic Cover Header Banner */}
       <CompanyHeader company={company} onTabChange={handleTabChange} />
 
