@@ -466,3 +466,20 @@ export function BgShell({ id, light, dark, canvasRef }: { id: string; light: str
     </>
   );
 }
+
+const noopScene: SceneFactory = () => ({
+  resize: () => {},
+  draw: () => {},
+});
+
+export function TalentMatchBackground({ interactive = true }: { interactive?: boolean }) {
+  const ref = useAtsBackground(noopScene, interactive);
+  return (
+    <BgShell
+      id="tm-bg"
+      canvasRef={ref}
+      light="radial-gradient(900px 700px at 50% 52%,rgba(59,130,246,.12),transparent 65%),linear-gradient(180deg,#FBFCFF,#EEF3FD)"
+      dark="radial-gradient(900px 700px at 50% 52%,rgba(59,130,246,.25),transparent 65%),linear-gradient(180deg,#05081A,#090F26)"
+    />
+  );
+}

@@ -184,7 +184,13 @@ background:linear-gradient(170deg,#080C1A 0%,#0C1226 50%,#111937 100%)}
 @media (prefers-reduced-motion:reduce){.calm-bg::before{transition:none}}
 `;
 
-export function CalmBackground({ ripple = true }: { ripple?: boolean }) {
+export function CalmBackground({
+  ripple = true,
+  interactive = true,
+}: {
+  ripple?: boolean;
+  interactive?: boolean;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const { resolvedTheme } = useTheme();
 
@@ -439,7 +445,7 @@ export function CalmBackground({ ripple = true }: { ripple?: boolean }) {
       if (pulses.length > 2) pulses.shift();
     };
     window.addEventListener("resize", onResize);
-    if (ripple && !reduce) window.addEventListener("pointerdown", onDown, { passive: true });
+    if (ripple && interactive && !reduce) window.addEventListener("pointerdown", onDown, { passive: true });
     return () => {
       cancelAnimationFrame(raf);
       window.clearTimeout(timer);
@@ -447,7 +453,7 @@ export function CalmBackground({ ripple = true }: { ripple?: boolean }) {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointerdown", onDown);
     };
-  }, [ripple]);
+  }, [ripple, interactive]);
 
   return (
     <>

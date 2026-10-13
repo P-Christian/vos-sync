@@ -30,7 +30,7 @@ import {
   type BackgroundVariant,
   BlueBackground as Aurora10,
 } from "@/app/(public)/test-background/aurora-background10";
-import { useAtsBackground as Aurora11 } from "@/app/(public)/test-background/aurora-background11";
+import { TalentMatchBackground as Aurora11 } from "@/app/(public)/test-background/aurora-background11";
 import { TalentFlowBackground as Aurora12 } from "@/app/(public)/test-background/aurora-background12";
 import { HiringHubBackground as Aurora13 } from "@/app/(public)/test-background/aurora-background13";
 

@@ -20,6 +20,7 @@ export interface OAuthErrorPayload {
 
 export interface OAuthPopupOptions {
   url: string;
+  title?: string;
   width?: number;
   height?: number;
   onSuccess?: (payload: OAuthSuccessPayload) => void;
@@ -35,6 +36,7 @@ export interface OAuthPopupOptions {
  */
 export function openOAuthPopup({
   url,
+  title,
   width = 600,
   height = 700,
   onSuccess,
@@ -57,11 +59,13 @@ export function openOAuthPopup({
   const left = Math.max(0, Math.floor((innerWidth - width) / 2 + dualScreenLeft));
   const top = Math.max(0, Math.floor((innerHeight - height) / 2 + dualScreenTop));
 
+  const windowName = (title || "vos_oauth_popup").replace(/[^a-zA-Z0-9_]/g, "_");
+
   let popup: Window | null = null;
   try {
     popup = window.open(
       targetUrl.toString(),
-      "vos_oauth_popup",
+      windowName,
       `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes,status=no,toolbar=no,menubar=no`
     );
   } catch {
