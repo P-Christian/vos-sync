@@ -4,13 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Sparkles, Edit3 } from "lucide-react";
 
 interface CourseProgram {
@@ -158,45 +152,32 @@ export function CourseFormBuilder({
         <div className="space-y-3 p-3.5 bg-muted/30 rounded-xl border border-border/60">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Degree / Award Level</Label>
-            <Select
+            <SearchableSelect
               disabled={disabled || loading}
               value={selectedDegree}
               onValueChange={setSelectedDegree}
-            >
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Select Degree Level" />
-              </SelectTrigger>
-              <SelectContent>
-                {degreeLevels.map((lvl) => (
-                  <SelectItem key={lvl} value={lvl} className="text-xs">
-                    {lvl}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={degreeLevels.map((lvl) => ({ value: lvl, label: lvl }))}
+              placeholder="Select Degree Level"
+              triggerClassName="h-9 text-xs w-full"
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Program / Field of Study</Label>
-            <Select
+            <SearchableSelect
               disabled={disabled || loading}
               value={selectedProgram}
               onValueChange={handleProgramSelect}
-            >
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="Select Program Field..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-56">
-                {programs.map((prog) => (
-                  <SelectItem key={prog.title} value={prog.title} className="text-xs">
-                    {prog.title} <span className="text-muted-foreground font-mono">({prog.code})</span>
-                  </SelectItem>
-                ))}
-                <SelectItem value="OTHER" className="text-xs italic font-semibold">
-                  + Other (Type custom field)
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              options={[
+                ...programs.map((prog) => ({
+                  value: prog.title,
+                  label: `${prog.title} (${prog.code})`,
+                })),
+                { value: "OTHER", label: "+ Other (Type custom field)" },
+              ]}
+              placeholder="Select Program Field..."
+              triggerClassName="h-9 text-xs w-full"
+            />
             {selectedProgram === "OTHER" && (
               <Input
                 placeholder="e.g. Information Technology & Cybersecurity"
@@ -210,28 +191,18 @@ export function CourseFormBuilder({
 
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Major / Specialization (Optional)</Label>
-            <Select
+            <SearchableSelect
               disabled={disabled || loading}
               value={selectedMajor}
               onValueChange={setSelectedMajor}
-            >
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue placeholder="None / Select Major..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-56">
-                <SelectItem value="NONE" className="text-xs text-muted-foreground">
-                  No Major / General Track
-                </SelectItem>
-                {majors.map((mj) => (
-                  <SelectItem key={mj} value={mj} className="text-xs">
-                    {mj}
-                  </SelectItem>
-                ))}
-                <SelectItem value="OTHER" className="text-xs italic font-semibold">
-                  + Other (Type custom major)
-                </SelectItem>
-              </SelectContent>
-            </Select>
+              options={[
+                { value: "NONE", label: "No Major / General Track" },
+                ...majors.map((mj) => ({ value: mj, label: mj })),
+                { value: "OTHER", label: "+ Other (Type custom major)" },
+              ]}
+              placeholder="None / Select Major..."
+              triggerClassName="h-9 text-xs w-full"
+            />
             {selectedMajor === "OTHER" && (
               <Input
                 placeholder="e.g. Artificial Intelligence"

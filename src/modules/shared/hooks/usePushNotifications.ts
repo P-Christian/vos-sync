@@ -22,8 +22,8 @@ export function usePushNotifications() {
       // Register Service Worker
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => {
-          console.log("⚡ [Push] Service worker registered successfully:", reg.scope);
+        .then(() => {
+          console.log("⚡ [Push] Service worker registered successfully");
         })
         .catch((err) => {
           console.warn("[Push] Service worker registration failed:", err);

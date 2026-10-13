@@ -3,13 +3,7 @@
 import React from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { JobType, WorkArrangement, ExperienceLevel, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
 
 interface Props {
@@ -24,6 +18,29 @@ interface Props {
   totalCount: number;
   filteredCount: number;
 }
+
+const JOB_TYPE_OPTIONS = [
+  { value: "ALL", label: "All Types" },
+  ...(Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => ({
+    value: k,
+    label: v,
+  })),
+];
+
+const ARRANGEMENT_OPTIONS = [
+  { value: "ALL", label: "All Arrangements" },
+  { value: "Remote", label: "Remote" },
+  { value: "Hybrid", label: "Hybrid" },
+  { value: "On-site", label: "On-site" },
+];
+
+const EXPERIENCE_OPTIONS = [
+  { value: "ALL", label: "All Levels" },
+  ...(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([k, v]) => ({
+    value: k,
+    label: v,
+  })),
+];
 
 export function JobBrowseFilters({
   search,
@@ -59,43 +76,31 @@ export function JobBrowseFilters({
         </div>
 
         {/* Job Type */}
-        <Select value={filterJobType} onValueChange={(v) => onJobTypeChange(v as JobType | "ALL")}>
-          <SelectTrigger id="filter-job-type" className="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11">
-            <SelectValue placeholder="Job Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL" className="text-sm md:text-xs">All Types</SelectItem>
-            {(Object.entries(JOB_TYPE_LABELS) as [JobType, string][]).map(([k, v]) => (
-              <SelectItem key={k} value={k} className="text-sm md:text-xs">{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          value={filterJobType}
+          onValueChange={(v) => onJobTypeChange(v as JobType | "ALL")}
+          options={JOB_TYPE_OPTIONS}
+          placeholder="Job Type"
+          triggerClassName="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11"
+        />
 
         {/* Work Arrangement */}
-        <Select value={filterArrangement} onValueChange={(v) => onArrangementChange(v as WorkArrangement | "ALL")}>
-          <SelectTrigger id="filter-arrangement" className="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11">
-            <SelectValue placeholder="Arrangement" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL" className="text-sm md:text-xs">All Arrangements</SelectItem>
-            <SelectItem value="Remote" className="text-sm md:text-xs">Remote</SelectItem>
-            <SelectItem value="Hybrid" className="text-sm md:text-xs">Hybrid</SelectItem>
-            <SelectItem value="On-site" className="text-sm md:text-xs">On-site</SelectItem>
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          value={filterArrangement}
+          onValueChange={(v) => onArrangementChange(v as WorkArrangement | "ALL")}
+          options={ARRANGEMENT_OPTIONS}
+          placeholder="Arrangement"
+          triggerClassName="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11"
+        />
 
         {/* Experience Level */}
-        <Select value={filterExperience} onValueChange={(v) => onExperienceChange(v as ExperienceLevel | "ALL")}>
-          <SelectTrigger id="filter-experience" className="h-8 w-40 text-sm md:text-xs rounded-lg max-md:min-h-11">
-            <SelectValue placeholder="Experience" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL" className="text-sm md:text-xs">All Levels</SelectItem>
-            {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([k, v]) => (
-              <SelectItem key={k} value={k} className="text-sm md:text-xs">{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SearchableSelect
+          value={filterExperience}
+          onValueChange={(v) => onExperienceChange(v as ExperienceLevel | "ALL")}
+          options={EXPERIENCE_OPTIONS}
+          placeholder="Experience"
+          triggerClassName="h-8 w-40 text-sm md:text-xs rounded-lg max-md:min-h-11"
+        />
 
         <span className="ml-auto text-sm md:text-xs text-muted-foreground">
           {filteredCount === totalCount

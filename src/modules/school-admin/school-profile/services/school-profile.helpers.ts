@@ -1,6 +1,7 @@
 // src/modules/school-admin/school-profile/services/school-profile.helpers.ts
 import { SchoolProfileData, UpdateSchoolProfileDTO } from '../types/school-profile.types';
 import { VsSchool } from '../../types/school-admin.types';
+import { formatAssetUrl } from '@/lib/utils';
 
 export function formatSchoolAddress(data: Partial<SchoolProfileData | VsSchool>): string {
   const parts = [
@@ -34,12 +35,7 @@ export function extractSocialHandle(url: string | null | undefined): string {
 }
 
 export function getImageUrl(value: string | null | undefined): string {
-  if (!value) return '';
-  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:')) {
-    return value;
-  }
-  const directusBase = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '');
-  return `${directusBase}/assets/${value}`;
+  return formatAssetUrl(value) || '';
 }
 
 export function normalizeProfileFormData(school: Partial<SchoolProfileData | VsSchool>): UpdateSchoolProfileDTO {

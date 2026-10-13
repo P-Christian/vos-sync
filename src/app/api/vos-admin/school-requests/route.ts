@@ -6,7 +6,7 @@ import { getSchoolRequests } from "@/modules/vos-admin/request-management";
 import { cookies } from "next/headers";
 
 const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "default_super_secret_key_for_development"
+  process.env.JWT_SECRET
 );
 
 async function verifyAdminRole(

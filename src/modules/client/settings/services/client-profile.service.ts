@@ -2,8 +2,8 @@
 
 import * as jose from "jose";
 import { UserProfile } from "../types";
+import { getJwtVerificationSecret } from "@/modules/auth/registration/registration.session";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
@@ -41,7 +41,7 @@ export async function getClientProfile(token: string): Promise<UserProfile | nul
     }
 
     try {
-        const secret = new TextEncoder().encode(JWT_SECRET);
+        const secret = getJwtVerificationSecret();
         const { payload } = await jose.jwtVerify(token, secret);
 
         if (!payload.email || typeof payload.email !== "string") {

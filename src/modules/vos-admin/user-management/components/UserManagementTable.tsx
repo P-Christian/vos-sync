@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { VsUser } from "../types/user.types";
 import { UserStatusBadge } from "./UserStatusBadge";
+import { formatAssetUrl } from "@/lib/utils";
  
 interface UserManagementTableProps {
   users: VsUser[];
@@ -42,8 +43,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onPageSizeChange: _onPageSizeChange,
 }) => {
-  const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-  const getImageUrl = (uuid: string) => `${DIRECTUS_BASE}/assets/${uuid}`;
+  const getImageUrl = (uuid: string) => formatAssetUrl(uuid) || "";
 
   if (loading) {
     return (

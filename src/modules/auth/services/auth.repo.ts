@@ -268,7 +268,7 @@ export async function saveResetToken(userId: string | number, tokenId: string, t
     return (await res.json()).data;
 }
 
-export async function clearResetToken(userId: string | number, newHashedPassword?: string, plainPassword?: string) {
+export async function clearResetToken(userId: string | number, newHashedPassword?: string) {
     const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
     const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
@@ -282,9 +282,7 @@ export async function clearResetToken(userId: string | number, newHashedPassword
     };
     if (newHashedPassword) {
         body.hash_password = newHashedPassword;
-    }
-    if (plainPassword) {
-        body.user_password = plainPassword;
+        body.user_password = newHashedPassword; // legacy compat
     }
 
     const res = await fetch(url, {

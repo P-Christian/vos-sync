@@ -9,6 +9,7 @@ import { WorkExperienceSkillsInput } from "./WorkExperienceSkillsInput";
 import { WorkExperienceMediaInput } from "./WorkExperienceMediaInput";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
+import { formatAssetUrl } from "@/lib/utils";
 
 function formatDisplayDate(dateStr: string) {
     if (!dateStr) return "";
@@ -332,8 +333,7 @@ export function WorkExperienceItem({ experience, isLast }: Omit<WorkExperienceIt
                                 const urlStr = m.media_url || m.id || "";
                                 if (!urlStr || typeof urlStr !== 'string') return null;
 
-                                const isFullUrl = urlStr.startsWith("http");
-                                const previewUrl = isFullUrl ? urlStr : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${urlStr}`;
+                                const previewUrl = formatAssetUrl(urlStr) || "";
                                 
                                 return (
                                     <div key={m.id || urlStr} className="relative w-[120px] h-[70px] bg-muted rounded-md overflow-hidden border border-border shadow-sm transition-all hover:shadow-md cursor-pointer flex-shrink-0">

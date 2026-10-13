@@ -29,13 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { useIntelligenceRequests } from "../hooks/useIntelligenceRequests";
 import { useJobCategories } from "../hooks/useJobCategories";
 import { slugifyCode } from "../validators";
@@ -447,21 +441,16 @@ function ReviewDialog({
                     <label htmlFor="rev-existing-cat" className="font-semibold text-foreground">
                       Select Canonical Category <span className="text-destructive">*</span>
                     </label>
-                    <Select
+                    <SearchableSelect
                       value={selectedExistingCategoryId}
                       onValueChange={setSelectedExistingCategoryId}
-                    >
-                      <SelectTrigger id="rev-existing-cat" className="h-9 text-xs">
-                        <SelectValue placeholder="Choose official category..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.category_id} value={String(cat.category_id)}>
-                            {cat.category_name} ({cat.category_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      options={categories.map((cat) => ({
+                        value: String(cat.category_id),
+                        label: `${cat.category_name} (${cat.category_code})`,
+                      }))}
+                      placeholder="Choose official category..."
+                      triggerClassName="h-9 text-xs w-full"
+                    />
                   </div>
 
                   <div className="space-y-1">

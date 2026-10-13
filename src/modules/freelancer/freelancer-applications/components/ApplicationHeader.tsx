@@ -1,14 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Filter } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { ApplicationStatus } from '../types';
 
 export const APPLICATION_STATUS_FILTERS: Array<{ value: ApplicationStatus | "ALL"; label: string }> = [
@@ -39,22 +32,14 @@ export const ApplicationHeader: React.FC<Props> = ({
           Track your journey across {totalOpportunities} active opportunit{totalOpportunities === 1 ? 'y' : 'ies'}.
         </p>
       </div>
-      <div className="flex gap-2 items-center max-md:hidden">
-        <Select value={filterStatus} onValueChange={(val) => onFilterChange(val as ApplicationStatus | "ALL")}>
-          <SelectTrigger className="w-[180px] max-md:min-h-11">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              <SelectValue placeholder="Filter by status" />
-            </div>
-          </SelectTrigger>
-          <SelectContent>
-            {APPLICATION_STATUS_FILTERS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex gap-2 items-center max-md:hidden min-w-[180px]">
+        <SearchableSelect
+          options={APPLICATION_STATUS_FILTERS}
+          value={filterStatus}
+          onValueChange={(val) => onFilterChange(val as ApplicationStatus | "ALL")}
+          placeholder="Filter by status"
+          className="w-[180px] max-md:min-h-11"
+        />
       </div>
     </div>
   );

@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 import { LandingCTA } from "@/components/public/LandingCTA";
 import { TrustedCompaniesMarquee } from "@/components/public/TrustedCompaniesMarquee";
+import { NetworkBackground } from "@/components/public/NetworkBackground";
+import { formatAssetUrl } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -160,7 +162,7 @@ async function getFeaturedJobs() {
         location: j.job_location,
         type: j.job_type,
         salary: formatSalary(j),
-        logo: company.logo ? `${DIRECTUS_BASE}/assets/${company.logo}` : getInitials(company.name),
+        logo: formatAssetUrl(company.logo) || getInitials(company.name),
         posted: getRelativeTimeString(j.created_at),
         tags: (skillsMap[j.job_id] ?? []).slice(0, 3),
       };
@@ -181,16 +183,15 @@ export default async function Page() {
   const jobs = await getFeaturedJobs();
 
   return (
-    <div className="bg-background text-foreground font-sans selection:bg-muted">
-      {/* HERO SECTION */}
-      <section className="relative overflow-hidden pt-4 pb-16 md:pt-24 md:pb-32">
-        {/* Subtle background decoration */}
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 via-background to-background dark:from-zinc-900"></div>
-        <div className="absolute top-0 right-0 -z-10 translate-x-1/3 -translate-y-1/4 opacity-40 dark:opacity-20">
-          <div className="w-[600px] h-[600px] rounded-full bg-blue-50 dark:bg-blue-900/30 blur-3xl mix-blend-multiply dark:mix-blend-screen"></div>
-        </div>
+    <div className="relative isolate min-h-screen text-foreground font-sans selection:bg-muted">
+      {/* Page-wide Network Background with interactive shockwave and live theme crossfade */}
+      <NetworkBackground />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      {/* Main page content layer - elevated above background */}
+      <div className="relative z-10">
+        {/* HERO SECTION */}
+      <section className="pt-4 pb-16 md:pt-24 md:pb-32">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <StaggerContainer>
             <StaggerChild>
               <Badge variant="secondary" className="mb-6 py-1.5 px-4 rounded-full shadow-sm bg-background/50 backdrop-blur-sm text-xs sm:text-sm border-border">
@@ -213,7 +214,7 @@ export default async function Page() {
 
             <StaggerChild>
               {/* Search Bar */}
-              <div className="max-w-4xl mx-auto bg-card p-2 rounded-2xl shadow-xl border border-border flex flex-col md:flex-row gap-2 relative z-10">
+              <div className="max-w-4xl mx-auto bg-white/90 dark:bg-card/75 backdrop-blur-xl p-2 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border/80 flex flex-col md:flex-row gap-2 relative z-10">
                 <div className="flex-1 flex items-center px-4 py-2 min-h-10 md:min-h-0 border-b md:border-b-0 md:border-r border-border">
                   <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
                   <Input
@@ -250,7 +251,7 @@ export default async function Page() {
       </section>
 
       {/* LOGO CLOUD */}
-      <section className="border-y border-border bg-muted/30 py-10">
+      <section className="border-y border-border/40 bg-background/40 backdrop-blur-md py-10 relative z-10">
         <FadeIn delay={0.4} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-xs sm:text-sm font-medium text-muted-foreground mb-6">Trusted by the world&apos;s most innovative companies</p>
           <TrustedCompaniesMarquee companies={TRUSTED_COMPANIES} />
@@ -261,7 +262,7 @@ export default async function Page() {
       {/* FEATURED + POPULAR — favourites lead on mobile, categories lead on md+ */}
       <div className="flex flex-col">
       {/* FEATURED JOBS */}
-      <section className="py-16 md:py-24 bg-muted/30 md:order-2">
+      <section className="py-16 md:py-24 md:order-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
             <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Featured Opportunities</h2>
@@ -272,7 +273,7 @@ export default async function Page() {
             {jobs.map((job) => (
               <StaggerChild key={job.id}>
                 <HoverScale className="h-full">
-                  <div className="bg-card border border-border p-6 rounded-2xl hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-4 sm:gap-x-6 items-start content-start h-full">
+                  <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 p-6 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 dark:hover:border-primary/40 transition-all duration-300 grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-4 sm:gap-x-6 items-start content-start h-full">
                     {/* Company Logo Placeholder */}
                     <div className="w-14 h-14 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-xl flex items-center justify-center text-xl font-bold shrink-0 overflow-hidden col-start-1 row-start-1 sm:row-end-5">
                       {typeof job.logo === "string" && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
@@ -338,7 +339,7 @@ export default async function Page() {
             {CATEGORIES.map((cat, idx) => (
               <StaggerChild key={idx}>
                 <HoverScale className="h-full">
-                  <div className="group flex flex-col md:block border border-border rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200 cursor-pointer bg-card h-full">
+                  <div className="group flex flex-col md:block border border-border/80 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-primary/40 dark:hover:border-primary/40 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] transition-all duration-300 cursor-pointer bg-white/85 dark:bg-card/75 backdrop-blur-xl h-full">
                     <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4 ${cat.color} dark:bg-opacity-20`}>
                       {cat.icon}
                     </div>
@@ -388,30 +389,78 @@ export default async function Page() {
             </SlideUp>
 
             <SlideUp className="lg:w-1/2 relative" delay={0.2}>
-              {/* Decorative UI element representing a dashboard */}
-              <div className="bg-card border border-border rounded-3xl p-6 shadow-2xl relative z-10">
-                <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+              {/* Decorative UI element representing a candidate's talent dashboard */}
+              <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-3xl p-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.4)] relative z-10">
+                <div className="flex items-center justify-between mb-6 border-b border-border/60 pb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted"></div>
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-primary to-sky-400 text-white font-bold text-sm flex items-center justify-center shadow-xs">
+                      AR
+                    </div>
                     <div>
-                      <div className="h-4 w-24 bg-muted rounded mb-2"></div>
-                      <div className="h-3 w-16 bg-muted/50 rounded"></div>
+                      <div className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                        Alex Rivera
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                      </div>
+                      <div className="text-xs text-muted-foreground font-medium">Senior Full Stack Developer • Manila, PH</div>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-transparent">Profile Complete</Badge>
+                  <Badge variant="secondary" className="bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-medium text-xs">
+                    100% Profile Complete
+                  </Badge>
                 </div>
 
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-lg bg-muted"></div>
-                        <div>
-                          <div className="h-4 w-32 bg-muted rounded mb-2"></div>
-                          <div className="h-3 w-20 bg-muted/50 rounded"></div>
+                <div className="space-y-3">
+                  {[
+                    {
+                      company: "Stripe",
+                      role: "Senior React Engineer",
+                      type: "Remote",
+                      match: "98% Match",
+                      status: "Interview Scheduled",
+                      statusColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                      logoBg: "bg-indigo-600 text-white",
+                    },
+                    {
+                      company: "Canva",
+                      role: "Full Stack Developer",
+                      type: "Hybrid",
+                      match: "95% Match",
+                      status: "Under Review",
+                      statusColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                      logoBg: "bg-cyan-600 text-white",
+                    },
+                    {
+                      company: "Vercel",
+                      role: "Next.js Solutions Architect",
+                      type: "Remote",
+                      match: "92% Match",
+                      status: "Application Sent",
+                      statusColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                      logoBg: "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900",
+                    },
+                  ].map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between p-3.5 rounded-xl border border-border/70 bg-white/60 dark:bg-background/50 backdrop-blur-md hover:border-primary/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl ${item.logoBg} flex items-center justify-center font-bold text-xs shrink-0 shadow-xs`}>
+                          {item.company.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">{item.role}</div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                            <span>{item.company}</span>
+                            <span>•</span>
+                            <span>{item.type}</span>
+                            <span>•</span>
+                            <span className="font-semibold text-primary">{item.match}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="h-8 w-20 bg-foreground rounded-md opacity-20"></div>
+                      <Badge variant="outline" className={`shrink-0 ml-2 text-[11px] font-medium border ${item.statusColor}`}>
+                        {item.status}
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -426,6 +475,7 @@ export default async function Page() {
 
       {/* DYNAMIC CTA SECTION */}
       <LandingCTA />
+      </div>
     </div>
   );
 }

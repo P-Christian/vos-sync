@@ -14,13 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import {
   AiSystemConfig,
@@ -651,24 +645,19 @@ export function AiModelConfigModule() {
                               <span className="font-semibold text-foreground font-mono">{featureKey}</span>
                             </td>
                             <td className="py-3 px-4">
-                              <Select
+                              <SearchableSelect
                                 value={rule.primaryModelId}
                                 onValueChange={(val) => handleUpdateRouting(featureKey, "primaryModelId", val)}
-                              >
-                                <SelectTrigger className="w-56 h-8 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {activeModels.map((m) => (
-                                    <SelectItem key={m.id} value={m.id} className="text-xs">
-                                      {m.displayName}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                options={activeModels.map((m) => ({
+                                  value: m.id,
+                                  label: m.displayName,
+                                }))}
+                                placeholder="Select model"
+                                triggerClassName="w-56 h-8 text-xs"
+                              />
                             </td>
                             <td className="py-3 px-4">
-                              <Select
+                              <SearchableSelect
                                 value={rule.fallbackModelId || "none"}
                                 onValueChange={(val) =>
                                   handleUpdateRouting(
@@ -677,21 +666,16 @@ export function AiModelConfigModule() {
                                     val === "none" ? null : val
                                   )
                                 }
-                              >
-                                <SelectTrigger className="w-56 h-8 text-xs">
-                                  <SelectValue placeholder="None" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none" className="text-xs text-muted-foreground">
-                                    None
-                                  </SelectItem>
-                                  {activeModels.map((m) => (
-                                    <SelectItem key={m.id} value={m.id} className="text-xs">
-                                      {m.displayName}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                options={[
+                                  { value: "none", label: "None" },
+                                  ...activeModels.map((m) => ({
+                                    value: m.id,
+                                    label: m.displayName,
+                                  })),
+                                ]}
+                                placeholder="None"
+                                triggerClassName="w-56 h-8 text-xs"
+                              />
                             </td>
                             <td className="py-3 px-4 text-center">
                               <Switch
@@ -1119,21 +1103,19 @@ export function AiModelConfigModule() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">Provider</label>
-              <Select
+              <SearchableSelect
                 value={newModel.provider}
                 onValueChange={(val) => setNewModel({ ...newModel, provider: val as AiProviderId })}
-              >
-                <SelectTrigger className="text-xs h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="google">Google Gemini</SelectItem>
-                  <SelectItem value="ollama">Local Ollama</SelectItem>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="anthropic">Anthropic Claude</SelectItem>
-                  <SelectItem value="mistral">Mistral AI</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: "google", label: "Google Gemini" },
+                  { value: "ollama", label: "Local Ollama" },
+                  { value: "openai", label: "OpenAI" },
+                  { value: "anthropic", label: "Anthropic Claude" },
+                  { value: "mistral", label: "Mistral AI" },
+                ]}
+                placeholder="Select provider"
+                triggerClassName="text-xs h-8 w-full"
+              />
             </div>
             <div className="grid grid-cols-3 gap-2 pt-1">
               <div className="space-y-1">

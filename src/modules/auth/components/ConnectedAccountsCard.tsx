@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { openOAuthPopup } from "@/modules/auth/utils/oauth-popup";
 
 interface ConnectedAccountsCardProps {
   returnTo: string;
@@ -91,6 +92,7 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
   const [unlinkingProvider, setUnlinkingProvider] = useState<ProviderKey | null>(null);
   const [confirmProvider, setConfirmProvider] = useState<ProviderKey | null>(null);
   const [noPasswordProvider, setNoPasswordProvider] = useState<ProviderKey | null>(null);
+  const [connectingProvider, setConnectingProvider] = useState<ProviderKey | null>(null);
 
   // Cross-account email conflict pending confirmation
   const [pendingLinkOpen, setPendingLinkOpen] = useState(false);
@@ -273,10 +275,79 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
 
   const handleConnect = useCallback(
     (provider: ProviderKey) => {
+      setConnectingProvider(provider);
       const targetUrl = `/api/auth/${provider}?mode=link&returnTo=${encodeURIComponent(returnTo)}`;
-      window.location.href = targetUrl;
+      const title = `Connect ${provider.charAt(0).toUpperCase() + provider.slice(1)}`;
+
+      openOAuthPopup({
+        url: targetUrl,
+        title,
+        onSuccess: (response) => {
+          setConnectingProvider(null);
+          if (response.notice === "already_connected") {
+            toast.info("Already connected", {
+              description: "This account is already linked to your VoSync profile.",
+            });
+            return;
+          }
+
+          const redirectUrl = response.redirectUrl;
+          if (redirectUrl) {
+            try {
+              const parsed = new URL(redirectUrl, window.location.origin);
+              if (parsed.searchParams.get("pending_link") === "google") {
+                const emailParam = parsed.searchParams.get("email");
+                if (emailParam) {
+                  setPendingLinkEmail(emailParam);
+                  setPendingLinkOpen(true);
+                }
+                return;
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          const providerLabel =
+            provider === "google"
+              ? "Google"
+              : provider === "linkedin"
+              ? "LinkedIn"
+              : "Facebook";
+          toast.success(`${providerLabel} account connected`, {
+            description: `Your ${providerLabel} identity was successfully linked to this account.`,
+          });
+          fetchStatuses();
+        },
+        onCancel: () => {
+          setConnectingProvider(null);
+          toast.info("Connection cancelled", {
+            description: "The authentication window was closed before completing.",
+          });
+        },
+        onError: (payload) => {
+          setConnectingProvider(null);
+          const errCode = payload.error;
+          const errorMap: Record<string, string> = {
+            google_already_linked: "This Google account is already linked to another VoSync user. Linking is blocked.",
+            linkedin_already_linked: "This LinkedIn account is already linked to another VoSync user. Linking is blocked.",
+            facebook_already_linked: "This Facebook account is already linked to another VoSync user. Linking is blocked.",
+            link_unauthorized: "Authentication session verification failed. Please try again.",
+            session_expired: "Your active session expired during linking. Please log in again.",
+            oauth_callback_failed: "Could not complete social account authentication.",
+            linkedin_callback_failed: "Could not complete LinkedIn authentication.",
+            facebook_callback_failed: "Could not complete Facebook authentication.",
+            cancelled: "Authentication was cancelled.",
+          };
+          const description = (errCode && errorMap[errCode]) || "Social account linking failed.";
+          toast.error("Linking failed", { description });
+        },
+        onClose: () => {
+          setConnectingProvider(null);
+        },
+      });
     },
-    [returnTo]
+    [returnTo, fetchStatuses]
   );
 
   const handleDisconnectClick = useCallback(
@@ -348,7 +419,7 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
       : "Facebook";
 
   return (
-    <div className="space-y-4 pt-6 border-t border-border">
+    <div className="space-y-4 pt-6 ">
       <div className="flex items-start gap-3">
         <LinkIcon className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div>
@@ -422,10 +493,20 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
                 variant="outline"
                 size="sm"
                 onClick={() => handleConnect("google")}
+                disabled={connectingProvider !== null}
                 className="h-9 border-border text-foreground hover:bg-muted transition-colors"
               >
-                <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                Connect Google
+                {connectingProvider === "google" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                    Connect Google
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -493,10 +574,20 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
                 variant="outline"
                 size="sm"
                 onClick={() => handleConnect("linkedin")}
+                disabled={connectingProvider !== null}
                 className="h-9 border-border text-foreground hover:bg-muted transition-colors"
               >
-                <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                Connect LinkedIn
+                {connectingProvider === "linkedin" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                    Connect LinkedIn
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -562,10 +653,20 @@ export function ConnectedAccountsCard({ returnTo }: ConnectedAccountsCardProps) 
                 variant="outline"
                 size="sm"
                 onClick={() => handleConnect("facebook")}
+                disabled={connectingProvider !== null}
                 className="h-9 border-border text-foreground hover:bg-muted transition-colors"
               >
-                <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
-                Connect Facebook
+                {connectingProvider === "facebook" ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                    Connect Facebook
+                  </>
+                )}
               </Button>
             )}
           </div>

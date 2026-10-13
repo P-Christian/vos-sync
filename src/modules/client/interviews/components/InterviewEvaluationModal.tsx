@@ -14,13 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Award, Loader2, CheckCircle, XCircle, User, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -118,18 +112,16 @@ export default function InterviewEvaluationModal({
               <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                 Select Candidate to View / Evaluate
               </Label>
-              <Select value={String(selectedAppId)} onValueChange={handleCandidateChange}>
-                <SelectTrigger className="h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg">
-                  <SelectValue placeholder="Select candidate..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {applications.map((app) => (
-                    <SelectItem key={app.interview_application_id} value={String(app.interview_application_id)}>
-                      {app.applicant_name} ({app.job_title}) — Status: {app.attendance_status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={applications.map((app) => ({
+                  value: String(app.interview_application_id),
+                  label: `${app.applicant_name} (${app.job_title}) — Status: ${app.attendance_status}`,
+                }))}
+                value={String(selectedAppId)}
+                onValueChange={handleCandidateChange}
+                placeholder="Select candidate..."
+                className="h-9 max-md:min-h-10 md:text-xs font-semibold rounded-lg"
+              />
             </div>
           )}
 

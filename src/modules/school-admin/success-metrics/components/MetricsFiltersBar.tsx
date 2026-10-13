@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Filter } from 'lucide-react';
 
@@ -28,40 +29,32 @@ export function MetricsFiltersBar() {
         </div>
 
         {/* Academic Year Filter */}
-        <Select
-          value={filter.school_year || 'ALL'}
-          onValueChange={(val) => updateFilter({ school_year: val === 'ALL' ? undefined : val })}
-        >
-          <SelectTrigger className="h-9 min-w-[160px] text-xs">
-            <SelectValue placeholder="All Academic Years" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Academic Years</SelectItem>
-            {schoolYears.map((year) => (
-              <SelectItem key={year} value={year}>
-                Cohort {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="min-w-[160px]">
+          <SearchableSelect
+            options={[
+              { value: 'ALL', label: 'All Academic Years' },
+              ...schoolYears.map((year) => ({ value: year, label: `Cohort ${year}` })),
+            ]}
+            value={filter.school_year || 'ALL'}
+            onValueChange={(val) => updateFilter({ school_year: val === 'ALL' ? undefined : val })}
+            placeholder="All Academic Years"
+            className="h-9 min-w-[160px] text-xs"
+          />
+        </div>
 
         {/* Course Filter */}
-        <Select
-          value={filter.school_course_id ? String(filter.school_course_id) : 'ALL'}
-          onValueChange={(val) => updateFilter({ school_course_id: val === 'ALL' ? undefined : Number(val) })}
-        >
-          <SelectTrigger className="h-9 min-w-[180px] max-w-[240px] text-xs">
-            <SelectValue placeholder="All Degree Programs" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">All Degree Programs</SelectItem>
-            {courses.map((course) => (
-              <SelectItem key={course.courseId} value={String(course.courseId)}>
-                {course.courseName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="min-w-[180px] max-w-[240px]">
+          <SearchableSelect
+            options={[
+              { value: 'ALL', label: 'All Degree Programs' },
+              ...courses.map((course) => ({ value: String(course.courseId), label: course.courseName })),
+            ]}
+            value={filter.school_course_id ? String(filter.school_course_id) : 'ALL'}
+            onValueChange={(val) => updateFilter({ school_course_id: val === 'ALL' ? undefined : Number(val) })}
+            placeholder="All Degree Programs"
+            className="h-9 min-w-[180px] max-w-[240px] text-xs"
+          />
+        </div>
 
         {/* Alumni vs Current Student Filter */}
         <Select

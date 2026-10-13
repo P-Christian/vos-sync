@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { sendMobileOtpAction, verifyMobileOtpAction } from "@/modules/freelancer/freelancer-profile/services/identity-verification.actions";
 import { toast } from "sonner";
 
@@ -23,6 +23,11 @@ const countries = [
     { code: "CA", dialCode: "+1", flag: "🇨🇦", name: "Canada" },
     { code: "AU", dialCode: "+61", flag: "🇦🇺", name: "Australia" },
 ];
+
+const COUNTRY_DIAL_OPTIONS = countries.map((c) => ({
+    value: c.code,
+    label: `${c.flag} ${c.dialCode} ${c.name}`,
+}));
 
 export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: MobileVerificationModalProps) {
     const [mobileNumber, setMobileNumber] = useState<string>("");
@@ -102,23 +107,14 @@ export default function MobileVerificationModal({ isOpen, onClose, onSuccess }: 
                         <div className="grid gap-2">
                             <label className="text-sm font-medium">Mobile Number</label>
                             <div className="flex gap-2">
-                                <div className="w-[120px] max-md:min-h-11">
-                                    <Select 
+                                <div className="w-[140px] max-md:min-h-11">
+                                    <SearchableSelect 
                                         value={selectedCountry} 
                                         onValueChange={setSelectedCountry}
-                                    >
-                                        <SelectTrigger className="flex gap-2 items-center justify-between max-md:min-h-11">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {countries.map((c) => (
-                                                <SelectItem key={c.code} value={c.code}>
-                                                    <span className="mr-1">{c.flag}</span>
-                                                    <span>{c.dialCode}</span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                        options={COUNTRY_DIAL_OPTIONS}
+                                        placeholder="Country"
+                                        triggerClassName="flex gap-2 items-center justify-between max-md:min-h-11 w-full"
+                                    />
                                 </div>
                                 <Input 
                                     type="tel" 

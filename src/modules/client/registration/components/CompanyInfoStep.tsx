@@ -3,13 +3,7 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { RegistrationStepProps } from "../types";
 import { Building, Mail, Phone, Briefcase, Users, Globe, LayoutList } from "lucide-react";
 
@@ -164,18 +158,13 @@ export default function CompanyInfoStep({ formData, updateFields, onNext, onBack
             <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Industry *</label>
             <div className="relative">
               <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select value={company.industry} onValueChange={(val) => handleChange("industry", val)}>
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Select Industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRIES.map((ind) => (
-                    <SelectItem key={ind} value={ind}>
-                      {ind}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={INDUSTRIES.map((ind) => ({ value: ind, label: ind }))}
+                value={company.industry}
+                onValueChange={(val) => handleChange("industry", val)}
+                placeholder="Select Industry"
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
             {errors.industry && <p className="text-xs text-rose-500 font-medium mt-1">{errors.industry}</p>}
           </div>
@@ -184,18 +173,13 @@ export default function CompanyInfoStep({ formData, updateFields, onNext, onBack
             <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Business Type</label>
             <div className="relative">
               <LayoutList className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select value={company.business_type} onValueChange={(val) => handleChange("business_type", val)}>
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Select Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BUSINESS_TYPES.map((bt) => (
-                    <SelectItem key={bt} value={bt}>
-                      {bt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={BUSINESS_TYPES.map((bt) => ({ value: bt, label: bt }))}
+                value={company.business_type}
+                onValueChange={(val) => handleChange("business_type", val)}
+                placeholder="Select Type"
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
           </div>
         </div>
@@ -205,18 +189,13 @@ export default function CompanyInfoStep({ formData, updateFields, onNext, onBack
             <label className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Company Size</label>
             <div className="relative">
               <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select value={company.company_size} onValueChange={(val) => handleChange("company_size", val)}>
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder="Select Size" />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMPANY_SIZES.map((size) => (
-                    <SelectItem key={size} value={size}>
-                      {size}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={COMPANY_SIZES.map((size) => ({ value: size, label: size }))}
+                value={company.company_size}
+                onValueChange={(val) => handleChange("company_size", val)}
+                placeholder="Select Size"
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
           </div>
 

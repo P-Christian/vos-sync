@@ -5,6 +5,7 @@ import { Plus, Loader2, X, FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { uploadMediaAction } from "../services/freelancer-profile.actions";
 import { toast } from "sonner";
+import { formatAssetUrl } from "@/lib/utils";
 
 interface WorkExperienceMediaInputProps {
     mediaUrls: string[];
@@ -81,8 +82,7 @@ export function WorkExperienceMediaInput({ mediaUrls, onChange, disabled }: Work
             {mediaUrls.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-4">
                     {mediaUrls.map((urlOrUuid, idx) => {
-                        const isFullUrl = urlOrUuid.startsWith("http");
-                        const previewUrl = isFullUrl ? urlOrUuid : `${process.env.NEXT_PUBLIC_API_BASE_URL}/assets/${urlOrUuid}`;
+                        const previewUrl = formatAssetUrl(urlOrUuid) || "";
                         const isImage = true; // Assuming all uploads here are images for now or handled by Directus asset endpoint
                         
                         return (

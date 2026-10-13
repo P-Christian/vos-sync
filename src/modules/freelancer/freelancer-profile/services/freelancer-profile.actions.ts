@@ -7,7 +7,7 @@ import { jwtVerify } from "jose";
 import { generateProfessionalSummaryWithGemini } from "@/lib/gemini/resumeParser";
 
 const JWT_SECRET = new TextEncoder().encode(
-    process.env.JWT_SECRET || "default_super_secret_key_for_development"
+    process.env.JWT_SECRET 
 );
 
 async function getAuthenticatedUserId(): Promise<number> {

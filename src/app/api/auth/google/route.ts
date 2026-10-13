@@ -30,6 +30,8 @@ function sanitizeReturnToPath(raw: string | null): string | null {
 export async function GET(req: NextRequest) {
   const modeParam = req.nextUrl.searchParams.get("mode");
   const mode = modeParam === "signup" ? "signup" : modeParam === "link" ? "link" : "login";
+  const popupParam = req.nextUrl.searchParams.get("popup");
+  const popup = popupParam === "1" || popupParam === "true";
 
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   const proto = req.headers.get("x-forwarded-proto") || req.nextUrl.protocol?.replace(":", "");
@@ -63,6 +65,7 @@ export async function GET(req: NextRequest) {
       linkUserId,
       linkSessionEpoch,
       returnTo,
+      popup,
     });
     const sealedToken = await sealOAuthTransaction(transaction);
 

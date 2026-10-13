@@ -4,7 +4,7 @@ import { SlideUp } from "@/components/shared/MotionContainer"
 
 export function Footer() {
   return (
-    <footer className="bg-background border-t border-border pt-16 pb-8">
+    <footer className="relative z-10 bg-background/50 backdrop-blur-md border-t border-border/40 pt-16 pb-8">
       <SlideUp className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 lg:col-span-2">

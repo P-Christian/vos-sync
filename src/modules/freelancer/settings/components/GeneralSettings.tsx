@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { cn } from "@/lib/utils";
 import { Check, Monitor, Moon, Sun, Loader2, Save, RefreshCw, Palette, Globe, Accessibility } from "lucide-react";
 import { toast } from "sonner";
@@ -175,50 +175,35 @@ export default function GeneralSettings() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="space-y-2">
               <Label htmlFor="lang-select">Language / Locale</Label>
-              <Select value={locale} onValueChange={setLocale}>
-                <SelectTrigger id="lang-select" className="max-md:min-h-11">
-                  <SelectValue placeholder="Select Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={LANGUAGES}
+                value={locale}
+                onValueChange={setLocale}
+                placeholder="Select Language"
+                className="max-md:min-h-11"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="tz-select">Timezone</Label>
-              <Select value={timezone} onValueChange={setTimezone}>
-                <SelectTrigger id="tz-select" className="max-md:min-h-11">
-                  <SelectValue placeholder="Select Timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={TIMEZONES}
+                value={timezone}
+                onValueChange={setTimezone}
+                placeholder="Select Timezone"
+                className="max-md:min-h-11"
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="date-format-select">Date/Time Format</Label>
-              <Select value={dateFormat} onValueChange={setDateFormat}>
-                <SelectTrigger id="date-format-select" className="max-md:min-h-11">
-                  <SelectValue placeholder="Select Date Format" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATE_FORMATS.map((df) => (
-                    <SelectItem key={df.value} value={df.value}>
-                      {df.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={DATE_FORMATS}
+                value={dateFormat}
+                onValueChange={setDateFormat}
+                placeholder="Select Date Format"
+                className="max-md:min-h-11"
+              />
             </div>
           </div>
         </CardContent>

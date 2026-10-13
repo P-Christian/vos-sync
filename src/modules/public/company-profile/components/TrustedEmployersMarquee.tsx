@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Pause, Play, ShieldCheck } from "lucide-react";
 import { TrustedCompany } from "../types";
@@ -50,27 +50,11 @@ function CompanyLogoWithFallback({
 
 export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
   // Auto-scroll control (WCAG 2.2 SC 2.2.2 Pause, Stop, Hide):
-  // the strip pauses while the user holds it or scrolls the page, and the
-  // pause/play button lets the motion be left stopped.
+  // the strip pauses while the user holds it, and the pause/play button lets the motion be left stopped.
   const [isManuallyPaused, setIsManuallyPaused] = useState(false);
   const [isInteracting, setIsInteracting] = useState(false);
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPaused = isManuallyPaused || isInteracting;
-
-  // Pause while the page is being scrolled; resume roughly a second after it stops.
-  useEffect(() => {
-    const onScroll = () => {
-      if (resumeTimer.current) clearTimeout(resumeTimer.current);
-      setIsInteracting(true);
-      resumeTimer.current = setTimeout(() => setIsInteracting(false), 1000);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      if (resumeTimer.current) clearTimeout(resumeTimer.current);
-    };
-  }, []);
 
   const holdStart = () => {
     if (resumeTimer.current) clearTimeout(resumeTimer.current);
@@ -154,9 +138,9 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
                   <span className="text-xs text-muted-foreground truncate">
                     {company.industryName || "General Business"}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                  {/* <span className="text-[10px] text-zinc-500 font-medium mt-0.5">
                     {company.activeJobs} active {company.activeJobs === 1 ? "job" : "jobs"}
-                  </span>
+                  </span> */}
                 </div>
               </Link>
             ))}
@@ -187,9 +171,9 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
                   <span className="text-xs text-muted-foreground truncate">
                     {company.industryName || "General Business"}
                   </span>
-                  <span className="text-[10px] text-zinc-500 font-medium mt-0.5">
+                  {/* <span className="text-[10px] text-zinc-500 font-medium mt-0.5">
                     {company.activeJobs} active {company.activeJobs === 1 ? "job" : "jobs"}
-                  </span>
+                  </span> */}
                 </div>
               </Link>
             ))}

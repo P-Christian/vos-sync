@@ -55,7 +55,28 @@ export async function GET(req: NextRequest) {
   };
 
   if (errorParam) {
-    const res = NextResponse.redirect(new URL("/login?error=facebook_cancelled", requestOrigin));
+    let mode = "login";
+    let returnTo = "";
+    let isPopup = false;
+    if (txCookie) {
+      try {
+        const tx = await unsealOAuthTransaction(txCookie);
+        if (tx) {
+          mode = tx.mode || "login";
+          returnTo = tx.returnTo || "";
+          isPopup = !!tx.popup;
+        }
+      } catch {
+        // Ignore unseal errors during cancellation
+      }
+    }
+    const targetPath = isPopup ? "/auth/popup-callback" : "/cancelled";
+    const cancelUrl = new URL(targetPath, requestOrigin);
+    cancelUrl.searchParams.set("status", "cancelled");
+    cancelUrl.searchParams.set("provider", "facebook");
+    if (mode) cancelUrl.searchParams.set("flow", mode);
+    if (returnTo) cancelUrl.searchParams.set("returnTo", returnTo);
+    const res = NextResponse.redirect(cancelUrl);
     clearTxCookie(res);
     return res;
   }
@@ -105,6 +126,11 @@ export async function GET(req: NextRequest) {
         !activeSession ||
         String(activeSession.userId) !== String(transaction.linkUserId)
       ) {
+        if (transaction.popup) {
+          const res = NextResponse.redirect(new URL("/auth/popup-callback?status=error&error=link_unauthorized&provider=facebook&flow=link", requestOrigin));
+          clearTxCookie(res);
+          return res;
+        }
         settingsUrl.searchParams.set("error", "link_unauthorized");
         const res = NextResponse.redirect(settingsUrl);
         clearTxCookie(res);
@@ -117,6 +143,11 @@ export async function GET(req: NextRequest) {
         activeSession.user.session_epoch &&
         transaction.linkSessionEpoch !== activeSession.user.session_epoch
       ) {
+        if (transaction.popup) {
+          const res = NextResponse.redirect(new URL("/auth/popup-callback?status=error&error=session_expired&provider=facebook&flow=link", requestOrigin));
+          clearTxCookie(res);
+          return res;
+        }
         settingsUrl.searchParams.set("error", "session_expired");
         const res = NextResponse.redirect(settingsUrl);
         clearTxCookie(res);
@@ -129,6 +160,11 @@ export async function GET(req: NextRequest) {
         existingIdentity &&
         String(existingIdentity.user_id) !== String(activeSession.userId)
       ) {
+        if (transaction.popup) {
+          const res = NextResponse.redirect(new URL("/auth/popup-callback?status=error&error=facebook_already_linked&provider=facebook&flow=link", requestOrigin));
+          clearTxCookie(res);
+          return res;
+        }
         settingsUrl.searchParams.set("error", "facebook_already_linked");
         const res = NextResponse.redirect(settingsUrl);
         clearTxCookie(res);
@@ -152,6 +188,12 @@ export async function GET(req: NextRequest) {
         actor_user_id: Number(activeSession.userId),
         reason: `Linked Facebook identity for ${normalizedEmail}`,
       });
+
+      if (transaction.popup) {
+        const res = NextResponse.redirect(new URL("/auth/popup-callback?status=success&provider=facebook&flow=link", requestOrigin));
+        clearTxCookie(res);
+        return res;
+      }
 
       settingsUrl.searchParams.set("linked", "facebook");
       const res = NextResponse.redirect(settingsUrl);
@@ -240,7 +282,10 @@ export async function GET(req: NextRequest) {
         });
 
         const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-        const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=success&provider=facebook&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+          : new URL(targetPath, requestOrigin);
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
 
         res.cookies.set({
@@ -269,9 +314,11 @@ export async function GET(req: NextRequest) {
           reason: `Facebook login rejected: Email ${normalizedEmail} exists in VOS Sync but Facebook identity is not connected`,
         });
 
-        const res = NextResponse.redirect(
-          new URL(`/login?error=facebook_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin)
-        );
+        const errorUrl = new URL(`/login?error=facebook_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=facebook_not_connected&provider=facebook&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       } else {
@@ -285,7 +332,11 @@ export async function GET(req: NextRequest) {
           reason: `Facebook login rejected: No account found for email ${normalizedEmail}`,
         });
 
-        const res = NextResponse.redirect(new URL("/login?error=account_not_found", requestOrigin));
+        const errorUrl = new URL("/login?error=account_not_found", requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=account_not_found&provider=facebook&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
@@ -372,7 +423,10 @@ export async function GET(req: NextRequest) {
       });
 
       const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-      const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+      const redirectTarget = transaction.popup
+        ? new URL(`/auth/popup-callback?status=success&provider=facebook&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+        : new URL(targetPath, requestOrigin);
+      const res = NextResponse.redirect(redirectTarget);
 
       clearTxCookie(res);
 
@@ -404,7 +458,11 @@ export async function GET(req: NextRequest) {
       const signupUrl = new URL("/signup", requestOrigin);
       signupUrl.searchParams.set("facebook", "1");
 
-      const res = NextResponse.redirect(signupUrl);
+      const redirectTarget = transaction.popup
+        ? new URL(`/auth/popup-callback?status=success&provider=facebook&flow=signup&redirectUrl=${encodeURIComponent(signupUrl.pathname + signupUrl.search)}`, requestOrigin)
+        : signupUrl;
+
+      const res = NextResponse.redirect(redirectTarget);
       clearTxCookie(res);
 
       res.cookies.set({

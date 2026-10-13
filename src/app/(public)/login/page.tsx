@@ -19,9 +19,9 @@ function normalizeLoginErrorMessage(rawMsg: string, httpStatus?: number) {
 
     // ✅ Pass through detailed lockout and attempt messages
     if (
-        m.includes("account is locked") || 
-        m.includes("account locked") || 
-        m.includes("account is blocked") || 
+        m.includes("account is locked") ||
+        m.includes("account locked") ||
+        m.includes("account is blocked") ||
         (m.includes("invalid") && m.includes("remaining"))
     ) {
         return msg
@@ -107,11 +107,11 @@ function LoginForm() {
         const queryEmail = searchParams.get("email")
         if (
             (error === "google_not_connected" ||
-             error === "google_not_linked" ||
-             error === "facebook_not_connected" ||
-             error === "facebook_not_linked" ||
-             error === "linkedin_not_connected" ||
-             error === "linkedin_not_linked") &&
+                error === "google_not_linked" ||
+                error === "facebook_not_connected" ||
+                error === "facebook_not_linked" ||
+                error === "linkedin_not_connected" ||
+                error === "linkedin_not_linked") &&
             queryEmail
         ) {
             queueMicrotask(() => {
@@ -201,7 +201,7 @@ function LoginForm() {
 
             toast.success("Signed in", { description: "Welcome back." })
 
-            console.log("[LoginForm] Login response payload:", data)
+            // console.log("[LoginForm] Login response payload:", data)
 
             const roleId = Number(data?.role_id);
             const roleStr = String(data?.role || data?.role_name || "").toUpperCase();
@@ -251,7 +251,7 @@ function LoginForm() {
                 }
             }
 
-            console.log(`[LoginForm] Redirecting user: roleId=${roleId}, roleStr=${roleStr} -> targetPath=${targetPath}`)
+            // console.log(`[LoginForm] Redirecting user: roleId=${roleId}, roleStr=${roleStr} -> targetPath=${targetPath}`)
 
             window.location.href = targetPath
         } catch (err: unknown) {
@@ -269,12 +269,12 @@ function LoginForm() {
     return (
         <div className="max-md:items-start min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-6 md:py-8 px-4 md:px-6 bg-background text-foreground font-sans">
             <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch md:min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
-                
+
                 {/* Left Side: Content / How it Works */}
                 <div className="hidden lg:flex flex-col justify-center p-10 lg:p-16 bg-muted/30 border-r relative overflow-hidden">
                     <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-secondary/30 rounded-full blur-3xl"></div>
-                    
+
                     <div className="relative z-10">
                         <div className="mb-10">
                             <span className="text-xl font-bold text-primary mb-2 block">Vos Sync</span>
@@ -329,7 +329,7 @@ function LoginForm() {
                             </div>
                             <span className="text-xl font-bold text-foreground">Vos Sync</span>
                         </div>
-                        
+
                         <div className="mb-5 md:mb-8">
                             <h2 className="text-3xl font-semibold text-foreground">Sign In</h2>
                             <p className="text-sm text-muted-foreground mt-1">Welcome back! Please enter your details.</p>
@@ -504,14 +504,14 @@ function LoginForm() {
                                 </p>
                             </div>
                         )}
-                        
+
                         <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
                             <div>
                                 <label className="text-sm font-medium text-foreground block mb-1.5" htmlFor="email">Email ID</label>
-                                <Input 
-                                    id="email" 
-                                    type="email" 
-                                    placeholder="e.g. name@company.com" 
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    placeholder="e.g. name@company.com"
                                     value={email}
                                     onChange={(e) => {
                                         setEmail(e.target.value)
@@ -524,17 +524,17 @@ function LoginForm() {
                                     <p className="text-xs text-destructive mt-1.5">{errors.email}</p>
                                 ) : null}
                             </div>
-                            
+
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
                                     <label className="text-sm font-medium text-foreground block" htmlFor="password">Password</label>
                                     <Link className="inline-flex min-h-11 items-center text-sm text-primary hover:underline" href="/forgot-password">Forgot password?</Link>
                                 </div>
                                 <div className="relative">
-                                    <Input 
+                                    <Input
                                         ref={passwordInputRef}
-                                        id="password" 
-                                        type={showPw ? "text" : "password"} 
+                                        id="password"
+                                        type={showPw ? "text" : "password"}
                                         placeholder="Enter your password"
                                         value={hashPassword}
                                         onChange={(e) => {
@@ -544,8 +544,8 @@ function LoginForm() {
                                         disabled={loading}
                                         className={cn("h-11 pr-12", pwHasError && "border-destructive focus-visible:ring-destructive")}
                                     />
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setShowPw(s => !s)}
                                         disabled={loading}
                                         aria-label={showPw ? "Hide password" : "Show password"}
@@ -558,17 +558,17 @@ function LoginForm() {
                                     <p className="text-xs text-destructive mt-1.5">{errors.hashPassword}</p>
                                 ) : null}
                             </div>
-                            
+
                             <div className="flex min-h-11 items-center">
-                                <Checkbox 
-                                    id="remember" 
+                                <Checkbox
+                                    id="remember"
                                     checked={remember}
                                     onCheckedChange={(v) => setRemember(Boolean(v))}
                                     disabled={loading}
                                 />
-              <label className="ml-2 flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground" htmlFor="remember">Remember me for 30 days</label>
+                                <label className="ml-2 flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground" htmlFor="remember">Remember me for 30 days</label>
                             </div>
-                            
+
                             <Button type="submit" className="w-full h-11 text-base font-medium" disabled={loading}>
                                 {loading ? "Signing in..." : "Sign in"}
                             </Button>

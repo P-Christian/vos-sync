@@ -11,7 +11,7 @@ async function verifySchoolAdminRole() {
     if (!token) return { isAdmin: false, user: null };
     
     try {
-        const JWT_SECRET = process.env.JWT_SECRET || "default_super_secret_key_for_development";
+        const JWT_SECRET = process.env.JWT_SECRET ;
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
         

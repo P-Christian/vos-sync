@@ -191,7 +191,7 @@ export async function registerUser(body: unknown) {
     const newUserPayload = {
         user_email: email,
         hash_password: hashedPassword,
-        user_password: password,
+        user_password: hashedPassword, // legacy compat
         user_fname: firstName,
         user_lname: lastName,
         user_contact: contact,
@@ -524,8 +524,8 @@ export async function confirmPasswordReset(identifier: string | number, code: st
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
-    // Retain user_password column parameter as explicitly requested by user
-    await clearResetToken(user.user_id, hashedPassword, newPassword);
+    // Retain user_password column parameter as explicitly requested by user (hashed)
+    await clearResetToken(user.user_id, hashedPassword);
     await resetFailedAttempts(user.user_id);
 
     createAuditRecordRepo({

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { FreelancerPageHeader } from "@/components/shared/layout/FreelancerPageHeader";
 import { FreelancerDashboard } from "@/modules/freelancer/freelancer-dashboard/components/FreelancerDashboard";
+import { formatAssetUrl } from "@/lib/utils";
 
 function checkIsNewUser(dateStr?: string | null): boolean {
     if (!dateStr) return true;
@@ -23,7 +24,7 @@ export default async function FreelancerDashboardPage() {
     const user = {
         name: profile ? `${profile.user_fname} ${profile.user_lname}` : "Guest",
         email: profile?.user_email || "guest@example.com",
-        avatar: profile?.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${profile.profile_image_url}` : "",
+        avatar: formatAssetUrl(profile?.profile_image_url) || "",
     };
 
     return (

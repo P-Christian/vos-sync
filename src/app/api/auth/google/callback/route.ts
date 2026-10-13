@@ -55,7 +55,28 @@ export async function GET(req: NextRequest) {
   };
 
   if (errorParam) {
-    const res = NextResponse.redirect(new URL("/login?error=google_cancelled", requestOrigin));
+    let mode = "login";
+    let returnTo = "";
+    let isPopup = false;
+    if (txCookie) {
+      try {
+        const tx = await unsealOAuthTransaction(txCookie);
+        if (tx) {
+          mode = tx.mode || "login";
+          returnTo = tx.returnTo || "";
+          isPopup = !!tx.popup;
+        }
+      } catch {
+        // Ignore unseal errors during cancellation
+      }
+    }
+    const targetPath = isPopup ? "/auth/popup-callback" : "/cancelled";
+    const cancelUrl = new URL(targetPath, requestOrigin);
+    cancelUrl.searchParams.set("status", "cancelled");
+    cancelUrl.searchParams.set("provider", "google");
+    if (mode) cancelUrl.searchParams.set("flow", mode);
+    if (returnTo) cancelUrl.searchParams.set("returnTo", returnTo);
+    const res = NextResponse.redirect(cancelUrl);
     clearTxCookie(res);
     return res;
   }
@@ -132,7 +153,10 @@ export async function GET(req: NextRequest) {
         String(existingIdentity.user_id) === String(activeSession.userId)
       ) {
         settingsUrl.searchParams.set("notice", "already_connected");
-        const res = NextResponse.redirect(settingsUrl);
+        const redirectTarget = transaction.popup
+          ? new URL("/auth/popup-callback?status=success&notice=already_connected&provider=google&flow=link", requestOrigin)
+          : settingsUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
@@ -142,6 +166,11 @@ export async function GET(req: NextRequest) {
         existingIdentity &&
         String(existingIdentity.user_id) !== String(activeSession.userId)
       ) {
+        if (transaction.popup) {
+          const res = NextResponse.redirect(new URL("/auth/popup-callback?status=error&error=google_already_linked&provider=google&flow=link", requestOrigin));
+          clearTxCookie(res);
+          return res;
+        }
         settingsUrl.searchParams.set("error", "google_already_linked");
         const res = NextResponse.redirect(settingsUrl);
         clearTxCookie(res);
@@ -162,7 +191,15 @@ export async function GET(req: NextRequest) {
 
         settingsUrl.searchParams.set("pending_link", "google");
         settingsUrl.searchParams.set("email", normalizedEmail);
-        const res = NextResponse.redirect(settingsUrl);
+        const redirectTarget = transaction.popup
+          ? new URL(
+              `/auth/popup-callback?status=success&provider=google&flow=link&redirectUrl=${encodeURIComponent(
+                settingsUrl.pathname + settingsUrl.search
+              )}`,
+              requestOrigin
+            )
+          : settingsUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
 
         res.cookies.set({
@@ -195,6 +232,12 @@ export async function GET(req: NextRequest) {
         actor_user_id: Number(activeSession.userId),
         reason: `Linked Google identity for ${normalizedEmail}`,
       });
+
+      if (transaction.popup) {
+        const res = NextResponse.redirect(new URL("/auth/popup-callback?status=success&provider=google&flow=link", requestOrigin));
+        clearTxCookie(res);
+        return res;
+      }
 
       settingsUrl.searchParams.set("linked", "google");
       const res = NextResponse.redirect(settingsUrl);
@@ -283,7 +326,10 @@ export async function GET(req: NextRequest) {
         });
 
         const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-        const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=success&provider=google&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+          : new URL(targetPath, requestOrigin);
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
 
         res.cookies.set({
@@ -312,9 +358,11 @@ export async function GET(req: NextRequest) {
           reason: `Google login rejected: Email ${normalizedEmail} exists in VOS Sync but Google identity is not connected`,
         });
 
-        const res = NextResponse.redirect(
-          new URL(`/login?error=google_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin)
-        );
+        const errorUrl = new URL(`/login?error=google_not_connected&email=${encodeURIComponent(normalizedEmail)}`, requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=google_not_connected&provider=google&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       } else {
@@ -328,7 +376,11 @@ export async function GET(req: NextRequest) {
           reason: `Google login rejected: No account found for email ${normalizedEmail}`,
         });
 
-        const res = NextResponse.redirect(new URL("/login?error=account_not_found", requestOrigin));
+        const errorUrl = new URL("/login?error=account_not_found", requestOrigin);
+        const redirectTarget = transaction.popup
+          ? new URL(`/auth/popup-callback?status=error&error=account_not_found&provider=google&flow=login`, requestOrigin)
+          : errorUrl;
+        const res = NextResponse.redirect(redirectTarget);
         clearTxCookie(res);
         return res;
       }
@@ -383,7 +435,12 @@ export async function GET(req: NextRequest) {
         sub: googleProfile.sub,
       });
 
-      const res = NextResponse.redirect(new URL("/signup?google=1", requestOrigin));
+      const signupUrl = new URL("/signup?google=1", requestOrigin);
+      const redirectTarget = transaction.popup
+        ? new URL(`/auth/popup-callback?status=success&provider=google&flow=signup&redirectUrl=${encodeURIComponent(signupUrl.pathname + signupUrl.search)}`, requestOrigin)
+        : signupUrl;
+
+      const res = NextResponse.redirect(redirectTarget);
       clearTxCookie(res);
 
       res.cookies.set({
@@ -460,7 +517,10 @@ export async function GET(req: NextRequest) {
     });
 
     const targetPath = session.destination || "/vos-sync/freelancer/dashboard";
-    const res = NextResponse.redirect(new URL(targetPath, requestOrigin));
+    const redirectTarget = transaction.popup
+      ? new URL(`/auth/popup-callback?status=success&provider=google&flow=login&redirectUrl=${encodeURIComponent(targetPath)}`, requestOrigin)
+      : new URL(targetPath, requestOrigin);
+    const res = NextResponse.redirect(redirectTarget);
 
     clearTxCookie(res);
 

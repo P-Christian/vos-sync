@@ -1,13 +1,7 @@
 // src/modules/client/dashboard/components/DashboardFilters.tsx
 import React from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { FilterState } from "../types";
 import { Search } from "lucide-react";
 
@@ -51,41 +45,29 @@ export default function DashboardFilters({
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-[180px]">
-          <Select
+          <SearchableSelect
+            options={[
+              { value: "ALL", label: "All Departments" },
+              ...departments.map((dept) => ({ value: dept, label: dept })),
+            ]}
             value={filters.department || "ALL"}
             onValueChange={handleDeptChange}
-          >
-            <SelectTrigger className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50">
-              <SelectValue placeholder="All Departments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Departments</SelectItem>
-              {departments.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="All Departments"
+            className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50"
+          />
         </div>
 
         <div className="w-[150px]">
-          <Select
+          <SearchableSelect
+            options={[
+              { value: "ALL", label: "All Statuses" },
+              ...statuses.map((status) => ({ value: status, label: status })),
+            ]}
             value={filters.status || "ALL"}
             onValueChange={handleStatusChange}
-          >
-            <SelectTrigger className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              {statuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            placeholder="All Statuses"
+            className="h-10 bg-white/70 dark:bg-zinc-900/70 border-zinc-200 dark:border-zinc-800/50"
+          />
         </div>
       </div>
     </div>

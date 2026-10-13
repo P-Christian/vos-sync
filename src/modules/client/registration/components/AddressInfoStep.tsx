@@ -3,13 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { RegistrationStepProps } from "../types";
 import { fetchProvinces, fetchCities, fetchBarangays, PsgcItem } from "../utils/psgc";
 import { Loader2, MapPin, Navigation, Hash } from "lucide-react";
@@ -204,18 +198,14 @@ export default function AddressInfoStep({ formData, updateFields, onNext, onBack
             </label>
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select value={selectedProvinceCode} onValueChange={handleProvinceChange} disabled={loadingProvinces}>
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue placeholder={loadingProvinces ? "Loading provinces..." : "Select Province"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {provinces.map((prov) => (
-                    <SelectItem key={prov.code} value={prov.code}>
-                      {prov.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                options={provinces.map((prov) => ({ value: prov.code, label: prov.name }))}
+                value={selectedProvinceCode}
+                onValueChange={handleProvinceChange}
+                disabled={loadingProvinces}
+                placeholder={loadingProvinces ? "Loading provinces..." : "Select Province"}
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
             {errors.company_province && <p className="text-xs text-rose-500 font-medium mt-1">{errors.company_province}</p>}
           </div>
@@ -227,30 +217,20 @@ export default function AddressInfoStep({ formData, updateFields, onNext, onBack
             </label>
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select
+              <SearchableSelect
+                options={cities.map((city) => ({ value: city.code, label: city.name }))}
                 value={selectedCityCode}
                 onValueChange={handleCityChange}
                 disabled={!selectedProvinceCode || loadingCities}
-              >
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue
-                    placeholder={
-                      loadingCities
-                        ? "Loading cities..."
-                        : selectedProvinceCode
-                        ? "Select City"
-                        : "Select province first"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city.code} value={city.code}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={
+                  loadingCities
+                    ? "Loading cities..."
+                    : selectedProvinceCode
+                    ? "Select City"
+                    : "Select province first"
+                }
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
             {errors.company_city && <p className="text-xs text-rose-500 font-medium mt-1">{errors.company_city}</p>}
           </div>
@@ -264,33 +244,23 @@ export default function AddressInfoStep({ formData, updateFields, onNext, onBack
             </label>
             <div className="relative">
               <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none z-10" />
-              <Select
+              <SearchableSelect
+                options={barangays.map((bgy) => ({ value: bgy.code, label: bgy.name }))}
                 value={barangays.find((b) => b.name === address.company_brgy)?.code || ""}
                 onValueChange={(val) => {
                   const selectedBgy = barangays.find((b) => b.code === val);
                   handleChange("company_brgy", selectedBgy ? selectedBgy.name : "");
                 }}
                 disabled={!selectedCityCode || loadingBarangays}
-              >
-                <SelectTrigger className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all">
-                  <SelectValue
-                    placeholder={
-                      loadingBarangays
-                        ? "Loading barangays..."
-                        : selectedCityCode
-                        ? "Select Barangay"
-                        : "Select city first"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {barangays.map((bgy) => (
-                    <SelectItem key={bgy.code} value={bgy.code}>
-                      {bgy.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={
+                  loadingBarangays
+                    ? "Loading barangays..."
+                    : selectedCityCode
+                    ? "Select Barangay"
+                    : "Select city first"
+                }
+                className="pl-10 h-11 border-zinc-200 focus:ring-2 focus:ring-primary/20 transition-all font-normal"
+              />
             </div>
           </div>
 

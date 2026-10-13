@@ -489,7 +489,6 @@ export async function PATCH(req: NextRequest) {
     const computedPercent = calculateCompletionPercent(mergedCompany);
     safePayload.profile_completion_percent = computedPercent;
 
-    console.log("[DEBUG] PATCH safePayload:", JSON.stringify(safePayload));
     const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}`, {
       method: "PATCH",
       headers: getHeaders(),
@@ -497,7 +496,6 @@ export async function PATCH(req: NextRequest) {
     });
 
     const patchText = await patchRes.text();
-    console.log("[DEBUG] PATCH response:", patchText);
     let patchData: unknown = null;
     try {
       patchData = patchText ? JSON.parse(patchText) : null;

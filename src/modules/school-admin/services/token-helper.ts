@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { formatAssetUrl } from "@/lib/utils";
 
 export function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -32,6 +33,6 @@ export async function getHeaderUserFromToken() {
   return {
     name: [first, last].filter(Boolean).join(" ") || email || "School Admin",
     email: email || "admin@school.com",
-    avatar: p?.user_image ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${p.user_image}` : "",
+    avatar: formatAssetUrl(p?.user_image as string) || "",
   };
 }

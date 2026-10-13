@@ -2,23 +2,9 @@ import { notFound } from "next/navigation";
 import { getPublicClientProfile } from "@/modules/public/public-profile/services/public-profile.service";
 import { PublicClientProfileRender } from "@/modules/public/public-profile/components/PublicClientProfileRender";
 import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
-import { cookies } from "next/headers";
+import { authenticateCookieSession } from "@/lib/authenticated-session";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
 
 export default async function PublicClientProfilePage({
   params,
@@ -33,12 +19,11 @@ export default async function PublicClientProfilePage({
   }
 
   // Determine caller details
-  const cookieStore = await cookies();
-  const token = cookieStore.get("vos_sync_access_token")?.value;
+  const session = await authenticateCookieSession();
   let callerUser = { name: "Guest", email: "guest@example.com", avatar: "" };
   
-  if (token) {
-    const callerId = getUserIdFromToken(token);
+  if (session?.userId) {
+    const callerId = Number(session.userId);
     if (callerId) {
       const callerRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${callerId}?fields=role_id,user_fname,user_lname,user_email`, {
         headers: { "Authorization": `Bearer ${process.env.DIRECTUS_STATIC_TOKEN}` }

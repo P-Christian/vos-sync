@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiMonitored } from "@/lib/gemini/geminiMonitoring";
 import { evaluateTaxonomyProposal, GovernanceResult } from "@/modules/vos-admin/role-matching/services/taxonomy/taxonomyGovernanceService";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const revalidate = 0;
 
@@ -186,29 +187,9 @@ function parseGeminiResponse(raw: string): {
 
 // ── User ID Helper ────────────────────────────────────────────────────────────
 
-function getUserIdFromReq(req: NextRequest): number {
-  try {
-    const authHeader = req.headers.get("authorization");
-    const cookieToken =
-      req.cookies.get("vos_sync_access_token")?.value ||
-      req.cookies.get("directus_token")?.value ||
-      req.cookies.get("token")?.value ||
-      req.cookies.get("next-auth.session-token")?.value;
-    const token = authHeader ? authHeader.replace(/^Bearer\s+/i, "") : cookieToken;
-    if (token) {
-      const parts = token.split(".");
-      if (parts.length >= 2) {
-        const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
-        const id = payload?.user_id ?? payload?.id ?? payload?.sub;
-        if (id !== undefined && !isNaN(Number(id))) {
-          return Number(id);
-        }
-      }
-    }
-  } catch {
-    // ignore parse error
-  }
-  return 1;
+async function getUserIdFromReq(req: NextRequest): Promise<number | undefined> {
+  const session = await authenticateRequest(req);
+  return session ? Number(session.userId) : undefined;
 }
 
 // ── Route Handlers ────────────────────────────────────────────────────────────
@@ -269,7 +250,7 @@ export async function POST(req: NextRequest) {
 
     // Call Gemini AI
     const prompt = buildPrompt(roleName, categoryName, existingSkills, existingKeywords, previousSuggestions);
-    const userId = getUserIdFromReq(req);
+    const userId = await getUserIdFromReq(req);
 
     let raw: string | null = null;
     try {

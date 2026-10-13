@@ -8,6 +8,8 @@ import { AppSidebar } from "@/app/(vos-sync)/vos-sync/_components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { BfCacheBuster } from "@/components/shared/BfCacheBuster";
 
+import { formatAssetUrl } from "@/lib/utils";
+
 function decodeJwtPayload(token: string): Record<string, string> | null {
     try {
         const parts = token.split(".");
@@ -22,9 +24,7 @@ function decodeJwtPayload(token: string): Record<string, string> | null {
 }
 
 function getAvatarUrl(imageField: string | undefined): string {
-    if (!imageField) return "";
-    if (imageField.startsWith("http")) return imageField;
-    return `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${imageField}`;
+    return formatAssetUrl(imageField) || "";
 }
 
 export default async function DashboardLayout({

@@ -6,8 +6,35 @@ import { Button } from "@/components/ui/button";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsJobPreferences } from "../types/freelancer-profile.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { fetchProvinces, fetchCities, PsgcItem } from "@/lib/psgc";
+
+const JOB_TYPE_OPTIONS = [
+  { value: "Full-time", label: "Full-time" },
+  { value: "Part-time", label: "Part-time" },
+  { value: "Contract", label: "Contract" },
+  { value: "Freelance", label: "Freelance" },
+  { value: "Internship", label: "Internship" },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "PHP", label: "PHP (₱)" },
+  { value: "USD", label: "USD ($)" },
+  { value: "EUR", label: "EUR (€)" },
+  { value: "GBP", label: "GBP (£)" },
+  { value: "AUD", label: "AUD (A$)" },
+  { value: "SGD", label: "SGD (S$)" },
+  { value: "JPY", label: "JPY (¥)" },
+];
+
+const AVAILABILITY_OPTIONS = [
+  { value: "Immediate", label: "Immediate" },
+  { value: "1 Week Notice", label: "1 Week Notice" },
+  { value: "2 Weeks Notice", label: "2 Weeks Notice" },
+  { value: "1 Month Notice", label: "1 Month Notice" },
+  { value: "Not Looking", label: "Not Looking currently" },
+];
 
 interface JobPreferencesModalProps {
     isOpen: boolean;
@@ -150,21 +177,13 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Job Type</label>
-                            <Select 
+                            <SearchableSelect 
+                                options={JOB_TYPE_OPTIONS}
                                 value={preferences.job_type || ""} 
                                 onValueChange={(val) => handleChange("job_type", val)}
-                            >
-                                <SelectTrigger className="max-md:min-h-11">
-                                    <SelectValue placeholder="Select job type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Full-time">Full-time</SelectItem>
-                                    <SelectItem value="Part-time">Part-time</SelectItem>
-                                    <SelectItem value="Contract">Contract</SelectItem>
-                                    <SelectItem value="Freelance">Freelance</SelectItem>
-                                    <SelectItem value="Internship">Internship</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                placeholder="Select job type"
+                                className="max-md:min-h-11"
+                            />
                         </div>
 
                         <div className="space-y-2">
@@ -192,34 +211,22 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                                 </div>
                             )}
                             <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1">
-                                <Select 
+                                <SearchableSelect 
+                                    options={provinces.map(p => ({ value: p.code, label: p.name }))}
                                     value={selectedProvinceCode} 
                                     onValueChange={handleProvinceChange}
-                                >
-                                    <SelectTrigger className="max-md:min-h-11">
-                                        <SelectValue placeholder="Select Province" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {provinces.map(p => (
-                                            <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="Select Province"
+                                    className="max-md:min-h-11"
+                                />
                                 
-                                <Select 
+                                <SearchableSelect 
+                                    options={cities.map(c => ({ value: c.code, label: c.name }))}
                                     value={selectedCityCode} 
                                     onValueChange={handleCityChange}
                                     disabled={!selectedProvinceCode || cities.length === 0}
-                                >
-                                    <SelectTrigger className="max-md:min-h-11">
-                                        <SelectValue placeholder="Select City/Municipality" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {cities.map(c => (
-                                            <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    placeholder="Select City/Municipality"
+                                    className="max-md:min-h-11"
+                                />
                             </div>
                         </div>
 
@@ -260,42 +267,24 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Currency</label>
-                            <Select 
+                            <SearchableSelect 
+                                options={CURRENCY_OPTIONS}
                                 value={preferences.currency || "PHP"} 
                                 onValueChange={(val) => handleChange("currency", val)}
-                            >
-                                <SelectTrigger className="max-md:min-h-11">
-                                    <SelectValue placeholder="Select currency" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PHP">PHP (₱)</SelectItem>
-                                    <SelectItem value="USD">USD ($)</SelectItem>
-                                    <SelectItem value="EUR">EUR (€)</SelectItem>
-                                    <SelectItem value="GBP">GBP (£)</SelectItem>
-                                    <SelectItem value="AUD">AUD (A$)</SelectItem>
-                                    <SelectItem value="SGD">SGD (S$)</SelectItem>
-                                    <SelectItem value="JPY">JPY (¥)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                placeholder="Select currency"
+                                className="max-md:min-h-11"
+                            />
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Availability</label>
-                            <Select 
+                            <SearchableSelect 
+                                options={AVAILABILITY_OPTIONS}
                                 value={preferences.availability || ""} 
                                 onValueChange={(val) => handleChange("availability", val)}
-                            >
-                                <SelectTrigger className="max-md:min-h-11">
-                                    <SelectValue placeholder="Select availability" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Immediate">Immediate</SelectItem>
-                                    <SelectItem value="1 Week Notice">1 Week Notice</SelectItem>
-                                    <SelectItem value="2 Weeks Notice">2 Weeks Notice</SelectItem>
-                                    <SelectItem value="1 Month Notice">1 Month Notice</SelectItem>
-                                    <SelectItem value="Not Looking">Not Looking currently</SelectItem>
-                                </SelectContent>
-                            </Select>
+                                placeholder="Select availability"
+                                className="max-md:min-h-11"
+                            />
                         </div>
                     </div>
                 </div>

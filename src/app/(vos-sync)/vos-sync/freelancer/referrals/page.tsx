@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Ban, Copy, Check, Link2 } from "lucide-react";
 import { FreelancerPageHeader } from "@/components/shared/layout/FreelancerPageHeader";
 import { fetchUserProfile } from "@/modules/client/settings/providers/SettingsProvider";
+import { formatAssetUrl } from "@/lib/utils";
 
 interface ReferralItem {
   referral_id: number;
@@ -41,7 +42,7 @@ export default function MyReferralsPage() {
         setUserProfile({
           name: `${data.user_fname} ${data.user_lname}`,
           email: data.user_email || "",
-          avatar: data.profile_image_url ? `${process.env.NEXT_PUBLIC_API_BASE_URL || ""}/assets/${data.profile_image_url}` : "",
+          avatar: formatAssetUrl(data.profile_image_url) || "",
         });
       })
       .catch((err) => console.error("Error loading user profile", err));

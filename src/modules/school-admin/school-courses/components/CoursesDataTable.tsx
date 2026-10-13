@@ -39,7 +39,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { EmptyPlaceholder } from "@/components/shared/EmptyPlaceholder";
+
+const DEGREE_OPTIONS = [
+  { value: "all", label: "All Degrees" },
+  { value: "Associate", label: "Associate" },
+  { value: "Bachelor", label: "Bachelor" },
+  { value: "Master", label: "Master" },
+  { value: "Doctorate", label: "Doctorate" },
+];
 
 interface SearchInputProps {
   placeholder: string;
@@ -154,18 +163,15 @@ export function CoursesDataTable<TData, TValue>({
             onSearch={handleSearch}
           />
           {onDegreeFilterChange && (
-            <Select value={degreeFilter} onValueChange={onDegreeFilterChange}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="All Degrees" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Degrees</SelectItem>
-                <SelectItem value="Associate">Associate</SelectItem>
-                <SelectItem value="Bachelor">Bachelor</SelectItem>
-                <SelectItem value="Master">Master</SelectItem>
-                <SelectItem value="Doctorate">Doctorate</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-[150px]">
+              <SearchableSelect
+                options={DEGREE_OPTIONS}
+                value={degreeFilter}
+                onValueChange={onDegreeFilterChange}
+                placeholder="All Degrees"
+                className="w-full"
+              />
+            </div>
           )}
           {onStatusFilterChange && (
             <Select value={statusFilter} onValueChange={onStatusFilterChange}>

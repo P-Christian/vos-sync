@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { openOAuthPopup } from "@/modules/auth/utils/oauth-popup";
 
 export type AuthProviderId = "google" | "facebook" | "apple" | "linkedin";
 
@@ -84,19 +86,64 @@ export function SocialAuthButtons({
 }: SocialAuthButtonsProps) {
   const [loadingProvider, setLoadingProvider] = React.useState<string | null>(null);
 
-  const handleProviderClick = (provider: AuthProviderConfig) => {
-    if (disabled || loadingProvider) return;
+  const handleProviderClick = React.useCallback(
+    (provider: AuthProviderConfig) => {
+      if (disabled || loadingProvider) return;
 
-    if (provider.onClick) {
-      provider.onClick();
-      return;
-    }
+      if (provider.onClick) {
+        provider.onClick();
+        return;
+      }
 
-    if (provider.href) {
-      setLoadingProvider(provider.id);
-      window.location.assign(provider.href);
-    }
-  };
+      if (provider.href) {
+        setLoadingProvider(provider.id);
+
+        const title = provider.label;
+        openOAuthPopup({
+          url: provider.href,
+          title,
+          onSuccess: (response) => {
+            if (response.redirectUrl) {
+              window.location.assign(response.redirectUrl);
+            } else {
+              window.location.assign(
+                mode === "signup" ? "/signup" : "/vos-sync/freelancer/dashboard"
+              );
+            }
+          },
+          onCancel: () => {
+            setLoadingProvider(null);
+            toast.info("Authentication cancelled", {
+              description: "The authentication window was closed before completing.",
+            });
+          },
+          onError: (payload) => {
+            setLoadingProvider(null);
+            const errCode = payload.error;
+            const errorMap: Record<string, string> = {
+              account_blocked: "Your account has been suspended. Please contact support.",
+              account_inactive: "Your account is inactive. Please contact support.",
+              account_not_found: "No account found with this email. Please sign up first.",
+              google_not_connected: "This Google account is not connected. Sign up or link it in settings.",
+              linkedin_not_connected: "This LinkedIn account is not connected. Sign up or link it in settings.",
+              facebook_not_connected: "This Facebook account is not connected. Sign up or link it in settings.",
+              google_identity_conflict: "Identity conflict: this email belongs to a different account.",
+              linkedin_identity_conflict: "Identity conflict: this email belongs to a different account.",
+              facebook_identity_conflict: "Identity conflict: this email belongs to a different account.",
+              oauth_callback_failed: "Social authentication failed. Please try again.",
+              cancelled: "Authentication was cancelled.",
+            };
+            const description = (errCode && errorMap[errCode]) || "Social authentication failed. Please try again.";
+            toast.error("Authentication failed", { description });
+          },
+          onClose: () => {
+            setLoadingProvider(null);
+          },
+        });
+      }
+    },
+    [disabled, loadingProvider, mode]
+  );
 
   const providers = React.useMemo<AuthProviderConfig[]>(() => {
     return [

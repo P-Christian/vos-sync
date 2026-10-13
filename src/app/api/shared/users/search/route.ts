@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { UserSearchResult } from "@/modules/shared/search/types";
 import { authenticateRequest } from "@/lib/authenticated-session";
+import { formatAssetUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,8 +21,7 @@ function getHeaders(): Record<string, string> {
 
 function resolveAssetUrl(fileId?: string | null): string | undefined {
   if (!fileId) return undefined;
-  if (fileId.startsWith("http://") || fileId.startsWith("https://")) return fileId;
-  return `${DIRECTUS_BASE}/assets/${fileId}`;
+  return formatAssetUrl(fileId) ?? undefined;
 }
 
 function maskEmail(email?: string | null): string | undefined {

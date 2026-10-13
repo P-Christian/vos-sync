@@ -39,13 +39,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 
 type Status = "active" | "comingSoon";
 
@@ -603,18 +597,13 @@ export default function ERPMainDashboard() {
 
                             <div className="space-y-2">
                                 <div className={cn("grid gap-3", "sm:grid-cols-[200px_1fr]")}>
-                                    <Select value={position} onValueChange={(v) => setPosition(v as Position)}>
-                                        <SelectTrigger className="bg-background/70 backdrop-blur">
-                                            <SelectValue placeholder="Select position" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {POSITIONS.map((p) => (
-                                                <SelectItem key={p} value={p}>
-                                                    {p}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <SearchableSelect
+                                        value={position}
+                                        onValueChange={(v) => setPosition(v as Position)}
+                                        options={POSITIONS.map((p) => ({ value: p, label: p }))}
+                                        placeholder="Select position"
+                                        triggerClassName="bg-background/70 backdrop-blur w-full"
+                                    />
 
                                     <div className="relative">
                                         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

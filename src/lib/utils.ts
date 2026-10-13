@@ -79,3 +79,45 @@ export function titleCase(input: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(" ");
 }
+
+/**
+ * Normalizes raw Directus asset IDs, full Directus asset URLs (e.g. http://host:port/assets/UUID),
+ * and /assets/ paths into the application's internal proxied /api/assets/[id] endpoint.
+ */
+export function formatAssetUrl(pathOrUrl?: string | null): string | null {
+  if (!pathOrUrl || !pathOrUrl.trim()) return null;
+  const trimmed = pathOrUrl.trim();
+
+  // Already proxied via an internal asset endpoint
+  if (
+    trimmed.startsWith("/api/assets/") ||
+    trimmed.startsWith("/api/client/assets/") ||
+    trimmed.startsWith("/api/freelancer/assets/")
+  ) {
+    return trimmed;
+  }
+
+  // Data URIs should remain intact
+  if (trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+
+  // Matches full Directus URL (e.g. http://host:8056/assets/UUID) or relative path /assets/UUID
+  const assetsMatch = trimmed.match(/\/assets\/([^/?#]+)(\?[^#]*)?(#.*)?$/u);
+  if (assetsMatch?.[1]) {
+    const fileId = assetsMatch[1];
+    const query = assetsMatch[2] || "";
+    return `/api/assets/${fileId}${query}`;
+  }
+
+  // External third-party URLs (e.g. Google OAuth avatars, external CDNs) without /assets/
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+
+  // Raw file ID or UUID, optionally with query string
+  const [basePart, ...queryParts] = trimmed.split("?");
+  const query = queryParts.length > 0 ? `?${queryParts.join("?")}` : "";
+  return `/api/assets/${encodeURIComponent(basePart)}${query}`;
+}
+

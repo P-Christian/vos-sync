@@ -13,13 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Badge } from "@/components/ui/badge";
 import {
   Applicant,
@@ -167,42 +161,16 @@ export default function StatusUpdateDrawer({
                 <Label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs">
                   Destination Stage <span className="text-rose-500">*</span>
                 </Label>
-                <Select
+                <SearchableSelect
+                  options={dynamicAllowed.map((stage) => ({
+                    value: String(stage.id),
+                    label: `${stage.stage_name}${stage.is_terminal ? " (Terminal)" : ""}`,
+                  }))}
                   value={selectedStageId}
                   onValueChange={(v) => setSelectedStageId(v)}
-                >
-                  <SelectTrigger className="h-9 max-md:min-h-10 md:text-sm">
-                    <SelectValue placeholder="Select target stage..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dynamicAllowed.map((stage) => {
-                      const dotColor =
-                        STAGE_COLOR_CLASSES[stage.color]?.dot || "bg-primary";
-                      return (
-                        <SelectItem
-                          key={stage.id}
-                          value={String(stage.id)}
-                          className="text-sm cursor-pointer"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={cn(
-                                "h-2 w-2 rounded-full shrink-0",
-                                dotColor
-                              )}
-                            />
-                            <span>{stage.stage_name}</span>
-                            {stage.is_terminal && (
-                              <span className="text-[10px] text-muted-foreground ml-1">
-                                (Terminal)
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  placeholder="Select target stage..."
+                  className="h-9 max-md:min-h-10 md:text-sm"
+                />
               </div>
             ) : (
               <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-sm text-muted-foreground md:text-xs">
@@ -224,23 +192,18 @@ export default function StatusUpdateDrawer({
               <Label className="text-sm font-medium text-zinc-600 dark:text-zinc-400 md:text-xs">
                 New Status <span className="text-rose-500">*</span>
               </Label>
-              <Select
+              <SearchableSelect
+                options={legacyAllowed.map((s) => ({
+                  value: s,
+                  label: STATUS_LABELS[s],
+                }))}
                 value={selectedLegacyStatus}
                 onValueChange={(v) =>
                   setSelectedLegacyStatus(v as ApplicationStatus)
                 }
-              >
-                <SelectTrigger className="h-9 max-md:min-h-10 md:text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {legacyAllowed.map((s) => (
-                    <SelectItem key={s} value={s} className="text-sm">
-                      {STATUS_LABELS[s]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Select status..."
+                className="h-9 max-md:min-h-10 md:text-sm"
+              />
             </div>
           ) : (
             <div className="flex items-start gap-2.5 p-3.5 bg-muted/40 border border-border/70 rounded-xl text-sm text-muted-foreground md:text-xs">

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import { AccountStatusUser, AccountStatus, StatusTransitionPayload, AppealDecisionPayload } from "../types/account-status.types";
 import { ShieldAlert, History, MessageSquare, Shield, Check, X, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -174,6 +174,23 @@ export function AccountStatusDetailModal({
     { code: "UPDATE_SCHOOL", label: "Update School Settings (School Admin)" },
   ];
 
+  const targetStatusOptions = [
+    { value: "ACTIVE", label: "Active (No restrictions)" },
+    { value: "LIMITED", label: "Limited (Expirable capability blocks)" },
+    { value: "SUSPENDED", label: "Suspended (Temporary ban)" },
+    { value: "BLOCKED", label: "Blocked (Indefinite containment)" },
+    { value: "DEACTIVATED", label: "Deactivated (User request)" },
+    { value: "PENDING_DELETION", label: "Pending Deletion (Grace period)" },
+  ];
+
+  const durationOptions = [
+    { value: "1", label: "1 Day" },
+    { value: "3", label: "3 Days" },
+    { value: "7", label: "7 Days (1 Week)" },
+    { value: "30", label: "30 Days (1 Month)" },
+    { value: "indefinite", label: "Indefinite / Permanent" },
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 border shadow-lg rounded-xl flex flex-col p-0">
@@ -286,19 +303,13 @@ export function AccountStatusDetailModal({
                   <form onSubmit={handleStatusSubmit} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="target-status">Select New Status</Label>
-                      <Select value={targetStatus} onValueChange={(val) => setTargetStatus(val as AccountStatus)}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ACTIVE">Active (No restrictions)</SelectItem>
-                          <SelectItem value="LIMITED">Limited (Expirable capability blocks)</SelectItem>
-                          <SelectItem value="SUSPENDED">Suspended (Temporary ban)</SelectItem>
-                          <SelectItem value="BLOCKED">Blocked (Indefinite containment)</SelectItem>
-                          <SelectItem value="DEACTIVATED">Deactivated (User request)</SelectItem>
-                          <SelectItem value="PENDING_DELETION">Pending Deletion (Grace period)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <SearchableSelect
+                        value={targetStatus}
+                        onValueChange={(val) => setTargetStatus(val as AccountStatus)}
+                        options={targetStatusOptions}
+                        placeholder="Select status"
+                        triggerClassName="w-full"
+                      />
                     </div>
 
                     {targetStatus === "LIMITED" && (
@@ -323,18 +334,13 @@ export function AccountStatusDetailModal({
                     {(targetStatus === "LIMITED" || targetStatus === "SUSPENDED") && (
                       <div className="space-y-1.5">
                         <Label htmlFor="duration">Restriction Duration</Label>
-                        <Select value={duration} onValueChange={setDuration}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select duration" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1 Day</SelectItem>
-                            <SelectItem value="3">3 Days</SelectItem>
-                            <SelectItem value="7">7 Days (1 Week)</SelectItem>
-                            <SelectItem value="30">30 Days (1 Month)</SelectItem>
-                            <SelectItem value="indefinite">Indefinite / Permanent</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <SearchableSelect
+                          value={duration}
+                          onValueChange={setDuration}
+                          options={durationOptions}
+                          placeholder="Select duration"
+                          triggerClassName="w-full"
+                        />
                       </div>
                     )}
 

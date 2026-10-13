@@ -25,13 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   StandardRole,
   JobCategory,
@@ -58,6 +52,14 @@ interface RoleDetailSheetProps {
   onEditKeyword?: (payload: Partial<SearchKeyword>) => Promise<boolean>;
   onRemoveKeyword: (aliasId: number) => Promise<boolean>;
 }
+
+const EXPERIENCE_LEVEL_OPTIONS = [
+  { value: "ENTRY", label: "Entry Level" },
+  { value: "MID", label: "Mid Level" },
+  { value: "SENIOR", label: "Senior Level" },
+  { value: "LEAD", label: "Lead / Manager" },
+  { value: "EXECUTIVE", label: "Executive / Director" },
+];
 
 export function RoleDetailSheet({
   role,
@@ -715,40 +717,27 @@ export function RoleDetailSheet({
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-foreground">Category</label>
-                  <Select
+                  <SearchableSelect
                     value={String(catIdInput)}
                     onValueChange={(val) => setCatIdInput(Number(val))}
-                  >
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => (
-                        <SelectItem key={c.category_id} value={String(c.category_id)}>
-                          {c.category_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    options={categories.map((c) => ({
+                      value: String(c.category_id),
+                      label: c.category_name,
+                    }))}
+                    placeholder="Select category"
+                    triggerClassName="h-9 text-xs w-full"
+                  />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-foreground">Experience Level</label>
-                  <Select
+                  <SearchableSelect
                     value={expLevelInput}
                     onValueChange={(val) => setExpLevelInput(val as ExperienceLevel)}
-                  >
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ENTRY">Entry Level</SelectItem>
-                      <SelectItem value="MID">Mid Level</SelectItem>
-                      <SelectItem value="SENIOR">Senior Level</SelectItem>
-                      <SelectItem value="LEAD">Lead / Manager</SelectItem>
-                      <SelectItem value="EXECUTIVE">Executive / Director</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    options={EXPERIENCE_LEVEL_OPTIONS}
+                    placeholder="Select experience level"
+                    triggerClassName="h-9 text-xs w-full"
+                  />
                 </div>
 
                 <Button
@@ -782,21 +771,16 @@ export function RoleDetailSheet({
             <div className="space-y-3 py-2 text-xs">
               <div className="space-y-1">
                 <label className="font-semibold">Select Master Skill</label>
-                <Select
+                <SearchableSelect
                   value={selectedSkillId ? String(selectedSkillId) : ""}
                   onValueChange={(val) => setSelectedSkillId(val ? Number(val) : "")}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Choose master skill..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {masterSkills.map((m) => (
-                      <SelectItem key={m.id} value={String(m.id)}>
-                        {m.skill_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={masterSkills.map((m) => ({
+                    value: String(m.id),
+                    label: m.skill_name,
+                  }))}
+                  placeholder="Choose master skill..."
+                  triggerClassName="h-9 text-xs w-full"
+                />
               </div>
 
               <div className="space-y-1">

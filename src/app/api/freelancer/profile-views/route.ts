@@ -1,6 +1,7 @@
 // src/app/api/freelancer/profile-views/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications";
+import { authenticateRequest } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,30 +18,13 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
-function getUserIdFromToken(token: string): number | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-    const payload = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
-    const id = payload?.user_id ?? payload?.sub ?? payload?.id ?? null;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const token =
-      req.headers.get("authorization")?.replace("Bearer ", "") ||
-      req.cookies.get("vos_sync_access_token")?.value;
-
-    if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-    const viewerUserId = getUserIdFromToken(token);
-    if (!viewerUserId) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+    const session = await authenticateRequest(req);
+    const viewerUserId = session?.userId ? Number(session.userId) : null;
+    if (!viewerUserId) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
 
     const body = await req.json().catch(() => null);
     if (!body?.viewed_user_id) {

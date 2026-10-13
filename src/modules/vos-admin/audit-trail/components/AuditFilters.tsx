@@ -5,7 +5,7 @@ import React from 'react';
 import { AuditFilters as AuditFiltersType } from '../types/audit.types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Search, RotateCcw, Download, SlidersHorizontal, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -165,89 +165,49 @@ export function AuditFilters({
       {/* Bottom Row: Filter Selectors & Date Range */}
       <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/40">
         {/* Category */}
-        <Select
+        <SearchableSelect
           value={filters.event_category || "ALL"}
           onValueChange={(val) => onFilterChange({ event_category: val, page: 1 })}
-        >
-          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[145px]">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={CATEGORIES}
+          placeholder="Category"
+          triggerClassName="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[145px]"
+        />
 
         {/* Action */}
-        <Select
+        <SearchableSelect
           value={filters.action || "ALL"}
           onValueChange={(val) => onFilterChange({ action: val, page: 1 })}
-        >
-          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[140px]">
-            <SelectValue placeholder="Action" />
-          </SelectTrigger>
-          <SelectContent>
-            {ACTIONS.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={ACTIONS}
+          placeholder="Action"
+          triggerClassName="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[140px]"
+        />
 
         {/* Status */}
-        <Select
+        <SearchableSelect
           value={filters.status || "ALL"}
           onValueChange={(val) => onFilterChange({ status: val, page: 1 })}
-        >
-          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {STATUSES.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={STATUSES}
+          placeholder="Status"
+          triggerClassName="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]"
+        />
 
         {/* Actor Type */}
-        <Select
+        <SearchableSelect
           value={filters.actor_type || "ALL"}
           onValueChange={(val) => onFilterChange({ actor_type: val, page: 1 })}
-        >
-          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]">
-            <SelectValue placeholder="Actor Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {ACTOR_TYPES.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={ACTOR_TYPES}
+          placeholder="Actor Type"
+          triggerClassName="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[125px]"
+        />
 
         {/* Org Type */}
-        <Select
+        <SearchableSelect
           value={filters.organization_type || "ALL"}
           onValueChange={(val) => onFilterChange({ organization_type: val, page: 1 })}
-        >
-          <SelectTrigger className="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[135px]">
-            <SelectValue placeholder="Org Type" />
-          </SelectTrigger>
-          <SelectContent>
-            {ORG_TYPES.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={ORG_TYPES}
+          placeholder="Org Type"
+          triggerClassName="h-9 text-xs bg-background border-border rounded-lg w-full sm:w-[135px]"
+        />
 
         {/* Date From */}
         <Input
