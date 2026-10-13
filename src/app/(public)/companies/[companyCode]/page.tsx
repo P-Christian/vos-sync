@@ -37,7 +37,7 @@ export default async function CompanyProfilePage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen relative z-10">
       <Suspense fallback={
         <div className="max-w-7xl mx-auto px-4 py-20 text-center text-muted-foreground animate-pulse font-sans">
           Loading company profile...
