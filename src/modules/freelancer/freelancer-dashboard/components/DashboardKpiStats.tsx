@@ -6,22 +6,40 @@ import { useConversations } from "@/modules/freelancer/freelancer-messaging/hook
 import { Briefcase, Sparkles, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
+import type { ApplicationSummary } from "@/modules/freelancer/freelancer-applications/types";
+import type { Conversation } from "@/modules/freelancer/freelancer-messaging/types";
+
 interface DashboardKpiStatsProps {
     topMatchScore?: number | null;
     topMatchTitle?: string | null;
+    summary?: ApplicationSummary;
+    conversations?: Conversation[];
+    loading?: boolean;
 }
 
-export function DashboardKpiStats({ topMatchScore, topMatchTitle }: DashboardKpiStatsProps) {
-    const { summary, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
-    const { conversations, loading: isMessagesLoading, loadConversations } = useConversations();
+export function DashboardKpiStats({
+    topMatchScore,
+    topMatchTitle,
+    summary: propSummary,
+    conversations: propConversations,
+    loading: propLoading,
+}: DashboardKpiStatsProps) {
+    const { summary: hookSummary, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
+    const { conversations: hookConversations, loading: isMessagesLoading, loadConversations } = useConversations();
+
+    const isControlled = propSummary !== undefined && propConversations !== undefined;
 
     useEffect(() => {
-        fetchApplications();
-        loadConversations();
-    }, [fetchApplications, loadConversations]);
+        if (!isControlled) {
+            fetchApplications();
+            loadConversations();
+        }
+    }, [isControlled, fetchApplications, loadConversations]);
 
-    const isLoading = isAppsLoading || isMessagesLoading;
-    const unreadMessagesCount = conversations.reduce((acc, curr) => acc + (curr.unread_count || 0), 0);
+    const isLoading = isControlled ? Boolean(propLoading) : (isAppsLoading || isMessagesLoading);
+    const summary = propSummary || hookSummary;
+    const conversations = propConversations || hookConversations;
+    const unreadConversationsCount = conversations.filter((c) => (c.unread_count || 0) > 0).length;
     const activeCount = summary.pendingApplications || 0;
     const totalCount = summary.totalApplied || 0;
 
@@ -107,11 +125,11 @@ export function DashboardKpiStats({ topMatchScore, topMatchTitle }: DashboardKpi
                     </div>
                 </div>
                 <div className="my-2">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-foreground">{unreadMessagesCount}</span>
-                    <span className="text-xs text-slate-400 dark:text-muted-foreground"> unread in {conversations.length} chats</span>
+                    <span className="text-2xl font-bold text-slate-900 dark:text-foreground">{unreadConversationsCount}</span>
+                    <span className="text-xs text-slate-400 dark:text-muted-foreground"> unread in {conversations.length} {conversations.length === 1 ? "chat" : "chats"}</span>
                 </div>
                 <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    {unreadMessagesCount === 0 ? "All caught up" : `${unreadMessagesCount} requires attention`}
+                    {unreadConversationsCount === 0 ? "All caught up" : `${unreadConversationsCount} ${unreadConversationsCount === 1 ? "chat requires" : "chats require"} attention`}
                 </p>
             </Link>
         </div>

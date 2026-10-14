@@ -20,6 +20,8 @@ export interface RecommendedJob {
 
 interface AIJobRecommendationsProps {
     onJobsLoaded?: (topScore: number | null, topTitle: string | null) => void;
+    jobs?: RecommendedJob[];
+    loading?: boolean;
 }
 
 function formatSalary(min?: number, max?: number): string {
@@ -34,14 +36,25 @@ function formatSalary(min?: number, max?: number): string {
     return `Up to ${formatter.format(max!)}`;
 }
 
-export function AIJobRecommendations({ onJobsLoaded }: AIJobRecommendationsProps) {
-    const [jobs, setJobs] = useState<RecommendedJob[]>([]);
-    const [loading, setLoading] = useState(true);
+export function AIJobRecommendations({ onJobsLoaded, jobs: propJobs, loading: propLoading }: AIJobRecommendationsProps) {
+    const [jobs, setJobs] = useState<RecommendedJob[]>(propJobs || []);
+    const [loading, setLoading] = useState(propLoading !== undefined ? propLoading : true);
     const [error, setError] = useState<string | null>(null);
     const onJobsLoadedRef = React.useRef(onJobsLoaded);
     onJobsLoadedRef.current = onJobsLoaded;
 
+    const isControlled = propJobs !== undefined;
+
     useEffect(() => {
+        if (isControlled) {
+            setJobs(propJobs);
+            if (propLoading !== undefined) setLoading(propLoading);
+            if (onJobsLoadedRef.current && propJobs.length > 0) {
+                onJobsLoadedRef.current(propJobs[0].match_percentage || 95, propJobs[0].job_title);
+            }
+            return;
+        }
+
         let isMounted = true;
         const fetchRecommendations = async () => {
             try {
@@ -69,7 +82,7 @@ export function AIJobRecommendations({ onJobsLoaded }: AIJobRecommendationsProps
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [isControlled, propJobs, propLoading]);
 
     if (loading) {
         return (
