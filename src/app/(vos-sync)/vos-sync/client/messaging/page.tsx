@@ -80,7 +80,7 @@ export default async function ClientMessagingPage({
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <PortalPageHeader user={headerUser} />
-      <PageContainer>
+      <PageContainer width="full" className="[&>div]:!p-3 sm:[&>div]:!p-4">
         <MessagingModule
           currentUserId={currentUserId}
           initialFreelancerId={initialFreelancerId}

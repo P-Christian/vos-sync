@@ -15,7 +15,7 @@ export default function EmptyState({
   subMessage = "Choose a conversation from the left to start chatting",
 }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-8">
+    <div className="flex flex-col items-center justify-center h-full max-h-full flex-1 gap-5 text-center px-8">
       <div className="relative">
         <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full" />
         <div className="relative p-6 rounded-3xl bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30 border border-indigo-100 dark:border-indigo-900/50">

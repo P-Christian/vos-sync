@@ -23,7 +23,7 @@ import {
   Building,
   Settings,
   Search,
-  User,
+
   Loader2,
   ArrowRight,
 } from "lucide-react";

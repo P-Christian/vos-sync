@@ -23,7 +23,7 @@ import {
   Code2,
   Sparkles,
   Users,
-  Laptop,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +35,7 @@ import {
   DeterministicGap,
 } from "@/modules/matching-engine/campus/types";
 import { resolveCurriculumDomain } from "@/modules/matching-engine/campus/curriculumTaxonomy";
-import { classifyEvidenceItems, classifySkillNames } from "../utils/skillClassifier";
+import { classifyEvidenceItems } from "../utils/skillClassifier";
 
 interface StudentMatchDrawerProps {
   result: CampusMatchResult | null;
