@@ -9,6 +9,7 @@ import {
 } from "./types";
 import { NormalizedJobRequirements } from "./types";
 import { resolveCurriculumDomain, resolveJobDomain } from "./curriculumTaxonomy";
+import { classifySkillNames } from "@/modules/client/campus-talent/utils/skillClassifier";
 
 const WEIGHTS = {
   skills: 35,
@@ -36,6 +37,8 @@ export interface HybridEvaluationResult {
   score: number;
   curriculumItems: CampusEvidenceItem[];
   verifiedSkillItems: CampusEvidenceItem[];
+  technicalSkillItems?: CampusEvidenceItem[];
+  softSkillItems?: CampusEvidenceItem[];
   experienceItems: CampusEvidenceItem[];
   gaps: DeterministicGap[];
 }
@@ -133,6 +136,21 @@ export function evaluateHybridCandidate(
     })
   );
 
+  const { technicalSkills: techSkillNames, softSkills: softSkillNames } =
+    classifySkillNames(candidate.verifiedSkills);
+
+  const technicalSkillItems: CampusEvidenceItem[] = techSkillNames.map((sk) => ({
+    label: sk,
+    source: "USER_SKILL",
+    verified: true,
+  }));
+
+  const softSkillItems: CampusEvidenceItem[] = softSkillNames.map((sk) => ({
+    label: sk,
+    source: "USER_SKILL",
+    verified: true,
+  }));
+
   // ── Work Experience Evidence ──────────────────────────────────────────────
   const experienceItems: CampusEvidenceItem[] =
     candidate.workExperienceYears > 0
@@ -166,6 +184,8 @@ export function evaluateHybridCandidate(
     score,
     curriculumItems,
     verifiedSkillItems,
+    technicalSkillItems,
+    softSkillItems,
     experienceItems,
     gaps,
   };

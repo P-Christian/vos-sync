@@ -1,7 +1,7 @@
 "use client";
 // src/modules/client/campus-talent/components/StudentMatchDrawer.tsx
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -12,7 +12,6 @@ import {
   BookOpen,
   Target,
   Send,
- 
   Info,
   Award,
   ShieldCheck,
@@ -21,6 +20,10 @@ import {
   Copy,
   Check,
   Hash,
+  Code2,
+  Sparkles,
+  Users,
+  Laptop,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +31,11 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   CampusMatchResult,
+  CampusEvidenceItem,
   DeterministicGap,
 } from "@/modules/matching-engine/campus/types";
+import { resolveCurriculumDomain } from "@/modules/matching-engine/campus/curriculumTaxonomy";
+import { classifyEvidenceItems, classifySkillNames } from "../utils/skillClassifier";
 
 interface StudentMatchDrawerProps {
   result: CampusMatchResult | null;
@@ -182,6 +188,45 @@ function StudentMatchDrawerContent({
   const gaps = result.gaps ?? [];
   const explanation = result.explanation ?? null;
 
+  // ── Technical & Soft Skills Resolution ────────────────────────────────────
+  const { technicalSkills, softSkills } = useMemo(() => {
+    // 1. If explicitly pre-computed in evidence, prioritize them
+    if (
+      result.evidence.technicalSkills &&
+      result.evidence.softSkills &&
+      (result.evidence.technicalSkills.length > 0 || result.evidence.softSkills.length > 0)
+    ) {
+      return {
+        technicalSkills: result.evidence.technicalSkills,
+        softSkills: result.evidence.softSkills,
+      };
+    }
+
+    // 2. Classify from verifiedSkills and curriculum items
+    const allEvidenceItems: CampusEvidenceItem[] = [
+      ...(result.evidence.verifiedSkills ?? []),
+      ...(result.evidence.curriculum ?? []),
+    ];
+
+    // 3. Fallback: if evidence is empty, resolve directly from courseName
+    if (allEvidenceItems.length === 0 && result.courseName) {
+      const { competencies } = resolveCurriculumDomain(result.courseName);
+      for (const comp of competencies) {
+        allEvidenceItems.push({
+          label: comp,
+          source: "CURRICULUM",
+          verified: false,
+        });
+      }
+    }
+
+    const { technical, soft } = classifyEvidenceItems(allEvidenceItems);
+    return {
+      technicalSkills: technical,
+      softSkills: soft,
+    };
+  }, [result.evidence, result.courseName]);
+
   const initials = result.studentName
     ? result.studentName
         .split(" ")
@@ -203,8 +248,7 @@ function StudentMatchDrawerContent({
   const isMatchEvaluated =
     result.score > 0 ||
     explanation !== null ||
-    gaps.length > 0 ||
-    curriculumItems.length > 0;
+    gaps.length > 0;
 
   const getScoreVerdict = (score: number, eligible: boolean) => {
     if (!eligible) {
@@ -435,21 +479,31 @@ function StudentMatchDrawerContent({
                       </div>
                       <div>
                         <h3 className="text-base font-semibold text-foreground">
-                          Academic Roster Candidate
+                          {result.isRegistered ? "Verified Student Candidate" : "Academic Roster Candidate"}
                         </h3>
                         <p className="text-xs text-muted-foreground">
-                          Verified university enrollment and course registrar credentials
+                          {result.isRegistered
+                            ? "Verified university enrollment & active VOS Sync profile credentials"
+                            : "Verified university enrollment and course registrar credentials"}
                         </p>
                       </div>
                     </div>
                     <Badge variant="secondary" className="text-[11px] gap-1 bg-primary/10 text-primary border-primary/20">
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      Verified by Registrar
+                      {result.isRegistered ? "Verified Profile" : "Verified by Registrar"}
                     </Badge>
                   </div>
 
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    This candidate is actively enrolled and verified under the school&apos;s academic roster. Select a job vacancy from the toolbar and click <strong>Run AI Match</strong> to evaluate course curriculum alignment, syllabus competencies, and calculate a deterministic match score.
+                    {result.isRegistered ? (
+                      <>
+                        This student is actively enrolled under the school&apos;s academic roster with verified profile credentials on VOS Sync. Select a job vacancy from the toolbar and click <strong>Run AI Match</strong> to calculate an intelligent match score against their verified skills, experience, and curriculum.
+                      </>
+                    ) : (
+                      <>
+                        This candidate is actively enrolled and verified under the school&apos;s academic roster. Select a job vacancy from the toolbar and click <strong>Run AI Match</strong> to evaluate course curriculum alignment, syllabus competencies, and calculate a deterministic match score.
+                      </>
+                    )}
                   </p>
 
                   <div className="flex items-center gap-2 flex-wrap pt-1 text-[11px] text-muted-foreground">
@@ -621,117 +675,139 @@ function StudentMatchDrawerContent({
                 </motion.div>
               )}
 
-              {/* Inferred Curriculum Competencies */}
-              {curriculumItems.length > 0 && (
-                <motion.div
-                  className="space-y-3"
-                  initial="hidden"
-                  animate="visible"
-                  variants={sectionVariants}
-                  transition={{
-                    delay: 0.3,
-                    duration: 0.25,
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-muted-foreground" />
-                      <p className="text-sm font-semibold text-foreground">
-                        Inferred Curriculum Competencies
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                      Inferred from Course Syllabus
+              {/* Student Skills & Competencies Section */}
+              <motion.div
+                className="space-y-4"
+                initial="hidden"
+                animate="visible"
+                variants={sectionVariants}
+                transition={{
+                  delay: 0.3,
+                  duration: 0.25,
+                }}
+              >
+                <div className="flex items-center justify-between border-b border-border/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    <h4 className="text-sm font-bold text-foreground">
+                      Student Skills &amp; Competencies
+                    </h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground bg-muted/40">
+                      {result.isRegistered ? "Profile Verified & Syllabus" : "Curriculum Inferred"}
                     </Badge>
                   </div>
+                </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {curriculumItems.map((item, i) => (
-                      <motion.span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/60 text-xs font-medium text-foreground/80 border border-border/80 shadow-2xs"
-                        initial={{
-                          opacity: 0,
-                          scale: 0.95,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                        }}
-                        transition={{
-                          delay: 0.32 + i * 0.02,
-                          duration: 0.18,
-                        }}
-                        whileHover={{
-                          y: -1,
-                          scale: 1.02,
-                        }}
-                      >
-                        <BookOpen className="h-3 w-3 text-muted-foreground" />
-                        {item.label}
-                      </motion.span>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Verified Skills */}
-              {verifiedSkills.length > 0 && (
-                <motion.div
-                  className="space-y-3"
-                  initial="hidden"
-                  animate="visible"
-                  variants={sectionVariants}
-                  transition={{
-                    delay: 0.34,
-                    duration: 0.25,
-                  }}
-                >
+                {/* 1. Technical Skills */}
+                <div className="space-y-2.5 rounded-xl border border-border/70 bg-card/60 p-4 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-emerald-500" />
-                      <p className="text-sm font-semibold text-foreground">
-                        Verified Skills & Endorsements
-                      </p>
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                        <Code2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Technical Skills &amp; Domain Proficiencies
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Programming, frameworks, technical tools, and domain methods
+                        </p>
+                      </div>
                     </div>
                     <Badge
                       variant="secondary"
-                      className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                      className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20 font-medium"
                     >
-                      <CheckCircle2 className="h-3 w-3" />
-                      Verified Profile
+                      {technicalSkills.length} Technical
                     </Badge>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {verifiedSkills.map((item, i) => (
-                      <motion.span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs font-medium border border-emerald-200 dark:border-emerald-800 shadow-2xs"
-                        initial={{
-                          opacity: 0,
-                          scale: 0.95,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          scale: 1,
-                        }}
-                        transition={{
-                          delay: 0.36 + i * 0.02,
-                          duration: 0.18,
-                        }}
-                        whileHover={{
-                          y: -1,
-                          scale: 1.02,
-                        }}
-                      >
-                        <CheckCircle2 className="h-3 w-3" />
-                        {item.label}
-                      </motion.span>
-                    ))}
+                  {technicalSkills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {technicalSkills.map((item, i) => (
+                        <motion.span
+                          key={`tech-${i}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 text-foreground text-xs font-medium border border-primary/20 shadow-2xs hover:border-primary/40 transition-colors"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.32 + i * 0.02, duration: 0.18 }}
+                          whileHover={{ y: -1, scale: 1.02 }}
+                        >
+                          {item.verified ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
+                          ) : (
+                            <BookOpen className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          <span>{item.label}</span>
+                          <span className="text-[9px] text-muted-foreground/80 font-normal">
+                            ({item.verified ? "verified" : "curriculum"})
+                          </span>
+                        </motion.span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-3 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        No technical skills evidenced yet for this academic candidate.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Soft Skills */}
+                <div className="space-y-2.5 rounded-xl border border-border/70 bg-card/60 p-4 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-foreground">
+                          Soft Skills &amp; Core Competencies
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Interpersonal communication, collaboration, leadership, and professional traits
+                        </p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 font-medium"
+                    >
+                      {softSkills.length} Soft Skills
+                    </Badge>
                   </div>
-                </motion.div>
-              )}
+
+                  {softSkills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {softSkills.map((item, i) => (
+                        <motion.span
+                          key={`soft-${i}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-xs font-medium border border-emerald-200 dark:border-emerald-800/60 shadow-2xs hover:border-emerald-400 transition-colors"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.34 + i * 0.02, duration: 0.18 }}
+                          whileHover={{ y: -1, scale: 1.02 }}
+                        >
+                          <Sparkles className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>{item.label}</span>
+                          <span className="text-[9px] opacity-75 font-normal">
+                            ({item.verified ? "verified" : "curriculum"})
+                          </span>
+                        </motion.span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border/80 bg-muted/20 p-3 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        No soft skills evidenced yet for this academic candidate.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
 
               {/* Work Experience */}
               {experience.length > 0 && (

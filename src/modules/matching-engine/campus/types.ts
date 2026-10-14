@@ -38,6 +38,8 @@ export interface AcademicCandidate {
   isRegistered: false;
   registeredUserId: null;
   invitationStatus: string;
+  technicalSkills?: string[];
+  softSkills?: string[];
 }
 
 // ── Enhanced (Registered) Candidate ──────────────────────────────────────────
@@ -48,6 +50,8 @@ export interface EnhancedCandidate extends Omit<AcademicCandidate, "isRegistered
   profileHeadline: string | null;
   professionalSummary: string | null;
   verifiedSkills: string[];
+  technicalSkills?: string[];
+  softSkills?: string[];
   workExperienceYears: number;
   hasResume: boolean;
   certifications: string[];
@@ -138,6 +142,8 @@ export interface CampusMatchResult {
   evidence: {
     curriculum: CampusEvidenceItem[];
     verifiedSkills: CampusEvidenceItem[];
+    technicalSkills?: CampusEvidenceItem[];
+    softSkills?: CampusEvidenceItem[];
     experience: CampusEvidenceItem[];
     responsibilities: CampusEvidenceItem[];
   };

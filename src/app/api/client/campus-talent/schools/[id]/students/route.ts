@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/authenticated-session";
 import { checkCompanyVerificationStatus } from "@/lib/status-validator";
 import { AcademicCandidate, EnhancedCandidate } from "@/modules/matching-engine/campus/types";
+import { resolveCurriculumDomain } from "@/modules/matching-engine/campus/curriculumTaxonomy";
+import { classifySkillNames } from "@/modules/client/campus-talent/utils/skillClassifier";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -215,8 +217,19 @@ export async function GET(
       };
 
       if (!registeredUserId) {
-        return { ...base, isRegistered: false as const, registeredUserId: null };
+        const { competencies } = resolveCurriculumDomain(courseName);
+        const { technicalSkills, softSkills } = classifySkillNames(competencies);
+        return {
+          ...base,
+          isRegistered: false as const,
+          registeredUserId: null,
+          technicalSkills,
+          softSkills,
+        };
       }
+
+      const userSkills = skillMap[registeredUserId] ?? [];
+      const { technicalSkills, softSkills } = classifySkillNames(userSkills);
 
       return {
         ...base,
@@ -224,7 +237,9 @@ export async function GET(
         registeredUserId,
         profileHeadline: profileMap[registeredUserId]?.profile_headline ?? null,
         professionalSummary: profileMap[registeredUserId]?.professional_summary ?? null,
-        verifiedSkills: skillMap[registeredUserId] ?? [],
+        verifiedSkills: userSkills,
+        technicalSkills,
+        softSkills,
         workExperienceYears: expMap[registeredUserId] ?? 0,
         hasResume: resumeMap[registeredUserId] ?? false,
         certifications: [],
