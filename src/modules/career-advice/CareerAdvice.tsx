@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { SlideUp } from "@/components/shared/MotionContainer";
 
 // ==========================================
 // MOCK DATA
@@ -121,13 +122,13 @@ const GUIDES = [
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Resume Tips": "bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400",
-  "Interview Prep": "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400",
-  "Salary Guide": "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400",
-  "Job Search": "bg-purple-50 dark:bg-purple-950/20 text-purple-700 dark:text-purple-400",
-  "Remote Work": "bg-teal-50 dark:bg-teal-950/20 text-teal-700 dark:text-teal-400",
-  "Career Change": "bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400",
-  "Career Strategy": "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300",
+  "Resume Tips": "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+  "Interview Prep": "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+  "Salary Guide": "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20",
+  "Job Search": "bg-purple-500/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+  "Remote Work": "bg-teal-500/10 dark:bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/20",
+  "Career Change": "bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20",
+  "Career Strategy": "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
 };
 
 // ==========================================
@@ -138,21 +139,21 @@ export default function CareerAdvice() {
   const session = useAuthSession();
 
   return (
-    <div className="bg-background text-foreground font-sans md:pt-16">
+    <div className="text-foreground font-sans md:pt-16">
       {/* HERO */}
-      <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-100 dark:from-zinc-900/40 via-white dark:via-zinc-950 to-white dark:to-zinc-950" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge variant="secondary" className="mb-5 py-1.5 px-4 rounded-full shadow-sm bg-white/70 dark:bg-zinc-900/70 backdrop-blur-sm text-sm border-zinc-200 dark:border-zinc-800">
-            Career Advice
-          </Badge>
-          <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 max-w-4xl mx-auto leading-tight">
+      <section className="relative overflow-hidden pt-20 pb-16 md:pt-28 md:pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold tracking-wide uppercase shadow-2xs mb-5">
+            <BookOpen className="h-3.5 w-3.5" />
+            <span>Career Advice & Resources</span>
+          </div>
+          <h1 className="text-4xl md:text-7xl font-extrabold tracking-tight text-foreground mb-6 max-w-4xl mx-auto leading-tight">
             Level up your{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 dark:from-zinc-400 to-zinc-900 dark:to-zinc-100">
+            <span className="text-primary underline decoration-primary/30 underline-offset-8">
               career game.
             </span>
           </h1>
-          <p className="text-lg md:text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
             Expert articles, step-by-step guides, and real-world strategies for every stage of your career journey.
           </p>
 
@@ -161,7 +162,7 @@ export default function CareerAdvice() {
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.label}
-                  className="inline-flex items-center gap-1.5 px-4 py-3 md:py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-sm text-zinc-600 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-900 dark:hover:bg-zinc-100 hover:text-white dark:hover:text-zinc-900 hover:border-zinc-900 dark:hover:border-zinc-100 transition-all duration-150 cursor-pointer font-medium"
+                className="inline-flex items-center gap-1.5 px-4 py-3 md:py-1.5 rounded-full border border-border/80 text-sm text-foreground bg-white/80 dark:bg-card/75 backdrop-blur-xl hover:bg-primary hover:text-white dark:hover:bg-primary dark:hover:text-white hover:border-primary/50 transition-all duration-200 cursor-pointer font-medium shadow-[0_2px_10px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.18)]"
               >
                 {cat.label}
                 <span className="text-xs opacity-60">({cat.count})</span>
@@ -172,48 +173,48 @@ export default function CareerAdvice() {
       </section>
 
       {/* FEATURED ARTICLE */}
-      <section className="py-16 border-t border-zinc-100 dark:border-zinc-850">
+      <section className="py-14 md:py-16 border-t border-border/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Editor&apos;s Pick</p>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Featured Article</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-1">Editor&apos;s Pick</p>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Featured Article</h2>
             </div>
-            <Button variant="ghost" className="hidden md:flex group cursor-pointer text-zinc-600">
+            <Button variant="ghost" className="hidden md:flex group cursor-pointer text-muted-foreground hover:text-foreground">
               See all articles <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
 
-          <div className="group border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 bg-white dark:bg-zinc-900/60 cursor-pointer">
+          <div className="group border border-border/80 rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(79,70,229,0.07)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.35)] hover:shadow-[0_14px_40px_rgba(37,99,235,0.18)] hover:border-primary/40 transition-all duration-300 bg-white/85 dark:bg-card/75 backdrop-blur-xl cursor-pointer">
             <div className="grid grid-cols-1 lg:grid-cols-5">
               {/* Visual placeholder */}
-              <div className="lg:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-700 p-8 md:p-12 flex flex-col justify-between min-h-[180px] md:min-h-[280px]">
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+              <div className="lg:col-span-2 bg-gradient-to-br from-indigo-600 via-blue-600 to-sky-500 p-8 md:p-12 flex flex-col justify-between min-h-[180px] md:min-h-[280px] text-white">
+                <div className="w-12 h-12 bg-white/15 backdrop-blur-xs rounded-xl flex items-center justify-center border border-white/20">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <p className="text-zinc-400 text-xs mb-1">{FEATURED_ARTICLE.author} · {FEATURED_ARTICLE.authorRole}</p>
-                  <div className="h-1 w-10 bg-white/30 rounded-full mt-3" />
+                  <p className="text-white/80 text-xs mb-1 font-medium">{FEATURED_ARTICLE.author} · {FEATURED_ARTICLE.authorRole}</p>
+                  <div className="h-1 w-12 bg-white/40 rounded-full mt-3" />
                 </div>
               </div>
 
               {/* Content */}
               <div className="lg:col-span-3 p-6 md:p-10 flex flex-col justify-center">
-                <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[FEATURED_ARTICLE.category] || "bg-zinc-100 text-zinc-700"}`}>
+                <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[FEATURED_ARTICLE.category] || "bg-muted text-muted-foreground"}`}>
                   {FEATURED_ARTICLE.category}
                 </Badge>
-                <h3 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-4 leading-snug group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">
+                <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-4 leading-snug group-hover:text-primary transition-colors">
                   {FEATURED_ARTICLE.title}
                 </h3>
-                <p className="text-zinc-500 dark:text-zinc-400 mb-6 leading-relaxed">{FEATURED_ARTICLE.excerpt}</p>
+                <p className="text-muted-foreground mb-6 leading-relaxed">{FEATURED_ARTICLE.excerpt}</p>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-zinc-400 dark:text-zinc-500">
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
                     <span>{FEATURED_ARTICLE.readTime}</span>
                     <span>·</span>
                     <span>{FEATURED_ARTICLE.date}</span>
                   </div>
-                  <Button size="sm" variant="outline"             className="rounded-full cursor-pointer group-hover:bg-zinc-900 dark:group-hover:bg-zinc-100 group-hover:text-white dark:group-hover:text-zinc-900 group-hover:border-zinc-900 dark:group-hover:border-zinc-100 transition-all border-zinc-200 dark:border-zinc-800 h-11 md:h-8">
+                  <Button size="sm" variant="outline" className="rounded-full cursor-pointer group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all border-border h-11 md:h-8">
                     Read now <ChevronRight className="w-3.5 h-3.5 ml-1" />
                   </Button>
                 </div>
@@ -224,43 +225,45 @@ export default function CareerAdvice() {
       </section>
 
       {/* ARTICLES GRID */}
-      <section className="py-16">
+      <section className="py-14 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Latest</p>
-              <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">Recent Articles</h2>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-1">Latest</p>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Recent Articles</h2>
             </div>
           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {ARTICLES.map((article) => (
               <div
                 key={article.id}
-                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 sm:p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer flex flex-col"
+                className="group border border-border/80 rounded-2xl p-4 sm:p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
               >
-                <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[article.category] || "bg-zinc-100 text-zinc-700"}`}>
-                  {article.category}
-                </Badge>
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors leading-snug flex-1">
-                  {article.title}
-                </h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4 leading-relaxed line-clamp-2">{article.excerpt}</p>
-                <div className="flex items-center justify-between mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+                <div>
+                  <Badge className={`w-fit mb-4 text-xs font-semibold ${CATEGORY_COLORS[article.category] || "bg-muted text-muted-foreground"}`}>
+                    {article.category}
+                  </Badge>
+                  <h3 className="text-base font-bold text-foreground mb-2 group-hover:text-primary transition-colors leading-snug">
+                    {article.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">{article.excerpt}</p>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/60">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{article.readTime}</span>
                     <span>·</span>
                     <span>{article.date}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-10 text-center">
-            <Button size="lg" variant="outline"             className="rounded-full px-8 cursor-pointer border-zinc-200 dark:border-zinc-800 h-11 md:h-10">
+            <Button size="lg" variant="outline" className="rounded-full px-8 cursor-pointer border-border hover:border-primary/40 hover:bg-white/90 dark:hover:bg-card/90 shadow-2xs h-11 md:h-10">
               Load more articles
             </Button>
           </div>
@@ -268,30 +271,32 @@ export default function CareerAdvice() {
       </section>
 
       {/* GUIDES SECTION */}
-      <section className="py-14 md:py-20 bg-zinc-50 dark:bg-zinc-900/20 border-y border-zinc-100 dark:border-zinc-800/80">
+      <section className="py-14 md:py-20 border-y border-border/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-10 md:mb-14">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Structured Learning</p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4">In-depth guides</h2>
-            <p className="text-zinc-500 dark:text-zinc-400">
+            <p className="text-xs font-bold uppercase tracking-widest text-primary mb-3">Structured Learning</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-4">In-depth guides</h2>
+            <p className="text-muted-foreground">
               Our curated guide collections take you from beginner to confident, step by step.
             </p>
           </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {GUIDES.map((guide) => (
               <div
                 key={guide.title}
-                className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 bg-white dark:bg-zinc-900/60 hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200 cursor-pointer"
+                className="group border border-border/80 rounded-2xl p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
               >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${guide.color}`}>
-                  <guide.icon className="w-6 h-6" />
+                <div>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${guide.color}`}>
+                    <guide.icon className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-foreground mb-2 group-hover:text-primary transition-colors">{guide.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">{guide.desc}</p>
                 </div>
-                <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 mb-2 group-hover:text-zinc-700 dark:group-hover:text-zinc-300 transition-colors">{guide.title}</h3>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-4">{guide.desc}</p>
-                <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500">{guide.articles} articles</span>
-                  <ChevronRight className="w-4 h-4 text-zinc-400 dark:text-zinc-500 group-hover:translate-x-1 transition-transform" />
+                <div className="flex items-center justify-between pt-4 border-t border-border/60">
+                  <span className="text-xs text-muted-foreground">{guide.articles} articles</span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             ))}
@@ -301,26 +306,26 @@ export default function CareerAdvice() {
 
       {/* DYNAMIC CTA STRIP */}
       <section className="py-14 md:py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-zinc-900 dark:bg-zinc-950 dark:border dark:border-zinc-800/80 rounded-3xl px-6 py-10 md:px-16 md:py-14 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -mr-20 -mt-20" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-zinc-800 dark:bg-zinc-900 rounded-full blur-3xl -ml-20 -mb-20" />
-
+        <SlideUp className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white/85 dark:bg-card/75 border border-border/80 rounded-3xl px-6 py-10 md:px-16 md:py-14 text-center relative overflow-hidden backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
+            
             {session.isJobSeeker ? (
               /* Logged in Job Seeker View */
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Accelerate your career journey</h2>
-                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Accelerate your career journey</h2>
+                <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Apply expert insights directly to your active job applications and land interviews faster.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Go to Job Seeker Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" variant="outline" className="border-border/80 bg-background/80 hover:bg-muted text-foreground rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs" className="flex items-center gap-2">
                       <Briefcase className="h-4 w-4" />
                       Find Jobs
@@ -331,18 +336,18 @@ export default function CareerAdvice() {
             ) : session.isEmployer ? (
               /* Logged in Employer View */
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Build a high-performing team</h2>
-                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Build a high-performing team</h2>
+                <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Learn how industry-leading companies source, interview, and retain world-class talent.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
-                    <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
+                    <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" variant="outline" className="border-border/80 bg-background/80 hover:bg-muted text-foreground rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/vos-sync/client/talent-search" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Find Talent
@@ -353,18 +358,18 @@ export default function CareerAdvice() {
             ) : session.isAdmin || session.isSchool ? (
               /* Logged in Admin / School View */
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Empower students and candidates</h2>
-                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Empower students and candidates</h2>
+                <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Access your dashboard tools to guide candidate career readiness and manage verification.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Go to Dashboard
                     </Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" variant="outline" className="border-border/80 bg-background/80 hover:bg-muted text-foreground rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs</Link>
                   </Button>
                 </div>
@@ -372,22 +377,22 @@ export default function CareerAdvice() {
             ) : (
               /* Guest / Unauthenticated View */
               <div className="relative z-10">
-                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight mb-4">Get career tips in your inbox</h2>
-                <p className="text-zinc-400 dark:text-zinc-500 mb-8 max-w-xl mx-auto text-lg">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Get career tips in your inbox</h2>
+                <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Weekly advice from industry experts — no spam, no filler. Just insights that move your career forward.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button asChild size="lg" className="bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href="/signup">Create Free Account</Link>
                   </Button>
-                  <Button asChild size="lg" variant="outline" className="border-zinc-700 dark:border-zinc-800 text-white bg-transparent hover:bg-zinc-800 dark:hover:bg-zinc-900/60 hover:text-white rounded-full px-8 cursor-pointer h-11 md:h-10">
+                  <Button asChild size="lg" variant="outline" className="border-border/80 bg-background/80 hover:bg-muted text-foreground rounded-full px-8 cursor-pointer h-11 md:h-10">
                     <Link href="/find-jobs">Browse Jobs <ArrowRight className="ml-2 w-4 h-4" /></Link>
                   </Button>
                 </div>
               </div>
             )}
           </div>
-        </div>
+        </SlideUp>
       </section>
     </div>
   );
