@@ -126,31 +126,27 @@ export default function CompanyClassification({
   if (readOnly) {
     return (
       <div className="space-y-5">
-        <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-2">
-          <span className="inline-block w-1 h-4 bg-primary rounded-full" />
-          Company Classification
-        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Industry</span>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedIndustryName}</p>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Industry</span>
+            <p className="text-sm font-medium text-foreground">{selectedIndustryName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Organization Type</span>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedOrgTypeName}</p>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Organization Type</span>
+            <p className="text-sm font-medium text-foreground">{selectedOrgTypeName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Size</span>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{selectedSizeName}</p>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Size</span>
+            <p className="text-sm font-medium text-foreground">{selectedSizeName}</p>
           </div>
           <div className="space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Year Established</span>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.year_established || "—"}</p>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Year Established</span>
+            <p className="text-sm font-medium text-foreground">{data.year_established || "—"}</p>
           </div>
 
           <div className="space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Tags</span>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_tags || "—"}</p>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Tags</span>
+            <p className="text-sm font-medium text-foreground">{data.company_tags || "—"}</p>
           </div>
         </div>
       </div>

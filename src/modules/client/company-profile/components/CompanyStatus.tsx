@@ -30,67 +30,67 @@ const STATUS_CONFIG: Record<
   DRAFT: {
     icon: Clock,
     label: "Draft",
-    badge: "bg-zinc-500 text-white border-0",
-    container: "border-zinc-200 bg-zinc-50 dark:bg-zinc-900/10",
-    iconWrapper: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20",
+    badge: "bg-muted text-muted-foreground border-border",
+    container: "border-border/70 bg-card/70 backdrop-blur-md",
+    iconWrapper: "bg-muted text-muted-foreground border-border",
     title: "Registration Status: DRAFT",
-    titleClass: "text-zinc-950 dark:text-zinc-300",
-    bodyClass: "text-zinc-800/80 dark:text-zinc-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Your company profile is in draft mode. Click edit to complete your profile details and submit for verification.",
   },
   PENDING_VERIFICATION: {
     icon: Clock,
     label: "In Review",
-    badge: "bg-amber-500 text-white border-0",
-    container: "border-amber-200/50 bg-amber-500/10 dark:bg-amber-950/20",
-    iconWrapper: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20",
+    badge: "bg-warning/15 text-warning border-warning/30",
+    container: "border-warning/25 bg-warning/[0.06] backdrop-blur-md",
+    iconWrapper: "bg-warning/15 text-warning border-warning/30",
     title: "Registration Status: PENDING VERIFICATION",
-    titleClass: "text-amber-900 dark:text-amber-300",
-    bodyClass: "text-amber-800/80 dark:text-amber-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Your business account was submitted successfully. Verification officers are reviewing your organization. Job posting and hiring will unlock once verified.",
   },
   VERIFIED: {
     icon: CheckCircle2,
     label: "Verified",
-    badge: "bg-emerald-600 text-white border-0",
-    container: "border-emerald-200/50 bg-emerald-500/10 dark:bg-emerald-950/20",
-    iconWrapper: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20",
+    badge: "bg-success/15 text-success border-success/30",
+    container: "border-success/25 bg-success/[0.06] backdrop-blur-md",
+    iconWrapper: "bg-success/15 text-success border-success/30",
     title: "Verified Business Profile",
-    titleClass: "text-emerald-900 dark:text-emerald-300",
-    bodyClass: "text-emerald-800/80 dark:text-emerald-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Your company registration is active. You can now post open roles, review matching job seekers, schedule interviews, and issue job offers.",
   },
   REJECTED: {
     icon: AlertCircle,
     label: "Rejected",
-    badge: "bg-rose-600 text-white border-0",
-    container: "border-rose-200/50 bg-rose-500/10 dark:bg-rose-950/20",
-    iconWrapper: "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/20",
+    badge: "bg-destructive/15 text-destructive border-destructive/30",
+    container: "border-destructive/25 bg-destructive/[0.06] backdrop-blur-md",
+    iconWrapper: "bg-destructive/15 text-destructive border-destructive/30",
     title: "Business Registration Rejected",
-    titleClass: "text-rose-900 dark:text-rose-300",
-    bodyClass: "text-rose-800/80 dark:text-rose-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Your company verification could not be completed. Please review the reviewer feedback below and resubmit with updated documents.",
   },
   INACTIVE: {
     icon: AlertCircle,
     label: "Inactive",
-    badge: "bg-red-500 text-white border-0",
-    container: "border-red-200/50 bg-red-500/10 dark:bg-red-950/20",
-    iconWrapper: "bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/20",
+    badge: "bg-muted text-muted-foreground border-border",
+    container: "border-border/70 bg-card/70 backdrop-blur-md",
+    iconWrapper: "bg-muted text-muted-foreground border-border",
     title: "Registration Status: INACTIVE",
-    titleClass: "text-red-900 dark:text-red-300",
-    bodyClass: "text-red-800/80 dark:text-red-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Your company profile is currently inactive. Public visibility and job postings are disabled.",
   },
   SUSPENDED: {
     icon: ShieldAlert,
     label: "Suspended",
-    badge: "bg-zinc-600 text-white border-0",
-    container: "border-zinc-200/50 bg-zinc-500/10 dark:bg-zinc-950/20",
-    iconWrapper: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20",
+    badge: "bg-destructive/15 text-destructive border-destructive/30",
+    container: "border-destructive/25 bg-destructive/[0.06] backdrop-blur-md",
+    iconWrapper: "bg-destructive/15 text-destructive border-destructive/30",
     title: "Account Temporarily Suspended",
-    titleClass: "text-zinc-900 dark:text-zinc-300",
-    bodyClass: "text-zinc-800/80 dark:text-zinc-400/80",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
     defaultMessage: "Access to job posting has been restricted due to policy guidelines. Please coordinate with the governance team.",
   },
 };
@@ -105,24 +105,23 @@ export default function CompanyStatus({ status, remarks, publicRejectionReason }
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className={`relative overflow-hidden rounded-2xl border p-5 space-y-4 ${cfg.container}`}
+      className={`relative overflow-hidden rounded-2xl border p-5 space-y-3 ${cfg.container}`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className={`p-3 rounded-xl border shrink-0 ${cfg.iconWrapper}`}>
-            <Icon className="h-6 w-6" />
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl border shrink-0 ${cfg.iconWrapper}`}>
+            <Icon className="h-5 w-5" />
           </div>
-          <div className="space-y-1">
-            <h3 className={`font-bold text-sm ${cfg.titleClass}`}>{cfg.title}</h3>
-            <p className={`text-sm leading-relaxed max-w-2xl ${cfg.bodyClass}`}>
-              {cfg.defaultMessage}
-            </p>
-          </div>
+          <h3 className={`font-bold text-sm ${cfg.titleClass}`}>{cfg.title}</h3>
         </div>
-        <Badge className={`w-fit shrink-0 py-1.5 px-3.5 text-xs font-semibold rounded-full shadow-sm ${cfg.badge}`}>
+        <Badge className={`w-fit shrink-0 py-1 px-3 text-xs font-semibold rounded-full shadow-2xs border ${cfg.badge}`}>
           {cfg.label}
         </Badge>
       </div>
+
+      <p className={`text-xs leading-relaxed ${cfg.bodyClass}`}>
+        {cfg.defaultMessage}
+      </p>
 
       <AnimatePresence>
         {feedback && (

@@ -338,9 +338,9 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
 
               {/* Row 2: Document file status & preview */}
               {existingDoc ? (
-                <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs">
+                <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-lg bg-success/10 border border-success/20 text-foreground text-xs">
                   <div className="flex items-center gap-2 min-w-0">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
                     <a
                       href={`/api/client/assets/${existingDoc.id}`}
                       target="_blank"
