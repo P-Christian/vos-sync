@@ -3,200 +3,45 @@
 // src/modules/client/notifications/components/NotificationItem.tsx
 
 import React from "react";
-import {
-  Users,
-  Calendar,
-  CalendarClock,
-  CalendarX,
-  Briefcase,
-  Bell,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  FileText,
-  FileX,
-  MessageSquare,
-  Send,
-  Sparkles,
-  UserCheck,
-  Zap,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ChevronRight } from "lucide-react";
 import { Notification } from "../types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  formatFullDate,
+  formatRelativeTime,
+  getNotificationVisual,
+} from "../utils/notificationVisuals";
 
 interface NotificationItemProps {
   notification: Notification;
   onMarkRead: (id: number) => void;
 }
 
-function getNotificationVisualConfig(notification: Notification) {
-  const category = (notification.category || "").toUpperCase();
-  const eventType = (notification.event_type || "").toUpperCase();
-  const title = (notification.title || "").toLowerCase();
-  const message = (notification.message || "").toLowerCase();
+export default function NotificationItem({ notification, onMarkRead }: NotificationItemProps) {
+  const router = useRouter();
+  const { icon: Icon, label, badge, text } = getNotificationVisual(notification);
+  const unread = !notification.is_read;
 
-  // Shortlisted / Hired
-  if (
-    category.includes("SHORTLIST") ||
-    eventType.includes("SHORTLIST") ||
-    title.includes("shortlist") ||
-    message.includes("shortlist") ||
-    title.includes("hired")
-  ) {
-    return {
-      icon: UserCheck,
-      colorClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-    };
-  }
+  const handleOpen = () => {
+    if (unread) onMarkRead(notification.notification_id);
 
-  // Application Withdrawn / Rejected
-  if (
-    category.includes("WITHDRAW") ||
-    eventType.includes("WITHDRAW") ||
-    category.includes("REJECT") ||
-    eventType.includes("REJECT") ||
-    title.includes("withdr") ||
-    title.includes("reject")
-  ) {
-    return {
-      icon: FileX,
-      colorClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
-    };
-  }
-
-  // Application Received / Created
-  if (
-    category.includes("APPLICATION") ||
-    eventType.includes("APPLICATION") ||
-    title.includes("application") ||
-    message.includes("application")
-  ) {
-    return {
-      icon: FileText,
-      colorClass: "bg-primary/10 text-primary border border-primary/20",
-    };
-  }
-
-  // Interviews
-  if (
-    category.includes("INTERVIEW") ||
-    eventType.includes("INTERVIEW") ||
-    title.includes("interview")
-  ) {
-    if (category.includes("CANCEL") || title.includes("cancel")) {
-      return {
-        icon: CalendarX,
-        colorClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
-      };
+    const url = notification.action_url;
+    if (!url) return;
+    if (/^https?:\/\//i.test(url)) {
+      window.location.assign(url);
+    } else {
+      router.push(url);
     }
-    if (category.includes("RESCHEDULE") || title.includes("resched")) {
-      return {
-        icon: CalendarClock,
-        colorClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-      };
-    }
-    return {
-      icon: Calendar,
-      colorClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20",
-    };
-  }
-
-  // Messages
-  if (
-    category.includes("MESSAGE") ||
-    eventType.includes("MESSAGE") ||
-    title.includes("message")
-  ) {
-    return {
-      icon: MessageSquare,
-      colorClass: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20",
-    };
-  }
-
-  // Invitations
-  if (
-    category.includes("INVITATION") ||
-    eventType.includes("INVITATION") ||
-    title.includes("invitation") ||
-    title.includes("invite")
-  ) {
-    return {
-      icon: Send,
-      colorClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
-    };
-  }
-
-  // Job Approved / Posting
-  if (
-    category.includes("JOB_APPROVED") ||
-    title.includes("job approved") ||
-    title.includes("posting approved")
-  ) {
-    return {
-      icon: CheckCircle2,
-      colorClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-    };
-  }
-
-  if (category.includes("JOB") || title.includes("job")) {
-    return {
-      icon: Briefcase,
-      colorClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-    };
-  }
-
-  // Team
-  if (category.includes("TEAM") || title.includes("team")) {
-    return {
-      icon: Users,
-      colorClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
-    };
-  }
-
-  // Product Updates / Marketing
-  if (category.includes("PRODUCT") || category.includes("MARKETING")) {
-    return {
-      icon: category.includes("PRODUCT") ? Zap : Sparkles,
-      colorClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20",
-    };
-  }
-
-  // Default fallback
-  return {
-    icon: Bell,
-    colorClass: "bg-muted text-muted-foreground border border-border",
   };
-}
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
-}
-
-export default function NotificationItem({
-  notification,
-  onMarkRead,
-}: NotificationItemProps) {
-  const { icon: Icon, colorClass } = getNotificationVisualConfig(notification);
-
-  const handleClick = () => {
-    if (!notification.is_read) {
-      onMarkRead(notification.notification_id);
-    }
-    if (notification.action_url) {
-      window.location.href = notification.action_url;
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Ignore keys pressed on the inner "mark as read" button
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleOpen();
     }
   };
 
@@ -209,79 +54,94 @@ export default function NotificationItem({
     <div
       role="button"
       tabIndex={0}
-      onClick={handleClick}
-      onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      onClick={handleOpen}
+      onKeyDown={handleKeyDown}
       className={cn(
-        "group relative flex items-center justify-between gap-4 px-5 py-4 cursor-pointer transition-all duration-150 select-none",
-        "hover:bg-muted/40",
-        !notification.is_read
-          ? "bg-primary/[0.04] dark:bg-primary/[0.08] border-l-2 border-primary"
-          : "bg-card"
+        "group relative flex items-start gap-3.5 px-5 py-4 max-md:px-4 cursor-pointer select-none transition-colors duration-150",
+        "hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40",
+        unread ? "bg-primary/[0.04] dark:bg-primary/[0.08]" : "bg-card"
       )}
     >
-      <div className="flex items-start gap-3.5 min-w-0 flex-1">
-        {/* Contextual Icon Badge */}
-        <div
-          className={cn(
-            "flex-shrink-0 h-9 w-9 rounded-xl flex items-center justify-center mt-0.5 shadow-2xs",
-            colorClass
-          )}
-        >
-          <Icon className="h-4 w-4" />
-        </div>
+      {/* Unread accent bar (absolute, so it never shifts the layout) */}
+      {unread && (
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-0.5 bg-primary"
+        />
+      )}
 
-        {/* Text Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p
-              className={cn(
-                "text-sm leading-snug line-clamp-1",
-                notification.is_read
-                  ? "font-normal text-muted-foreground"
-                  : "font-semibold text-foreground"
-              )}
-            >
-              {notification.title}
-            </p>
-            {!notification.is_read && (
-              <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
-            )}
-          </div>
+      {/* Icon badge */}
+      <div
+        className={cn(
+          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+          badge
+        )}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </div>
 
+      {/* Content */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
           <p
             className={cn(
-              "text-sm md:text-xs mt-1 leading-relaxed line-clamp-2",
-              notification.is_read
-                ? "text-muted-foreground/80"
-                : "text-muted-foreground"
+              "text-sm leading-snug line-clamp-2",
+              unread ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
             )}
           >
-            {notification.message}
+            {notification.title}
           </p>
+          {unread && (
+            <span
+              className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
+              aria-label="Unread"
+            />
+          )}
+        </div>
+
+        <p
+          className={cn(
+            "mt-1 text-sm md:text-[13px] leading-relaxed line-clamp-2",
+            unread ? "text-muted-foreground" : "text-muted-foreground/75"
+          )}
+        >
+          {notification.message}
+        </p>
+
+        <div className="mt-2 flex items-center gap-2 text-xs md:text-[11px]">
+          <span className={cn("font-medium", text)}>{label}</span>
+          <span className="text-muted-foreground/40" aria-hidden>
+            •
+          </span>
+          <time
+            dateTime={notification.created_at}
+            title={formatFullDate(notification.created_at)}
+            className="text-muted-foreground whitespace-nowrap"
+          >
+            {formatRelativeTime(notification.created_at)}
+          </time>
         </div>
       </div>
 
-      {/* Right Actions & Meta */}
-      <div className="flex items-center gap-2 shrink-0 ml-2">
-        <span className="text-xs md:text-[11px] text-muted-foreground whitespace-nowrap">
-          {formatRelativeTime(notification.created_at)}
-        </span>
-
-        {/* Quick action: Mark as Read button on hover for unread items */}
-        {!notification.is_read && (
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-1 self-center">
+        {unread && (
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={handleQuickMarkRead}
             title="Mark as read"
-            className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hidden sm:inline-flex"
+            aria-label="Mark as read"
+            className={cn(
+              "h-8 w-8 max-md:size-10 rounded-lg text-muted-foreground hover:text-foreground cursor-pointer transition-opacity",
+              "md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 md:focus-visible:opacity-100"
+            )}
           >
-            <Check className="h-3.5 w-3.5" />
+            <Check className="h-4 w-4" />
           </Button>
         )}
-
-        <ChevronRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+        <ChevronRight className="hidden sm:block h-4 w-4 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-foreground" />
       </div>
     </div>
   );

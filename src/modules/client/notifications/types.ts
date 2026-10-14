@@ -43,7 +43,6 @@ export const NOTIFICATION_CATEGORIES = {
   JOB_APPROVED: "JOB_APPROVED",
   JOB_REJECTED: "JOB_REJECTED",
   JOB_EXPIRED: "JOB_EXPIRED",
-  TEAM_ACTIVITY: "TEAM_ACTIVITY",
   MARKETING_UPDATES: "MARKETING_UPDATES",
   PRODUCT_UPDATES: "PRODUCT_UPDATES",
 } as const;
@@ -67,7 +66,7 @@ export const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
   JOB_APPROVED: "Job posting approved",
   JOB_REJECTED: "Job posting rejected",
   JOB_EXPIRED: "Job posting expired",
-  TEAM_ACTIVITY: "Team member activity",
+
   // Marketing & Updates
   MARKETING_UPDATES: "Promotional emails",
   PRODUCT_UPDATES: "Product announcements & feature releases",
@@ -94,7 +93,7 @@ export const NOTIFICATION_CATEGORY_ICONS: Record<string, string> = {
   JOB_APPROVED: "CheckCircle",
   JOB_REJECTED: "XCircle",
   JOB_EXPIRED: "AlertTriangle",
-  TEAM_ACTIVITY: "Users",
+
   MARKETING_UPDATES: "Sparkles",
   PRODUCT_UPDATES: "Zap",
   JOB_APPLICATION: "Users",
