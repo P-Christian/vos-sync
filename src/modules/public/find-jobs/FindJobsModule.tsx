@@ -1,8 +1,8 @@
 // src/modules/public/find-jobs/FindJobsModule.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   JobHeroBanner,
   JobFilterSidebar,
@@ -20,25 +20,36 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function FindJobsModule() {
+interface FindJobsModuleProps {
+  initialJobs?: PublicJobPosting[];
+  initialTotal?: number;
+  initialTotalPages?: number;
+}
+
+export default function FindJobsModule({
+  initialJobs = [],
+  initialTotal = 0,
+  initialTotalPages = 1,
+}: FindJobsModuleProps = {}) {
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const session = useAuthSession();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locationQuery, setLocationQuery] = useState("");
-  const [appliedSearchQuery, setAppliedSearchQuery] = useState("");
-  const [appliedLocationQuery, setAppliedLocationQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [locationQuery, setLocationQuery] = useState(() => searchParams.get("location") || "");
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => searchParams.get("location") || "");
   const [selectedJobType, setSelectedJobType] = useState("All");
   const [selectedWorkSetup, setSelectedWorkSetup] = useState("All");
   
-  const [jobs, setJobs] = useState<PublicJobPosting[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<PublicJobPosting[]>(initialJobs);
+  const [loading, setLoading] = useState(initialJobs.length === 0);
   const [error, setError] = useState<string | null>(null);
   
-  const [totalJobs, setTotalJobs] = useState(0);
+  const [totalJobs, setTotalJobs] = useState(initialTotal);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
 
   const [selectedJob, setSelectedJob] = useState<PublicJobPosting | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -51,7 +62,75 @@ export default function FindJobsModule() {
   const [paginationDirection, setPaginationDirection] = useState<1 | -1 | 0>(0);
   const [isPaginating, setIsPaginating] = useState(false);
 
+  const lastParamsRef = useRef(searchParams.toString());
+  const lastOpenJobRef = useRef<string | null>(null);
+  const isFirstMountRef = useRef(initialJobs.length > 0);
+
+  // Sync filters if URL searchParams change
   useEffect(() => {
+    const currentParams = searchParams.toString();
+    if (currentParams !== lastParamsRef.current) {
+      lastParamsRef.current = currentParams;
+      const qParam = searchParams.get("q") || "";
+      const locParam = searchParams.get("location") || "";
+      setSearchQuery(qParam);
+      setAppliedSearchQuery(qParam);
+      setLocationQuery(locParam);
+      setAppliedLocationQuery(locParam);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  // Handle open_job query param to open job detail modal automatically
+  useEffect(() => {
+    const openJobId = searchParams.get("open_job");
+    if (!openJobId || openJobId === lastOpenJobRef.current) return;
+
+    const found = jobs.find((j) => String(j.job_id) === openJobId);
+    if (found) {
+      lastOpenJobRef.current = openJobId;
+      queueMicrotask(() => {
+        setSelectedJob(found);
+        setIsDetailOpen(true);
+      });
+      return;
+    }
+
+    let isMounted = true;
+    fetch(`/api/public/find-jobs?job_id=${openJobId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted || !data?.data?.length) return;
+        const target = data.data[0];
+        if (target) {
+          lastOpenJobRef.current = openJobId;
+          setSelectedJob(target);
+          setIsDetailOpen(true);
+        }
+      })
+      .catch((err) => console.error("Error fetching open_job details:", err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [searchParams, jobs]);
+
+  useEffect(() => {
+    // If initial jobs were provided by the server and default filters apply, skip the initial client fetch
+    if (
+      isFirstMountRef.current &&
+      initialJobs.length > 0 &&
+      !appliedSearchQuery &&
+      !appliedLocationQuery &&
+      selectedJobType === "All" &&
+      selectedWorkSetup === "All" &&
+      page === 1
+    ) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    isFirstMountRef.current = false;
+
     let isMounted = true;
     const fetchJobs = async () => {
       if (!isPaginating) {
@@ -103,7 +182,7 @@ export default function FindJobsModule() {
     return () => {
       isMounted = false;
     };
-  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page]);
+  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length]);
 
 
   const handlePageChange = (newPage: number) => {

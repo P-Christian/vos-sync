@@ -22,7 +22,6 @@ import {
   LogIn,
   UserPlus,
   Lock,
-  LayoutDashboard,
   Sparkles,
   AlertCircle,
 } from "lucide-react";
@@ -86,6 +85,13 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
   const [imgError, setImgError] = React.useState(false);
 
   if (!job) return null;
+
+  const isOwnJob = Boolean(
+    session.isEmployer &&
+    session.companyId &&
+    job.company_id &&
+    Number(session.companyId) === Number(job.company_id)
+  );
 
   const openJobQuery = job.job_id ? `?open_job=${job.job_id}` : "";
   const targetPath = `/vos-sync/freelancer/jobs${openJobQuery}`;
@@ -223,29 +229,52 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
             </div>
           ) : session.isEmployer ? (
             /* Logged-in Employer View */
-            <div className="p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent space-y-4">
+            <div className={`p-5 rounded-2xl border space-y-4 ${
+              isOwnJob
+                ? "border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent"
+                : "border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent"
+            }`}>
               <div className="space-y-1">
-                <h5 className="font-bold text-foreground text-sm flex items-center gap-2 text-foreground">
-                  <Building2 className="h-4 w-4 text-warning shrink-0" />
-                  Signed in as Employer
+                <h5 className="font-bold text-foreground text-sm flex items-center gap-2">
+                  <Building2 className={`h-4 w-4 shrink-0 ${isOwnJob ? "text-primary" : "text-warning"}`} />
+                  {isOwnJob ? "Your Company Job Posting" : "Signed in as Employer"}
                 </h5>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  You are currently logged in with an Employer account. Job applications are exclusive to Job Seeker accounts. You can manage your company job postings in the Client Portal.
+                  {isOwnJob ? (
+                    <>
+                      You are viewing this job posted by your company (<strong className="text-foreground">{job.company_name}</strong>). You can manage applications, candidate status, and posting details directly in the Client Portal.
+                    </>
+                  ) : (
+                    <>
+                      You are currently logged in with an Employer account. This position is posted by <strong className="text-foreground">{job.company_name}</strong>. Job applications are exclusive to Job Seeker accounts. You can manage your own company job postings in the Client Portal.
+                    </>
+                  )}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Button asChild size="sm" className="font-bold text-xs gap-1.5 shadow-xs">
-                  <Link href="/vos-sync/client/manage-jobs">
-                    <LayoutDashboard className="h-3.5 w-3.5" />
-                    Go to Client Portal
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="sm" className="font-bold text-xs gap-1.5">
-                  <Link href={loginHref}>
-                    <LogIn className="h-3.5 w-3.5" />
-                    Sign In as Job Seeker
-                  </Link>
-                </Button>
+                {isOwnJob ? (
+                  <Button asChild size="sm" className="font-bold text-xs gap-1.5 shadow-xs cursor-pointer">
+                    <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Manage Jobs
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild size="sm" className="font-bold text-xs gap-1.5 shadow-xs cursor-pointer">
+                      <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Go to Client Portal
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="font-bold text-xs gap-1.5 cursor-pointer">
+                      <Link href={loginHref}>
+                        <LogIn className="h-3.5 w-3.5" />
+                        Sign In as Job Seeker
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -285,11 +314,26 @@ export function PublicJobDetailModal({ job, isOpen, onClose }: Props) {
               </span>
             </div>
           ) : session.isEmployer ? (
-            <div className="p-3 md:p-3.5 rounded-xl border border-amber-200/60 bg-amber-50/40 dark:bg-amber-950/30 dark:border-amber-900/40 text-amber-900 dark:text-amber-300 text-xs flex items-center gap-2.5">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span>
-                <strong>Employer Preview:</strong> Viewing this position in public preview mode.
-              </span>
+            <div className={`p-3 md:p-3.5 rounded-xl border text-xs flex items-center gap-2.5 ${
+              isOwnJob
+                ? "border-primary/20 bg-primary/10 text-foreground"
+                : "border-amber-200/60 bg-amber-50/40 dark:bg-amber-950/30 dark:border-amber-900/40 text-amber-900 dark:text-amber-300"
+            }`}>
+              {isOwnJob ? (
+                <>
+                  <Building2 className="h-4 w-4 text-primary shrink-0" />
+                  <span>
+                    <strong>Your Posting:</strong> This job posting belongs to your organization.
+                  </span>
+                </>
+              ) : (
+                <>
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>
+                    <strong>Employer Preview:</strong> Viewing another company&apos;s position in public preview mode.
+                  </span>
+                </>
+              )}
             </div>
           ) : (
             <div className="p-3 md:p-3.5 rounded-xl border border-muted bg-muted/40 text-muted-foreground text-xs flex items-center gap-2.5">
