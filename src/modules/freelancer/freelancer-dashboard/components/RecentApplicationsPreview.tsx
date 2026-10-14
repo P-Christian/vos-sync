@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useFreelancerApplications } from "@/modules/freelancer/freelancer-applications/hooks/useFreelancerApplications";
-import { ArrowRight, Building } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { formatAssetUrl } from "@/lib/utils";
@@ -151,8 +151,9 @@ export function RecentApplicationsPreview({
                             >
                                 <div className="flex items-center gap-3.5 min-w-0 pr-2">
                                     {app.company_details?.company_logo ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img
-                                            src={formatAssetUrl(app.company_details.company_logo)}
+                                            src={formatAssetUrl(app.company_details.company_logo) || undefined}
                                             alt={app.company_name || "Company"}
                                             className="w-9 h-9 rounded-lg object-cover shrink-0 border border-slate-200/80 dark:border-border shadow-sm"
                                             onError={(e) => {

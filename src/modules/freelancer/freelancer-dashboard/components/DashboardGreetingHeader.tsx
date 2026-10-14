@@ -3,14 +3,14 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useFreelancerProfileContext } from "@/modules/freelancer/freelancer-profile/providers/FreelancerProfileProvider";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export function DashboardGreetingHeader() {
     const { data: profile } = useFreelancerProfileContext();
 
     const completeness = useMemo(() => {
         if (!profile) return 0;
-        const profileObj = profile.job_seeker_profile || (profile as Record<string, unknown>).vs_job_seeker_profile;
+        const profileObj = profile.job_seeker_profile || profile.vs_job_seeker_profile;
         const record = Array.isArray(profileObj) ? profileObj[0] : profileObj;
         
         if (record && typeof record.profile_completion_percent === "number") {
@@ -25,7 +25,7 @@ export function DashboardGreetingHeader() {
     const firstName = profile?.user_fname || "User";
 
     return (
-        <div className="h-full bg-white dark:bg-card border border-slate-200/90 dark:border-border rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-center transition-colors">
+        <div className="h-full bg-white dark:bg-card border border-slate-200/90 dark:border-border border-t-4 border-t-blue-600 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col justify-center transition-all duration-200 ease-out hover:border-blue-300 dark:hover:border-blue-800/60 hover:shadow-md">
             <div className="flex flex-wrap items-center gap-2.5">
                 <span
                     className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${

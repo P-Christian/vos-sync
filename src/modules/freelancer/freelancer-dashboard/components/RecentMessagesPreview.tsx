@@ -131,6 +131,7 @@ export function RecentMessagesPreview({
                                 >
                                     <div className="flex items-center gap-3.5 min-w-0 pr-3">
                                         {conv.other_party_avatar ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={conv.other_party_avatar}
                                                 alt={name}

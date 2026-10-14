@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useFreelancerApplications } from "@/modules/freelancer/freelancer-applications/hooks/useFreelancerApplications";
 import { useConversations } from "@/modules/freelancer/freelancer-messaging/hooks/useConversations";
-import { Briefcase, Sparkles, MessageSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, Sparkles, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
-import type { ApplicationSummary } from "@/modules/freelancer/freelancer-applications/types";
+import type { ApplicationItem, ApplicationSummary } from "@/modules/freelancer/freelancer-applications/types";
 import type { Conversation } from "@/modules/freelancer/freelancer-messaging/types";
 
 interface DashboardKpiStatsProps {
@@ -14,6 +14,7 @@ interface DashboardKpiStatsProps {
     topMatchTitle?: string | null;
     summary?: ApplicationSummary;
     conversations?: Conversation[];
+    applications?: ApplicationItem[];
     loading?: boolean;
 }
 
@@ -22,9 +23,10 @@ export function DashboardKpiStats({
     topMatchTitle,
     summary: propSummary,
     conversations: propConversations,
+    applications: propApplications,
     loading: propLoading,
 }: DashboardKpiStatsProps) {
-    const { summary: hookSummary, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
+    const { summary: hookSummary, applications: hookApplications, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
     const { conversations: hookConversations, loading: isMessagesLoading, loadConversations } = useConversations();
 
     const isControlled = propSummary !== undefined && propConversations !== undefined;
@@ -37,14 +39,21 @@ export function DashboardKpiStats({
     }, [isControlled, fetchApplications, loadConversations]);
 
     const isLoading = isControlled ? Boolean(propLoading) : (isAppsLoading || isMessagesLoading);
-    const summary = propSummary || hookSummary;
     const conversations = propConversations || hookConversations;
+    const applications = propApplications || hookApplications;
     const unreadConversationsCount = conversations.filter((c) => (c.unread_count || 0) > 0).length;
-    const activeCount = summary.pendingApplications || 0;
-    const totalCount = summary.totalApplied || 0;
 
-    // Segmented indicator logic (6 ticks)
-    const filledTicks = totalCount > 0 ? Math.min(6, Math.max(1, Math.round((activeCount / Math.max(totalCount, 1)) * 6))) : (activeCount > 0 ? 3 : 0);
+    // Action Required: count applications needing candidate attention (assessment pending or draft)
+    const actionRequiredCount = useMemo(() => {
+        if (!applications || applications.length === 0) return 0;
+        return applications.filter((app) => {
+            const isDraft = app.application_status === "DRAFT";
+            const needsAssessment =
+                app.current_stage?.stage_type === "ASSESSMENT" ||
+                Boolean(app.assessment?.needs_action);
+            return isDraft || needsAssessment;
+        }).length;
+    }, [applications]);
 
     if (isLoading) {
         return (
@@ -68,37 +77,41 @@ export function DashboardKpiStats({
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 h-full">
-            {/* Card 1: Active Apps */}
-            <div className="bg-white dark:bg-card border border-slate-200/90 dark:border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-colors hover:border-slate-300 dark:hover:border-border/80">
+            {/* Card 1: Action Required (Replaces duplicate Active Apps) */}
+            <Link
+                href="/vos-sync/freelancer/applications"
+                className="bg-white dark:bg-card border border-slate-200/90 dark:border-border border-t-4 border-t-amber-500 rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-all duration-200 ease-out hover:border-amber-400 hover:shadow-md hover:-translate-y-0.5 group"
+            >
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-muted-foreground font-medium">
-                    <span>Active Apps</span>
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <Briefcase className="w-3.5 h-3.5" />
+                    <span>Action Required</span>
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        {actionRequiredCount > 0 ? (
+                            <AlertCircle className="w-3.5 h-3.5" />
+                        ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                        )}
                     </div>
                 </div>
                 <div className="my-2">
-                    <span className="text-2xl font-bold text-slate-900 dark:text-foreground">{activeCount}</span>
-                    <span className="text-xs text-slate-400 dark:text-muted-foreground"> / {totalCount} total</span>
+                    <span className={`text-2xl font-bold ${actionRequiredCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-slate-900 dark:text-foreground"}`}>
+                        {actionRequiredCount}
+                    </span>
+                    <span className="text-xs text-slate-400 dark:text-muted-foreground">
+                        {actionRequiredCount === 0 ? " · All caught up" : actionRequiredCount === 1 ? " pending task" : " pending tasks"}
+                    </span>
                 </div>
-                <div className="flex gap-1" title={`${activeCount} active applications out of ${totalCount}`}>
-                    {[0, 1, 2, 3, 4, 5].map((idx) => (
-                        <div
-                            key={idx}
-                            className={`h-1.5 flex-1 rounded-full ${
-                                idx < filledTicks
-                                    ? "bg-blue-600 dark:bg-blue-500"
-                                    : "bg-slate-100 dark:bg-muted"
-                            }`}
-                        />
-                    ))}
-                </div>
-            </div>
+                <p className="text-[11px] font-medium truncate text-slate-500 dark:text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                    {actionRequiredCount > 0
+                        ? `${actionRequiredCount} application${actionRequiredCount === 1 ? " needs" : "s need"} review`
+                        : "No pending tasks or tests"}
+                </p>
+            </Link>
 
             {/* Card 2: Top AI Match */}
-            <div className="bg-white dark:bg-card border border-slate-200/90 dark:border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-colors hover:border-indigo-300 dark:hover:border-border/80">
+            <div className="bg-white dark:bg-card border border-slate-200/90 dark:border-border border-t-4 border-t-indigo-500 rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-all duration-200 ease-out hover:border-indigo-400 hover:shadow-md hover:-translate-y-0.5 group">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     <span>Top AI Match</span>
-                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <Sparkles className="w-3.5 h-3.5" />
                     </div>
                 </div>
@@ -116,7 +129,7 @@ export function DashboardKpiStats({
             {/* Card 3: Recent Messages */}
             <Link
                 href="/vos-sync/freelancer/messaging"
-                className="bg-white dark:bg-card border border-slate-200/90 dark:border-border rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-colors hover:border-emerald-300 dark:hover:border-border/80 group"
+                className="bg-white dark:bg-card border border-slate-200/90 dark:border-border border-t-4 border-t-emerald-500 rounded-2xl p-5 shadow-sm flex flex-col justify-between transition-all duration-200 ease-out hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5 group"
             >
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-muted-foreground font-medium">
                     <span>Recent Messages</span>

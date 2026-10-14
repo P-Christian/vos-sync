@@ -37,23 +37,16 @@ function formatSalary(min?: number, max?: number): string {
 }
 
 export function AIJobRecommendations({ onJobsLoaded, jobs: propJobs, loading: propLoading }: AIJobRecommendationsProps) {
-    const [jobs, setJobs] = useState<RecommendedJob[]>(propJobs || []);
-    const [loading, setLoading] = useState(propLoading !== undefined ? propLoading : true);
+    const [localJobs, setLocalJobs] = useState<RecommendedJob[]>([]);
+    const [localLoading, setLocalLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const onJobsLoadedRef = React.useRef(onJobsLoaded);
-    onJobsLoadedRef.current = onJobsLoaded;
 
     const isControlled = propJobs !== undefined;
+    const jobs = isControlled ? propJobs : localJobs;
+    const loading = isControlled ? (propLoading ?? false) : localLoading;
 
     useEffect(() => {
-        if (isControlled) {
-            setJobs(propJobs);
-            if (propLoading !== undefined) setLoading(propLoading);
-            if (onJobsLoadedRef.current && propJobs.length > 0) {
-                onJobsLoadedRef.current(propJobs[0].match_percentage || 95, propJobs[0].job_title);
-            }
-            return;
-        }
+        if (isControlled) return;
 
         let isMounted = true;
         const fetchRecommendations = async () => {
@@ -63,17 +56,17 @@ export function AIJobRecommendations({ onJobsLoaded, jobs: propJobs, loading: pr
                 const data = await res.json();
                 if (isMounted) {
                     const list: RecommendedJob[] = data.recommendations || [];
-                    setJobs(list);
-                    setLoading(false);
-                    if (onJobsLoadedRef.current && list.length > 0) {
-                        onJobsLoadedRef.current(list[0].match_percentage || 95, list[0].job_title);
+                    setLocalJobs(list);
+                    setLocalLoading(false);
+                    if (onJobsLoaded && list.length > 0) {
+                        onJobsLoaded(list[0].match_percentage || 95, list[0].job_title);
                     }
                 }
             } catch (err: unknown) {
                 if (isMounted) {
                     console.error("AI Recommendations Error:", err);
                     setError("Failed to load AI recommendations.");
-                    setLoading(false);
+                    setLocalLoading(false);
                 }
             }
         };
@@ -82,7 +75,7 @@ export function AIJobRecommendations({ onJobsLoaded, jobs: propJobs, loading: pr
         return () => {
             isMounted = false;
         };
-    }, [isControlled, propJobs, propLoading]);
+    }, [isControlled, onJobsLoaded]);
 
     if (loading) {
         return (

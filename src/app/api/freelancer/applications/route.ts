@@ -8,6 +8,8 @@ import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freela
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
 import { assignInitialStageToApplication, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import type { JobPipelineVersion, JobPipelineStage, PipelineStage } from "@/modules/client/pipeline/types";
+import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -231,7 +233,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Enrich with Job Pipelines (active version stages)
-    const jobPipelineMap: Record<number, any> = {};
+    const jobPipelineMap: Record<number, JobPipelineVersion | null> = {};
     await Promise.all(
       jobIds.map(async (jId) => {
         try {
@@ -278,11 +280,11 @@ export async function GET(req: NextRequest) {
       const refData = referralMap[appId];
       const pipe = jobPipelineMap[app.job_id as number];
 
-      let currentStage: any = null;
-      let pipelineStages: any[] = [];
+      let currentStage: ApplicationItem["current_stage"] = null;
+      let pipelineStages: NonNullable<ApplicationItem["pipeline_stages"]> = [];
 
       if (pipe?.stages && Array.isArray(pipe.stages)) {
-        pipelineStages = pipe.stages.map((s: any) => ({
+        pipelineStages = (pipe.stages as unknown as JobPipelineStage[]).map((s) => ({
           id: s.id,
           stage_name: s.stage_name,
           stage_type: s.stage_type,

@@ -3,7 +3,7 @@
 // src/modules/freelancer/freelancer-messaging/FreelancerMessagingModule.tsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { MessageSquare, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
