@@ -99,8 +99,8 @@ export default function InterviewEvaluationModal({
     let decision: "HIRED" | "REJECTED" | "NO_ACTION" = "NO_ACTION";
 
     if (decisionAction === "ADVANCE") {
-      targetStageId = selectedToStageId;
-      const targetStage = activeApp?.allowed_next_stages?.find((s) => s.id === selectedToStageId);
+      targetStageId = effectiveSelectedToStageId;
+      const targetStage = activeApp?.allowed_next_stages?.find((s) => s.id === effectiveSelectedToStageId);
       if (targetStage?.stage_type === "HIRED") {
         decision = "HIRED";
       }
@@ -260,7 +260,7 @@ export default function InterviewEvaluationModal({
                   Candidate Pipeline Action (Optional)
                 </Label>
                 <span className="text-xs md:text-[11px] text-zinc-400">
-                  Governed by job's ATS pipeline
+                  Governed by job&apos;s ATS pipeline
                 </span>
               </div>
 
@@ -321,7 +321,7 @@ export default function InterviewEvaluationModal({
                   {forwardStages.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                       {forwardStages.map((stage) => {
-                        const isSelected = selectedToStageId === stage.id;
+                        const isSelected = effectiveSelectedToStageId === stage.id;
                         const palette = STAGE_COLOR_CLASSES[stage.color] || STAGE_COLOR_CLASSES.sky;
                         return (
                           <button
