@@ -4,7 +4,6 @@ import React from "react";
 import { Mail, Phone, MapPin, Clock, MessageSquare, ArrowRight, LayoutDashboard, UserCheck, Briefcase, Building2 } from "lucide-react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -290,7 +289,7 @@ export default function Contact() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
-                    <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                    <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
                     </Link>
