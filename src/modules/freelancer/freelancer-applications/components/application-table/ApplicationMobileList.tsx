@@ -112,7 +112,10 @@ export function ApplicationMobileList({
             {app.assessment?.needs_action ? (
               <AssessmentDueBadge deadline={app.assessment?.deadline ?? null} />
             ) : (
-              <ApplicationStatusBadge status={app.application_status} />
+              <ApplicationStatusBadge
+                status={app.application_status}
+                stageName={app.current_stage?.stage_name}
+              />
             )}
           </div>
         </div>

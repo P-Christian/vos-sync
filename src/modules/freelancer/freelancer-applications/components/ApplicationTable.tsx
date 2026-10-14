@@ -121,7 +121,10 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
           {row.original.assessment?.needs_action ? (
             <AssessmentDueBadge deadline={row.original.assessment?.deadline ?? null} />
           ) : (
-            <ApplicationStatusBadge status={row.original.application_status} />
+            <ApplicationStatusBadge
+              status={row.original.application_status}
+              stageName={row.original.current_stage?.stage_name}
+            />
           )}
         </div>
       ),

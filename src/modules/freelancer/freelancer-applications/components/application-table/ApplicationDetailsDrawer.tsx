@@ -23,6 +23,32 @@ import { ApplicationProgressTimeline } from "./ApplicationProgressTimeline";
 import { ApplicationStatusBadge } from "./ApplicationStatusBadge";
 import { ReferralBlock } from "./ReferralBlock";
 import { formatDate, getInitials } from "./formatters";
+import { sanitizeHtml } from "@/lib/sanitize-html";
+
+interface ParsedCoverLetter {
+  text: string;
+  document?: {
+    fileName: string;
+    fileUrl: string;
+  } | null;
+}
+
+function parseCoverLetter(raw?: string | null): ParsedCoverLetter {
+  if (!raw) return { text: "" };
+  const linkRegex = /\[(?:Cover Letter Document:\s*)?([^\]]+)\]\(([^)]+)\)/i;
+  const match = raw.match(linkRegex);
+  if (match) {
+    const fileName = match[1].trim();
+    let fileUrl = match[2].trim();
+    const assetsMatch = fileUrl.match(/\/assets\/([a-zA-Z0-9-]+)/);
+    if (assetsMatch?.[1]) {
+      fileUrl = `/api/assets/${assetsMatch[1]}`;
+    }
+    const text = raw.replace(match[0], "").trim();
+    return { text, document: { fileName, fileUrl } };
+  }
+  return { text: raw.trim() };
+}
 
 interface Props {
   application: ApplicationItem | null;
@@ -154,9 +180,16 @@ export function ApplicationDetailsDrawer({ application, onClose, onSelectCompany
                     <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                       Job Description
                     </p>
-                    <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto">
-                      {application.job_description}
-                    </div>
+                    {/<(p|b|strong|ul|ol|li|div|br)\b[^>]*>/i.test(application.job_description) ? (
+                      <div
+                        className="bg-muted/30 p-4 rounded-lg text-sm border border-border/50 text-foreground max-h-60 overflow-y-auto space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:font-bold [&_b]:font-bold [&_p]:mb-2 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(application.job_description) }}
+                      />
+                    ) : (
+                      <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground max-h-60 overflow-y-auto leading-relaxed">
+                        {application.job_description}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -166,7 +199,10 @@ export function ApplicationDetailsDrawer({ application, onClose, onSelectCompany
                       Current Status
                     </p>
                     <div>
-                      <ApplicationStatusBadge status={application.application_status} />
+                      <ApplicationStatusBadge
+                        status={application.application_status}
+                        stageName={application.current_stage?.stage_name}
+                      />
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -190,16 +226,51 @@ export function ApplicationDetailsDrawer({ application, onClose, onSelectCompany
                   />
                 )}
 
-                <div className="space-y-2">
-                  <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" /> Cover Letter
-                  </p>
-                  <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground">
-                    {application.cover_letter || (
-                      <span className="text-muted-foreground italic">No cover letter provided.</span>
-                    )}
-                  </div>
-                </div>
+                {(() => {
+                  const parsed = parseCoverLetter(application.cover_letter);
+                  const hasContent = Boolean(parsed.text || parsed.document);
+
+                  return (
+                    <div className="space-y-2">
+                      <p className="text-sm md:text-xs text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5" /> Cover Letter
+                      </p>
+                      {!hasContent ? (
+                        <div className="bg-muted/30 p-4 rounded-lg text-sm border border-border/50 text-foreground">
+                          <span className="text-muted-foreground italic">No cover letter provided.</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {parsed.text && (
+                            <div className="bg-muted/30 p-4 rounded-lg text-sm whitespace-pre-wrap border border-border/50 text-foreground leading-relaxed">
+                              {parsed.text}
+                            </div>
+                          )}
+                          {parsed.document && (
+                            <a
+                              href={
+                                parsed.document.fileUrl.startsWith("http")
+                                  ? parsed.document.fileUrl
+                                  : parsed.document.fileUrl
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-3 p-3 w-full rounded-lg border bg-background hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                <FileText className="w-4 h-4" />
+                              </div>
+                              <span className="text-sm font-medium text-foreground truncate block flex-1">
+                                {parsed.document.fileName}
+                              </span>
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {application.portfolio_url && (
                   <div className="space-y-2">
@@ -246,7 +317,10 @@ export function ApplicationDetailsDrawer({ application, onClose, onSelectCompany
                   </div>
                 )}
 
-                <ApplicationProgressTimeline status={application.application_status} />
+                <ApplicationProgressTimeline
+                  status={application.application_status}
+                  application={application}
+                />
               </>
             )}
           </div>
