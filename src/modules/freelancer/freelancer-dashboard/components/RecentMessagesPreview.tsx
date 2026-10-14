@@ -14,12 +14,29 @@ const AVATAR_GRADIENTS = [
     "from-emerald-600 to-teal-500",
 ];
 
-export function RecentMessagesPreview() {
-    const { conversations, loading, loadConversations } = useConversations();
+import type { Conversation } from "@/modules/freelancer/freelancer-messaging/types";
+
+interface RecentMessagesPreviewProps {
+    conversations?: Conversation[];
+    loading?: boolean;
+}
+
+export function RecentMessagesPreview({
+    conversations: propConversations,
+    loading: propLoading,
+}: RecentMessagesPreviewProps = {}) {
+    const { conversations: hookConversations, loading: hookLoading, loadConversations } = useConversations();
+
+    const isControlled = propConversations !== undefined;
 
     useEffect(() => {
-        loadConversations();
-    }, [loadConversations]);
+        if (!isControlled) {
+            loadConversations();
+        }
+    }, [isControlled, loadConversations]);
+
+    const conversations = propConversations || hookConversations;
+    const loading = isControlled ? Boolean(propLoading) : hookLoading;
 
     const recentConversations = [...conversations]
         .sort((a, b) => {
@@ -32,7 +49,7 @@ export function RecentMessagesPreview() {
             const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
             return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
         })
-        .slice(0, 3);
+        .slice(0, 5);
 
     const getInitials = (name?: string) => {
         if (!name) return "U";
@@ -61,7 +78,7 @@ export function RecentMessagesPreview() {
                     <div className="h-4 w-36 bg-slate-200 dark:bg-muted rounded"></div>
                     <div className="h-3 w-16 bg-slate-100 dark:bg-muted rounded"></div>
                 </div>
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-muted"></div>

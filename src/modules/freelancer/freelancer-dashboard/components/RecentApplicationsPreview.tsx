@@ -8,14 +8,30 @@ import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { formatAssetUrl } from "@/lib/utils";
 
-export function RecentApplicationsPreview() {
-    const { applications, loading, fetchApplications } = useFreelancerApplications();
+import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
+
+interface RecentApplicationsPreviewProps {
+    applications?: ApplicationItem[];
+    loading?: boolean;
+}
+
+export function RecentApplicationsPreview({
+    applications: propApplications,
+    loading: propLoading,
+}: RecentApplicationsPreviewProps = {}) {
+    const { applications: hookApplications, loading: hookLoading, fetchApplications } = useFreelancerApplications();
+
+    const isControlled = propApplications !== undefined;
 
     useEffect(() => {
-        fetchApplications();
-    }, [fetchApplications]);
+        if (!isControlled) {
+            fetchApplications();
+        }
+    }, [isControlled, fetchApplications]);
 
-    const recentApps = applications.slice(0, 3);
+    const applications = propApplications || hookApplications;
+    const loading = isControlled ? Boolean(propLoading) : hookLoading;
+    const recentApps = applications.slice(0, 5);
 
     const getStatusBadge = (status: string) => {
         const s = (status || "").toUpperCase();
@@ -84,7 +100,7 @@ export function RecentApplicationsPreview() {
                     <div className="h-4 w-36 bg-slate-200 dark:bg-muted rounded"></div>
                     <div className="h-3 w-16 bg-slate-100 dark:bg-muted rounded"></div>
                 </div>
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                     <div key={i} className="flex items-center justify-between py-3">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-muted"></div>
