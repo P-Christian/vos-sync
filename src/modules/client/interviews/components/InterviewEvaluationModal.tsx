@@ -69,13 +69,10 @@ export default function InterviewEvaluationModal({
     return activeApp?.allowed_next_stages?.find((s) => s.stage_type === "REJECTED") ?? null;
   }, [activeApp?.allowed_next_stages]);
 
-  useEffect(() => {
-    if (forwardStages.length > 0) {
-      setSelectedToStageId((prev) => (prev && forwardStages.some((s) => s.id === prev) ? prev : forwardStages[0].id));
-    } else {
-      setSelectedToStageId(null);
-    }
-  }, [forwardStages]);
+  const effectiveSelectedToStageId =
+    selectedToStageId && forwardStages.some((s) => s.id === selectedToStageId)
+      ? selectedToStageId
+      : (forwardStages[0]?.id ?? null);
 
   const isCompleted = Boolean(
     interview?.interview_status === "COMPLETED" ||
