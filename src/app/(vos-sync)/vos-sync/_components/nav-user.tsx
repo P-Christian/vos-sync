@@ -46,9 +46,10 @@ type NavUserProps = {
     onLogout?: () => void
     profileUrl?: string
     settingsUrl?: string
+    compact?: boolean
 }
 
-export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: NavUserProps) {
+export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl, compact }: NavUserProps) {
 
     const contextUser = useUserProfile()
     const user = contextUser?.name ? contextUser : propUser
@@ -128,6 +129,78 @@ export function NavUser({ user: propUser, onLogout, profileUrl, settingsUrl }: N
 
     const finalProfileUrl = profileUrl || defaultProfileUrl
     const finalSettingsUrl = settingsUrl || defaultSettingsUrl
+
+    if (compact) {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        type="button"
+                        aria-label="User account menu"
+                        className="relative size-9 shrink-0 overflow-hidden rounded-full ring-2 ring-primary/20 hover:ring-primary/45 transition-all outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 cursor-pointer"
+                    >
+                        <Avatar className="h-full w-full">
+                            <AvatarImage src={user.avatar || ""} alt={user.name} className="object-cover" />
+                            <AvatarFallback className="rounded-full bg-gradient-to-br from-primary/10 to-sky-500/10 text-xs font-bold text-primary">
+                                {initials}
+                            </AvatarFallback>
+                        </Avatar>
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    className="w-56 rounded-xl p-1.5 shadow-lg border-border/80 bg-card/95 backdrop-blur-xl z-50"
+                    side="bottom"
+                    align="end"
+                    sideOffset={8}
+                >
+                    <div className="px-2 py-1.5 border-b border-border/60 mb-1">
+                        <p className="truncate text-xs font-semibold text-foreground">{user.name}</p>
+                        <p className="truncate text-[11px] text-muted-foreground">{user.email}</p>
+                    </div>
+                    <DropdownMenuGroup>
+                        <DropdownMenuItem
+                            className="cursor-pointer text-xs py-2 rounded-lg"
+                            onSelect={(e) => {
+                                e.preventDefault()
+                                toggleTheme()
+                            }}
+                            disabled={!mounted}
+                        >
+                            {isDark ? (
+                                <Sun className="mr-2 size-4 text-amber-500" />
+                            ) : (
+                                <Moon className="mr-2 size-4 text-blue-500" />
+                            )}
+                            {isDark ? "Light mode" : "Dark mode"}
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem asChild>
+                            <Link href={finalProfileUrl} className="cursor-pointer text-xs py-2 rounded-lg">
+                                <User className="mr-2 size-4" />
+                                My Profile
+                            </Link>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem asChild>
+                            <Link href={finalSettingsUrl} className="cursor-pointer text-xs py-2 rounded-lg">
+                                <Settings className="mr-2 size-4" />
+                                Settings
+                            </Link>
+                        </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem
+                        onClick={handleLogout}
+                        disabled={loggingOut}
+                        className="cursor-pointer text-xs py-2 rounded-lg text-rose-600 focus:text-rose-600 focus:bg-rose-500/10 dark:text-rose-400"
+                    >
+                        <LogOut className="mr-2 size-4" />
+                        Log out
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
 
     return (
         <SidebarMenu>

@@ -40,7 +40,8 @@ export function Header() {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
     }
-    window.addEventListener("scroll", handleScroll)
+    handleScroll()
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
@@ -174,29 +175,38 @@ export function Header() {
       .join("")
     : "U"
 
+  const showScrolledBg = isScrolled || mobileMenuOpen
+
   return (
     <motion.header
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`fixed top-0 w-full z-50 transition-all duration-300 motion-reduce:transition-none border-b ${isScrolled ? 'bg-background/90 backdrop-blur-md border-border shadow-sm py-3' : 'bg-transparent border-transparent py-5'}`}
+      className={`fixed top-0 w-full z-50 h-[72px] flex items-center border-b transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ease-out motion-reduce:transition-none ${
+        showScrolledBg
+          ? "bg-background/85 backdrop-blur-xl border-border/80 shadow-md shadow-primary/5"
+          : "bg-transparent border-transparent shadow-none"
+      }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-        <Link href="/" className="flex min-h-11 items-center gap-2 cursor-pointer">
-          <div className="w-8 h-8 bg-foreground rounded-lg flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-background" />
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+        <Link
+          href="/"
+          className="group flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-md shadow-indigo-600/30 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
+            <Briefcase className="h-5 w-5 text-white" aria-hidden="true" />
           </div>
           <span className="text-xl font-bold tracking-tight text-foreground">VOS Sync</span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-8 font-medium text-sm text-muted-foreground">
-          <Link href="/find-jobs" className="flex min-h-11 items-center hover:text-foreground transition-colors">Find Jobs</Link>
-          <Link href="/how-it-works" className="flex min-h-11 items-center hover:text-foreground transition-colors">How It Works</Link>
-          <Link href="/companies" className="flex min-h-11 items-center hover:text-foreground transition-colors">Companies</Link>
-          <Link href="/career-advice" className="flex min-h-11 items-center hover:text-foreground transition-colors">Career Advice</Link>
-          <Link href="/about-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">About Us</Link>
-          <Link href="/contact-us" className="flex min-h-11 items-center hover:text-foreground transition-colors">Contact</Link>
+          <Link href="/find-jobs" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Find Jobs</Link>
+          <Link href="/how-it-works" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">How It Works</Link>
+          <Link href="/companies" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Companies</Link>
+          <Link href="/career-advice" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Career Advice</Link>
+          <Link href="/about-us" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">About Us</Link>
+          <Link href="/contact-us" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Contact</Link>
         </nav>
 
         <div className="hidden lg:flex items-center gap-4">
@@ -290,7 +300,7 @@ export function Header() {
             </DropdownMenu>
           ) : (
             <>
-              <Button asChild variant="ghost" className="min-h-11 font-medium cursor-pointer text-foreground hover:bg-muted">
+              <Button asChild variant="ghost" className="min-h-11 font-medium cursor-pointer text-foreground hover:bg-transparent hover:text-primary">
                 <Link href="/login">Log in</Link>
               </Button>
               <Button asChild className="min-h-11 rounded-full shadow-sm hover:shadow-md transition-all cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90">
@@ -326,12 +336,12 @@ export function Header() {
           onClick={() => setMobileMenuPath(null)}
           className="lg:hidden absolute top-full left-0 flex max-h-[calc(100dvh-6rem)] w-full flex-col gap-4 overflow-y-auto overscroll-contain border-b border-border bg-background px-4 py-4 shadow-lg"
         >
-          <Link href="/find-jobs" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Find Jobs</Link>
-          <Link href="/how-it-works" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">How It Works</Link>
-          <Link href="/companies" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Companies</Link>
-          <Link href="/career-advice" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Career Advice</Link>
-          <Link href="/about-us" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">About Us</Link>
-          <Link href="/contact-us" className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Contact</Link>
+          <Link href="/find-jobs" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Find Jobs</Link>
+          <Link href="/how-it-works" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">How It Works</Link>
+          <Link href="/companies" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Companies</Link>
+          <Link href="/career-advice" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Career Advice</Link>
+          <Link href="/about-us" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">About Us</Link>
+          <Link href="/contact-us" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Contact</Link>
           <hr className="border-border" />
           {user ? (
             <>
@@ -400,10 +410,10 @@ export function Header() {
             </>
           ) : (
             <>
-              <Button asChild variant="outline" className="min-h-11 w-full justify-center cursor-pointer border-border text-foreground hover:bg-muted">
+              <Button asChild variant="outline" className="min-h-11 w-full justify-center cursor-pointer border-border text-foreground hover:bg-primary  hover:text-primary">
                 <Link href="/login">Log in</Link>
               </Button>
-              <Button asChild className="min-h-11 w-full justify-center cursor-pointer bg-primary text-primary-foreground">
+              <Button asChild className="min-h-11 w-full justify-center cursor-pointer bg-primary text-primary-foreground ">
                 <Link href="/signup">Sign Up</Link>
               </Button>
             </>

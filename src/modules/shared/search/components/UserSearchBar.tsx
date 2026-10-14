@@ -2,16 +2,40 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Search, X, User, Building2, GraduationCap } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useUserSearch } from "../hooks/useUserSearch";
 import { Badge } from "@/components/ui/badge";
+import { ClientCommandPalette } from "@/modules/client/dashboard/components/ClientCommandPalette";
 
 export function UserSearchBar() {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [isMac, setIsMac] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { results, isLoading, error } = useUserSearch(query);
   const router = useRouter();
+  const pathname = usePathname();
+  const isClientPortal = pathname?.startsWith("/vos-sync/client");
+
+  useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent || ""));
+  }, []);
+
+  // Global Ctrl/Cmd + K listener for client portal
+  useEffect(() => {
+    if (!isClientPortal) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isClientPortal]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -91,32 +115,65 @@ export function UserSearchBar() {
   };
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
-      <div className="relative flex items-center">
-        <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setIsOpen(true);
-          }}
-          onFocus={() => setIsOpen(true)}
-          placeholder="Search profiles, companies, schools..."
-          className="h-9 w-full rounded-full border border-input bg-background/50 pl-9 pr-8 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-        />
-        {query && (
-          <button
-            onClick={() => {
-              setQuery("");
-              setIsOpen(false);
+    <>
+      <div className="relative w-full" ref={wrapperRef}>
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setIsOpen(true);
             }}
-            className="absolute right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground hover:text-background"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        )}
-      </div>
+            onClick={() => {
+              if (isClientPortal) {
+                setCommandPaletteOpen(true);
+              }
+            }}
+            onFocus={() => {
+              if (isClientPortal) {
+                setCommandPaletteOpen(true);
+              } else {
+                setIsOpen(true);
+              }
+            }}
+            placeholder={isClientPortal ? "Search candidates, jobs, or quick actions..." : "Search profiles, companies, schools..."}
+            className={`h-9 w-full rounded-full border border-input bg-background/50 pl-9 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+              isClientPortal ? "pr-16" : "pr-8"
+            }`}
+          />
+          {query ? (
+            <button
+              onClick={() => {
+                setQuery("");
+                setIsOpen(false);
+              }}
+              className="absolute right-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground hover:text-background"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          ) : isClientPortal ? (
+            <div className="absolute right-2.5 flex items-center gap-1">
+              <kbd
+                onClick={() => setCommandPaletteOpen(true)}
+                className="cursor-pointer pointer-events-auto inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted/70 px-1.5 font-mono text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title={isMac ? "Open command palette (⌘K)" : "Open command palette (Ctrl+K)"}
+              >
+                {isMac ? (
+                  <>
+                    <span className="text-[11px]">⌘</span>K
+                  </>
+                ) : (
+                  <>
+                    <span>Ctrl</span>
+                    <span>K</span>
+                  </>
+                )}
+              </kbd>
+            </div>
+          ) : null}
+        </div>
 
       {isOpen && query.trim().length >= 2 && (
         <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-xl border border-border bg-background shadow-lg z-50">
@@ -172,7 +229,18 @@ export function UserSearchBar() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      {isClientPortal && (
+        <ClientCommandPalette
+          open={commandPaletteOpen}
+          onOpenChange={(val) => {
+            setCommandPaletteOpen(val);
+            if (!val) setQuery("");
+          }}
+          initialQuery={query}
+        />
+      )}
+    </>
   );
 }
 
