@@ -3,7 +3,7 @@
 // src/modules/freelancer/freelancer-messaging/FreelancerMessagingModule.tsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { MessageSquare, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -161,20 +161,6 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
         }
       `}</style>
 
-      {/* Header */}
-      <div className="flex items-center gap-4 bg-gradient-to-br from-emerald-950 via-zinc-900 to-teal-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20 relative z-10 shrink-0">
-          <MessageSquare className="h-7 w-7" />
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Messages</h1>
-          <p className="text-sm text-zinc-300 mt-1">
-            Communicate directly with clients and hiring managers
-          </p>
-        </div>
-      </div>
-
       {/* Error */}
       {convsError && (
         <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
@@ -187,8 +173,8 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
       )}
 
       {/* Main Layout */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
-        <div className="flex h-[calc(100vh-330px)] min-h-[500px] max-md:flex-1 max-md:min-h-0 max-md:min-w-0">
+      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+        <div className="flex h-[calc(100dvh-170px)] min-h-[550px] max-md:flex-1 max-md:min-h-0 max-md:min-w-0">
           <div
             className={cn(
               "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",

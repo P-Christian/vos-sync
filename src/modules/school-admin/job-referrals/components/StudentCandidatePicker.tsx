@@ -16,6 +16,7 @@ import {
   Sparkles,
   Award,
 } from 'lucide-react';
+import { stripHtmlTags } from '../services/job-referrals.helpers';
 
 interface StudentCandidatePickerProps {
   job: VsJobPosting;
@@ -61,8 +62,8 @@ export function StudentCandidatePicker({
 
   // Highlight matching skills with job requirements
   const checkSkillMatch = (skill: string) => {
-    const target = (job.job_title + ' ' + job.job_description + ' ' + job.job_qualifications).toLowerCase();
-    return target.includes(skill.toLowerCase());
+    const plainJobText = (job.job_title + ' ' + stripHtmlTags(job.job_description) + ' ' + stripHtmlTags(job.job_qualifications)).toLowerCase();
+    return plainJobText.includes(skill.toLowerCase());
   };
 
   return (

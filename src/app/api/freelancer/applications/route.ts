@@ -8,6 +8,8 @@ import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freela
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
 import { assignInitialStageToApplication, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import type { JobPipelineVersion, JobPipelineStage } from "@/modules/client/pipeline/types";
+import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
 import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -44,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch applications for this user (client_notes excluded for privacy)
     const appRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,cover_letter,expected_salary,portfolio_url,applied_at,status_updated_at,resume_id&limit=200`,
+      `${DIRECTUS_BASE}/items/vs_job_application?filter[user_id][_eq]=${userId}&sort[]=-applied_at&fields=application_id,job_id,user_id,application_status,current_stage_id,cover_letter,expected_salary,portfolio_url,applied_at,status_updated_at,resume_id&limit=200`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -230,6 +232,45 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enrich with Job Pipelines (active version stages)
+    const jobPipelineMap: Record<number, JobPipelineVersion | null> = {};
+    await Promise.all(
+      jobIds.map(async (jId) => {
+        try {
+          const pipe = await getJobPipeline(jId);
+          jobPipelineMap[jId] = pipe;
+        } catch {
+          jobPipelineMap[jId] = null;
+        }
+      })
+    );
+
+    // Enrich with Stage History from vs_application_stage_history
+    const stageHistoryMap: Record<number, Array<{ id: number; from_stage_id?: number | null; to_stage_id: number; created_at?: string }>> = {};
+    if (appIds.length > 0) {
+      try {
+        const histRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_application_stage_history?filter[application_id][_in]=${appIds.join(",")}&sort[]=created_at&fields=id,application_id,from_stage_id,to_stage_id,created_at&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (histRes.ok) {
+          const histJson = await histRes.json();
+          const histRows: Array<{ id: number; application_id: number; from_stage_id?: number | null; to_stage_id: number; created_at?: string }> = histJson.data ?? [];
+          histRows.forEach((h) => {
+            if (!stageHistoryMap[h.application_id]) stageHistoryMap[h.application_id] = [];
+            stageHistoryMap[h.application_id].push({
+              id: h.id,
+              from_stage_id: h.from_stage_id,
+              to_stage_id: h.to_stage_id,
+              created_at: h.created_at,
+            });
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load stage history for freelancer applications:", err);
+      }
+    }
+
     // Merge all data
     const enriched = applications.map((app) => {
       const job = jobsMap[app.job_id as number] ?? {};
@@ -237,6 +278,34 @@ export async function GET(req: NextRequest) {
       const appId = app.application_id as number;
       const company = companyId ? companyMap[companyId] : null;
       const refData = referralMap[appId];
+      const pipe = jobPipelineMap[app.job_id as number];
+
+      let currentStage: ApplicationItem["current_stage"] = null;
+      let pipelineStages: NonNullable<ApplicationItem["pipeline_stages"]> = [];
+
+      if (pipe?.stages && Array.isArray(pipe.stages)) {
+        pipelineStages = (pipe.stages as unknown as JobPipelineStage[]).map((s) => ({
+          id: s.id,
+          stage_name: s.stage_name,
+          stage_type: s.stage_type,
+          stage_order: s.stage_order,
+          color: s.color,
+          description: s.description ?? null,
+          is_terminal: !!s.is_terminal,
+        }));
+
+        if (app.current_stage_id) {
+          currentStage = pipelineStages.find((s) => s.id === Number(app.current_stage_id)) || null;
+        }
+
+        if (!currentStage) {
+          currentStage =
+            pipelineStages.find((s) => s.stage_type === app.application_status) ||
+            pipelineStages.find((s) => s.stage_type === "APPLIED") ||
+            pipelineStages[0] ||
+            null;
+        }
+      }
 
       return {
         ...app,
@@ -255,6 +324,10 @@ export async function GET(req: NextRequest) {
         referral_letter: refData?.referral_letter || null,
         school_name: refData?.school_name || null,
         referrer_name: refData?.referrer_name || null,
+        current_stage_id: currentStage?.id ?? (app.current_stage_id ? Number(app.current_stage_id) : null),
+        current_stage: currentStage,
+        pipeline_stages: pipelineStages,
+        stage_history: stageHistoryMap[appId] ?? [],
       };
     });
 
