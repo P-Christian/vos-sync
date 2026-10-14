@@ -124,8 +124,8 @@ export default function MessagingModule({
   }, [clearMessages]);
 
   const handleSend = useCallback(
-    async (content: string, files: File[]) => {
-      if (!activeConversation) return;
+    async (content: string, files: File[]): Promise<boolean> => {
+      if (!activeConversation) return false;
 
       let attachments: {
         file_name: string;
@@ -154,7 +154,7 @@ export default function MessagingModule({
             : "FILE"
           : "TEXT";
 
-      await send(activeConversation.conversation_id, {
+      const ok = await send(activeConversation.conversation_id, {
         message_content: content || undefined,
         message_type: messageType,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -162,6 +162,7 @@ export default function MessagingModule({
 
       // Refresh conversation list to update preview silently without full skeleton reload
       loadConversations({ archived: showArchived, silent: true });
+      return ok;
     },
     [activeConversation, upload, send, loadConversations, showArchived]
   );
