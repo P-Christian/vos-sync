@@ -217,7 +217,7 @@ export function useJobReferrals(): UseJobReferralsReturn {
   const [jobs, setJobs] = useState<VsJobPosting[]>([]);
   const [students, setStudents] = useState<VerifiedStudentCandidate[]>([]);
   const [referrals, setReferrals] = useState<VsJobReferral[]>([]);
-  const [schoolName, setSchoolName] = useState<string>('Partner University');
+  const [schoolName, setSchoolName] = useState<string>('Your Institution');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -241,21 +241,20 @@ export function useJobReferrals(): UseJobReferralsReturn {
     try {
       const res = await fetch('/api/school-admin/job-referrals');
       if (!res.ok) {
-        throw new Error('Using prototype mode with sample data.');
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to load school job referrals');
       }
       const data = await res.json();
-      
-      const loadedJobs = Array.isArray(data.jobs) && data.jobs.length > 0 ? data.jobs : SAMPLE_MOCK_JOBS;
-      const loadedStudents = Array.isArray(data.students) && data.students.length > 0 ? data.students : SAMPLE_MOCK_STUDENTS;
-      
-      setJobs(loadedJobs);
-      setStudents(loadedStudents);
+
+      setJobs(Array.isArray(data.jobs) ? data.jobs : []);
+      setStudents(Array.isArray(data.students) ? data.students : []);
       setReferrals(Array.isArray(data.referrals) ? data.referrals : []);
       if (data.school?.school_name) setSchoolName(data.school.school_name);
-    } catch {
-      // Fallback for seamless initial preview/prototype
-      setJobs(SAMPLE_MOCK_JOBS);
-      setStudents(SAMPLE_MOCK_STUDENTS);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load job referrals';
+      setError(msg);
+      setJobs([]);
+      setStudents([]);
       setReferrals([]);
     } finally {
       setIsLoading(false);

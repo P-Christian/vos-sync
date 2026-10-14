@@ -100,7 +100,15 @@ export async function createBatchReferralsService(
   payload: CreateReferralsPayload
 ): Promise<CreatedReferralResult[]> {
   const { job_id, student_ids, expires_in_days = 30 } = payload;
-  const candidates = await getEligibleStudentCandidatesService(schoolId); // Query candidates for the school
+  const candidates = await getEligibleStudentCandidatesService(schoolId); // Query candidates strictly for this school
+  const validSchoolCandidateMap = new Set(candidates.map((c) => c.student_id));
+
+  // Security guard: verify that none of the submitted student_ids belong outside this school
+  const unauthorizedIds = student_ids.filter((id) => !validSchoolCandidateMap.has(id));
+  if (unauthorizedIds.length > 0) {
+    throw new Error(`Forbidden: Candidates do not belong to the authorized school.`);
+  }
+
   const targetCandidates = candidates.filter(
     (c) => student_ids.includes(c.student_id) && !c.applied_job_ids?.includes(job_id)
   );
