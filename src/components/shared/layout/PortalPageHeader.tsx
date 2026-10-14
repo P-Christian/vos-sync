@@ -35,6 +35,7 @@ export interface PortalPageHeaderProps {
 }
 
 export function PortalPageHeader(_props?: PortalPageHeaderProps) {
+  void _props;
   const pathname = usePathname();
   const isClientRoute = pathname?.startsWith("/vos-sync/client");
   const isFreelancerRoute = pathname?.startsWith("/vos-sync/freelancer");
