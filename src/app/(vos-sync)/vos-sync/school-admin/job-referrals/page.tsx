@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 export default async function Page() {
-  const user = await getHeaderUserFromToken();
+ 
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">

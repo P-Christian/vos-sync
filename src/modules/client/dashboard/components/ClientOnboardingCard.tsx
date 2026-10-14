@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { CompanyInfo } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,19 +14,29 @@ interface ClientOnboardingCardProps {
 
 const ONBOARDING_DISMISSED_KEY = "vos_client_onboarding_dismissed";
 
-export function ClientOnboardingCard({ company, activeJobsCount }: ClientOnboardingCardProps) {
-  const [isDismissed, setIsDismissed] = useState(true);
+const subscribeDismissed = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
 
-  useEffect(() => {
-    try {
-      const dismissed = localStorage.getItem(ONBOARDING_DISMISSED_KEY);
-      if (dismissed !== "true") {
-        setIsDismissed(false);
-      }
-    } catch {
-      setIsDismissed(false);
-    }
-  }, []);
+const getDismissedSnapshot = () => {
+  try {
+    return localStorage.getItem(ONBOARDING_DISMISSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+};
+
+const getDismissedServerSnapshot = () => true;
+
+export function ClientOnboardingCard({ company, activeJobsCount }: ClientOnboardingCardProps) {
+  const [dismissedLocal, setDismissedLocal] = useState(false);
+  const isStoredDismissed = useSyncExternalStore(
+    subscribeDismissed,
+    getDismissedSnapshot,
+    getDismissedServerSnapshot
+  );
+  const isDismissed = dismissedLocal || isStoredDismissed;
 
   const handleDismiss = () => {
     try {
@@ -34,7 +44,7 @@ export function ClientOnboardingCard({ company, activeJobsCount }: ClientOnboard
     } catch {
       // Ignore
     }
-    setIsDismissed(true);
+    setDismissedLocal(true);
   };
 
   // Determine which steps are completed

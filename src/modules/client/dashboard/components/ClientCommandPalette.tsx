@@ -67,14 +67,18 @@ const RECENT_SEARCHES_KEY = "vos_client_recent_searches";
 export function ClientCommandPalette({ open, onOpenChange, initialQuery }: ClientCommandPaletteProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(initialQuery || "");
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
 
-  // Sync initialQuery when opened
-  useEffect(() => {
+  if (open !== prevOpen || initialQuery !== prevInitialQuery) {
+    setPrevOpen(open);
+    setPrevInitialQuery(initialQuery);
     if (open && initialQuery !== undefined) {
       setSearchQuery(initialQuery);
     }
-  }, [open, initialQuery]);
+  }
+
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   // Live data states
   const [jobs, setJobs] = useState<SearchJob[]>([]);
@@ -84,7 +88,8 @@ export function ClientCommandPalette({ open, onOpenChange, initialQuery }: Clien
 
   // Load recent searches on mount / open
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const timer = setTimeout(() => {
       try {
         const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
         if (stored) {
@@ -93,14 +98,18 @@ export function ClientCommandPalette({ open, onOpenChange, initialQuery }: Clien
       } catch {
         setRecentSearches([]);
       }
-    }
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [open]);
 
   // Fetch employer's live jobs & applicants when the palette opens
   useEffect(() => {
     if (!open) return;
     let isMounted = true;
-    setIsLoadingData(true);
+    const timer = setTimeout(() => {
+      if (isMounted) setIsLoadingData(true);
+    }, 0);
 
     Promise.allSettled([
       fetch("/api/client/jobs").then((r) => (r.ok ? r.json() : null)),
@@ -122,13 +131,13 @@ export function ClientCommandPalette({ open, onOpenChange, initialQuery }: Clien
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [open]);
 
   // Query talent pool if search term is typed
   useEffect(() => {
     if (!open || searchQuery.trim().length < 2) {
-      setTalentResults([]);
       return;
     }
 
@@ -147,6 +156,8 @@ export function ClientCommandPalette({ open, onOpenChange, initialQuery }: Clien
 
     return () => clearTimeout(timer);
   }, [open, searchQuery]);
+
+  const effectiveTalentResults = searchQuery.trim().length < 2 ? [] : talentResults;
 
   const saveRecentSearch = useCallback((term: string) => {
     if (!term.trim()) return;
@@ -317,8 +328,8 @@ export function ClientCommandPalette({ open, onOpenChange, initialQuery }: Clien
             ))}
 
           {/* Additional Talent Search matches */}
-          {talentResults.length > 0 &&
-            talentResults.map((talent) => (
+          {effectiveTalentResults.length > 0 &&
+            effectiveTalentResults.map((talent) => (
               <CommandItem
                 key={`talent-${talent.user_id}`}
                 value={`talent candidate ${talent.name} ${talent.headline || ""}`}

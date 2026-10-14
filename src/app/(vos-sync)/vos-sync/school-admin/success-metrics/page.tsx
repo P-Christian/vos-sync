@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function Page() {
-  const user = await getHeaderUserFromToken();
+
   const session = await authenticateCookieSession();
 
   let schoolId = 1;

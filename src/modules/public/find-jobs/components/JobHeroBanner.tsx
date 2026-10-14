@@ -23,7 +23,6 @@ export function JobHeroBanner({
   onSearchChange,
   onLocationChange,
   onSearchSubmit,
-  totalJobs,
   onQuickCategoryClick,
   isLoading = false,
 }: Props) {

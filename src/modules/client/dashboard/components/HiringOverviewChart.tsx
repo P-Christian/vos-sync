@@ -52,9 +52,18 @@ export default function HiringOverviewChart({
   }, [currentData]);
 
   // Click on a chart data point navigates to applicants filtered by that period
-  const handleChartClick = (e: any) => {
-    if (e && e.activePayload && e.activePayload.length > 0) {
-      const payload = e.activePayload[0].payload;
+  const handleChartClick = (e: unknown) => {
+    const chartEvent = e as {
+      activePayload?: Array<{
+        payload?: {
+          label?: string;
+          date?: string;
+        };
+      }>;
+    } | null | undefined;
+
+    if (chartEvent?.activePayload && chartEvent.activePayload.length > 0) {
+      const payload = chartEvent.activePayload[0]?.payload;
       const pointLabel = payload?.label || payload?.date || selectedRange;
       router.push(`/vos-sync/client/applicants?window=${encodeURIComponent(pointLabel)}`);
     }
