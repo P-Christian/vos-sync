@@ -1303,7 +1303,7 @@ function SignupPageContent() {
           { type: 'school', label: 'School / Institution', desc: 'Register your educational institution and courses.', icon: <GraduationCap size={28} /> }
         ] as const).map(item => (
           <button key={item.type} onClick={() => handleSelection(item.type)}
-            className="group relative flex items-center justify-between p-6 border-2 border-border rounded-xl text-left transition-all duration-200 hover:border-primary hover:shadow-md hover:bg-muted/50"
+            className="group relative flex items-center justify-between p-6 border-2 border-border/80 rounded-2xl text-left transition-all duration-300 hover:border-primary/50 hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
           >
             <div className="flex items-center gap-5">
               <div className="p-3 bg-muted text-foreground rounded-lg group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
@@ -2975,7 +2975,7 @@ function SignupPageContent() {
   // ─── Root Render ──────────────────────────────────────────────────────────
 
   return (
-        <div className="max-md:items-start min-h-screen bg-background flex items-center justify-center py-4 md:py-12 font-sans selection:bg-primary/20">
+    <div className="max-md:items-start min-h-screen flex items-center justify-center py-4 md:py-12 font-sans selection:bg-primary/20 relative z-10">
       {step === 'selection' && renderSelectionScreen()}
 
       {step === 'client' && (

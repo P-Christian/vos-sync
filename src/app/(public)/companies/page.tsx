@@ -26,11 +26,7 @@ export default async function CompaniesPage() {
 
   return (
     <div className="min-h-screen relative z-10">
-      <Suspense fallback={
-        <div className="max-w-7xl mx-auto px-4 py-20 text-center text-muted-foreground animate-pulse font-sans">
-          Loading browse page...
-        </div>
-      }>
+      <Suspense fallback={null}>
         <CompaniesBrowseModule
           initialCompanies={browseResult.companies}
           initialTotal={browseResult.total}

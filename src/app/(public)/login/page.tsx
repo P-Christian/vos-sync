@@ -267,11 +267,11 @@ function LoginForm() {
     const pwHasError = Boolean(errors.hashPassword)
 
     return (
-        <div className="max-md:items-start min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-6 md:py-8 px-4 md:px-6 bg-background text-foreground font-sans">
-            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch md:min-h-[700px] bg-card rounded-xl shadow-sm border overflow-hidden">
+        <div className="max-md:items-start min-h-[calc(100dvh-6rem)] flex-grow flex items-center justify-center py-6 md:py-8 px-4 md:px-6 text-foreground font-sans relative z-10">
+            <div className="max-w-[1280px] w-full grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 items-stretch md:min-h-[700px] bg-white/90 dark:bg-card/80 backdrop-blur-2xl rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.4)] border border-border/80 overflow-hidden">
 
                 {/* Left Side: Content / How it Works */}
-                <div className="hidden lg:flex flex-col justify-center p-10 lg:p-16 bg-muted/30 border-r relative overflow-hidden">
+                <div className="hidden lg:flex flex-col justify-center p-10 lg:p-16 bg-muted/20 dark:bg-muted/10 backdrop-blur-md border-r border-border/70 relative overflow-hidden">
                     <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
                     <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-secondary/30 rounded-full blur-3xl"></div>
 
@@ -321,7 +321,7 @@ function LoginForm() {
                 </div>
 
                 {/* Right Side: Login Card */}
-                <div className="flex flex-col justify-center items-center p-5 md:p-8 lg:p-16 bg-card">
+                <div className="flex flex-col justify-center items-center p-5 md:p-8 lg:p-16 bg-white/60 dark:bg-card/60 backdrop-blur-xl">
                     <div className="w-full max-w-[440px]">
                         <div className="lg:hidden flex items-center gap-2 mb-5 md:mb-8">
                             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
