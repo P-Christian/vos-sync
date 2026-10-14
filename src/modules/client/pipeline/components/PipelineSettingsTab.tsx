@@ -16,6 +16,7 @@ import TransitionConfigModal from "./TransitionConfigModal";
 import AssessmentTaskEditor from "./AssessmentTaskEditor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -360,7 +361,11 @@ function ReorderableStageItem({
   );
 }
 
-export default function PipelineSettingsTab() {
+interface PipelineSettingsTabProps {
+  isStandalonePage?: boolean;
+}
+
+export default function PipelineSettingsTab({ isStandalonePage = true }: PipelineSettingsTabProps = {}) {
   const {
     pipelines,
     selectedPipeline,
@@ -472,9 +477,59 @@ export default function PipelineSettingsTab() {
 
   if (loading && !selectedPipeline) {
     return (
-      <div className="flex items-center justify-center py-16 gap-3">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <span className="text-sm text-muted-foreground">Loading ATS pipelines...</span>
+      <div className="space-y-6 animate-pulse">
+        {/* Page Header Skeleton */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-64 rounded-xl bg-muted/70" />
+            <div className="h-4 w-80 sm:w-96 rounded-lg bg-muted/40" />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-36 rounded-xl bg-muted/60" />
+            <div className="h-9 w-28 rounded-full bg-muted/60" />
+          </div>
+        </div>
+
+        {/* Main Pipeline Container Skeleton */}
+        <Card className="overflow-hidden rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm">
+          <CardContent className="p-0">
+            {/* Template Summary Bar Skeleton */}
+            <div className="h-16 border-b border-primary/10 bg-muted/20 p-4 sm:px-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-5 w-40 rounded-lg bg-muted/60" />
+                <div className="h-5 w-24 rounded-full bg-muted/40" />
+                <div className="h-4 w-28 rounded-lg bg-muted/40" />
+              </div>
+              <div className="h-8 w-28 rounded-full bg-muted/50" />
+            </div>
+
+            {/* Stages List Skeletons */}
+            <div className="p-4 sm:p-6 space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 rounded-xl border border-border/80 bg-card p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="h-9 w-9 rounded-xl bg-muted/60 shrink-0" />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-6 w-48 rounded-full bg-muted/70" />
+                        <div className="h-5 w-16 rounded-full bg-muted/40" />
+                      </div>
+                      <div className="h-3.5 w-72 rounded-md bg-muted/40" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 self-end md:self-center">
+                    <div className="h-8 w-24 rounded-xl bg-muted/60" />
+                    <div className="h-8 w-8 rounded-xl bg-muted/50" />
+                    <div className="h-8 w-8 rounded-xl bg-muted/40" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -496,152 +551,217 @@ export default function PipelineSettingsTab() {
       )}
 
       {/* Header and Template Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold tracking-tight">Hiring Workflow & ATS Pipeline</h2>
-            <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
-              Configurable Workflow Layer
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Customize the stages and transition rules for candidate progression. All custom stages map to deterministic canonical categories.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
-          {pipelines.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Template:</span>
-              <SearchableSelect
-                options={pipelineOptions}
-                value={selectedPipelineId ? String(selectedPipelineId) : undefined}
-                onValueChange={(val) => setSelectedPipelineId(Number(val))}
-                placeholder="Template"
-                className="h-8 text-xs w-72"
-              />
-            </div>
-          )}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setNewPipelineModalOpen(true)}
-            className="h-8 text-xs gap-1.5 rounded-lg"
-          >
-            <Layers className="h-3.5 w-3.5" />
-            New Template
-          </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleOpenAddStage}
-            className="h-8 text-xs gap-1.5 rounded-lg"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add Stage
-          </Button>
-        </div>
-      </div>
-
-      {/* Pipeline Status Summary Card */}
-      {selectedPipeline && (
-        <div className="p-4 rounded-xl bg-muted/30 border border-border/70 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">{selectedPipeline.name}</span>
-            {Boolean(selectedPipeline.is_default) ? (
-              <Badge variant="secondary" className="text-[10px]">
-                Company Default
-              </Badge>
-            ) : null}
-            <span className="text-muted-foreground">
-               {sortedStages.length} Stages
-            </span>
+      {isStandalonePage ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              ATS Pipeline Configuration
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Design custom progression stages, enforce valid candidate transitions, and assign automated assessment workflows.
+            </p>
           </div>
 
-          {!Boolean(selectedPipeline.is_default) && (
+          {/* Quick Actions in Header */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {pipelines.length > 1 && (
+              <div className="w-full sm:w-auto sm:min-w-[210px]">
+                <SearchableSelect
+                  options={pipelineOptions}
+                  value={selectedPipelineId ? String(selectedPipelineId) : undefined}
+                  onValueChange={(val) => setSelectedPipelineId(Number(val))}
+                  placeholder="Select Template"
+                  className="h-9 text-xs bg-card/70 border-primary/15 rounded-xl font-medium"
+                />
+              </div>
+            )}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={saving}
-              onClick={() => setDefaultPipeline(selectedPipeline.id)}
-              className="h-7 text-xs gap-1.5 rounded-lg border-border/80 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
-              title="Make this template the default for all future jobs"
+              onClick={() => setNewPipelineModalOpen(true)}
+              className="h-9 text-xs px-3.5 gap-1.5 rounded-full border-primary/20 bg-card/60 hover:bg-primary/10 font-medium"
             >
-              <Star className="h-3.5 w-3.5 text-primary" />
-              Make Default
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              <span>New Template</span>
             </Button>
-          )}
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleOpenAddStage}
+              className="h-9 text-xs px-4 gap-1.5 rounded-full font-semibold bg-gradient-to-r from-primary to-info hover:brightness-110 shadow-sm shadow-primary/25 text-primary-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Stage</span>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/80">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold tracking-tight">Hiring Workflow & ATS Pipeline</h2>
+              <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                Configurable Workflow Layer
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Customize the stages and transition rules for candidate progression. All custom stages map to deterministic canonical categories.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {pipelines.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">Template:</span>
+                <SearchableSelect
+                  options={pipelineOptions}
+                  value={selectedPipelineId ? String(selectedPipelineId) : undefined}
+                  onValueChange={(val) => setSelectedPipelineId(Number(val))}
+                  placeholder="Template"
+                  className="h-8 text-xs w-72"
+                />
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setNewPipelineModalOpen(true)}
+              className="h-8 text-xs gap-1.5 rounded-lg"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              New Template
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleOpenAddStage}
+              className="h-8 text-xs gap-1.5 rounded-lg"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Stage
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Stages List */}
-      <div className="space-y-3">
-        {sortedStages.length === 0 ? (
-          <div className="text-center py-12 border border-dashed rounded-xl p-8">
-            <p className="text-sm font-semibold text-muted-foreground">No stages configured</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add your first stage to build the hiring workflow.
-            </p>
-            <Button
-              type="button"
-              onClick={handleOpenAddStage}
-              className="mt-4 h-8 text-xs gap-1.5"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add First Stage
-            </Button>
+      {/* Main Pipeline Container Card */}
+      <Card className="overflow-hidden rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm">
+        <CardContent className="p-0">
+          {/* Pipeline Status Summary Toolbar */}
+          {selectedPipeline && (
+            <div className="p-4 sm:px-6 border-b border-primary/10 bg-muted/20 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 font-bold text-sm text-foreground">
+                  <Layers className="h-4 w-4 text-primary" />
+                  <span>{selectedPipeline.name}</span>
+                </div>
+                {Boolean(selectedPipeline.is_default) ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                    <Star className="h-3 w-3 fill-primary text-primary" /> Company Default
+                  </span>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] text-muted-foreground border-border/70">
+                    Custom Template
+                  </Badge>
+                )}
+                <span className="text-muted-foreground font-medium">
+                  · <strong className="text-foreground">{sortedStages.length}</strong> Total Stages
+                </span>
+                <span className="text-muted-foreground font-medium">
+                  · <strong className="text-foreground">{sortedStages.filter((s) => !s.is_terminal).length}</strong> Active Progression Steps
+                </span>
+                <span className="text-muted-foreground font-medium">
+                  · <strong className="text-foreground">{sortedStages.filter((s) => s.is_terminal).length}</strong> Terminal Exits
+                </span>
+              </div>
+
+              {!Boolean(selectedPipeline.is_default) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                  onClick={() => setDefaultPipeline(selectedPipeline.id)}
+                  className="h-8 text-xs gap-1.5 rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors"
+                  title="Make this template the default for all future jobs"
+                >
+                  <Star className="h-3.5 w-3.5 text-primary" />
+                  Make Default
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Stages List */}
+          <div className="p-4 sm:p-6 space-y-3">
+            {sortedStages.length === 0 ? (
+              <div className="text-center py-12 border border-dashed rounded-xl p-8">
+                <p className="text-sm font-semibold text-muted-foreground">No stages configured</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Add your first stage to build the hiring workflow.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleOpenAddStage}
+                  className="mt-4 h-8 text-xs gap-1.5"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add First Stage
+                </Button>
+              </div>
+            ) : (
+              <Reorder.Group
+                axis="y"
+                values={sortedStages}
+                onReorder={reorderStages}
+                className="space-y-3"
+              >
+                {sortedStages.map((stage, index) => (
+                  <ReorderableStageItem
+                    key={stage.id}
+                    stage={stage}
+                    index={index}
+                    prevStage={index > 0 ? sortedStages[index - 1] : undefined}
+                    totalStages={sortedStages.length}
+                    stageMap={stageMap}
+                    isDeleting={deletingStageId === stage.id}
+                    deletingStageId={deletingStageId}
+                    onMoveUp={() => moveStageOrder(stage.id, "up")}
+                    onMoveDown={() => moveStageOrder(stage.id, "down")}
+                    onOpenTransitions={() => handleOpenTransitions(stage)}
+                    onOpenEditStage={() => handleOpenEditStage(stage)}
+                    onDeleteStage={() => handleDeleteStage(stage.id)}
+                    belowCard={
+                      stage.stage_type === "ASSESSMENT" && selectedPipeline ? (
+                        <AssessmentTaskEditor
+                          stageId={stage.id}
+                          stageType={stage.stage_type}
+                          initialWindowDays={stage.assessment_submission_window_days ?? null}
+                          endpoints={{
+                            list: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
+                            create: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
+                            update: (taskId: number) =>
+                              `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
+                            remove: (taskId: number) =>
+                              `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
+                            reorder: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/reorder`,
+                            window: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}`,
+                            library: "/api/client/assessment-tasks/library",
+                          }}
+                        />
+                      ) : undefined
+                    }
+                  />
+                ))}
+              </Reorder.Group>
+            )}
           </div>
-        ) : (
-          <Reorder.Group
-            axis="y"
-            values={sortedStages}
-            onReorder={reorderStages}
-            className="space-y-3"
-          >
-            {sortedStages.map((stage, index) => (
-              <ReorderableStageItem
-                key={stage.id}
-                stage={stage}
-                index={index}
-                prevStage={index > 0 ? sortedStages[index - 1] : undefined}
-                totalStages={sortedStages.length}
-                stageMap={stageMap}
-                isDeleting={deletingStageId === stage.id}
-                deletingStageId={deletingStageId}
-                onMoveUp={() => moveStageOrder(stage.id, "up")}
-                onMoveDown={() => moveStageOrder(stage.id, "down")}
-                onOpenTransitions={() => handleOpenTransitions(stage)}
-                onOpenEditStage={() => handleOpenEditStage(stage)}
-                onDeleteStage={() => handleDeleteStage(stage.id)}
-                belowCard={
-                  stage.stage_type === "ASSESSMENT" && selectedPipeline ? (
-                    <AssessmentTaskEditor
-                      stageId={stage.id}
-                      stageType={stage.stage_type}
-                      initialWindowDays={stage.assessment_submission_window_days ?? null}
-                      endpoints={{
-                        list: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
-                        create: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks`,
-                        update: (taskId: number) =>
-                          `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
-                        remove: (taskId: number) =>
-                          `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/${taskId}`,
-                        reorder: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}/assessment-tasks/reorder`,
-                        window: `/api/client/pipelines/${selectedPipeline.id}/stages/${stage.id}`,
-                        library: "/api/client/assessment-tasks/library",
-                      }}
-                    />
-                  ) : undefined
-                }
-              />
-            ))}
-          </Reorder.Group>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Stage Editor Modal */}
       <StageEditModal

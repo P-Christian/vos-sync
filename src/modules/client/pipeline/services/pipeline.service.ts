@@ -228,11 +228,13 @@ export async function getPipelineWithDetails(
     const transitions = transJson.data ?? [];
 
     // 4. Enrich stages with allowed_next_stage_ids
+    const stageIdSet = new Set(stages.map((s) => Number(s.id)));
     const transitionMap = new Map<number, number[]>();
     for (const t of transitions) {
       const fromId = Number(typeof t.from_stage_id === "object" && t.from_stage_id !== null ? (t.from_stage_id as { id?: unknown }).id : t.from_stage_id);
       const toId = Number(typeof t.to_stage_id === "object" && t.to_stage_id !== null ? (t.to_stage_id as { id?: unknown }).id : t.to_stage_id);
-      if (!isNaN(fromId) && !isNaN(toId)) {
+      // Only include transitions where BOTH fromId and toId currently exist in the pipeline stages
+      if (!isNaN(fromId) && !isNaN(toId) && stageIdSet.has(fromId) && stageIdSet.has(toId)) {
         const list = transitionMap.get(fromId) ?? [];
         list.push(toId);
         transitionMap.set(fromId, list);
@@ -695,15 +697,37 @@ export async function deletePipelineStage(
       return { success: false, error: "System stages are required and cannot be deleted." };
     }
 
-    // 1. Delete transitions referencing this stage
-    const transToDelete = (pipeline.transitions ?? []).filter(
-      (t) => t.from_stage_id === stageId || t.to_stage_id === stageId
-    );
+    // 1. Delete transitions referencing this stage from pipeline.transitions
+    const targetStageNum = Number(stageId);
+    const transToDelete = (pipeline.transitions ?? []).filter((t) => {
+      const fromId = Number(typeof t.from_stage_id === "object" && t.from_stage_id !== null ? (t.from_stage_id as { id?: unknown }).id : t.from_stage_id);
+      const toId = Number(typeof t.to_stage_id === "object" && t.to_stage_id !== null ? (t.to_stage_id as { id?: unknown }).id : t.to_stage_id);
+      return fromId === targetStageNum || toId === targetStageNum;
+    });
     for (const t of transToDelete) {
       await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions/${t.id}`, {
         method: "DELETE",
         headers: getHeaders(),
       });
+    }
+
+    // Direct query cleanup in Directus for any transitions involving this stage
+    try {
+      const directTransRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_company_pipeline_transitions?filter[_or][0][from_stage_id][_eq]=${stageId}&filter[_or][1][to_stage_id][_eq]=${stageId}&limit=-1`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (directTransRes.ok) {
+        const directTransJson = (await directTransRes.json()) as { data?: { id: number }[] };
+        for (const dt of directTransJson.data ?? []) {
+          await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions/${dt.id}`, {
+            method: "DELETE",
+            headers: getHeaders(),
+          });
+        }
+      }
+    } catch (cleanErr) {
+      console.warn("[pipeline.service] direct transition cleanup error:", cleanErr);
     }
 
     // 2. Delete the stage
@@ -741,23 +765,23 @@ export async function updateStageTransitions(
       return { success: false, error: "Terminal stages cannot have outgoing transitions." };
     }
 
-    // Validate that all targetStageIds belong to this pipeline
-    const stageIdSet = new Set(stages.map((s) => s.id));
-    for (const toId of targetStageIds) {
-      if (!stageIdSet.has(toId)) {
-        return { success: false, error: `Invalid transition target stage #${toId} does not belong to this pipeline.` };
-      }
-      if (toId === fromStageId) {
-        return { success: false, error: "Self-transitions are not permitted." };
-      }
-      const targetStage = stages.find((s) => s.id === toId);
-      if (targetStage?.stage_type === "APPLIED") {
-        return { success: false, error: "Transitions targeting the initial intake stage (APPLIED) are not permitted." };
-      }
-    }
+    // Sanitize targetStageIds: filter to only stages that currently exist in this pipeline and are not self or APPLIED
+    const stageIdSet = new Set(stages.map((s) => Number(s.id)));
+    const validTargetStageIds = (targetStageIds ?? [])
+      .map(Number)
+      .filter((toId) => {
+        if (!stageIdSet.has(toId)) return false;
+        if (toId === fromStageId) return false;
+        const targetStage = stages.find((s) => Number(s.id) === toId);
+        if (targetStage?.stage_type === "APPLIED") return false;
+        return true;
+      });
 
     // 1. Delete existing transitions where from_stage_id === fromStageId
-    const existingForStage = (pipeline.transitions ?? []).filter((t) => t.from_stage_id === fromStageId);
+    const existingForStage = (pipeline.transitions ?? []).filter((t) => {
+      const fId = Number(typeof t.from_stage_id === "object" && t.from_stage_id !== null ? (t.from_stage_id as { id?: unknown }).id : t.from_stage_id);
+      return fId === fromStageId;
+    });
     for (const t of existingForStage) {
       await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions/${t.id}`, {
         method: "DELETE",
@@ -765,9 +789,22 @@ export async function updateStageTransitions(
       });
     }
 
+    // Also remove any orphaned transitions in this pipeline pointing to deleted/non-existent stages
+    const orphanedTransitions = (pipeline.transitions ?? []).filter((t) => {
+      const fId = Number(typeof t.from_stage_id === "object" && t.from_stage_id !== null ? (t.from_stage_id as { id?: unknown }).id : t.from_stage_id);
+      const toId = Number(typeof t.to_stage_id === "object" && t.to_stage_id !== null ? (t.to_stage_id as { id?: unknown }).id : t.to_stage_id);
+      return !stageIdSet.has(fId) || !stageIdSet.has(toId);
+    });
+    for (const ot of orphanedTransitions) {
+      await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions/${ot.id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+    }
+
     // 2. Insert new transitions
     const nowPH = getPHTimeString();
-    for (const toId of targetStageIds) {
+    for (const toId of validTargetStageIds) {
       await fetch(`${DIRECTUS_BASE}/items/vs_company_pipeline_transitions`, {
         method: "POST",
         headers: getHeaders(),

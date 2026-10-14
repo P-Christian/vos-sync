@@ -509,18 +509,23 @@ export async function getJobPipeline(
     const transitions: JobPipelineTransition[] = transJson.data ?? [];
 
     // 5. Enrich stages with allowed_next_stage_ids
+    const stageIdSet = new Set(stages.map((s) => Number(s.id)));
     const transitionMap = new Map<number, number[]>();
     for (const t of transitions) {
-      const list = transitionMap.get(t.from_stage_id) ?? [];
-      list.push(t.to_stage_id);
-      transitionMap.set(t.from_stage_id, list);
+      const fromId = Number(t.from_stage_id);
+      const toId = Number(t.to_stage_id);
+      if (!isNaN(fromId) && !isNaN(toId) && stageIdSet.has(fromId) && stageIdSet.has(toId)) {
+        const list = transitionMap.get(fromId) ?? [];
+        list.push(toId);
+        transitionMap.set(fromId, list);
+      }
     }
 
     const enrichedStages = stages.map((s) => ({
       ...s,
       is_system: Boolean(s.is_system),
       is_terminal: Boolean(s.is_terminal),
-      allowed_next_stage_ids: transitionMap.get(s.id) ?? [],
+      allowed_next_stage_ids: transitionMap.get(Number(s.id)) ?? [],
     }));
 
     // 6. Check real-time application count and locking state
