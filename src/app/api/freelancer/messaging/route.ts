@@ -59,8 +59,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const includeArchived = searchParams.get("archived") === "true";
 
+    // Mutually exclusive archive mode: archived-only vs active-only
     let filter = `filter[freelancer_id][_eq]=${userId}&filter[status][_neq]=BLOCKED`;
-    if (!includeArchived) {
+    if (includeArchived) {
+      filter += `&filter[archived_by_freelancer][_eq]=true`;
+    } else {
       filter += `&filter[archived_by_freelancer][_eq]=false`;
     }
 

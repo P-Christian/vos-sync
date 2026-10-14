@@ -226,6 +226,7 @@ export function RosterDataTable<TData, TValue>({
   );
 
   const hasTopBar = searchKey || actionComponent;
+  const showEmpty = !isLoading && !data?.length;
 
   return (
     <div className="space-y-4">
@@ -253,77 +254,74 @@ export function RosterDataTable<TData, TValue>({
       )}
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>) => (
-              <TableRow key={headerGroup.id} className="bg-muted/10">
-                {headerGroup.headers.map((header: Header<TData, unknown>) => {
-                  return (
-                    <TableHead key={header.id} className="font-bold py-2">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
+        {showEmpty ? (
+          <div className="w-full flex justify-center">
+            <EmptyPlaceholder
+              title={emptyTitle}
+              description={emptyDescription}
+            />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup: HeaderGroup<TData>) => (
+                <TableRow key={headerGroup.id} className="bg-muted/10">
+                  {headerGroup.headers.map((header: Header<TData, unknown>) => {
+                    return (
+                      <TableHead key={header.id} className="font-bold py-2">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading && !data?.length ? (
+                Array.from({ length: 5 }).map((_, rowIndex) => (
+                  <TableRow key={rowIndex} className="hover:bg-transparent">
+                    {columns.map((_, colIndex) => (
+                      <TableCell key={colIndex} className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`h-4 bg-muted animate-pulse rounded ${colIndex === 0
+                              ? "w-48"
+                              : colIndex === columns.length - 1
+                                ? "w-8 ml-auto"
+                                : "w-24"
+                              }`}
+                          />
+                        </div>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                table.getRowModel().rows.map((row: Row<TData>) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="group hover:bg-muted/10 transition-colors"
+                  >
+                    {row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
+                      <TableCell key={cell.id} className="py-3">
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading && !data?.length ? (
-              Array.from({ length: 5 }).map((_, rowIndex) => (
-                <TableRow key={rowIndex} className="hover:bg-transparent">
-                  {columns.map((_, colIndex) => (
-                    <TableCell key={colIndex} className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-4 bg-muted animate-pulse rounded ${colIndex === 0
-                            ? "w-48"
-                            : colIndex === columns.length - 1
-                              ? "w-8 ml-auto"
-                              : "w-24"
-                            }`}
-                        />
-                      </div>
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row: Row<TData>) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="group hover:bg-muted/10 transition-colors"
-                >
-                  {row.getVisibleCells().map((cell: Cell<TData, unknown>) => (
-                    <TableCell key={cell.id} className="py-3">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center border-none hover:bg-transparent"
-                >
-                  <EmptyPlaceholder
-                    title={emptyTitle}
-                    description={emptyDescription}
-                  />
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       {/* Pagination Controls */}

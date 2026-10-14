@@ -16,7 +16,7 @@ interface Props {
   showArchived: boolean;
   currentUserId: number;
   onSelect: (conv: Conversation) => void;
-  onArchive: (conversationId: number) => void;
+  onArchive: (conversationId: number, nextArchived: boolean) => void;
   onSearch: (q: string) => void;
   onRefresh: () => void;
   onToggleArchived: () => void;
@@ -45,10 +45,7 @@ export default function ConversationList({
     );
   });
 
-  const totalUnread = conversations.reduce(
-    (sum, c) => sum + (c.unread_count ?? 0),
-    0
-  );
+  const totalUnread = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
 
   return (
     <div className="flex flex-col h-full border-r border-zinc-200 dark:border-zinc-800">

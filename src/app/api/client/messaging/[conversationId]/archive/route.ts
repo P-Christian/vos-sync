@@ -39,8 +39,29 @@ export async function PATCH(
 
     const userId = session?.userId ? Number(session.userId) : 1;
 
-    const body = await req.json().catch(() => null);
-    const archive: boolean = body?.archive ?? true;
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body. Expected { "archive": boolean }.' },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const archiveValue: unknown =
+      typeof body === "object" && body !== null && "archive" in body
+        ? (body as { archive?: unknown }).archive
+        : undefined;
+
+    if (typeof archiveValue !== "boolean") {
+      return NextResponse.json(
+        { error: 'Invalid request body. Expected { "archive": boolean }.' },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    const archive: boolean = archiveValue;
 
     // Verify ownership
     const convRes = await fetch(
