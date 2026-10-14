@@ -153,11 +153,10 @@ export default function InterviewBigCalendar({
   const [customCancelReason, setCustomCancelReason] = useState("");
   const [cancelError, setCancelError] = useState("");
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   // Sync state with native browser fullscreen changes (e.g. Esc, F11, or button)
   useEffect(() => {
-    setMounted(true);
     const handleFullscreenChange = () => {
       const active = !!document.fullscreenElement;
       setIsFullscreen(active);
@@ -1438,7 +1437,7 @@ export default function InterviewBigCalendar({
                       Candidate Pipeline Action (Optional)
                     </Label>
                     <span className="text-xs md:text-[11px] text-zinc-400">
-                      Governed by job's ATS pipeline
+                      Governed by job&apos;s ATS pipeline
                     </span>
                   </div>
 
