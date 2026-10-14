@@ -2,7 +2,7 @@
 
 // src/modules/client/interviews/components/InterviewBigCalendar.tsx
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
