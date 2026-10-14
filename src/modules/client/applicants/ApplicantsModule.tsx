@@ -10,8 +10,9 @@ import AssessmentMoveConfirmModal from "./components/AssessmentMoveConfirmModal"
 import AssessmentReviewModal from "./components/AssessmentReviewModal";
 import ApplicantDetailsModal from "./components/ApplicantDetailsModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, AlertCircle, ArrowLeft } from "lucide-react";
+import { Users, AlertCircle, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import ListSkeleton from "../components/ListSkeleton";
 import { Applicant, ApplicationStatus, AssessmentMoveOutcome, STATUS_LABELS } from "./types";
 import {
   Dialog,
@@ -187,6 +188,11 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     }
     return counts;
   }, [rawApplicants]);
+
+  const needsReviewCount = React.useMemo(
+    () => rawApplicants.filter((a) => a.assessment_needs_review).length,
+    [rawApplicants]
+  );
 
   useEffect(() => {
     if (effectiveApplicationId) {
@@ -515,41 +521,47 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
         `}</style>
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-indigo-950 via-zinc-900 to-indigo-950 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-white p-4 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-          <div className="absolute -right-10 -top-10 h-40 w-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-              <Users className="h-7 w-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Applicant Management</h1>
-              <p className="text-sm text-zinc-300 mt-1">
-                {applicants.length} candidate{applicants.length !== 1 ? "s" : ""} shown
-              </p>
-            </div>
+        {/* ── Page Header (Clean Notifications-style layout) ─────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+              Applicant Management
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {applicants.length} candidate{applicants.length !== 1 ? "s" : ""} shown
+              {needsReviewCount > 0 && (
+                <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  {" "}· {needsReviewCount} {needsReviewCount === 1 ? "needs" : "need"} review
+                </span>
+              )}
+              {selectedJobTitle && (
+                <span>
+                  {" "}for <strong className="text-foreground">{selectedJobTitle}</strong>
+                </span>
+              )}
+            </p>
           </div>
 
           {/* Action Toolbar & Job Selector */}
-          <div className="flex flex-wrap items-center justify-end gap-3 relative z-10 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
             {/* Best Match AI Action Button */}
             {selectedJob && (
               <Button
                 onClick={toggleBestMatches}
                 variant={showBestMatches ? "secondary" : "default"}
-                className={`h-10 max-md:min-h-10 text-sm px-4 rounded-xl font-bold transition-all md:text-xs ${
-                  showBestMatches
-                    ? "bg-white text-zinc-900 hover:bg-zinc-100"
-                    : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
-                }`}
+                size="sm"
+                className="h-9 max-md:min-h-10 text-xs font-semibold rounded-xl gap-1.5 cursor-pointer shadow-xs"
               >
                 {showBestMatches ? (
-                  <span className="flex items-center gap-1.5">
+                  <>
                     <ArrowLeft className="h-3.5 w-3.5" />
                     All Applicants
-                  </span>
+                  </>
                 ) : (
-                  "Best Match AI"
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Best Match AI
+                  </>
                 )}
               </Button>
             )}
@@ -564,26 +576,17 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 value={jobIdParam || "ALL"}
                 onValueChange={handleJobChange}
                 placeholder="Filter by Job Posting"
-                className="h-10 max-md:min-h-10 max-md:h-10 max-md:px-3 text-white bg-white/10 border-white/20 hover:bg-white/15 focus:ring-offset-indigo-950 font-medium rounded-xl"
+                className="h-9 max-md:min-h-10 text-xs font-medium rounded-xl border border-border/80 bg-card/80 text-foreground hover:bg-card/95 focus:ring-primary/20"
               />
             </div>
           </div>
         </div>
 
         {/* Error Banner */}
-        {error && !drawerOpen && (
-          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+        {error && !drawerOpen && rawApplicants.length > 0 && (
+          <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
-          </div>
-        )}
-
-        {/* Selected Job Sub-Header if filter applied */}
-        {selectedJobTitle && (
-          <div className="flex items-center justify-between px-1">
-            <span className="text-sm font-semibold text-zinc-500 md:text-xs">
-              Filtering candidates for: <strong className="text-zinc-800 dark:text-zinc-200">{selectedJobTitle}</strong>
-            </span>
           </div>
         )}
 
@@ -597,11 +600,8 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
             onScheduleInterview={handleOpenSchedule}
           />
         ) : (
-          <Card className="shadow-lg border border-white/20 dark:border-zinc-800/40 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md py-0 gap-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-3">
-                Candidates
-              </CardTitle>
+          <Card className="rounded-2xl border border-primary/10 bg-card/70 dark:bg-card/50 backdrop-blur-xl shadow-xs py-0 gap-0 overflow-hidden">
+            <CardHeader className="p-4 sm:p-5 border-b border-border/60 bg-card/40">
               <ApplicantFilters
                 search={search}
                 onSearchChange={setSearch}
@@ -609,17 +609,22 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 onStatusChange={setFilterStatus}
                 counts={statusCounts}
                 pipelineStages={jobPipeline?.stages}
+                resultCount={loading ? undefined : applicants.length}
               />
             </CardHeader>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-4 sm:p-5">
               {loading ? (
-                <div className="flex items-center justify-center py-16 gap-3">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <span className="text-sm text-zinc-400 animate-pulse">Loading candidates...</span>
-                </div>
+                <ListSkeleton rows={5} label="Loading candidates…" />
               ) : (
                 <ApplicantList
                   applicants={applicants}
+                  totalCount={rawApplicants.length}
+                  error={error}
+                  onRetry={() => fetchApplicants(undefined, jobId)}
+                  onClearFilters={() => {
+                    setSearch("");
+                    setFilterStatus("ALL");
+                  }}
                   onUpdateStatus={handleUpdateStatus}
                   onQuickStatusUpdate={handleQuickStatusUpdate}
                   onQuickStageUpdate={handleQuickStageUpdate}
