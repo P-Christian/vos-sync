@@ -1,5 +1,5 @@
-// src/app/api/public/find-jobs/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import type { PublicJobPosting } from "@/modules/public/find-jobs/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -108,155 +108,183 @@ function computeRelevanceScore(
   return score;
 }
 
+export interface GetPublicJobsOptions {
+  q?: string;
+  jobType?: string;
+  workSetup?: string;
+  location?: string;
+  jobId?: string;
+  limit?: number;
+  page?: number;
+}
+
+export async function getPublicJobs(options: GetPublicJobsOptions = {}) {
+  if (!DIRECTUS_BASE) {
+    throw new Error("Directus API base URL not configured.");
+  }
+
+  const q = options.q?.trim().toLowerCase() || "";
+  const jobType = options.jobType?.trim() || "";
+  const workSetup = options.workSetup?.trim() || "";
+  const location = options.location?.trim() || "";
+  const jobId = options.jobId?.trim() || "";
+  const limit = Math.min(Number(options.limit || 12), 50);
+  const page = Math.max(Number(options.page || 1), 1);
+  const offset = (page - 1) * limit;
+
+  // Fetch active job postings from Directus
+  const jobsUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[status][_eq]=ACTIVE&sort[]=-created_at&limit=200&fields=*`;
+  const jobsRes = await fetch(jobsUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+
+  let rawJobs: Record<string, unknown>[] = [];
+  if (jobsRes.ok) {
+    const jobsJson = await jobsRes.json();
+    rawJobs = jobsJson.data || [];
+  } else {
+    const fallbackUrl = `${DIRECTUS_BASE}/items/vs_job_posting?sort[]=-created_at&limit=200&fields=*`;
+    const fallbackRes = await fetch(fallbackUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+    if (fallbackRes.ok) {
+      const fallbackJson = await fallbackRes.json();
+      rawJobs = fallbackJson.data || [];
+    }
+  }
+
+  if (jobId) {
+    rawJobs = rawJobs.filter((j) => String(j.job_id || j.id) === jobId);
+  }
+
+  // Fetch company details for master data lookup
+  const companyIds = Array.from(new Set(rawJobs.map((j) => Number(j.company_id)).filter(Boolean)));
+  const companyMap: Record<number, Record<string, unknown>> = {};
+
+  if (companyIds.length > 0) {
+    const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_code,company_name,company_logo,company_city,company_province,company_address,company_website,verification_status&limit=-1`;
+    const compRes = await fetch(compUrl, { headers: getDirectusHeaders(), cache: "no-store" });
+    if (compRes.ok) {
+      const compJson = await compRes.json();
+      (compJson.data || []).forEach((c: Record<string, unknown>) => {
+        companyMap[Number(c.company_id)] = c;
+      });
+    }
+  }
+
+  // Keyword Search with Relevance Sorting (Strictly Title, Company, and Category)
+  if (q) {
+    const scoredJobs = rawJobs
+      .map((j) => {
+        const cid = Number(j.company_id);
+        const comp = companyMap[cid] || {};
+        const title = String(j.job_title || "");
+        const compName = String(comp.company_name || j.company_name || "");
+        const category = String(j.job_category || "");
+
+        const score = computeRelevanceScore(q, title, compName, category);
+        return { job: j, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+
+    rawJobs = scoredJobs.map((item) => item.job);
+  }
+
+  // Job Type Filter (Normalized comparison: FULL_TIME, Full-Time -> Full Time)
+  if (jobType && jobType.toLowerCase() !== "all") {
+    const targetTypeNorm = normalizeString(jobType);
+    rawJobs = rawJobs.filter((j) => {
+      const rawTypeNorm = normalizeString(String(j.job_type || ""));
+      return rawTypeNorm === targetTypeNorm;
+    });
+  }
+
+  // Work Setup Filter (Normalized comparison: Remote, On-site, Hybrid)
+  if (workSetup && workSetup.toLowerCase() !== "all") {
+    const targetSetupNorm = normalizeString(workSetup);
+    rawJobs = rawJobs.filter((j) => {
+      const rawSetupNorm = normalizeString(String(j.work_arrangement || j.work_setup || ""));
+      return rawSetupNorm.includes(targetSetupNorm) || targetSetupNorm.includes(rawSetupNorm);
+    });
+  }
+
+  // Per-Word Location Filter
+  if (location) {
+    rawJobs = rawJobs.filter((j) => {
+      const cid = Number(j.company_id);
+      const comp = companyMap[cid] || {};
+      const compLoc = [comp.company_city, comp.company_province, comp.company_address].filter(Boolean).join(" ");
+      const jobLoc = String(j.job_location || j.location || "");
+      const fullLocationText = `${jobLoc} ${compLoc} Philippines`;
+      return matchesLocation(location, fullLocationText);
+    });
+  }
+
+  const totalCount = rawJobs.length;
+  const paginatedJobs = rawJobs.slice(offset, offset + limit);
+
+  // Format output with normalized strings
+  const formattedJobs: PublicJobPosting[] = paginatedJobs.map((j) => {
+    const cid = Number(j.company_id);
+    const comp = companyMap[cid] || {};
+    const logoRaw = (comp.company_logo || j.company_logo) as string | null;
+
+    const logoUrl = logoRaw
+      ? logoRaw.startsWith("http") || logoRaw.startsWith("/")
+        ? logoRaw
+        : `/api/assets/${logoRaw}`
+      : null;
+
+    const compLoc = [comp.company_city, comp.company_province].filter(Boolean).map(String).join(", ");
+    const jobLoc = String(j.job_location || j.location || compLoc || "Philippines");
+
+    return {
+      job_id: Number(j.job_id || j.id),
+      company_id: cid,
+      company_code: (comp.company_code as string) || null,
+      company_name: String(comp.company_name || j.company_name || "Hiring Organization"),
+      company_logo_url: logoUrl,
+      company_location: compLoc || jobLoc,
+      company_verification_status: String(comp.verification_status || "VERIFIED"),
+
+      job_title: String(j.job_title || "Open Position"),
+      job_description: String(j.job_description || ""),
+      job_type: formatJobType(String(j.job_type || "Full Time")),
+      work_setup: formatWorkSetup(String(j.work_arrangement || j.work_setup || "On-site")),
+      location: jobLoc,
+
+      salary_min: j.salary_min != null ? Number(j.salary_min) : null,
+      salary_max: j.salary_max != null ? Number(j.salary_max) : null,
+      salary_currency: String(j.currency || j.salary_currency || "PHP"),
+      show_salary_range: typeof j.show_salary_range === "boolean" ? j.show_salary_range : true,
+
+      experience_level: String(j.experience_level || "Not Specified"),
+      status: String(j.status || "ACTIVE"),
+      created_at: String(j.created_at || j.date_created || new Date().toISOString()),
+    };
+  });
+
+  return {
+    data: formattedJobs,
+    meta: {
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+    },
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
-    if (!DIRECTUS_BASE) {
-      return NextResponse.json({ error: "Directus API base URL not configured." }, { status: 500 });
-    }
-
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get("q")?.trim().toLowerCase() || "";
+    const q = searchParams.get("q")?.trim() || "";
     const jobType = searchParams.get("job_type")?.trim() || "";
     const workSetup = searchParams.get("work_setup")?.trim() || "";
     const location = searchParams.get("location")?.trim() || "";
+    const jobId = searchParams.get("job_id")?.trim() || "";
     const limit = Math.min(Number(searchParams.get("limit") || 12), 50);
     const page = Math.max(Number(searchParams.get("page") || 1), 1);
-    const offset = (page - 1) * limit;
 
-    // Fetch active job postings from Directus
-    const jobsUrl = `${DIRECTUS_BASE}/items/vs_job_posting?filter[status][_eq]=ACTIVE&sort[]=-created_at&limit=200&fields=*`;
-    const jobsRes = await fetch(jobsUrl, { headers: getDirectusHeaders(), cache: "no-store" });
-
-    let rawJobs: Record<string, unknown>[] = [];
-    if (jobsRes.ok) {
-      const jobsJson = await jobsRes.json();
-      rawJobs = jobsJson.data || [];
-    } else {
-      const fallbackUrl = `${DIRECTUS_BASE}/items/vs_job_posting?sort[]=-created_at&limit=200&fields=*`;
-      const fallbackRes = await fetch(fallbackUrl, { headers: getDirectusHeaders(), cache: "no-store" });
-      if (fallbackRes.ok) {
-        const fallbackJson = await fallbackRes.json();
-        rawJobs = fallbackJson.data || [];
-      }
-    }
-
-    // Fetch company details for master data lookup
-    const companyIds = Array.from(new Set(rawJobs.map((j) => Number(j.company_id)).filter(Boolean)));
-    const companyMap: Record<number, Record<string, unknown>> = {};
-
-    if (companyIds.length > 0) {
-      const compUrl = `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${companyIds.join(",")}&fields=company_id,company_code,company_name,company_logo,company_city,company_province,company_address,company_website,verification_status&limit=-1`;
-      const compRes = await fetch(compUrl, { headers: getDirectusHeaders(), cache: "no-store" });
-      if (compRes.ok) {
-        const compJson = await compRes.json();
-        (compJson.data || []).forEach((c: Record<string, unknown>) => {
-          companyMap[Number(c.company_id)] = c;
-        });
-      }
-    }
-
-    // Keyword Search with Relevance Sorting (Strictly Title, Company, and Category)
-    if (q) {
-      const scoredJobs = rawJobs
-        .map((j) => {
-          const cid = Number(j.company_id);
-          const comp = companyMap[cid] || {};
-          const title = String(j.job_title || "");
-          const compName = String(comp.company_name || j.company_name || "");
-          const category = String(j.job_category || "");
-
-          const score = computeRelevanceScore(q, title, compName, category);
-          return { job: j, score };
-        })
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score);
-
-      rawJobs = scoredJobs.map((item) => item.job);
-    }
-
-    // Job Type Filter (Normalized comparison: FULL_TIME, Full-Time -> Full Time)
-    if (jobType && jobType.toLowerCase() !== "all") {
-      const targetTypeNorm = normalizeString(jobType);
-      rawJobs = rawJobs.filter((j) => {
-        const rawTypeNorm = normalizeString(String(j.job_type || ""));
-        return rawTypeNorm === targetTypeNorm;
-      });
-    }
-
-    // Work Setup Filter (Normalized comparison: Remote, On-site, Hybrid)
-    if (workSetup && workSetup.toLowerCase() !== "all") {
-      const targetSetupNorm = normalizeString(workSetup);
-      rawJobs = rawJobs.filter((j) => {
-        const rawSetupNorm = normalizeString(String(j.work_arrangement || j.work_setup || ""));
-        return rawSetupNorm.includes(targetSetupNorm) || targetSetupNorm.includes(rawSetupNorm);
-      });
-    }
-
-    // Per-Word Location Filter
-    if (location) {
-      rawJobs = rawJobs.filter((j) => {
-        const cid = Number(j.company_id);
-        const comp = companyMap[cid] || {};
-        const compLoc = [comp.company_city, comp.company_province, comp.company_address].filter(Boolean).join(" ");
-        const jobLoc = String(j.job_location || j.location || "");
-        const fullLocationText = `${jobLoc} ${compLoc} Philippines`;
-        return matchesLocation(location, fullLocationText);
-      });
-    }
-
-    const totalCount = rawJobs.length;
-    const paginatedJobs = rawJobs.slice(offset, offset + limit);
-
-    // Format output with normalized strings
-    const formattedJobs = paginatedJobs.map((j) => {
-      const cid = Number(j.company_id);
-      const comp = companyMap[cid] || {};
-      const logoRaw = (comp.company_logo || j.company_logo) as string | null;
-
-      const logoUrl = logoRaw
-        ? logoRaw.startsWith("http") || logoRaw.startsWith("/")
-          ? logoRaw
-          : `/api/assets/${logoRaw}`
-        : null;
-
-      const compLoc = [comp.company_city, comp.company_province].filter(Boolean).join(", ");
-      const jobLoc = (j.job_location || j.location as string) || compLoc || "Philippines";
-
-      return {
-        job_id: Number(j.job_id || j.id),
-        company_id: cid,
-        company_code: (comp.company_code as string) || null,
-        company_name: (comp.company_name as string) || (j.company_name as string) || "Hiring Organization",
-        company_logo_url: logoUrl,
-        company_location: compLoc || jobLoc,
-        company_verification_status: comp.verification_status || "VERIFIED",
-
-        job_title: String(j.job_title || "Open Position"),
-        job_description: String(j.job_description || ""),
-        job_type: formatJobType(String(j.job_type || "Full Time")),
-        work_setup: formatWorkSetup(String(j.work_arrangement || j.work_setup || "On-site")),
-        location: jobLoc,
-
-        salary_min: j.salary_min != null ? Number(j.salary_min) : null,
-        salary_max: j.salary_max != null ? Number(j.salary_max) : null,
-        salary_currency: (j.currency || j.salary_currency as string) || "PHP",
-        show_salary_range: j.show_salary_range ?? true,
-
-        experience_level: String(j.experience_level || "Not Specified"),
-        status: String(j.status || "ACTIVE"),
-        created_at: String(j.created_at || j.date_created || new Date().toISOString()),
-      };
-    });
-
-    return NextResponse.json({
-      data: formattedJobs,
-      meta: {
-        total: totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit) || 1,
-      },
-    });
+    const result = await getPublicJobs({ q, jobType, workSetup, location, jobId, limit, page });
+    return NextResponse.json(result);
   } catch (err: unknown) {
     console.error("GET /api/public/find-jobs error:", err);
     return NextResponse.json(
