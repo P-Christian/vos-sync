@@ -86,8 +86,8 @@ export function ClientOnboardingCard({ company, activeJobsCount }: ClientOnboard
         transition={{ duration: 0.3 }}
         className="overflow-hidden"
       >
-        <Card className="border border-[#E6EAF2] dark:border-[#1E2942] bg-white dark:bg-[#121A2E] rounded-2xl shadow-[0_1px_2px_rgba(16,24,40,0.04)] dark:shadow-none overflow-hidden relative">
-          <CardHeader className="p-4 sm:p-5 pb-3 flex flex-row items-center justify-between border-b border-[#E6EAF2]/60 dark:border-[#1E2942]">
+        <Card className="border border-primary/15 bg-card/85 dark:bg-card/75 backdrop-blur-md rounded-2xl shadow-sm overflow-hidden relative">
+          <CardHeader className="p-4 sm:p-5 pb-3 flex flex-row items-center justify-between border-b border-primary/10">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <Sparkles className="h-4 w-4" />

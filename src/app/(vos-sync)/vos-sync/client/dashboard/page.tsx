@@ -1,9 +1,12 @@
 // src/app/(vos-sync)/vos-sync/client/dashboard/page.tsx
 import * as React from "react";
 import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
+import { PageContainer } from "@/components/shared/layout/PageContainer";
 import DashboardModule from "@/modules/client/dashboard";
 import { cookies } from "next/headers";
 import { getClientProfile } from "@/modules/client/settings/services/client-profile.service";
+import { getClientDashboardData } from "@/modules/client/dashboard/services/client-dashboard.service";
+import type { DashboardData } from "@/modules/client/dashboard/types";
 import { formatAssetUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -15,6 +18,15 @@ export default async function clientDashboardPage() {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
     const profile = token ? await getClientProfile(token) : null;
+
+    let initialDashboardData: DashboardData | null = null;
+    if (profile?.user_id) {
+        try {
+            initialDashboardData = await getClientDashboardData(profile.user_id);
+        } catch (err) {
+            console.error("Failed to pre-render client dashboard metrics:", err);
+        }
+    }
 
     const headerUser = {
         name: profile
@@ -28,9 +40,9 @@ export default async function clientDashboardPage() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <PortalPageHeader user={headerUser} />
 
-            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
-                <DashboardModule userName={headerUser.name} />
-            </main>
+            <PageContainer>
+                <DashboardModule userName={headerUser.name} initialData={initialDashboardData} />
+            </PageContainer>
         </div>
     );
 }

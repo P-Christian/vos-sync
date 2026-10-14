@@ -8,7 +8,7 @@ export default function DashboardSkeleton() {
   return (
     <div className="space-y-6 pb-12 animate-pulse">
       {/* Header Skeleton */}
-      <div className="h-28 rounded-2xl border bg-card p-6 flex items-center justify-between">
+      <div className="h-28 rounded-2xl border border-primary/15 bg-card/70 dark:bg-card/60 backdrop-blur-xl p-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-2xl bg-muted" />
           <div className="space-y-2">
@@ -22,7 +22,7 @@ export default function DashboardSkeleton() {
       {/* KPI Cards Skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border bg-card p-5 rounded-2xl py-0">
+          <Card key={i} className="border border-primary/15 bg-card/70 dark:bg-card/60 backdrop-blur-xl p-5 rounded-2xl py-0">
             <CardContent className="p-0 space-y-4">
               <div className="flex justify-between items-center">
                 <div className="h-4 w-24 bg-muted rounded" />
@@ -38,7 +38,7 @@ export default function DashboardSkeleton() {
       </div>
 
       {/* Chart Skeleton */}
-      <Card className="border bg-card rounded-2xl p-6">
+      <Card className="border border-primary/10 bg-card/90 dark:bg-card/85 backdrop-blur-md rounded-2xl p-6">
         <CardHeader className="p-0 pb-4 flex flex-row items-center justify-between">
           <div className="space-y-2">
             <div className="h-5 w-36 bg-muted rounded" />
@@ -52,7 +52,7 @@ export default function DashboardSkeleton() {
       {/* 2x2 Grid Skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border bg-card rounded-2xl p-5 min-h-[300px] flex flex-col justify-between">
+          <Card key={i} className="border border-primary/10 bg-card/90 dark:bg-card/85 backdrop-blur-md rounded-2xl p-5 min-h-[300px] flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-border/40">
                 <div className="h-5 w-32 bg-muted rounded" />

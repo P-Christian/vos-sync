@@ -104,11 +104,11 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
       transition={{ duration: 0.35, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       className="h-full"
     >
-      <Card className="border bg-card rounded-2xl shadow-2xs overflow-hidden flex flex-col justify-between h-full py-0">
+      <Card className="bg-card/80 backdrop-blur-md border border-border/70 shadow-panel hover:shadow-panel-hover hover:border-primary/30 transition-[box-shadow,border-color] duration-200 rounded-2xl overflow-hidden flex flex-col justify-between h-full py-0">
         <div>
           <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between border-b border-border/60">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/15 to-sky-500/20 text-primary ring-1 ring-primary/15 flex items-center justify-center">
                 <Users className="h-4 w-4" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">Recent Applicants</CardTitle>
@@ -126,8 +126,19 @@ export default function RecentApplicantsCard({ applicants }: RecentApplicantsCar
 
           <CardContent className="p-0">
             {applicants.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground text-sm md:text-xs">
-                No recent candidate applications.
+              <div className="py-12 px-6 text-center text-muted-foreground dark:text-[#8A94AD] text-sm md:text-xs space-y-3">
+                <Users className="h-9 w-9 mx-auto text-muted-foreground/50" />
+                <p className="font-semibold text-foreground dark:text-[#E6EAF5]">No applications this week</p>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                  Boost your active job posts to increase applicant visibility.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => router.push("/vos-sync/client/jobs")}
+                  className="rounded-xl font-semibold text-xs h-8 px-4 mt-2"
+                >
+                  Boost Your Job Posts
+                </Button>
               </div>
             ) : (
               <div className="divide-y divide-border/60">
