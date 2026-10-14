@@ -156,7 +156,7 @@ export function ClientNotificationDropdown({
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
               <BellOff className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p className="text-xs font-semibold text-foreground">You're all caught up</p>
+            <p className="text-xs font-semibold text-foreground">You&apos;re all caught up</p>
             <p className="text-[11px] text-muted-foreground">New activity will show up here.</p>
           </div>
         ) : (
