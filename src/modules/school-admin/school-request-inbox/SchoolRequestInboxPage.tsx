@@ -274,7 +274,7 @@ export function SchoolRequestInboxPage({ belowHeader }: SchoolRequestInboxPagePr
   return (
     <div className="w-[90%] max-w-[2000px] mx-auto space-y-6" data-testid="school-request-inbox">
       <SchoolAdminModuleHeader
-        title="Attendance Requests"
+        title="Alumni Verification Requests"
         description="Review requests from students who listed your school. Approve to verify their education, or reject with a reason."
         icon={ClipboardCheck}
         actions={headerActions}

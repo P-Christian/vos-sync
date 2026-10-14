@@ -14,7 +14,7 @@ interface Props {
   isActive: boolean;
   currentUserId: number;
   onSelect: (conv: Conversation) => void;
-  onArchive: (conversationId: number) => void;
+  onArchive: (conversationId: number, nextArchived: boolean) => void;
 }
 
 function formatTime(dateStr: string | null | undefined): string {
@@ -123,7 +123,12 @@ export default function ConversationItem({
       role="button"
       tabIndex={0}
       onClick={() => onSelect(conversation)}
-      onKeyDown={(e) => e.key === "Enter" && onSelect(conversation)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(conversation);
+        }
+      }}
       className={cn(
         "group relative flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-all border-b border-zinc-100 dark:border-zinc-800/60",
         isActive
@@ -226,9 +231,10 @@ export default function ConversationItem({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onArchive(conversation_id);
+          onArchive(conversation_id, !archived_by_freelancer);
         }}
         title={archived_by_freelancer ? "Unarchive" : "Archive"}
+        aria-label={archived_by_freelancer ? "Unarchive" : "Archive"}
         className="absolute right-3 top-3.5 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-md bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-500 dark:text-zinc-400 transition-all max-md:flex max-md:size-11"
       >
         {archived_by_freelancer ? (
