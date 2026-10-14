@@ -1,61 +1,86 @@
 "use client";
 
-import React, { useState } from "react";
-import { DashboardStats } from "./DashboardStats";
+import React from "react";
+import { DashboardGreetingHeader } from "./DashboardGreetingHeader";
+import { DashboardKpiStats } from "./DashboardKpiStats";
+import { AIJobRecommendations } from "./AIJobRecommendations";
+import { ApplicationPipelineDonut } from "./ApplicationPipelineDonut";
+import { SkillsMatchBarChart } from "./SkillsMatchBarChart";
 import { RecentApplicationsPreview } from "./RecentApplicationsPreview";
 import { RecentMessagesPreview } from "./RecentMessagesPreview";
-import { AIJobRecommendations } from "./AIJobRecommendations";
-import { ProfileCompletenessBanner } from "./ProfileCompletenessBanner";
+import { useFreelancerDashboardData } from "../hooks/useFreelancerDashboardData";
 
 export function FreelancerDashboard() {
-    const [activeSection, setActiveSection] = useState(0);
+    const { applications, summary, conversations, recommendations, coreLoading, aiLoading } = useFreelancerDashboardData();
+
+    const topMatch = React.useMemo(() => {
+        if (recommendations && recommendations.length > 0) {
+            return {
+                score: recommendations[0].match_percentage || 95,
+                title: recommendations[0].job_title || null,
+            };
+        }
+        return { score: null, title: null };
+    }, [recommendations]);
 
     return (
-        <div className="w-full h-full flex flex-col space-y-4 md:space-y-8">
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
-                {/* Left Column: Stats & Activity (takes up 2 columns on xl screens) */}
-                <div className="xl:col-span-2 flex flex-col space-y-4 md:space-y-8">
-                    {/* Stats Row */}
-                    <section aria-label="Dashboard Statistics">
-                        <DashboardStats />
-                    </section>
-
-                    <section aria-label="Profile Completeness">
-                        <ProfileCompletenessBanner />
-                    </section>
-
-                    {/* Mobile-only switcher for the three activity panels */}
-                    <div className="md:hidden flex items-center gap-1 rounded-xl border bg-card p-1">
-                        {["Applications", "Messages", "AI Matches"].map((label, i) => (
-                            <button
-                                key={label}
-                                type="button"
-                                onClick={() => setActiveSection(i)}
-                                className={`flex-1 min-h-11 rounded-lg px-2 py-1 text-[11px] leading-tight text-center font-medium transition-colors ${activeSection === i ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Activity Row (Applications and Messages side-by-side on md+ screens) */}
-                    <section aria-label="Recent Activity" className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                        <div className={`min-h-[400px] max-md:min-h-0${activeSection === 0 ? "" : " max-md:hidden"}`}>
-                            <RecentApplicationsPreview />
-                        </div>
-                        <div className={`min-h-[400px] max-md:min-h-0${activeSection === 1 ? "" : " max-md:hidden"}`}>
-                            <RecentMessagesPreview />
-                        </div>
-                    </section>
+        <div className="w-full h-full flex flex-col space-y-6">
+            {/* ROW 1: Greeting Welcome Card (5 cols) + 3 KPI Stats (7 cols) with Top Accent Colors */}
+            <section aria-label="Overview & Key Metrics" className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                <div className="lg:col-span-5">
+                    <DashboardGreetingHeader />
                 </div>
-
-                {/* Right Column: AI Job Recommendations (takes up 1 column on xl screens) */}
-                <div className={`xl:col-span-1 min-h-[400px] xl:min-h-full max-md:min-h-0${activeSection === 2 ? "" : " max-md:hidden"}`}>
-                    <section aria-label="AI Job Recommendations" className="h-full">
-                        <AIJobRecommendations />
-                    </section>
+                <div className="lg:col-span-7">
+                    <DashboardKpiStats
+                        topMatchScore={topMatch.score}
+                        topMatchTitle={topMatch.title}
+                        summary={summary}
+                        conversations={conversations}
+                        applications={applications}
+                        loading={coreLoading}
+                    />
                 </div>
-            </div>
+            </section>
+
+            {/* ROW 2: Visual Charts & Analytics (Donut Pipeline 5 cols + Skills Bar 7 cols) */}
+            <section aria-label="Visual Analytics & Career Insights" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                <div className="lg:col-span-5 flex flex-col min-h-[300px]">
+                    <ApplicationPipelineDonut
+                        applications={applications}
+                        loading={coreLoading}
+                    />
+                </div>
+                <div className="lg:col-span-7 flex flex-col min-h-[300px]">
+                    <SkillsMatchBarChart
+                        recommendations={recommendations}
+                        loading={aiLoading}
+                    />
+                </div>
+            </section>
+
+            {/* ROW 3: Asymmetric AI Job Spotlight (#1 Featured 7 cols + #2 & #3 Stacked 5 cols) */}
+            <section aria-label="AI Job Matches">
+                <AIJobRecommendations
+                    jobs={recommendations}
+                    loading={aiLoading}
+                />
+            </section>
+
+            {/* ROW 4: Recent Applications & Messages (Clean 2-Column Split) */}
+            <section aria-label="Recent Applications & Activity" className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                <div className="min-h-[360px] flex flex-col">
+                    <RecentApplicationsPreview
+                        applications={applications}
+                        loading={coreLoading}
+                    />
+                </div>
+                <div className="min-h-[360px] flex flex-col">
+                    <RecentMessagesPreview
+                        conversations={conversations}
+                        loading={coreLoading}
+                    />
+                </div>
+            </section>
         </div>
     );
 }

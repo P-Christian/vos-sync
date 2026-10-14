@@ -31,14 +31,9 @@ export default async function FreelancerDashboardPage() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <FreelancerPageHeader label="Dashboard" user={user} showNewBadge={showNewBadge} />
 
-            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8">
-                <div className="w-full mt-4 md:mt-8">
-                    <h1 className="text-2xl md:text-3xl font-bold text-foreground">Welcome back, {profile?.user_fname || 'Guest'}</h1>
-                    <p className="text-muted-foreground mt-2">Here is a summary of your activity on Vos Sync.</p>
-                    
-                    <div className="mt-4 md:mt-8">
-                        <FreelancerDashboard />
-                    </div>
+            <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] dark:bg-background">
+                <div className="max-w-7xl mx-auto w-full">
+                    <FreelancerDashboard />
                 </div>
             </main>
         </div>

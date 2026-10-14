@@ -90,6 +90,32 @@ export interface ApplicationItem {
   referrer_name?: string | null;
   // Populated client-side from the per-application assessment endpoint.
   assessment?: ApplicationAssessmentInfo | null;
+  // ATS Pipeline dynamic stage fields
+  current_stage_id?: number | null;
+  current_stage?: {
+    id: number;
+    stage_name: string;
+    stage_type: string;
+    stage_order: number;
+    color: string;
+    description?: string | null;
+    is_terminal: boolean;
+  } | null;
+  pipeline_stages?: Array<{
+    id: number;
+    stage_name: string;
+    stage_type: string;
+    stage_order: number;
+    color: string;
+    description?: string | null;
+    is_terminal: boolean;
+  }>;
+  stage_history?: Array<{
+    id: number;
+    from_stage_id?: number | null;
+    to_stage_id: number;
+    created_at?: string;
+  }>;
 }
 
 export interface ApplicationSummary {
