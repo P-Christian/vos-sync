@@ -3,11 +3,16 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { useConversations } from "@/modules/freelancer/freelancer-messaging/hooks/useConversations";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+
+const AVATAR_GRADIENTS = [
+    "from-indigo-600 to-blue-500",
+    "from-blue-600 to-cyan-500",
+    "from-amber-600 to-orange-500",
+    "from-purple-600 to-pink-500",
+    "from-emerald-600 to-teal-500",
+];
 
 export function RecentMessagesPreview() {
     const { conversations, loading, loadConversations } = useConversations();
@@ -16,19 +21,16 @@ export function RecentMessagesPreview() {
         loadConversations();
     }, [loadConversations]);
 
-    // Sort by unread first, then by last message time, and take top 3
     const recentConversations = [...conversations]
         .sort((a, b) => {
             const unreadA = a.unread_count || 0;
             const unreadB = b.unread_count || 0;
             if (unreadA > 0 && unreadB === 0) return -1;
             if (unreadB > 0 && unreadA === 0) return 1;
-            
+
             const timeA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
             const timeB = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
-            const validTimeA = isNaN(timeA) ? 0 : timeA;
-            const validTimeB = isNaN(timeB) ? 0 : timeB;
-            return validTimeB - validTimeA;
+            return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
         })
         .slice(0, 3);
 
@@ -36,98 +38,124 @@ export function RecentMessagesPreview() {
         if (!name) return "U";
         return name
             .split(" ")
+            .filter(Boolean)
             .map((n) => n[0])
             .join("")
             .toUpperCase()
             .substring(0, 2);
     };
 
+    const formatMessageTime = (dateStr?: string | null) => {
+        if (!dateStr) return "Recently";
+        try {
+            return formatDistanceToNow(new Date(dateStr), { addSuffix: false });
+        } catch {
+            return "Recently";
+        }
+    };
+
     if (loading) {
         return (
-            <Card className="flex flex-col h-full">
-                <CardHeader>
-                    <CardTitle className="text-lg">Recent Messages</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex items-center space-x-4 p-2 animate-pulse">
-                            <div className="h-10 w-10 rounded-full bg-muted/20"></div>
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-muted rounded w-1/2"></div>
-                                <div className="h-3 bg-muted rounded w-3/4"></div>
+            <div className="bg-white dark:bg-card rounded-2xl border border-slate-200/90 dark:border-border shadow-sm p-6 space-y-4 animate-pulse">
+                <div className="flex justify-between items-center pb-4 border-b border-slate-100 dark:border-border">
+                    <div className="h-4 w-36 bg-slate-200 dark:bg-muted rounded"></div>
+                    <div className="h-3 w-16 bg-slate-100 dark:bg-muted rounded"></div>
+                </div>
+                {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center justify-between py-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-muted"></div>
+                            <div className="space-y-1.5">
+                                <div className="h-3.5 w-32 bg-slate-200 dark:bg-muted rounded"></div>
+                                <div className="h-2.5 w-40 bg-slate-100 dark:bg-muted rounded"></div>
                             </div>
                         </div>
-                    ))}
-                </CardContent>
-            </Card>
+                        <div className="h-3 w-12 bg-slate-100 dark:bg-muted rounded"></div>
+                    </div>
+                ))}
+            </div>
         );
     }
 
     return (
-        <Card className="flex flex-col h-full">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="space-y-1">
-                    <CardTitle className="text-lg">Recent Messages</CardTitle>
-                    <CardDescription>Your latest conversations</CardDescription>
-                </div>
-                <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                    <Link href="/vos-sync/freelancer/messaging">
-                        View All <ArrowRight className="ml-2 h-4 w-4" />
+        <div className="bg-white dark:bg-card rounded-2xl border border-slate-200/90 dark:border-border shadow-sm overflow-hidden transition-colors flex flex-col justify-between h-full">
+            <div>
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-border flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-foreground">Recent Messages</h3>
+                        <p className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5">Your latest conversations</p>
+                    </div>
+                    <Link
+                        href="/vos-sync/freelancer/messaging"
+                        className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors"
+                    >
+                        View All <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
-                </Button>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col">
+                </div>
+
+                {/* Un-nested List */}
                 {recentConversations.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center h-full">
-                        <MessageSquare className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                        <h3 className="font-medium text-foreground">No messages yet</h3>
-                        <p className="text-sm text-muted-foreground mt-1 max-w-[200px]">
-                            When employers contact you, their messages will appear here.
-                        </p>
+                    <div className="p-8 text-center">
+                        <p className="text-xs text-slate-500 dark:text-muted-foreground">No conversations yet.</p>
                     </div>
                 ) : (
-                    <div className="space-y-1">
-                        {recentConversations.map((conv) => (
-                            <Link 
-                                key={conv.conversation_id} 
-                                href={`/vos-sync/freelancer/messaging?conversationId=${conv.conversation_id}`}
-                                className={`flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors ${
-                                    (conv.unread_count || 0) > 0 ? "bg-primary/5 border-l-2 border-primary" : ""
-                                }`}
-                            >
-                                <Avatar className="h-10 w-10 border">
-                                    <AvatarImage src={conv.other_party_avatar || undefined} alt={conv.other_party_name} />
-                                    <AvatarFallback>{getInitials(conv.other_party_name)}</AvatarFallback>
-                                </Avatar>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between max-md:flex-wrap">
-                                        <h4 className={`text-sm truncate ${(conv.unread_count || 0) > 0 ? "font-semibold" : "font-medium"}`}>
-                                            {conv.other_party_name}
-                                        </h4>
-                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2 flex items-center">
-                                            {conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime()) ? formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, includeSeconds: false }).replace('about ', '') : ""}
+                    <div className="divide-y divide-slate-100 dark:divide-border">
+                        {recentConversations.map((conv, idx) => {
+                            const name = conv.other_party_name || "Employer";
+                            const gradient = AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length];
+                            const isUnread = (conv.unread_count || 0) > 0;
+
+                            return (
+                                <Link
+                                    key={conv.conversation_id}
+                                    href={`/vos-sync/freelancer/messaging?conversationId=${conv.conversation_id}`}
+                                    className="px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-muted/40 transition group cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-3.5 min-w-0 pr-3">
+                                        {conv.other_party_avatar ? (
+                                            <img
+                                                src={conv.other_party_avatar}
+                                                alt={name}
+                                                className="w-9 h-9 rounded-full object-cover shrink-0 border border-slate-200/80 dark:border-border shadow-sm"
+                                                onError={(e) => {
+                                                    // Fallback to initials if image fails to load
+                                                    e.currentTarget.style.display = "none";
+                                                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                                    if (fallback) fallback.style.display = "flex";
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div
+                                            className={`w-9 h-9 rounded-full bg-gradient-to-tr ${gradient} text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-sm ${
+                                                conv.other_party_avatar ? "hidden" : ""
+                                            }`}
+                                        >
+                                            {getInitials(name)}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                {name}
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-muted-foreground truncate">
+                                                {conv.last_message_preview || "No message preview"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {isUnread && (
+                                            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                        )}
+                                        <span className="text-xs text-slate-400 dark:text-muted-foreground">
+                                            {formatMessageTime(conv.last_message_at)}
                                         </span>
                                     </div>
-                                    <p className={`text-xs truncate mt-0.5 ${(conv.unread_count || 0) > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                                        {conv.last_message_preview || "Sent a message"}
-                                    </p>
-                                </div>
-                                {(conv.unread_count || 0) > 0 && (
-                                    <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
-                                )}
-                            </Link>
-                        ))}
+                                </Link>
+                            );
+                        })}
                     </div>
                 )}
-
-                {recentConversations.length > 0 && (
-                    <Button variant="ghost" size="sm" asChild className="w-full mt-4 sm:hidden max-md:min-h-11">
-                        <Link href="/vos-sync/freelancer/messaging">
-                            View All Messages
-                        </Link>
-                    </Button>
-                )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
