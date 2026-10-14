@@ -16,7 +16,7 @@ interface Props {
   disabled?: boolean;
   sending?: boolean;
   uploading?: boolean;
-  onSend: (content: string, files: File[]) => void;
+  onSend: (content: string, files: File[]) => Promise<boolean>;
 }
 
 function getFileIcon(mimeType: string) {
@@ -76,9 +76,10 @@ export default function MessageInput({
     });
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!canSend) return;
-    onSend(content.trim(), pendingFiles.map((pf) => pf.file));
+    const ok = await onSend(content.trim(), pendingFiles.map((pf) => pf.file));
+    if (!ok) return;
     setContent("");
     pendingFiles.forEach((pf) => {
       if (pf.preview) URL.revokeObjectURL(pf.preview);
@@ -141,6 +142,7 @@ export default function MessageInput({
                   type="button"
                   onClick={() => removeFile(i)}
                   disabled={isBusy}
+                  aria-label={`Remove ${pf.file.name}`}
                   className="absolute right-1.5 top-1.5 p-0.5 rounded-full text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition disabled:opacity-50 disabled:cursor-not-allowed max-md:size-11 max-md:grid max-md:place-items-center"
                 >
                   <X className="h-3 w-3" />
@@ -173,6 +175,7 @@ export default function MessageInput({
             onClick={() => fileInputRef.current?.click()}
             disabled={isBusy}
             title="Attach file"
+            aria-label="Attach file"
             className="p-1.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-slate-200/50 dark:hover:bg-zinc-700/50 transition shrink-0 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
           >
             <Paperclip className="h-4.5 w-4.5" />
@@ -184,6 +187,7 @@ export default function MessageInput({
           type="button"
           onClick={handleSend}
           disabled={!canSend}
+          aria-label="Send message"
           className={cn(
             "h-10 w-10 rounded-full flex items-center justify-center transition-all shrink-0 max-md:size-11",
             canSend

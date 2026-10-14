@@ -91,19 +91,21 @@ export function useConversations() {
   // ─── Archive conversation ──────────────────────────────────────────────
 
   const archive = useCallback(
-    async (conversationId: number, doArchive: boolean) => {
+    async (conversationId: number, doArchive: boolean): Promise<boolean> => {
       setError("");
       try {
         await archiveConversation(conversationId, doArchive);
         setConversations((prev) =>
           prev.filter((c) => c.conversation_id !== conversationId)
         );
+        return true;
       } catch (err: unknown) {
         setError(
           err instanceof Error
             ? err.message
             : "Failed to archive conversation."
         );
+        return false;
       }
     },
     []

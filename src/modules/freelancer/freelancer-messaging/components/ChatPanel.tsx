@@ -29,7 +29,7 @@ interface Props {
   sending: boolean;
   uploading: boolean;
   error: string;
-  onSend: (content: string, files: File[]) => void;
+  onSend: (content: string, files: File[]) => Promise<boolean>;
   onRefresh: () => void;
   onLoadOlder?: () => void;
   onBack?: () => void;
@@ -238,6 +238,7 @@ export default function ChatPanel({
         {onBack && (
           <button
             onClick={onBack}
+            aria-label="Back to conversations"
             className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition max-md:size-11 max-md:grid max-md:place-items-center"
           >
             <ArrowLeft className="h-4 w-4" />
