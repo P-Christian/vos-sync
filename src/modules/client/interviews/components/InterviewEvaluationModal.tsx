@@ -14,9 +14,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { SearchableSelect } from "@/components/ui/searchable-select";
-import { Award, Loader2, CheckCircle, XCircle, User, Lock } from "lucide-react";
+import { Award, Loader2, CheckCircle, XCircle, User, Lock, ArrowRightCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 
 interface InterviewEvaluationModalProps {
   interview: Interview | null;
@@ -37,7 +39,8 @@ export default function InterviewEvaluationModal({
   const [selectedAppId, setSelectedAppId] = useState<number>(0);
   const [attendanceStatus, setAttendanceStatus] = useState<AttendanceStatus>("ATTENDED");
   const [feedbackText, setFeedbackText] = useState<string>("");
-  const [decision, setDecision] = useState<"HIRED" | "REJECTED" | "NO_ACTION">("NO_ACTION");
+  const [decisionAction, setDecisionAction] = useState<"KEEP" | "ADVANCE" | "REJECT">("KEEP");
+  const [selectedToStageId, setSelectedToStageId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -47,11 +50,30 @@ export default function InterviewEvaluationModal({
         setSelectedAppId(first.interview_application_id);
         setAttendanceStatus(first.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
         setFeedbackText(first.feedback || "");
+        setDecisionAction("KEEP");
       });
     }
   }, [open, interview?.interview_id, applications]);
 
   const activeApp = applications.find((a) => a.interview_application_id === selectedAppId) || applications[0];
+
+  const forwardStages = useMemo(() => {
+    return (
+      activeApp?.allowed_next_stages?.filter(
+        (s) => s.stage_type !== "REJECTED" && s.stage_type !== "WITHDRAWN"
+      ) ?? []
+    );
+  }, [activeApp?.allowed_next_stages]);
+
+  const rejectStage = useMemo(() => {
+    return activeApp?.allowed_next_stages?.find((s) => s.stage_type === "REJECTED") ?? null;
+  }, [activeApp?.allowed_next_stages]);
+
+  const effectiveSelectedToStageId =
+    selectedToStageId && forwardStages.some((s) => s.id === selectedToStageId)
+      ? selectedToStageId
+      : (forwardStages[0]?.id ?? null);
+
   const isCompleted = Boolean(
     interview?.interview_status === "COMPLETED" ||
       interview?.interview_status === "CANCELLED" ||
@@ -65,6 +87,7 @@ export default function InterviewEvaluationModal({
     if (targetApp) {
       setAttendanceStatus(targetApp.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
       setFeedbackText(targetApp.feedback || "");
+      setDecisionAction("KEEP");
     }
   };
 
@@ -72,11 +95,28 @@ export default function InterviewEvaluationModal({
     e.preventDefault();
     if (isCompleted || !selectedAppId) return;
 
+    let targetStageId: number | null = null;
+    let decision: "HIRED" | "REJECTED" | "NO_ACTION" = "NO_ACTION";
+
+    if (decisionAction === "ADVANCE") {
+      targetStageId = effectiveSelectedToStageId;
+      const targetStage = activeApp?.allowed_next_stages?.find((s) => s.id === effectiveSelectedToStageId);
+      if (targetStage?.stage_type === "HIRED") {
+        decision = "HIRED";
+      }
+    } else if (decisionAction === "REJECT") {
+      targetStageId = rejectStage?.id ?? null;
+      decision = "REJECTED";
+    } else {
+      decision = "NO_ACTION";
+    }
+
     const ok = await onSubmitEvaluation({
       interview_application_id: selectedAppId,
       attendance_status: attendanceStatus,
       feedback: feedbackText,
       decision,
+      to_stage_id: targetStageId,
     });
     if (ok) {
       onClose();
@@ -137,6 +177,21 @@ export default function InterviewEvaluationModal({
                   Role: <span className="font-medium text-zinc-700 dark:text-zinc-300">{activeApp.job_title}</span>
                 </p>
               </div>
+
+              {activeApp.stage_name && (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Current Stage</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs font-semibold px-2.5 py-0.5 rounded-full border",
+                      STAGE_COLOR_CLASSES[activeApp.stage_color || "sky"]?.badge || "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {activeApp.stage_name}
+                  </Badge>
+                </div>
+              )}
             </div>
           )}
 
@@ -183,7 +238,7 @@ export default function InterviewEvaluationModal({
           {/* Feedback Text */}
           <div className="space-y-2">
             <Label htmlFor="eval-feedback" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              Candidate Evaluation Feedback
+              Candidate Evaluation Feedback *pr
             </Label>
             <Textarea
               id="eval-feedback"
@@ -197,54 +252,123 @@ export default function InterviewEvaluationModal({
             />
           </div>
 
-          {/* Candidate Decision Option */}
+          {/* Candidate Pipeline Action (ATS Pipeline Driven) */}
           {!isCompleted && (
-            <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-              <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                Application Decision Action (Optional)
-              </Label>
+            <div className="space-y-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Candidate Pipeline Action (Optional)
+                </Label>
+                <span className="text-xs md:text-[11px] text-zinc-400">
+                  Governed by job&apos;s ATS pipeline
+                </span>
+              </div>
+
+              {/* 3 Main Action Toggles */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
-                  onClick={() => setDecision("NO_ACTION")}
+                  onClick={() => setDecisionAction("KEEP")}
                   className={cn(
-                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all text-center",
-                    decision === "NO_ACTION"
-                      ? "border-zinc-500 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100"
-                      : "border-zinc-200 dark:border-zinc-800 text-zinc-500"
+                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all text-center flex items-center justify-center gap-1.5",
+                    decisionAction === "KEEP"
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs"
+                      : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                   )}
                 >
-                  Keep Under Review
+                  Keep in Current Stage
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setDecision("HIRED")}
+                  onClick={() => setDecisionAction("ADVANCE")}
                   className={cn(
-                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all flex items-center justify-center gap-1",
-                    decision === "HIRED"
-                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300"
-                      : "border-zinc-200 dark:border-zinc-800 text-zinc-500"
+                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all flex items-center justify-center gap-1.5",
+                    decisionAction === "ADVANCE"
+                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold shadow-xs"
+                      : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                   )}
                 >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Offer Hire
+                  <ArrowRightCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  Advance to Next Stage
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setDecision("REJECTED")}
+                  onClick={() => setDecisionAction("REJECT")}
                   className={cn(
-                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all flex items-center justify-center gap-1",
-                    decision === "REJECTED"
-                      ? "border-rose-600 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300"
-                      : "border-zinc-200 dark:border-zinc-800 text-zinc-500"
+                    "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-lg border transition-all flex items-center justify-center gap-1.5",
+                    decisionAction === "REJECT"
+                      ? "border-rose-600 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold shadow-xs"
+                      : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                   )}
                 >
-                  <XCircle className="h-3.5 w-3.5" />
+                  <XCircle className="h-3.5 w-3.5 text-rose-500" />
                   Reject Candidate
                 </button>
               </div>
+
+              {/* Conditional sub-selection when ADVANCE is active */}
+              {decisionAction === "ADVANCE" && (
+                <div className="p-3 bg-zinc-50/80 dark:bg-zinc-900/60 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl space-y-2 animate-in fade-in-50 duration-150">
+                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                    <span>Select Target Pipeline Stage:</span>
+                    <span className="text-[11px] text-zinc-400">
+                      {forwardStages.length} stage{forwardStages.length !== 1 ? "s" : ""} available
+                    </span>
+                  </div>
+
+                  {forwardStages.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      {forwardStages.map((stage) => {
+                        const isSelected = effectiveSelectedToStageId === stage.id;
+                        const palette = STAGE_COLOR_CLASSES[stage.color] || STAGE_COLOR_CLASSES.sky;
+                        return (
+                          <button
+                            key={stage.id}
+                            type="button"
+                            onClick={() => setSelectedToStageId(stage.id)}
+                            className={cn(
+                              "flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium text-left transition-all",
+                              isSelected
+                                ? "border-emerald-600 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20"
+                                : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700"
+                            )}
+                          >
+                            <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", palette.dot)} />
+                            <span className="truncate flex-1 font-semibold">{stage.stage_name}</span>
+                            {stage.is_terminal && (
+                              <span className="text-[10px] text-zinc-400 font-normal shrink-0">Terminal</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 py-1">
+                      No subsequent forward stages configured. You can keep the candidate in the current stage or reject.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {decisionAction === "KEEP" && (
+                <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/60 dark:border-zinc-800 rounded-xl text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-indigo-500 shrink-0" />
+                  <span>
+                    Candidate will remain in <strong>{activeApp?.stage_name || "the current stage"}</strong>. Evaluation and attendance will be recorded.
+                  </span>
+                </div>
+              )}
+
+              {decisionAction === "REJECT" && (
+                <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-rose-500 shrink-0" />
+                  <span>
+                    Candidate application will be moved to the <strong>Rejected</strong> stage.
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

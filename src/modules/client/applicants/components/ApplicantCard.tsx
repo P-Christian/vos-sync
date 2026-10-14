@@ -38,14 +38,29 @@ import { getApplicantAvatarUrl, getInitials, timeAgo } from "../utils/applicantU
 import { cn } from "@/lib/utils";
 
 const STATUS_STYLES: Record<ApplicationStatus, string> = {
-  APPLIED: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400",
-  UNDER_REVIEW: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400",
-  SHORTLISTED: "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400",
-  INTERVIEWING: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400",
-  HIRED: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400",
-  REJECTED: "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400",
-  WITHDRAWN: "bg-muted text-muted-foreground border-border",
+  APPLIED: "bg-info/10 text-info border-info/20",
+  UNDER_REVIEW: "bg-primary/10 text-primary border-primary/20",
+  SHORTLISTED: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-300",
+  INTERVIEWING: "bg-warning/10 text-warning border-warning/20",
+  HIRED: "bg-success/10 text-success border-success/20",
+  REJECTED: "bg-destructive/10 text-destructive border-destructive/20",
+  WITHDRAWN: "bg-muted text-muted-foreground border-border/80",
 };
+
+const AVATAR_TONES = [
+  "from-blue-500 to-indigo-600",
+  "from-violet-500 to-fuchsia-600",
+  "from-emerald-500 to-teal-600",
+  "from-sky-500 to-cyan-600",
+  "from-amber-500 to-orange-600",
+  "from-rose-500 to-pink-600",
+];
+
+function hashString(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) h = (h * 31 + input.charCodeAt(i)) >>> 0;
+  return h;
+}
 
 interface ApplicantCardProps {
   applicant: Applicant;
@@ -71,6 +86,7 @@ export default function ApplicantCard({
   const rawImage = applicant.applicant_profile_image_url || applicant.profile_image_url;
   const avatarUrl = getApplicantAvatarUrl(rawImage);
   const initials = getInitials(applicant.applicant_name);
+  const avatarTone = AVATAR_TONES[hashString(applicant.applicant_name || String(applicant.application_id)) % AVATAR_TONES.length];
 
   // Canonical stage authority for interview operations:
   // Available when candidate is in an INTERVIEW stage (or legacy unmigrated status)
@@ -93,15 +109,15 @@ export default function ApplicantCard({
           onViewDetails(applicant);
         }
       }}
-      className="group hover:shadow-lg hover:border-primary/40 transition-all duration-200 border border-border/70 bg-card/90 backdrop-blur-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 overflow-hidden"
+      className="group relative overflow-hidden rounded-2xl border border-primary/10 hover:border-primary/30 bg-card/75 dark:bg-card/55 backdrop-blur-xl shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
-      <CardContent className="p-4 sm:p-5 max-md:p-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <CardContent className="p-4 sm:p-5">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           {/* Left Side: Avatar + Stacked Info */}
-          <div className="flex items-center gap-3.5 min-w-0 flex-1">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
             {/* Candidate Avatar */}
             <div className="relative shrink-0">
-              <div className="h-12 w-12 rounded-full overflow-hidden border border-border/80 bg-muted/60 flex items-center justify-center shadow-sm">
+              <div className="h-12 w-12 rounded-full overflow-hidden ring-2 ring-background border border-primary/15 bg-muted/60 flex items-center justify-center shadow-xs transition-transform duration-200 group-hover:scale-105">
                 {avatarUrl && !imageError ? (
                   <Image
                     src={avatarUrl}
@@ -112,32 +128,32 @@ export default function ApplicantCard({
                     onError={() => setImageError(true)}
                   />
                 ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-primary-foreground font-bold text-sm tracking-wide">
+                  <div className={`h-full w-full bg-gradient-to-br ${avatarTone} flex items-center justify-center text-white font-bold text-sm tracking-wide`}>
                     {initials}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Candidate Info - Two Stacked Rows */}
+            {/* Candidate Info */}
             <div className="min-w-0 flex-1 space-y-1.5">
-              {/* Row 1: Primary Identifiers (Name, Email, Job Title) */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {/* Row 1: Name, Target Job Title, Email, Referral */}
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
                   {applicant.applicant_name ?? `Applicant #${applicant.application_id}`}
                 </h3>
 
-                {applicant.applicant_email && (
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground md:text-xs">
-                    <Mail className="h-3 w-3 text-muted-foreground/70" />
-                    {applicant.applicant_email}
+                {applicant.job_title && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                    <Briefcase className="h-3 w-3" />
+                    {applicant.job_title}
                   </span>
                 )}
 
-                {applicant.job_title && (
-                  <span className="flex items-center gap-1 text-sm font-medium text-foreground/85 md:text-xs">
-                    <Briefcase className="h-3 w-3 text-muted-foreground/70" />
-                    {applicant.job_title}
+                {applicant.applicant_email && (
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Mail className="h-3 w-3 text-muted-foreground/70" />
+                    {applicant.applicant_email}
                   </span>
                 )}
 
@@ -164,37 +180,37 @@ export default function ApplicantCard({
                 )}
               </div>
 
-              {/* Row 2: Secondary Stats (Muted Softer Text) */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground/80 md:text-xs">
-                <span className="flex items-center gap-1">
-                  <User className="h-3 w-3 text-muted-foreground/60" />
+              {/* Row 2: Secondary Stats (Structured Chips) */}
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
+                  <User className="h-3 w-3 text-muted-foreground/70" />
                   {applicant.experience_years} yrs exp
                 </span>
 
-                <span className="flex items-center gap-1">
-                  <Briefcase className="h-3 w-3 text-muted-foreground/60" />
-                  {applicant.work_experience_count} job experience{applicant.work_experience_count !== 1 ? "s" : ""}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
+                  <Briefcase className="h-3 w-3 text-muted-foreground/70" />
+                  {applicant.work_experience_count} {applicant.work_experience_count === 1 ? "job" : "jobs"}
                 </span>
 
-                <span className="flex items-center gap-1">
-                  <FileText className="h-3 w-3 text-muted-foreground/60" />
-                  {applicant.resume_count} resume{applicant.resume_count !== 1 ? "s" : ""}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
+                  <FileText className="h-3 w-3 text-muted-foreground/70" />
+                  {applicant.resume_count} {applicant.resume_count === 1 ? "resume" : "resumes"}
                 </span>
 
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-muted-foreground/60" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
+                  <CheckCircle2 className="h-3 w-3 text-muted-foreground/70" />
                   {applicant.profile_completion}% profile
                 </span>
 
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-muted-foreground/60" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
+                  <Clock className="h-3 w-3 text-muted-foreground/70" />
                   Applied {timeAgo(applicant.applied_at)}
                 </span>
               </div>
 
-              {/* Education preview: first ordered record plus remainder */}
+              {/* Row 3: Education preview */}
               {(applicant.education_count ?? applicant.education?.length ?? 0) > 0 && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground/80 md:text-xs">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   {(() => {
                     const preview = (applicant.education ?? [])[0];
                     const total = applicant.education_count ?? applicant.education?.length ?? 0;
@@ -203,12 +219,12 @@ export default function ApplicantCard({
                       : [applicant.education_school, applicant.education_course].filter(Boolean).join(" · ") || "Education on file";
                     return (
                       <>
-                        <span className="flex items-center gap-1 min-w-0">
-                          <GraduationCap className="h-3 w-3 text-muted-foreground/60 shrink-0" />
-                          <span className="truncate">{label}</span>
+                        <span className="inline-flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-md bg-muted/30 border border-border/40">
+                          <GraduationCap className="h-3 w-3 text-muted-foreground/70 shrink-0" />
+                          <span className="truncate max-w-[320px] sm:max-w-md">{label}</span>
                         </span>
                         {total > 1 && (
-                          <span className="px-2 py-0.5 rounded-full text-xs text-muted-foreground/70">
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
                             +{total - 1} more
                           </span>
                         )}
@@ -221,8 +237,8 @@ export default function ApplicantCard({
           </div>
 
           {/* Right Side: Status Badge Column + Action Buttons */}
-          <div className="flex items-center gap-3 shrink-0 self-end lg:self-center pt-2 lg:pt-0 border-t lg:border-t-0 border-border/50 w-full lg:w-auto justify-between lg:justify-end max-md:flex-col max-md:items-start max-md:gap-3">
-            {/* Status Badge - Anchored to a fixed column */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0 self-end xl:self-center pt-2 xl:pt-0 border-t xl:border-t-0 border-border/50 w-full xl:w-auto justify-between xl:justify-end">
+            {/* Status Badges */}
             <div className="shrink-0 flex items-center gap-1.5 flex-wrap">
               <motion.div
                 key={applicant.current_stage_id ?? applicant.application_status}
@@ -244,47 +260,30 @@ export default function ApplicantCard({
               {applicant.assessment_needs_review ? (
                 <Badge
                   variant="outline"
-                  className="text-[11px] font-medium px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300 whitespace-nowrap"
+                  className="text-xs font-semibold px-2.5 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 whitespace-nowrap flex items-center gap-1"
                 >
+                  <ClipboardCheck className="h-3 w-3" />
                   Assessment to review
                 </Badge>
               ) : null}
             </div>
 
             {/* Action Buttons Group */}
-            <div className="flex items-center gap-2 shrink-0 max-md:w-full max-md:flex-wrap">
-              {/* View Candidate Button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails(applicant);
-                }}
-                className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 hover:bg-muted font-medium text-foreground md:text-xs"
-              >
-                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                View Candidate
-              </Button>
-
-              {/* Message Button */}
-              <Link
-                href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="max-md:flex-1"
-              >
+            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+              {/* Contextual Action: If Assessment Needs Review, direct Review Assessment button */}
+              {applicant.assessment_needs_review && onReviewAssessment ? (
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="h-8 max-md:min-h-10 max-md:w-full px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium md:text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReviewAssessment(applicant);
+                  }}
+                  className="h-8 max-md:min-h-10 px-3 text-xs font-semibold rounded-lg gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shadow-xs cursor-pointer"
                 >
-                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                  Message
+                  <ClipboardCheck className="h-3.5 w-3.5" />
+                  Review Assessment
                 </Button>
-              </Link>
-
-              {/* Contextual Primary Action Button (Canonical Stage Authority) */}
-              {isInterviewEligible && (
+              ) : isInterviewEligible ? (
                 applicant.active_interview_id ? (
                   <Button
                     size="sm"
@@ -295,7 +294,7 @@ export default function ApplicantCard({
                         onViewScheduledInterview(applicant.active_interview_id);
                       }
                     }}
-                    className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1.5 border-border hover:bg-muted font-medium shadow-sm md:text-xs"
+                    className="h-8 max-md:min-h-10 px-3 text-xs font-medium rounded-lg gap-1.5 border-border hover:bg-muted shadow-xs cursor-pointer"
                   >
                     <CalendarPlus className="h-3.5 w-3.5 text-primary" />
                     View Interview
@@ -307,13 +306,42 @@ export default function ApplicantCard({
                       e.stopPropagation();
                       onScheduleInterview(applicant);
                     }}
-                    className="h-8 max-md:min-h-10 max-md:flex-1 px-3 text-sm rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground font-medium md:text-xs"
+                    className="h-8 max-md:min-h-10 px-3 text-xs font-medium rounded-lg gap-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs cursor-pointer"
                   >
                     <CalendarPlus className="h-3.5 w-3.5" />
                     Schedule Interview
                   </Button>
                 )
-              )}
+              ) : null}
+
+              {/* View Candidate Button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails(applicant);
+                }}
+                className="h-8 max-md:min-h-10 px-3 text-xs font-medium rounded-lg gap-1.5 hover:bg-muted text-foreground cursor-pointer"
+              >
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                View Candidate
+              </Button>
+
+              {/* Message Button */}
+              <Link
+                href={`/vos-sync/client/messaging?freelancer_id=${applicant.user_id}&job_id=${applicant.job_id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 max-md:min-h-10 px-3 text-xs font-medium rounded-lg gap-1.5 border-border hover:bg-muted cursor-pointer"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                  Message
+                </Button>
+              </Link>
 
               {/* 3 Dots Actions (Pipeline-Driven Stage Progression) */}
               <DropdownMenu>

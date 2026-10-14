@@ -37,7 +37,7 @@ export default function Page() {
                     <Card key={x.title} className="shadow-sm">
                         <CardHeader>
                             <div className="flex items-center gap-2">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg border bg-background">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg border ">
                                     <x.icon className="h-4 w-4" />
                                 </div>
                                 <CardTitle className="text-base">{x.title}</CardTitle>

@@ -42,12 +42,16 @@ export default function TransitionConfigModal({
   const [selectedTargetIds, setSelectedTargetIds] = useState<number[]>([]);
 
   useEffect(() => {
-    if (sourceStage) {
-      setSelectedTargetIds(sourceStage.allowed_next_stage_ids ?? []);
-    } else {
+    if (sourceStage && open) {
+      const eligibleIds = new Set(allStages.map((s) => Number(s.id)));
+      const cleanTargetIds = (sourceStage.allowed_next_stage_ids ?? [])
+        .map(Number)
+        .filter((id) => eligibleIds.has(id) && id !== Number(sourceStage.id));
+      setSelectedTargetIds(cleanTargetIds);
+    } else if (!open) {
       setSelectedTargetIds([]);
     }
-  }, [sourceStage, open]);
+  }, [sourceStage, open, allStages]);
 
   if (!sourceStage) return null;
 
@@ -72,7 +76,11 @@ export default function TransitionConfigModal({
   };
 
   const handleSave = async () => {
-    await onSave(sourceStage.id, selectedTargetIds);
+    const eligibleIds = new Set(eligibleStages.map((s) => Number(s.id)));
+    const cleanTargets = selectedTargetIds
+      .map(Number)
+      .filter((id) => eligibleIds.has(id));
+    await onSave(sourceStage.id, cleanTargets);
   };
 
   const sourcePalette =

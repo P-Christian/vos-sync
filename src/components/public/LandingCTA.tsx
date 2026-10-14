@@ -52,13 +52,13 @@ export function LandingCTA() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="text-sm sm:text-base rounded-full px-8 shadow-sm cursor-pointer">
-                  <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                  <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
                     Go to Client Portal
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="text-sm sm:text-base border-border bg-background/50 hover:bg-background/80 text-foreground rounded-full px-8 cursor-pointer">
-                  <Link href="/vos-sync/client/manage-jobs" className="flex items-center gap-2">
+                  <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Post a Job
                   </Link>

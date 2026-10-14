@@ -1,7 +1,8 @@
 // src/modules/public/find-jobs/components/PublicJobCard.tsx
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import Image from "next/image";
 import { Building2, MapPin, Briefcase, Clock, ShieldCheck, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,13 @@ function getTimeAgo(dateStr: string): string {
 
 export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Props) {
   const session = useAuthSession();
+  const [imgError, setImgError] = useState(false);
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+  };
 
   const formatSalary = (min?: number | null, max?: number | null, curr?: string) => {
     if (!min && !max) return "Competitive Salary";
@@ -51,11 +59,21 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4), ease: [0.21, 0.45, 0.27, 0.9] }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
+      onPointerMove={handlePointerMove}
       onClick={() => onSelectJob(job)}
-      className="group bg-card border rounded-2xl p-5 hover:border-primary/50 hover:shadow-xl transition-shadow duration-300 cursor-pointer flex flex-col justify-between space-y-4 relative overflow-hidden"
+      className="group relative overflow-hidden bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl px-5 pt-5 pb-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 cursor-pointer flex flex-col justify-between gap-4"
     >
+      {/* Pointer Hover Spotlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 motion-reduce:hidden"
+        style={{
+          background:
+            "radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), hsl(var(--info) / 0.12), transparent 60%)",
+        }}
+      />
 
-      <div className="space-y-3">
+      <div className="relative space-y-3">
         {/* Top Header: Logo + Title + Verified Badge */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -64,15 +82,18 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="h-12 w-12 rounded-xl border bg-muted/40 overflow-hidden flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+              className="relative h-12 w-12 rounded-xl border bg-muted/40 overflow-hidden flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
               title={`View ${job.company_name} details`}
             >
-              {job.company_logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+              {job.company_logo_url && !imgError ? (
+                <Image
                   src={job.company_logo_url}
                   alt={job.company_name}
+                  width={48}
+                  height={48}
                   className="h-full w-full object-cover"
+                  unoptimized
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <Building2 className="h-6 w-6 text-muted-foreground" />
@@ -92,7 +113,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
                 </a>
                 {job.company_verification_status === "VERIFIED" && (
                   <span title="Verified Employer" className="inline-flex">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                   </span>
                 )}
               </div>
@@ -109,7 +130,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
 
         {/* Short Job Description Snippet */}
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-          {job.job_description}
+          {(job.job_description ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
         </p>
 
         {/* Pills & Meta info */}
@@ -127,7 +148,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
       </div>
 
       {/* Footer: Salary + Posted Date + Action CTA */}
-      <div className="pt-3 border-t flex items-center justify-between gap-2 text-xs">
+      <div className="relative pt-3 border-t border-border/70 flex items-center justify-between gap-2 text-xs">
         <div className="space-y-0.5">
           <span className="font-bold text-foreground text-sm flex items-center gap-1">
             {formatSalary(job.salary_min, job.salary_max, job.salary_currency)}
@@ -146,7 +167,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
                 e.stopPropagation();
                 onApplyClick(job);
               }}
-              className="h-8 text-xs font-semibold gap-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="h-8 text-xs font-semibold gap-1.5 rounded-full bg-gradient-to-r from-primary to-sky-600 text-white shadow-xs hover:shadow-[0_4px_16px_rgba(37,99,235,0.4)] hover:brightness-110 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer [&>svg]:transition-transform [&>svg]:duration-200 hover:[&>svg]:translate-x-1"
             >
               Apply Now
               <ArrowRight className="h-3 w-3" />
@@ -159,7 +180,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
                 e.stopPropagation();
                 onSelectJob(job);
               }}
-              className="h-8 text-xs font-semibold gap-1"
+              className="h-8 text-xs font-semibold gap-1.5 rounded-full border-border/80 bg-white/70 dark:bg-card/70 backdrop-blur-md text-foreground group-hover:border-primary/40 hover:!bg-primary hover:!text-white hover:!border-primary hover:shadow-[0_4px_16px_rgba(37,99,235,0.3)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer [&>svg]:transition-transform [&>svg]:duration-200 hover:[&>svg]:translate-x-1"
             >
               View Details
               <ArrowRight className="h-3 w-3" />
@@ -171,7 +192,7 @@ export function PublicJobCard({ job, onSelectJob, onApplyClick, index = 0 }: Pro
                 e.stopPropagation();
                 onApplyClick(job);
               }}
-              className="h-8 text-xs font-semibold gap-1"
+              className="h-8 text-xs font-semibold gap-1.5 rounded-full bg-gradient-to-r from-primary to-sky-600 text-white shadow-xs hover:shadow-[0_4px_16px_rgba(37,99,235,0.4)] hover:brightness-110 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer [&>svg]:transition-transform [&>svg]:duration-200 hover:[&>svg]:translate-x-1"
             >
               Sign In to Apply
               <ArrowRight className="h-3 w-3" />

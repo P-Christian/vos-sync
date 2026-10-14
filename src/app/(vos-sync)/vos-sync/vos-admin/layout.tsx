@@ -34,7 +34,7 @@ export default async function SchoolAdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { isAdmin, user } = await verifyAdminRole();
+    const { isAdmin } = await verifyAdminRole();
     
     if (!isAdmin) {
         // Redirect unauthorized users to the main dashboard or login
@@ -43,7 +43,7 @@ export default async function SchoolAdminLayout({
 
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-            {user && <PortalPageHeader user={user} />}
+            <PortalPageHeader />
 
             {children}
         </div>

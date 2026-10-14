@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Code2,
+  Sparkles,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +34,11 @@ import { cn } from "@/lib/utils";
 import {
   CampusCandidate,
   CampusMatchResult,
+  CampusEvidenceItem,
+  EnhancedCandidate,
 } from "@/modules/matching-engine/campus/types";
+import { resolveCurriculumDomain } from "@/modules/matching-engine/campus/curriculumTaxonomy";
+import { classifySkillNames } from "../utils/skillClassifier";
 
 interface StudentMatchTableProps {
   candidates: CampusCandidate[];
@@ -135,8 +141,78 @@ export default function StudentMatchTable({
       return matchResults;
     }
 
-    return candidates.map(
-      (candidate): CampusMatchResult => ({
+    return candidates.map((candidate): CampusMatchResult => {
+      let verifiedSkillItems: CampusEvidenceItem[] = [];
+      let curriculumItems: CampusEvidenceItem[] = [];
+      let technicalItems: CampusEvidenceItem[] = [];
+      let softItems: CampusEvidenceItem[] = [];
+      let experienceItems: CampusEvidenceItem[] = [];
+
+      if (candidate.isRegistered) {
+        const userSkills = (candidate as EnhancedCandidate).verifiedSkills ?? [];
+        verifiedSkillItems = userSkills.map((s) => ({
+          label: s,
+          source: "USER_SKILL" as const,
+          verified: true,
+        }));
+
+        const techNames = candidate.technicalSkills ?? classifySkillNames(userSkills).technicalSkills;
+        const softNames = candidate.softSkills ?? classifySkillNames(userSkills).softSkills;
+
+        technicalItems = techNames.map((s) => ({
+          label: s,
+          source: "USER_SKILL" as const,
+          verified: true,
+        }));
+
+        softItems = softNames.map((s) => ({
+          label: s,
+          source: "USER_SKILL" as const,
+          verified: true,
+        }));
+
+        if ((candidate as EnhancedCandidate).workExperienceYears > 0) {
+          const yrs = (candidate as EnhancedCandidate).workExperienceYears;
+          experienceItems = [
+            {
+              label: `${yrs} year${yrs !== 1 ? "s" : ""} of work experience`,
+              source: "WORK_EXPERIENCE" as const,
+              verified: true,
+            },
+          ];
+        }
+
+        const { competencies } = resolveCurriculumDomain(candidate.courseName);
+        curriculumItems = competencies.map((comp) => ({
+          label: comp,
+          source: "CURRICULUM" as const,
+          verified: false,
+        }));
+      } else {
+        const { competencies } = resolveCurriculumDomain(candidate.courseName);
+        curriculumItems = competencies.map((comp) => ({
+          label: comp,
+          source: "CURRICULUM" as const,
+          verified: false,
+        }));
+
+        const techNames = candidate.technicalSkills ?? classifySkillNames(competencies).technicalSkills;
+        const softNames = candidate.softSkills ?? classifySkillNames(competencies).softSkills;
+
+        technicalItems = techNames.map((s) => ({
+          label: s,
+          source: "CURRICULUM" as const,
+          verified: false,
+        }));
+
+        softItems = softNames.map((s) => ({
+          label: s,
+          source: "CURRICULUM" as const,
+          verified: false,
+        }));
+      }
+
+      return {
         candidateId: candidate.studentId,
         studentNumber: candidate.studentNumber,
         studentName: `${candidate.firstName} ${candidate.lastName}`,
@@ -159,15 +235,17 @@ export default function StudentMatchTable({
           reasons: [],
         },
         evidence: {
-          curriculum: [],
-          verifiedSkills: [],
-          experience: [],
+          curriculum: curriculumItems,
+          verifiedSkills: verifiedSkillItems,
+          technicalSkills: technicalItems,
+          softSkills: softItems,
+          experience: experienceItems,
           responsibilities: [],
         },
         gaps: [],
         explanation: null,
-      }),
-    );
+      };
+    });
   }, [candidates, matchResults, showScores]);
 
   const stats = useMemo(() => {
@@ -526,6 +604,35 @@ export default function StudentMatchTable({
                           </>
                         )}
                       </div>
+
+                      {/* Skills Preview Badges */}
+                      {((row.evidence.technicalSkills && row.evidence.technicalSkills.length > 0) ||
+                        (row.evidence.softSkills && row.evidence.softSkills.length > 0)) && (
+                        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                          {row.evidence.technicalSkills && row.evidence.technicalSkills.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                              <Code2 className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate max-w-[140px]">
+                                {row.evidence.technicalSkills.slice(0, 2).map((s) => s.label).join(", ")}
+                              </span>
+                              {row.evidence.technicalSkills.length > 2 && (
+                                <span className="opacity-75">+{row.evidence.technicalSkills.length - 2}</span>
+                              )}
+                            </span>
+                          )}
+                          {row.evidence.softSkills && row.evidence.softSkills.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                              <Sparkles className="h-2.5 w-2.5 shrink-0" />
+                              <span className="truncate max-w-[120px]">
+                                {row.evidence.softSkills.slice(0, 1).map((s) => s.label).join(", ")}
+                              </span>
+                              {row.evidence.softSkills.length > 1 && (
+                                <span className="opacity-75">+{row.evidence.softSkills.length - 1}</span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Score View: Score Column */}

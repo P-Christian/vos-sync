@@ -1,7 +1,8 @@
 // src/modules/client/dashboard/components/HiringOverviewChart.tsx
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { HiringOverviewChartData, TimeRangeKey } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -15,20 +16,29 @@ import {
 } from "recharts";
 import { TrendingUp, CalendarDays } from "lucide-react";
 import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface HiringOverviewChartProps {
   chartData?: HiringOverviewChartData;
+  selectedRange: TimeRangeKey;
+  onRangeChange: (range: TimeRangeKey) => void;
+  isSwitching?: boolean;
 }
 
 const INTERVALS: { key: TimeRangeKey; label: string }[] = [
-  { key: "7d", label: "Last 7 days" },
-  { key: "30d", label: "Last 30 days" },
-  { key: "3m", label: "Last 3 months" },
-  { key: "6m", label: "Last 6 months" },
+  { key: "7d", label: "7 days" },
+  { key: "30d", label: "30 days" },
+  { key: "3m", label: "3 months" },
+  { key: "6m", label: "6 months" },
 ];
 
-export default function HiringOverviewChart({ chartData }: HiringOverviewChartProps) {
-  const [selectedRange, setSelectedRange] = useState<TimeRangeKey>("30d");
+export default function HiringOverviewChart({
+  chartData,
+  selectedRange,
+  onRangeChange,
+  isSwitching = false,
+}: HiringOverviewChartProps) {
+  const router = useRouter();
 
   const currentData = useMemo(() => {
     if (!chartData || !chartData[selectedRange]) {
@@ -41,44 +51,62 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
     return currentData.reduce((acc, curr) => acc + (curr.applications || 0), 0);
   }, [currentData]);
 
+  // Click on a chart data point navigates to applicants filtered by that period
+  const handleChartClick = (e: unknown) => {
+    const chartEvent = e as {
+      activePayload?: Array<{
+        payload?: {
+          label?: string;
+          date?: string;
+        };
+      }>;
+    } | null | undefined;
+
+    if (chartEvent?.activePayload && chartEvent.activePayload.length > 0) {
+      const payload = chartEvent.activePayload[0]?.payload;
+      const pointLabel = payload?.label || payload?.date || selectedRange;
+      router.push(`/vos-sync/client/applicants?window=${encodeURIComponent(pointLabel)}`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
     >
-      <Card className="border bg-card rounded-2xl shadow-2xs overflow-hidden py-0">
+      <Card className="bg-card/80 backdrop-blur-md border border-border/70 shadow-panel hover:shadow-panel-hover hover:border-primary/30 transition-[box-shadow,border-color] duration-200 rounded-2xl overflow-hidden py-0">
         <CardHeader className="p-4 sm:p-6 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-lg font-bold text-foreground">Hiring Overview</CardTitle>
-              <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+              <CardTitle className="text-lg font-bold text-foreground dark:text-[#E6EAF5]">Hiring Overview</CardTitle>
+              <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 <TrendingUp className="h-3 w-3" /> Trending Up
               </span>
             </div>
-            <CardDescription className="text-sm md:text-xs text-muted-foreground">
-              Total of <strong className="text-foreground font-semibold">{totalInPeriod} applications</strong> logged in this window.
+            <CardDescription className="text-sm md:text-xs text-muted-foreground dark:text-[#8A94AD]">
+              Total of <strong className="text-foreground dark:text-white font-semibold">{totalInPeriod} applications</strong> logged in this window. Click a data point to review applicants.
             </CardDescription>
           </div>
 
-          {/* Time range switcher with Framer Motion pill */}
-          <div className="flex items-center p-1 bg-muted rounded-xl border border-border/60 self-start sm:self-auto overflow-x-auto max-w-full">
+          {/* Time range switcher pills */}
+          <div className="flex items-center p-1 bg-[#F4F6FA] dark:bg-[#0E1426] rounded-xl border border-[#E6EAF2] dark:border-[#1E2942] self-start sm:self-auto overflow-x-auto max-w-full">
             {INTERVALS.map((interval) => {
               const isActive = selectedRange === interval.key;
               return (
                 <button
                   key={interval.key}
-                  onClick={() => setSelectedRange(interval.key)}
+                  onClick={() => onRangeChange(interval.key)}
                   className="relative px-3 py-1.5 max-md:min-h-10 text-xs font-medium rounded-lg transition-colors whitespace-nowrap z-10"
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeChartTab"
-                      className="absolute inset-0 bg-background rounded-lg shadow-xs border border-border/40"
+                      className="absolute inset-0 bg-white dark:bg-[#121A2E] rounded-lg shadow-xs border border-[#E6EAF2] dark:border-[#1E2942]"
                       transition={{ type: "spring", stiffness: 450, damping: 35 }}
                     />
                   )}
-                  <span className={`relative z-20 ${isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}>
+                  <span className={`relative z-20 ${isActive ? "text-foreground dark:text-white font-semibold" : "text-muted-foreground dark:text-[#8A94AD] hover:text-foreground"}`}>
                     {interval.label}
                   </span>
                 </button>
@@ -88,92 +116,126 @@ export default function HiringOverviewChart({ chartData }: HiringOverviewChartPr
         </CardHeader>
 
         <CardContent className="p-4 sm:p-6 pt-4">
-          <div className="h-[220px] sm:h-[290px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={currentData} margin={{ top: 10, right: 12, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="applicationGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0.0} />
-                  </linearGradient>
-                  <linearGradient id="shortlistGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--foreground)" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="var(--foreground)" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.6} />
-                <XAxis
-                  dataKey="label"
-                  stroke="var(--muted-foreground)"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  dy={8}
-                />
-                <YAxis
-                  stroke="var(--muted-foreground)"
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="rounded-xl border bg-popover p-3 shadow-lg text-xs space-y-1.5">
-                          <p className="font-semibold text-popover-foreground flex items-center gap-1.5">
-                            <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                            {label}
-                          </p>
-                          <div className="flex items-center justify-between gap-4 text-muted-foreground">
-                            <span className="flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full bg-primary" />
-                              Applications:
-                            </span>
-                            <span className="font-bold text-popover-foreground">{payload[0]?.value}</span>
-                          </div>
-                          {payload[1] && (
-                            <div className="flex items-center justify-between gap-4 text-muted-foreground">
+          {isSwitching ? (
+            <div className="h-[220px] sm:h-[290px] w-full flex flex-col justify-end gap-3 p-4">
+              <Skeleton className="h-4 w-40 bg-muted/60" />
+              <div className="flex items-end gap-3 h-full">
+                <Skeleton className="h-1/3 flex-1 rounded-t-lg bg-muted/60" />
+                <Skeleton className="h-2/3 flex-1 rounded-t-lg bg-muted/60" />
+                <Skeleton className="h-1/2 flex-1 rounded-t-lg bg-muted/60" />
+                <Skeleton className="h-4/5 flex-1 rounded-t-lg bg-muted/60" />
+                <Skeleton className="h-3/4 flex-1 rounded-t-lg bg-muted/60" />
+                <Skeleton className="h-full flex-1 rounded-t-lg bg-muted/60" />
+              </div>
+            </div>
+          ) : (
+            <div className="h-[220px] sm:h-[290px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={currentData}
+                  margin={{ top: 10, right: 12, left: -20, bottom: 0 }}
+                  onClick={handleChartClick}
+                  className="cursor-pointer"
+                >
+                  <defs>
+                    <linearGradient id="applicationGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="rgba(37,99,235,0.25)" stopOpacity={1} />
+                      <stop offset="95%" stopColor="rgba(37,99,235,0.0)" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="shortlistGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="rgba(59,130,246,0.18)" stopOpacity={1} />
+                      <stop offset="95%" stopColor="rgba(59,130,246,0.0)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  {/* Very light horizontal grid lines (#EEF1F6 light, #1E2942 dark) */}
+                  <CartesianGrid
+                    strokeDasharray="0"
+                    vertical={false}
+                    stroke="#EEF1F6"
+                    className="dark:stroke-[#1E2942]"
+                  />
+                  <XAxis
+                    dataKey="label"
+                    stroke="#8A94AD"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={8}
+                  />
+                  <YAxis
+                    stroke="#8A94AD"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  {/* Hover tooltip with a vertical guide line */}
+                  <Tooltip
+                    cursor={{
+                      stroke: "#3B82F6",
+                      strokeWidth: 1.5,
+                      strokeDasharray: "4 4",
+                    }}
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-xl border border-[#E6EAF2] dark:border-[#1E2942] bg-white dark:bg-[#121A2E] p-3 shadow-lg text-xs space-y-1.5">
+                            <p className="font-semibold text-foreground dark:text-[#E6EAF5] flex items-center gap-1.5">
+                              <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                              {label}
+                            </p>
+                            <div className="flex items-center justify-between gap-4 text-muted-foreground dark:text-[#8A94AD]">
                               <span className="flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-foreground/60" />
-                                Shortlisted:
+                                <span className="h-2 w-2 rounded-full bg-blue-600" />
+                                Applications:
                               </span>
-                              <span className="font-bold text-popover-foreground">{payload[1]?.value}</span>
+                              <span className="font-bold text-foreground dark:text-white">{payload[0]?.value}</span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="applications"
-                  name="Applications"
-                  stroke="var(--primary)"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#applicationGradient)"
-                  animationDuration={500}
-                />
-                {currentData[0]?.shortlisted !== undefined && (
+                            {payload[1] && (
+                              <div className="flex items-center justify-between gap-4 text-muted-foreground dark:text-[#8A94AD]">
+                                <span className="flex items-center gap-1.5">
+                                  <span className="h-2 w-2 rounded-full bg-blue-400" />
+                                  Shortlisted:
+                                </span>
+                                <span className="font-bold text-foreground dark:text-white">{payload[1]?.value}</span>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-primary pt-1 border-t border-border/50 font-medium">
+                              Click to view applicants →
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Area
                     type="monotone"
-                    dataKey="shortlisted"
-                    name="Shortlisted"
-                    stroke="var(--foreground)"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 4"
+                    dataKey="applications"
+                    name="Applications"
+                    stroke="#2563EB"
+                    strokeWidth={2.5}
                     fillOpacity={1}
-                    fill="url(#shortlistGradient)"
-                    animationDuration={500}
+                    fill="url(#applicationGradient)"
+                    animationDuration={400}
                   />
-                )}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+                  {currentData[0]?.shortlisted !== undefined && (
+                    <Area
+                      type="monotone"
+                      dataKey="shortlisted"
+                      name="Shortlisted"
+                      stroke="#3B82F6"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      fillOpacity={1}
+                      fill="url(#shortlistGradient)"
+                      animationDuration={400}
+                    />
+                  )}
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>

@@ -51,11 +51,11 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
       transition={{ duration: 0.35, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className="h-full"
     >
-      <Card className="text-card-foreground gap-0 py-0 border  bg-card rounded-2xl shadow-2xs overflow-hidden flex flex-col justify-between h-full py-0">
+      <Card className="text-card-foreground gap-0 py-0 bg-card/80 backdrop-blur-md border border-border/70 shadow-panel hover:shadow-panel-hover hover:border-primary/30 transition-[box-shadow,border-color] duration-200 rounded-2xl overflow-hidden flex flex-col justify-between h-full py-0">
         <div>
           <CardHeader className=" py-4  flex flex-row items-center justify-between border-b border-border/60">
             <div className="flex items-center gap-2.5">
-              <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary/15 to-sky-500/20 text-primary ring-1 ring-primary/15 flex items-center justify-center">
                 <Briefcase className="h-4 w-4" />
               </div>
               <CardTitle className="text-base font-bold text-foreground">Job Performance</CardTitle>

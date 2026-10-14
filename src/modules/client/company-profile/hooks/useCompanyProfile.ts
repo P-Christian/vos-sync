@@ -4,13 +4,17 @@
 import { useState, useCallback } from "react";
 import { CompanyProfile, CompanyProfileMeta, EditableCompanyFields } from "../types";
 
-export function useCompanyProfile() {
-  const [company, setCompany] = useState<CompanyProfile | null>(null);
-  const [meta, setMeta] = useState<CompanyProfileMeta | null>(null);
+export function useCompanyProfile(
+  initialCompany: CompanyProfile | null = null,
+  initialMeta: CompanyProfileMeta | null = null,
+  initialError: string = ""
+) {
+  const [company, setCompany] = useState<CompanyProfile | null>(initialCompany);
+  const [meta, setMeta] = useState<CompanyProfileMeta | null>(initialMeta);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const [successMessage, setSuccessMessage] = useState("");
 
   const fetchProfile = useCallback(async () => {

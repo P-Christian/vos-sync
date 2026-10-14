@@ -1,7 +1,7 @@
 // src/app/(vos-sync)/vos-sync/school-admin/success-metrics/page.tsx
 import React from 'react';
 import { PortalPageHeader } from '@/components/shared/layout/PortalPageHeader';
-import { getHeaderUserFromToken } from '@/modules/school-admin/services/token-helper';
+
 import { SuccessMetricsPage } from '@/modules/school-admin/success-metrics/SuccessMetricsPage';
 import { fetchSchoolByUserIdRepo } from '@/modules/school-admin/services/school-admin.repo';
 import { authenticateCookieSession } from '@/lib/authenticated-session';
@@ -15,7 +15,7 @@ export const metadata = {
 };
 
 export default async function Page() {
-  const user = await getHeaderUserFromToken();
+
   const session = await authenticateCookieSession();
 
   let schoolId = 1;
@@ -34,7 +34,7 @@ export default async function Page() {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
-      <PortalPageHeader user={user} />
+      <PortalPageHeader />
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
         <SuccessMetricsPage initialSchoolId={schoolId} initialSchoolName={schoolName} />
       </main>

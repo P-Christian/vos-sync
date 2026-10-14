@@ -46,7 +46,17 @@ export function InteractiveGradientBackground({
   enableSpotlight = true,
 }: InteractiveGradientBackgroundProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isTabHidden, setIsTabHidden] = React.useState(false);
   const activeIntensity = INTENSITY_CONFIG[intensity] ?? INTENSITY_CONFIG.medium;
+
+  // Pause CSS animations when browser tab is inactive to preserve CPU & battery
+  useEffect(() => {
+    const handleVisibility = () => {
+      setIsTabHidden(document.hidden);
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
 
   useEffect(() => {
     if (!enableSpotlight) return;
@@ -54,10 +64,11 @@ export function InteractiveGradientBackground({
     const container = containerRef.current;
     if (!container) return;
 
-    // Honor accessibility preferences
+    // Honor accessibility preferences and skip listeners on touch/coarse pointers
     if (typeof window !== "undefined") {
       const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (prefersReducedMotion) return;
+      const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+      if (prefersReducedMotion || isTouchDevice) return;
     }
 
     let rafId: number | null = null;
@@ -65,6 +76,7 @@ export function InteractiveGradientBackground({
     let targetY = 0;
 
     const handlePointerMove = (e: PointerEvent) => {
+      if (document.hidden) return;
       const rect = container.getBoundingClientRect();
       targetX = e.clientX - rect.left;
       targetY = e.clientY - rect.top;
@@ -148,6 +160,9 @@ export function InteractiveGradientBackground({
             transform: translate3d(-50px, 40px, 0) rotate(-2deg) scale(0.96);
           }
         }
+        .vos-aurora-paused {
+          animation-play-state: paused !important;
+        }
         @media (prefers-reduced-motion: reduce) {
           .vos-aurora-wave-1,
           .vos-aurora-wave-2,
@@ -178,8 +193,9 @@ export function InteractiveGradientBackground({
       <div
         className={cn(
           "vos-aurora-wave-1 absolute -top-28 -left-[10%] h-[750px] w-[125%] rounded-[100%] blur-[110px]",
-          "bg-gradient-to-r opacity-85 dark:opacity-40 will-change-transform",
-          activeIntensity.wave1
+          "bg-gradient-to-r opacity-70 dark:opacity-40 will-change-transform",
+          activeIntensity.wave1,
+          isTabHidden && "vos-aurora-paused"
         )}
         style={{ animation: "vos-aurora-1 22s ease-in-out infinite alternate" }}
       />
@@ -188,8 +204,9 @@ export function InteractiveGradientBackground({
       <div
         className={cn(
           "vos-aurora-wave-2 absolute top-44 -right-[12%] h-[820px] w-[120%] rounded-[100%] blur-[120px]",
-          "bg-gradient-to-r opacity-80 dark:opacity-35 will-change-transform",
-          activeIntensity.wave2
+          "bg-gradient-to-r opacity-65 dark:opacity-35 will-change-transform",
+          activeIntensity.wave2,
+          isTabHidden && "vos-aurora-paused"
         )}
         style={{ animation: "vos-aurora-2 28s ease-in-out infinite alternate" }}
       />
@@ -198,8 +215,9 @@ export function InteractiveGradientBackground({
       <div
         className={cn(
           "vos-aurora-wave-3 absolute top-[620px] left-[5%] h-[720px] w-[100%] rounded-[100%] blur-[105px]",
-          "bg-gradient-to-r opacity-70 dark:opacity-30 will-change-transform",
-          activeIntensity.wave3
+          "bg-gradient-to-r opacity-55 dark:opacity-30 will-change-transform",
+          activeIntensity.wave3,
+          isTabHidden && "vos-aurora-paused"
         )}
         style={{ animation: "vos-aurora-3 25s ease-in-out infinite alternate" }}
       />

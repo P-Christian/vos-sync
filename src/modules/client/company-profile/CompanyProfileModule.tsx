@@ -1,8 +1,9 @@
 // src/modules/client/company-profile/CompanyProfileModule.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useCompanyProfile } from "./hooks/useCompanyProfile";
+import { CompanyProfile, CompanyProfileMeta } from "./types";
 import CompanyStatus from "./components/CompanyStatus";
 import CompanyBasicInfo from "./components/CompanyBasicInfo";
 import CompanyClassification from "./components/CompanyClassification";
@@ -59,7 +60,17 @@ const itemVariants = {
 };
 
 
-export default function CompanyProfileModule() {
+interface CompanyProfileModuleProps {
+  initialCompany?: CompanyProfile | null;
+  initialMeta?: CompanyProfileMeta | null;
+  initialError?: string;
+}
+
+export default function CompanyProfileModule({
+  initialCompany = null,
+  initialMeta = null,
+  initialError = "",
+}: CompanyProfileModuleProps = {}) {
   const {
     company,
     meta,
@@ -73,7 +84,9 @@ export default function CompanyProfileModule() {
     createProfile,
     submitForVerification,
     clearMessages,
-  } = useCompanyProfile();
+  } = useCompanyProfile(initialCompany, initialMeta, initialError);
+
+  const isFirstMountRef = useRef(Boolean(initialCompany || initialError));
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [uploadedDocsCount, setUploadedDocsCount] = useState(0);
@@ -124,8 +137,13 @@ export default function CompanyProfileModule() {
   };
 
   useEffect(() => {
+    if (isFirstMountRef.current && (initialCompany || initialError)) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    isFirstMountRef.current = false;
     fetchProfile();
-  }, [fetchProfile]);
+  }, [fetchProfile, initialCompany, initialError]);
 
   const handleFieldChange = (
     field: keyof EditableCompanyFields | "custom_industry_name",
@@ -314,6 +332,34 @@ export default function CompanyProfileModule() {
   // ── Derived State ─────────────────────────────────────────────────────
   const completionPercent = company?.profile_completion_percent ?? 0;
   const verificationStatus = company?.verification_status;
+
+  const missingSections = useMemo(() => {
+    if (!company) return [];
+    const missing: string[] = [];
+    if (!company.industry_id || !company.organization_type_id || !company.company_size_id) {
+      missing.push("Classification");
+    }
+    const hasSocial = [
+      company.company_facebook,
+      company.company_linkedin,
+      company.company_instagram,
+      company.company_x,
+      company.company_youtube,
+    ].some((s) => s && String(s).trim().length > 0);
+    if (!hasSocial) {
+      missing.push("Social Links");
+    }
+    if (!company.company_province || !company.company_city || !company.company_address) {
+      missing.push("Address");
+    }
+    if (!company.company_logo || !company.company_cover) {
+      missing.push("Branding Media");
+    }
+    if (!company.registration_no && !company.company_tin) {
+      missing.push("Registration / TIN");
+    }
+    return missing;
+  }, [company]);
 
   const canSubmit =
     completionPercent >= 80 &&
@@ -551,11 +597,11 @@ export default function CompanyProfileModule() {
         <div className="lg:col-span-2 space-y-6">
           {/* Card 1: Company Information */}
           <motion.div variants={itemVariants}>
-            <Card className="shadow-sm border bg-card rounded-xl gap-0 py-0 overflow-hidden">
-              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+            <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors gap-0 py-0 overflow-hidden">
+              <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Building className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Company Information
                   </CardTitle>
                 </div>
@@ -564,10 +610,9 @@ export default function CompanyProfileModule() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 max-md:min-h-10 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-200/80 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
+                      className="h-8 max-md:min-h-10 text-xs font-semibold text-primary bg-primary/10 border-primary/20 hover:bg-primary/15 rounded-lg flex items-center gap-1.5 transition-all shadow-2xs"
                       onClick={() => setShowAIAssistant(true)}
                     >
-                     
                       <span>AI Assistant</span>
                     </Button>
                   )}
@@ -594,11 +639,11 @@ export default function CompanyProfileModule() {
                         onChange={handleFieldChange}
                         readOnly={false}
                       />
-                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                      <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
                         <Button variant="outline" size="sm" onClick={handleCancelInfo} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveInfo} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-gradient-to-r from-primary to-info hover:brightness-110 text-primary-foreground border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -625,11 +670,11 @@ export default function CompanyProfileModule() {
 
           {/* Card 2: Company Classification */}
           <motion.div variants={itemVariants}>
-            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+            <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Layers className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Company Classification
                   </CardTitle>
                 </div>
@@ -655,11 +700,11 @@ export default function CompanyProfileModule() {
                         onChange={handleFieldChange}
                         readOnly={false}
                       />
-                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                      <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
                         <Button variant="outline" size="sm" onClick={handleCancelClassification} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveClassification} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-gradient-to-r from-primary to-info hover:brightness-110 text-primary-foreground border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -686,11 +731,11 @@ export default function CompanyProfileModule() {
 
           {/* Card 3: Company Address */}
           <motion.div variants={itemVariants}>
-            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row justify-between items-center">
+            <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row justify-between items-center">
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Company Address
                   </CardTitle>
                 </div>
@@ -716,11 +761,11 @@ export default function CompanyProfileModule() {
                         onChange={handleFieldChange}
                         readOnly={false}
                       />
-                      <div className="flex justify-end gap-3 pt-6 border-t border-zinc-100 dark:border-zinc-800 mt-6">
+                      <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
                         <Button variant="outline" size="sm" onClick={handleCancelAddress} disabled={saving} className="h-9 max-md:min-h-10 px-5 text-sm rounded-xl">
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm transition-transform active:scale-[0.98]">
+                        <Button onClick={handleSaveAddress} size="sm" disabled={saving} className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-gradient-to-r from-primary to-info hover:brightness-110 text-primary-foreground border-0 shadow-sm transition-transform active:scale-[0.98]">
                           {saving ? "Saving..." : "Save Changes"}
                         </Button>
                       </div>
@@ -736,25 +781,25 @@ export default function CompanyProfileModule() {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-1">
-                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Province</span>
-                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_province || "—"}</p>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Province</span>
+                          <p className="text-sm font-medium text-foreground">{company?.company_province || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">City / Municipality</span>
-                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_city || "—"}</p>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">City / Municipality</span>
+                          <p className="text-sm font-medium text-foreground">{company?.company_city || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Barangay</span>
-                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_brgy || "—"}</p>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Barangay</span>
+                          <p className="text-sm font-medium text-foreground">{company?.company_brgy || "—"}</p>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Zip Code</span>
-                          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_zipCode || "—"}</p>
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Zip Code</span>
+                          <p className="text-sm font-medium text-foreground">{company?.company_zipCode || "—"}</p>
                         </div>
                       </div>
-                      <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-                        <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Street Address</span>
-                        <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{company?.company_address || "—"}</p>
+                      <div className="pt-4 border-t border-border/60 space-y-1">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Street Address</span>
+                        <p className="text-sm font-medium text-foreground">{company?.company_address || "—"}</p>
                       </div>
                     </motion.div>
                   )}
@@ -765,7 +810,7 @@ export default function CompanyProfileModule() {
         </div>
 
         {/* ── Right Column ─────────────────────────────────────────── */}
-        <div className="lg:col-span-1 space-y-6 max-md:flex max-md:flex-col">
+        <div className="lg:col-span-1 space-y-6 max-md:flex max-md:flex-col lg:sticky lg:top-24">
           {/* Mobile-only section tabs (desktop keeps every section stacked) */}
           <div className="md:hidden max-md:order-1 flex items-center gap-1 rounded-xl border bg-card p-1">
             {["Profile Status", "Documents", "Public Profile"].map((label, i) => (
@@ -782,9 +827,9 @@ export default function CompanyProfileModule() {
 
           {/* Profile Completion */}
           <motion.div variants={itemVariants} className={mobileSectionClass(0)}>
-            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
+            <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
               <CardContent className="p-6">
-                <CompanyCompletionBar percent={completionPercent} />
+                <CompanyCompletionBar percent={completionPercent} missingSections={missingSections} />
               </CardContent>
             </Card>
           </motion.div>
@@ -792,10 +837,10 @@ export default function CompanyProfileModule() {
           {/* Verification Status */}
           {company?.verification_status && (
             <motion.div variants={itemVariants} className={mobileSectionClass(0)}>
-              <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-                <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+                <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Verification Status
                   </CardTitle>
                 </CardHeader>
@@ -812,10 +857,10 @@ export default function CompanyProfileModule() {
 
           {/* Verification Documents */}
           <motion.div variants={itemVariants} className={mobileSectionClass(1)}>
-            <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-              <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+            <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+              <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                   Verification Documents
                 </CardTitle>
               </CardHeader>
@@ -832,32 +877,32 @@ export default function CompanyProfileModule() {
           {isOwnerOrAdmin &&
             (verificationStatus === "DRAFT" || verificationStatus === "REJECTED") && (
               <motion.div variants={itemVariants} className="max-md:order-3">
-                <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-                  <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+                <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+                  <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                    <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                       {verificationStatus === "REJECTED" ? "Resubmit Profile" : "Submit for Verification"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
                     {!canSubmit && (
-                      <p className="text-sm md:text-xs text-zinc-555 dark:text-zinc-400 leading-relaxed">
+                      <p className="text-sm md:text-xs text-muted-foreground leading-relaxed">
                         Your profile must be at least{" "}
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">80% complete</span>,
+                        <span className="font-semibold text-foreground">80% complete</span>,
                         include a company logo, and have at least{" "}
-                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">one verification document uploaded</span>
-                        {" "}before you can submit for verification. Currently at <span className="font-semibold">{Math.round(completionPercent)}%</span> with <span className="font-semibold">{uploadedDocsCount} documents</span> uploaded.
+                        <span className="font-semibold text-foreground">one verification document uploaded</span>
+                        {" "}before you can submit for verification. Currently at <span className="font-semibold text-foreground">{Math.round(completionPercent)}%</span> with <span className="font-semibold text-foreground">{uploadedDocsCount} documents</span> uploaded.
                       </p>
                     )}
                     {canSubmit && verificationStatus === "REJECTED" && (
-                      <p className="text-sm md:text-xs text-amber-700 dark:text-amber-400 leading-relaxed bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg border border-amber-200/50">
+                      <p className="text-sm md:text-xs text-warning leading-relaxed bg-warning/10 p-3 rounded-lg border border-warning/20">
                         Please review the rejection reason above, make the necessary corrections, then resubmit.
                       </p>
                     )}
                     <Button
                       onClick={handleSubmitForVerification}
                       disabled={!canSubmit || submitting}
-                      className="w-full h-10 max-md:min-h-10 text-sm font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
+                      className="w-full h-10 max-md:min-h-10 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-info hover:brightness-110 text-primary-foreground border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
                     >
                       {submitting ? (
                         <>
@@ -884,15 +929,15 @@ export default function CompanyProfileModule() {
           {/* Preview Public Profile */}
           {company && (
             <motion.div variants={itemVariants} className={mobileSectionClass(2)}>
-              <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
-                <CardHeader className="border-b border-zinc-100 dark:border-zinc-800 px-6 py-4 bg-zinc-50/50 dark:bg-zinc-900/10 flex flex-row items-center gap-2">
+              <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
+                <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row items-center gap-2">
                   <Eye className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                  <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
                     Public Profile
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-3">
-                  <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm md:text-xs text-muted-foreground leading-relaxed">
                     Preview how job seekers will see your company profile once it goes public.
                   </p>
                   <Button

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "lucide-react";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
+import ListSkeleton from "../components/ListSkeleton";
 
 const JOB_TYPE_OPTIONS = [
   { value: "ALL", label: "All Types" },
@@ -577,10 +578,7 @@ export default function JobsModule() {
 
           <CardContent className="p-3 sm:p-6">
             {loading ? (
-              <div className="flex items-center justify-center py-16 gap-3">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <span className="text-sm text-muted-foreground animate-pulse">Loading job postings...</span>
-              </div>
+              <ListSkeleton rows={4} label="Loading job postings…" />
             ) : (
               <>
                 <JobList

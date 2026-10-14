@@ -1,6 +1,6 @@
-// src/app/api/client/company-profile/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/authenticated-session";
+import { getClientCompanyProfileData } from "@/modules/client/company-profile/services/client-company-profile.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -125,89 +125,15 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = Number(session.userId);
+    const result = await getClientCompanyProfileData(userId);
 
-    const linkUrl = `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_eq]=${userId}&fields=company_id,company_user_role,is_primary_contact&limit=1`;
-    // console.log("[DEBUG] Fetching linkUrl:", linkUrl);
-    // console.log("[DEBUG] Headers being sent:", getHeaders());
-    const linkRes = await fetch(linkUrl, { headers: getHeaders(), cache: "no-store" });
-
-    // console.log("[DEBUG] linkRes.status:", linkRes.status);
-    if (!linkRes.ok) {
-      const errorText = await linkRes.text();
-      // console.error("[DEBUG] linkRes error body:", errorText);
-      return NextResponse.json(
-        { error: `Failed to resolve company association: ${errorText}` },
-        { status: linkRes.status }
-      );
-    }
-
-    const linkJson = await linkRes.json();
-    // console.log("[DEBUG] linkJson:", JSON.stringify(linkJson));
-    const links = linkJson.data;
-
-    if (!Array.isArray(links) || links.length === 0) {
-      return NextResponse.json(
-        { error: "No company associated with this account." },
-        { status: 404 }
-      );
-    }
-
-    const companyId = links[0].company_id;
-
-    // 2. Fetch vs_company record
-    const companyUrl = `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=*`;
-    // console.log("[DEBUG] Fetching companyUrl:", companyUrl);
-    const companyRes = await fetch(companyUrl, {
-      headers: getHeaders(),
-      cache: "no-store",
-    });
-
-    console.log("[DEBUG] companyRes.status:", companyRes.status);
-    if (!companyRes.ok) {
-      const errorText = await companyRes.text();
-      // console.error("[DEBUG] companyRes error body:", errorText);
-      return NextResponse.json(
-        { error: `Failed to fetch company profile: ${errorText}` },
-        { status: companyRes.status }
-      );
-    }
-
-    const companyJson = await companyRes.json();
-    // console.log("[DEBUG] companyJson:", JSON.stringify(companyJson));
-
-    const companyData = companyJson.data ?? null;
-    const computedPercent = companyData ? calculateCompletionPercent(companyData) : 0;
-
-    let publicRejectionReason: string | null = (companyData?.rejection_reason as string) || null;
-    if (companyId) {
-      try {
-        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at&limit=1`;
-        const verifRes = await fetch(verifUrl, { headers: getHeaders(), cache: "no-store" });
-        if (verifRes.ok) {
-          const verifJson = await verifRes.json();
-          const latestV = verifJson.data?.[0];
-          if (latestV?.public_rejection_reason) {
-            publicRejectionReason = latestV.public_rejection_reason;
-          }
-        }
-      } catch (e) {
-        console.warn("Failed to fetch latest vs_company_verifications in company-profile:", e);
-      }
+    if (result.error && !result.company) {
+      return NextResponse.json({ error: result.error }, { status: 404 });
     }
 
     return NextResponse.json({
-      company: companyData
-        ? {
-            ...companyData,
-            profile_completion_percent: computedPercent,
-            rejection_reason: publicRejectionReason || companyData.rejection_reason || null,
-            public_rejection_reason: publicRejectionReason || companyData.rejection_reason || null,
-          }
-        : null,
-      meta: {
-        company_user_role: links[0].company_user_role,
-        is_primary_contact: links[0].is_primary_contact,
-      },
+      company: result.company,
+      meta: result.meta,
     });
   } catch (err: unknown) {
     console.error("GET /api/client/company-profile error:", err);

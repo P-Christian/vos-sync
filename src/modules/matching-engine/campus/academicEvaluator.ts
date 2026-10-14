@@ -5,6 +5,7 @@
 import { AcademicCandidate, CampusEvidenceItem, DeterministicGap } from "./types";
 import { NormalizedJobRequirements } from "./types";
 import { resolveCurriculumDomain, resolveJobDomain } from "./curriculumTaxonomy";
+import { classifySkillNames } from "@/modules/client/campus-talent/utils/skillClassifier";
 
 const WEIGHTS = {
   courseDegree: 45,
@@ -49,6 +50,8 @@ function resolveGpaScore(gpa: number | null): number {
 export interface AcademicEvaluationResult {
   score: number;
   curriculumItems: CampusEvidenceItem[];
+  technicalItems?: CampusEvidenceItem[];
+  softItems?: CampusEvidenceItem[];
   gaps: DeterministicGap[];
 }
 
@@ -122,6 +125,21 @@ export function evaluateAcademicCandidate(
     verified: false,
   }));
 
+  const { technicalSkills: techCompetencies, softSkills: softCompetencies } =
+    classifySkillNames(curriculumCompetencies);
+
+  const technicalItems: CampusEvidenceItem[] = techCompetencies.map((comp) => ({
+    label: comp,
+    source: "CURRICULUM",
+    verified: false,
+  }));
+
+  const softItems: CampusEvidenceItem[] = softCompetencies.map((comp) => ({
+    label: comp,
+    source: "CURRICULUM",
+    verified: false,
+  }));
+
   // ── Deterministic Gaps (PREFERRED & REQUIRED skills from job) ─────────────
   const gaps: DeterministicGap[] = job.requirements
     .filter((r) => r.category === "SKILL")
@@ -133,5 +151,5 @@ export function evaluateAcademicCandidate(
       reason: `${r.label} experience cannot be verified — student has not registered on VOS Sync.`,
     }));
 
-  return { score, curriculumItems, gaps };
+  return { score, curriculumItems, technicalItems, softItems, gaps };
 }

@@ -35,6 +35,17 @@ export interface InterviewApplication {
   job_id?: number;
   job_title?: string;
   application_status?: string;
+  current_stage_id?: number | null;
+  stage_name?: string;
+  stage_type?: string;
+  stage_color?: string;
+  allowed_next_stages?: Array<{
+    id: number;
+    stage_name: string;
+    stage_type: string;
+    color: string;
+    is_terminal: boolean;
+  }>;
   screening_answers?: ScreeningAnswer[] | null;
 }
 
@@ -77,6 +88,7 @@ export interface EvaluationFormData {
   attendance_status: AttendanceStatus;
   feedback: string;
   decision?: "HIRED" | "REJECTED" | "NO_ACTION";
+  to_stage_id?: number | null;
 }
 
 export const INTERVIEW_STATUS_LABELS: Record<InterviewStatus, string> = {

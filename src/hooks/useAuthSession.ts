@@ -9,6 +9,8 @@ export interface AuthSessionState {
   role: AuthRole;
   dashboard: string | null;
   userId: number | string | null;
+  companyId: number | null;
+  companyCode: string | null;
   loading: boolean;
   isJobSeeker: boolean;
   isEmployer: boolean;
@@ -22,6 +24,8 @@ const DEFAULT_GUEST_STATE: AuthSessionState = {
   role: "guest",
   dashboard: null,
   userId: null,
+  companyId: null,
+  companyCode: null,
   loading: false,
   isJobSeeker: false,
   isEmployer: false,
@@ -61,6 +65,8 @@ async function fetchAuthSession(): Promise<AuthSessionState> {
             role,
             dashboard: data.dashboard || null,
             userId: data.userId || null,
+            companyId: data.companyId ? Number(data.companyId) : null,
+            companyCode: data.companyCode || null,
             loading: false,
             isJobSeeker: role === "freelancer",
             isEmployer: role === "employer",

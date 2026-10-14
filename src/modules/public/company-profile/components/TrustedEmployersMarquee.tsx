@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Pause, Play, ShieldCheck } from "lucide-react";
 import { TrustedCompany } from "../types";
 
@@ -25,6 +26,7 @@ function CompanyLogoWithFallback({
   companyName: string;
 }) {
   const [imgError, setImgError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   if (!logoUrl || imgError) {
     return (
@@ -35,14 +37,22 @@ function CompanyLogoWithFallback({
   }
 
   return (
-    <div className="w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center overflow-hidden border border-border shrink-0 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+    <div className="relative w-12 h-12 rounded-xl bg-muted/60 flex items-center justify-center overflow-hidden border border-border shrink-0 group-hover:scale-105 group-hover:border-primary/40 transition-all duration-300">
+      {!isLoaded && (
+        <span className="absolute inset-0 flex items-center justify-center font-bold text-xs text-muted-foreground select-none">
+          {getInitials(companyName)}
+        </span>
+      )}
+      <Image
         src={logoUrl}
         alt={companyName}
+        width={48}
+        height={48}
+        decoding="async"
+        unoptimized
+        onLoad={() => setIsLoaded(true)}
         onError={() => setImgError(true)}
-        className="object-cover w-full h-full"
-        loading="lazy"
+        className={`object-cover w-full h-full transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
     </div>
   );
@@ -75,9 +85,10 @@ export function TrustedEmployersMarquee({ companies }: MarqueeProps) {
     );
   }
 
-  // Ensure marquee has enough cards to scroll seamlessly by repeating if necessary
-  const repeatCount = Math.ceil(20 / companies.length);
-  const repeatedCompanies = Array(repeatCount).fill(companies).flat();
+  // Ensure marquee has enough cards to scroll seamlessly without overloading the DOM with 40+ simultaneous decodes
+  const baseCompanies = companies.slice(0, 10);
+  const repeatCount = Math.max(2, Math.ceil(12 / Math.max(baseCompanies.length, 1)));
+  const repeatedCompanies = Array(repeatCount).fill(baseCompanies).flat().slice(0, 14);
   const row1 = repeatedCompanies;
   const row2 = [...repeatedCompanies].reverse();
 

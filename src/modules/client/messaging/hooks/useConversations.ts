@@ -34,19 +34,23 @@ export function useConversations() {
   // ─── Load conversations ────────────────────────────────────────────────
 
   const loadConversations = useCallback(
-    async (opts?: { archived?: boolean }) => {
+    async (opts?: { archived?: boolean; silent?: boolean }) => {
       archivedFilterRef.current = opts?.archived ?? false;
-      setLoading(true);
+      if (!opts?.silent) {
+        setLoading(true);
+      }
       setError("");
       try {
-        const data = await fetchConversations(opts);
+        const data = await fetchConversations({ archived: opts?.archived });
         setConversations(data);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Failed to load conversations."
         );
       } finally {
-        setLoading(false);
+        if (!opts?.silent) {
+          setLoading(false);
+        }
       }
     },
     []

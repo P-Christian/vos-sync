@@ -30,6 +30,8 @@ export default function CompaniesBrowseModule({
   // Search states
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedLocation, setAppliedLocation] = useState("");
   const [industry, setIndustry] = useState("ALL");
   const [size, setSize] = useState("ALL");
   const [activeJobsOnly, setActiveJobsOnly] = useState(false);
@@ -71,8 +73,8 @@ export default function CompaniesBrowseModule({
     const startTime = Date.now();
     try {
       const params = new URLSearchParams();
-      if (search.trim()) params.append("search", search.trim());
-      if (location.trim()) params.append("location", location.trim());
+      if (appliedSearch.trim()) params.append("search", appliedSearch.trim());
+      if (appliedLocation.trim()) params.append("location", appliedLocation.trim());
       if (industry !== "ALL") params.append("industry", industry);
       if (size !== "ALL") params.append("size", size);
       if (activeJobsOnly) params.append("activeJobsOnly", "true");
@@ -98,7 +100,7 @@ export default function CompaniesBrowseModule({
     }
   };
 
-  // Real-time debounced search & filter trigger
+  // Real-time filter trigger (fires only on committed search and filter changes)
   const isInitialMount = useRef(true);
 
   useEffect(() => {
@@ -107,25 +109,22 @@ export default function CompaniesBrowseModule({
       return;
     }
 
-    const timer = setTimeout(() => {
-      fetchCompanies();
-    }, 300);
-
-    return () => clearTimeout(timer);
+    fetchCompanies();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, location, industry, size, activeJobsOnly, page]);
+  }, [appliedSearch, appliedLocation, industry, size, activeJobsOnly, page]);
 
 
   // Handle manual submit search triggers
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setAppliedSearch(search);
+    setAppliedLocation(location);
     setPage(1);
-    fetchCompanies();
   };
 
   const activeFilterCount =
-    (search.trim() ? 1 : 0) +
-    (location.trim() ? 1 : 0) +
+    (appliedSearch.trim() ? 1 : 0) +
+    (appliedLocation.trim() ? 1 : 0) +
     (industry !== "ALL" ? 1 : 0) +
     (size !== "ALL" ? 1 : 0) +
     (activeJobsOnly ? 1 : 0);
@@ -133,6 +132,8 @@ export default function CompaniesBrowseModule({
   const handleResetFilters = () => {
     setSearch("");
     setLocation("");
+    setAppliedSearch("");
+    setAppliedLocation("");
     setIndustry("ALL");
     setSize("ALL");
     setActiveJobsOnly(false);
@@ -326,7 +327,7 @@ export default function CompaniesBrowseModule({
           </div>
 
           {/* Filters Sidebar (inline at >=768px; below md the same panel renders in the sheet) */}
-          <div className="hidden md:block lg:col-span-1 bg-card border border-border rounded-2xl p-6 h-fit sticky top-24">
+          <div className="hidden md:block lg:col-span-1 bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] h-fit sticky top-24">
             {filterPanel}
           </div>
 
@@ -370,7 +371,7 @@ export default function CompaniesBrowseModule({
                 </motion.div>
               ) : (
                 <motion.div
-                  key={`companies-grid-${search}-${location}-${industry}-${size}-${page}`}
+                  key={`companies-grid-${appliedSearch}-${appliedLocation}-${industry}-${size}-${page}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}

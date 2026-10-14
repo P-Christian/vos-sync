@@ -71,9 +71,8 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
         <div className="lg:col-span-2 space-y-8">
           {/* Culture Overview */}
           {company_culture ? (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6">
               <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-                
                 Life at {company.company_name}
               </h2>
               <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
@@ -81,9 +80,8 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
               </p>
             </div>
           ) : (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6">
               <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-              
                 Life at {company.company_name}
               </h2>
               <p className="text-muted-foreground text-sm leading-relaxed italic">
@@ -94,7 +92,7 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
 
           {/* Mission & Vision (Secondary Layout) */}
           {(company_mission || company_vision) && (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6">
               <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
                 <Compass className="w-5 h-5 text-primary" />
                 Mission & Vision
@@ -113,7 +111,7 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
                 )}
 
                 {company_vision && (
-                  <div className="pt-4 border-t border-border">
+                  <div className="pt-4 border-t border-border/80">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">
                       Our Vision
                     </h3>
@@ -131,7 +129,7 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
         <div className="space-y-6">
           {/* Perks side card */}
           {company_benefits && (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6">
               <h2 className="text-lg font-bold text-foreground mb-4">Perks & Benefits</h2>
               <p className="text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
                 {company_benefits}
@@ -140,7 +138,7 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
           )}
 
           {/* Coming soon gallery */}
-          <div className="bg-card border border-border rounded-2xl p-6 text-center py-10">
+          <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6 text-center py-10">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4 text-muted-foreground">
               <ImageIcon className="w-6 h-6" />
             </div>
@@ -152,7 +150,7 @@ export function LifeAndCultureTab({ company, workArrangements }: LifeAndCultureT
 
           {/* Values Chips */}
           {tagsList.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-6">
               <h2 className="text-lg font-bold text-foreground mb-3">Our Core Tags</h2>
               <div className="flex flex-wrap gap-1.5">
                 {tagsList.map((tag) => (

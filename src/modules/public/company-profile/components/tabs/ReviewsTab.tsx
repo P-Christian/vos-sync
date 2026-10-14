@@ -259,7 +259,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-sans pb-16">
       {/* 1. Aggregated Summary Card */}
-      <div className="bg-card border border-border rounded-3xl p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-8 shadow-sm">
+      <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-3xl p-6 sm:p-8 grid grid-cols-1 md:grid-cols-3 gap-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
         {/* Overall Average */}
         <div className="flex flex-col items-center justify-center text-center md:border-r border-border md:pr-8 py-4">
           <span className="text-sm font-bold text-muted-foreground uppercase tracking-wide">
@@ -390,7 +390,7 @@ export function ReviewsTab({ company }: ReviewsTabProps) {
                 return (
                   <div
                     key={rev.review_id}
-                    className="bg-card border border-border rounded-3xl p-6 space-y-5 shadow-xs hover:border-border/80 transition-all"
+                    className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-3xl p-6 space-y-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:border-primary/40 transition-all"
                   >
                     {/* Header info */}
                     <div className="flex items-start justify-between gap-4 flex-wrap border-b border-border/40 pb-4">

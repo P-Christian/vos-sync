@@ -2,7 +2,8 @@
 
 // src/modules/client/interviews/components/InterviewBigCalendar.tsx
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Interview,
@@ -37,7 +38,11 @@ import {
   CheckCircle,
   Lock,
   Calendar,
+  ArrowRightCircle,
+  User,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 import {
   format,
   addMonths,
@@ -140,12 +145,15 @@ export default function InterviewBigCalendar({
   const [evalAppId, setEvalAppId] = useState<number>(0);
   const [evalAttendance, setEvalAttendance] = useState<AttendanceStatus>("ATTENDED");
   const [evalFeedback, setEvalFeedback] = useState<string>("");
-  const [evalDecision, setEvalDecision] = useState<"HIRED" | "REJECTED" | "NO_ACTION">("NO_ACTION");
+  const [evalDecisionAction, setEvalDecisionAction] = useState<"KEEP" | "ADVANCE" | "REJECT">("KEEP");
+  const [evalSelectedToStageId, setEvalSelectedToStageId] = useState<number | null>(null);
 
   // Cancel Interview State in Fullscreen
   const [cancelReason, setCancelReason] = useState(COMMON_CANCEL_REASONS[0]);
   const [customCancelReason, setCustomCancelReason] = useState("");
   const [cancelError, setCancelError] = useState("");
+
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   // Sync state with native browser fullscreen changes (e.g. Esc, F11, or button)
   useEffect(() => {
@@ -360,14 +368,44 @@ export default function InterviewBigCalendar({
     setSelectedInterview(iv);
     const apps = iv.applications || [];
     if (apps.length > 0) {
-      setEvalAppId(apps[0].interview_application_id);
+      const first = apps[0];
+      setEvalAppId(first.interview_application_id);
       setEvalAttendance(
-        apps[0].attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED"
+        first.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED"
       );
-      setEvalFeedback(apps[0].feedback || "");
+      setEvalFeedback(first.feedback || "");
+      setEvalDecisionAction("KEEP");
+      const fStages = first.allowed_next_stages?.filter(
+        (s) => s.stage_type !== "REJECTED" && s.stage_type !== "WITHDRAWN"
+      ) ?? [];
+      setEvalSelectedToStageId(fStages.length > 0 ? fStages[0].id : null);
     }
     setFullscreenModal("feedback");
   };
+
+  const activeEvalApp = useMemo(() => {
+    return (
+      selectedInterview?.applications?.find(
+        (a) => a.interview_application_id === evalAppId
+      ) || selectedInterview?.applications?.[0]
+    );
+  }, [selectedInterview?.applications, evalAppId]);
+
+  const evalForwardStages = useMemo(() => {
+    return (
+      activeEvalApp?.allowed_next_stages?.filter(
+        (s) => s.stage_type !== "REJECTED" && s.stage_type !== "WITHDRAWN"
+      ) ?? []
+    );
+  }, [activeEvalApp?.allowed_next_stages]);
+
+  const evalRejectStage = useMemo(() => {
+    return (
+      activeEvalApp?.allowed_next_stages?.find(
+        (s) => s.stage_type === "REJECTED"
+      ) ?? null
+    );
+  }, [activeEvalApp?.allowed_next_stages]);
 
   const openFullscreenCancel = (iv: Interview) => {
     setSelectedInterview(iv);
@@ -422,11 +460,30 @@ export default function InterviewBigCalendar({
     if (!onSaveEvaluation || !selectedInterview) return;
     setIsSubmitting(true);
     try {
+      let targetStageId: number | null = null;
+      let decision: "HIRED" | "REJECTED" | "NO_ACTION" = "NO_ACTION";
+
+      if (evalDecisionAction === "ADVANCE") {
+        targetStageId = evalSelectedToStageId;
+        const targetStage = activeEvalApp?.allowed_next_stages?.find(
+          (s) => s.id === evalSelectedToStageId
+        );
+        if (targetStage?.stage_type === "HIRED") {
+          decision = "HIRED";
+        }
+      } else if (evalDecisionAction === "REJECT") {
+        targetStageId = evalRejectStage?.id ?? null;
+        decision = "REJECTED";
+      } else {
+        decision = "NO_ACTION";
+      }
+
       const ok = await onSaveEvaluation({
         interview_application_id: evalAppId,
         attendance_status: evalAttendance,
         feedback: evalFeedback,
-        decision: evalDecision,
+        decision,
+        to_stage_id: targetStageId,
       });
       if (ok) setFullscreenModal(null);
     } finally {
@@ -795,176 +852,198 @@ export default function InterviewBigCalendar({
       </div>
 
       {/* Overflow Day Agenda Modal / Popover */}
-      <AnimatePresence>
-        {selectedDayInterviews && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 max-md:p-0">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedDayInterviews(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 12 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl md:max-w-2xl w-full max-md:max-w-none max-md:w-full max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 p-5 sm:p-6 max-md:p-4 space-y-4 max-h-[88vh] flex flex-col"
-            >
-              <div className="flex items-center justify-between border-b pb-3 border-zinc-100 dark:border-zinc-800 shrink-0">
-                <div>
-                  <h3 className="font-bold text-base text-zinc-900 dark:text-white">
-                    Interviews on {format(selectedDayInterviews.date, "MMMM d, yyyy")}
-                  </h3>
-                  <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
-                    {selectedDayInterviews.interviews.length === 0
-                      ? "No interviews scheduled"
-                      : `${selectedDayInterviews.interviews.length} interview${selectedDayInterviews.interviews.length !== 1 ? "s" : ""} scheduled`}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
-                  onClick={() => setSelectedDayInterviews(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[62vh]">
-                {selectedDayInterviews.interviews.length > 0 ? (
-                  selectedDayInterviews.interviews.map((item) => (
-                    <div
-                      key={item.interview_id}
-                      className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50 space-y-3 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
-                          <span className="font-bold text-sm text-zinc-900 dark:text-white">
-                            {format(parseISO(item.scheduled_at), "h:mm a")}
-                          </span>
-                          <span className="text-sm md:text-xs text-zinc-400 font-normal">
-                            ({item.duration_minutes || 60}m · {item.interview_format.toLowerCase()})
-                          </span>
-                        </div>
-                        <InterviewStatusBadge status={item.interview_status} />
-                      </div>
-
-                      <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                        {getCandidateLabel(item)}
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-800">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedDayInterviews(null);
-                            if (isFullscreen) {
-                              openFullscreenDetails(item);
-                            } else {
-                              onViewDetails(item);
-                            }
-                          }}
-                          className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold"
-                        >
-                          <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View & Q&A
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedDayInterviews(null);
-                            if (isFullscreen) {
-                              openFullscreenFeedback(item);
-                            } else {
-                              onOpenEvaluation(item);
-                            }
-                          }}
-                          className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg text-emerald-700 dark:text-emerald-300 font-semibold"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Feedback
-                        </Button>
-                        {(item.interview_status === "SCHEDULED" ||
-                          item.interview_status === "CONFIRMED" ||
-                          item.interview_status === "RESCHEDULED") && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedDayInterviews(null);
-                                if (isFullscreen) {
-                                  openFullscreenReschedule(item);
-                                } else {
-                                  onReschedule(item);
-                                }
-                              }}
-                              className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-amber-600 dark:text-amber-400"
-                            >
-                              <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" /> Reschedule
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedDayInterviews(null);
-                                if (isFullscreen) {
-                                  openFullscreenCancel(item);
-                                } else {
-                                  onOpenCancelModal(item);
-                                }
-                              }}
-                              className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
-                            >
-                              <XCircle className="h-3.5 w-3.5 mr-1.5 text-rose-500" /> Cancel
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-10 px-4 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3">
-                    <Calendar className="h-9 w-9 mx-auto text-zinc-400 dark:text-zinc-600" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                        No interviews scheduled for this date
-                      </p>
-                      <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
-                        There are no candidate interview sessions booked for {format(selectedDayInterviews.date, "MMMM d, yyyy")}.
-                      </p>
-                    </div>
-                    {(onScheduleDate || onCreateInterview) && (
-                      <div className="pt-2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            const dateStr = format(selectedDayInterviews.date, "yyyy-MM-dd");
-                            setSelectedDayInterviews(null);
-                            if (isFullscreen) {
-                              openFullscreenSchedule(dateStr);
-                            } else if (onScheduleDate) {
-                              onScheduleDate(dateStr);
-                            }
-                          }}
-                          className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg gap-1.5"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          Schedule Interview on this Date
-                        </Button>
-                      </div>
-                    )}
+      {(() => {
+        const renderDayAgendaContent = () => {
+          if (!selectedDayInterviews) return null;
+          return (
+            <div key="day-agenda-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4 max-md:p-0">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedDayInterviews(null)}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-10 bg-card text-card-foreground border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-xl md:max-w-2xl w-full max-md:max-w-none max-md:w-full max-md:h-[100dvh] max-md:max-h-none max-md:rounded-none max-md:border-0 p-5 sm:p-6 max-md:p-4 space-y-4 max-h-[88vh] flex flex-col"
+              >
+                <div className="flex items-center justify-between border-b pb-3 border-zinc-100 dark:border-zinc-800 shrink-0">
+                  <div>
+                    <h3 className="font-bold text-base text-zinc-900 dark:text-white">
+                      Interviews on {format(selectedDayInterviews.date, "MMMM d, yyyy")}
+                    </h3>
+                    <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
+                      {selectedDayInterviews.interviews.length === 0
+                        ? "No interviews scheduled"
+                        : `${selectedDayInterviews.interviews.length} interview${selectedDayInterviews.interviews.length !== 1 ? "s" : ""} scheduled`}
+                    </p>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 max-md:size-10 p-0 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg"
+                    onClick={() => setSelectedDayInterviews(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className="space-y-3 overflow-y-auto pr-1 flex-1 max-h-[62vh]">
+                  {selectedDayInterviews.interviews.length > 0 ? (
+                    selectedDayInterviews.interviews.map((item) => (
+                      <div
+                        key={item.interview_id}
+                        className="p-4 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50 space-y-3 transition-all hover:border-zinc-300 dark:hover:border-zinc-700"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-indigo-500 shrink-0" />
+                            <span className="font-bold text-sm text-zinc-900 dark:text-white">
+                              {format(parseISO(item.scheduled_at), "h:mm a")}
+                            </span>
+                            <span className="text-sm md:text-xs text-zinc-400 font-normal">
+                              ({item.duration_minutes || 60}m · {item.interview_format.toLowerCase()})
+                            </span>
+                          </div>
+                          <InterviewStatusBadge status={item.interview_status} />
+                        </div>
+
+                        <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                          {getCandidateLabel(item)}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-800">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedDayInterviews(null);
+                              if (isFullscreen) {
+                                openFullscreenDetails(item);
+                              } else {
+                                onViewDetails(item);
+                              }
+                            }}
+                            className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View & Q&A
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedDayInterviews(null);
+                              if (isFullscreen) {
+                                openFullscreenFeedback(item);
+                              } else {
+                                onOpenEvaluation(item);
+                              }
+                            }}
+                            className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg text-emerald-700 dark:text-emerald-300 font-semibold"
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 mr-1.5 text-emerald-600" /> Feedback
+                          </Button>
+                          {(item.interview_status === "SCHEDULED" ||
+                            item.interview_status === "CONFIRMED" ||
+                            item.interview_status === "RESCHEDULED") && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedDayInterviews(null);
+                                  if (isFullscreen) {
+                                    openFullscreenReschedule(item);
+                                  } else {
+                                    onReschedule(item);
+                                  }
+                                }}
+                                className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-amber-600 dark:text-amber-400"
+                              >
+                                <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-amber-500" /> Reschedule
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedDayInterviews(null);
+                                  if (isFullscreen) {
+                                    openFullscreenCancel(item);
+                                  } else {
+                                    onOpenCancelModal(item);
+                                  }
+                                }}
+                                className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60"
+                              >
+                                <XCircle className="h-3.5 w-3.5 mr-1.5 text-rose-500" /> Cancel
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-10 px-4 text-center rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 space-y-3">
+                      <Calendar className="h-9 w-9 mx-auto text-zinc-400 dark:text-zinc-600" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                          No interviews scheduled for this date
+                        </p>
+                        <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
+                          There are no candidate interview sessions booked for {format(selectedDayInterviews.date, "MMMM d, yyyy")}.
+                        </p>
+                      </div>
+                      {(onScheduleDate || onCreateInterview) && (
+                        <div className="pt-2">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              const dateStr = format(selectedDayInterviews.date, "yyyy-MM-dd");
+                              setSelectedDayInterviews(null);
+                              if (isFullscreen) {
+                                openFullscreenSchedule(dateStr);
+                              } else if (onScheduleDate) {
+                                onScheduleDate(dateStr);
+                              }
+                            }}
+                            className="h-8 max-md:min-h-10 text-sm md:text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg gap-1.5"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Schedule Interview on this Date
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          );
+        };
+
+        if (isFullscreen) {
+          return (
+            <AnimatePresence>
+              {selectedDayInterviews && renderDayAgendaContent()}
+            </AnimatePresence>
+          );
+        }
+
+        if (mounted && typeof document !== "undefined") {
+          return createPortal(
+            <AnimatePresence>
+              {selectedDayInterviews && renderDayAgendaContent()}
+            </AnimatePresence>,
+            document.body
+          );
+        }
+
+        return null;
+      })()}
 
       {/* ── FULLSCREEN INLINE MODALS ────────────────────────────────────────── */}
 
@@ -1257,6 +1336,11 @@ export default function InterviewBigCalendar({
                           setEvalAppId(app.interview_application_id);
                           setEvalAttendance(app.attendance_status === "NO_SHOW" ? "NO_SHOW" : "ATTENDED");
                           setEvalFeedback(app.feedback || "");
+                          setEvalDecisionAction("KEEP");
+                          const fStages = app.allowed_next_stages?.filter(
+                            (s) => s.stage_type !== "REJECTED" && s.stage_type !== "WITHDRAWN"
+                          ) ?? [];
+                          setEvalSelectedToStageId(fStages.length > 0 ? fStages[0].id : null);
                         }}
                         className={`p-2 max-md:min-h-10 rounded-xl text-left border text-sm md:text-xs transition-all ${
                           evalAppId === app.interview_application_id
@@ -1269,6 +1353,36 @@ export default function InterviewBigCalendar({
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Active Candidate Info Header */}
+              {activeEvalApp && (
+                <div className="p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-indigo-500" />
+                      {activeEvalApp.applicant_name}
+                    </p>
+                    <p className="text-sm md:text-xs text-zinc-500 mt-0.5">
+                      Role: <span className="font-medium text-zinc-700 dark:text-zinc-300">{activeEvalApp.job_title}</span>
+                    </p>
+                  </div>
+
+                  {activeEvalApp.stage_name && (
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">Current Stage</span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-xs font-semibold px-2.5 py-0.5 rounded-full border",
+                          STAGE_COLOR_CLASSES[activeEvalApp.stage_color || "sky"]?.badge || "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {activeEvalApp.stage_name}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1315,45 +1429,117 @@ export default function InterviewBigCalendar({
                 />
               </div>
 
-              {/* Decision Status */}
+              {/* Candidate Pipeline Action (ATS Pipeline Driven) */}
               {!isCompletedEvaluation && (
-                <div className="space-y-1.5">
-                  <Label className="text-sm md:text-xs font-semibold">Candidate Recommendation</Label>
+                <div className="space-y-3 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                      Candidate Pipeline Action (Optional)
+                    </Label>
+                    <span className="text-xs md:text-[11px] text-zinc-400">
+                      Governed by job&apos;s ATS pipeline
+                    </span>
+                  </div>
+
+                  {/* 3 Main Action Toggles */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       type="button"
-                      onClick={() => setEvalDecision("HIRED")}
-                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
-                        evalDecision === "HIRED"
-                          ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300"
-                          : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                      }`}
+                      onClick={() => setEvalDecisionAction("KEEP")}
+                      className={cn(
+                        "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-xl border transition-all text-center flex items-center justify-center gap-1.5",
+                        evalDecisionAction === "KEEP"
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-semibold shadow-xs"
+                          : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                      )}
                     >
-                      Recommend Hire
+                      Keep in Current Stage
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => setEvalDecision("REJECTED")}
-                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
-                        evalDecision === "REJECTED"
-                          ? "bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300"
-                          : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                      }`}
+                      onClick={() => setEvalDecisionAction("ADVANCE")}
+                      className={cn(
+                        "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-xl border transition-all flex items-center justify-center gap-1.5",
+                        evalDecisionAction === "ADVANCE"
+                          ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold shadow-xs"
+                          : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                      )}
                     >
-                      Reject
+                      <ArrowRightCircle className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      Advance to Next Stage
                     </button>
+
                     <button
                       type="button"
-                      onClick={() => setEvalDecision("NO_ACTION")}
-                      className={`p-2 max-md:min-h-10 rounded-xl border text-sm md:text-xs font-semibold text-center transition-all ${
-                        evalDecision === "NO_ACTION"
-                          ? "bg-indigo-50 dark:bg-indigo-950/60 border-indigo-500 text-indigo-700 dark:text-indigo-300"
-                          : "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400"
-                      }`}
+                      onClick={() => setEvalDecisionAction("REJECT")}
+                      className={cn(
+                        "py-2 px-3 max-md:min-h-10 text-sm md:text-xs font-medium rounded-xl border transition-all flex items-center justify-center gap-1.5",
+                        evalDecisionAction === "REJECT"
+                          ? "border-rose-600 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 font-semibold shadow-xs"
+                          : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                      )}
                     >
-                      Keep Under Review
+                      <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                      Reject Candidate
                     </button>
                   </div>
+
+                  {/* Conditional sub-selection when ADVANCE is active */}
+                  {evalDecisionAction === "ADVANCE" && (
+                    <div className="p-3 bg-zinc-50/80 dark:bg-zinc-900/60 border border-emerald-200/60 dark:border-emerald-900/40 rounded-xl space-y-2 animate-in fade-in-50 duration-150">
+                      <div className="flex items-center justify-between text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        <span>Select Target Pipeline Stage:</span>
+                        <span className="text-[11px] text-zinc-400">
+                          {evalForwardStages.length} stage{evalForwardStages.length !== 1 ? "s" : ""} available
+                        </span>
+                      </div>
+
+                      {evalForwardStages.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          {evalForwardStages.map((stage) => {
+                            const isSelected = evalSelectedToStageId === stage.id;
+                            const palette = STAGE_COLOR_CLASSES[stage.color] || STAGE_COLOR_CLASSES.sky;
+                            return (
+                              <button
+                                key={stage.id}
+                                type="button"
+                                onClick={() => setEvalSelectedToStageId(stage.id)}
+                                className={cn(
+                                  "flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium text-left transition-all",
+                                  isSelected
+                                    ? "border-emerald-600 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 ring-2 ring-emerald-500/20"
+                                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700"
+                                )}
+                              >
+                                <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", palette?.dot || "bg-sky-500")} />
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate font-medium">{stage.stage_name}</p>
+                                  {stage.is_terminal && (
+                                    <span className="text-[10px] text-zinc-400">Terminal stage</span>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-lg">
+                          No further stages available in this job&apos;s pipeline.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {evalDecisionAction === "REJECT" && evalRejectStage && (
+                    <div className="p-2.5 bg-rose-50/60 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/40 rounded-lg flex items-center justify-between text-xs text-rose-700 dark:text-rose-300">
+                      <span>Will transition applicant to:</span>
+                      <span className="font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+                        {evalRejectStage.stage_name}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

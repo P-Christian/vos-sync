@@ -5,6 +5,7 @@ import { createFreelancerNotification } from "@/lib/notifications/services/freel
 import { createEmployerNotification } from "@/lib/notifications/services/employer-notifications";
 import { getPHTimeString } from "@/lib/utils";
 import { getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
+import { JobPipelineVersion, JobPipelineStage } from "@/modules/client/pipeline/types";
 import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
 import { resolveReviewerCompany } from "@/modules/client/assessment-review/services/context";
 
@@ -99,6 +100,7 @@ interface ApplicationSummary {
   user_id: number;
   job_id: number;
   application_status: string;
+  current_stage_id?: number | null;
 }
 
 interface VsUser {
@@ -164,7 +166,7 @@ export async function GET(req: NextRequest) {
     const appsMap: Record<number, ApplicationSummary> = {};
     if (appIds.length > 0) {
       const appsRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_job_application?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,user_id,job_id,application_status&limit=500`,
+        `${DIRECTUS_BASE}/items/vs_job_application?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,user_id,job_id,application_status,current_stage_id&limit=500`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (appsRes.ok) {
@@ -192,6 +194,7 @@ export async function GET(req: NextRequest) {
     }
 
     const jobsMap: Record<number, string> = {};
+    const jobPipelineMap: Record<number, JobPipelineVersion | null> = {};
     if (jobIds.length > 0) {
       const jobsRes = await fetch(
         `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title&limit=500`,
@@ -202,6 +205,17 @@ export async function GET(req: NextRequest) {
           jobsMap[j.job_id] = j.job_title;
         });
       }
+
+      await Promise.all(
+        jobIds.map(async (jId) => {
+          try {
+            const pipe = await getJobPipeline(jId);
+            jobPipelineMap[jId] = pipe;
+          } catch {
+            jobPipelineMap[jId] = null;
+          }
+        })
+      );
     }
 
     // Map candidates to interviews
@@ -209,10 +223,64 @@ export async function GET(req: NextRequest) {
       const matchedJunction = junctionApps.filter((ja) => ja.interview_id === iv.interview_id);
 
       const applications = matchedJunction.map((ja) => {
-        const app = appsMap[ja.application_id] ?? { user_id: null, job_id: null, application_status: "INTERVIEWING" };
+        const app = appsMap[ja.application_id] ?? {
+          application_id: ja.application_id,
+          user_id: 0,
+          job_id: 0,
+          application_status: "INTERVIEWING",
+          current_stage_id: null,
+        };
         const u = app.user_id ? usersMap[app.user_id] : null;
         const applicantName = u ? `${u.user_fname} ${u.user_lname}`.trim() : `Applicant #${app.user_id}`;
         const jobTitle = app.job_id ? (jobsMap[app.job_id] ?? "Unknown Role") : "Unknown Role";
+
+        const pipe = app.job_id ? jobPipelineMap[app.job_id] : null;
+        let currentStage: JobPipelineStage | undefined;
+        let allowedNextStages: Array<{
+          id: number;
+          stage_name: string;
+          stage_type: string;
+          color: string;
+          is_terminal: boolean;
+        }> = [];
+
+        if (pipe?.stages) {
+          if (app.current_stage_id) {
+            currentStage = pipe.stages.find((s) => s.id === Number(app.current_stage_id));
+          }
+          if (!currentStage) {
+            currentStage =
+              pipe.stages.find((s) => s.stage_type === app.application_status) ||
+              pipe.stages.find((s) => s.stage_type === "INTERVIEW") ||
+              pipe.stages.find((s) => s.stage_type === "APPLIED") ||
+              pipe.stages[0];
+          }
+
+          if (currentStage && !currentStage.is_terminal) {
+            const transitions = pipe.transitions ?? [];
+            const forwardStageIds = new Set(
+              transitions
+                .filter((t) => t.from_stage_id === currentStage!.id)
+                .map((t) => t.to_stage_id)
+            );
+
+            allowedNextStages = pipe.stages
+              .filter(
+                (s) =>
+                  s.id !== currentStage!.id &&
+                  (forwardStageIds.has(s.id) ||
+                    s.stage_type === "REJECTED" ||
+                    s.stage_type === "WITHDRAWN")
+              )
+              .map((s) => ({
+                id: s.id,
+                stage_name: s.stage_name,
+                stage_type: s.stage_type,
+                color: s.color,
+                is_terminal: Boolean(s.is_terminal),
+              }));
+          }
+        }
 
         return {
           ...ja,
@@ -223,6 +291,11 @@ export async function GET(req: NextRequest) {
           job_id: app.job_id ?? undefined,
           job_title: jobTitle,
           application_status: app.application_status,
+          current_stage_id: currentStage?.id ?? app.current_stage_id ?? null,
+          stage_name: currentStage?.stage_name ?? app.application_status,
+          stage_type: currentStage?.stage_type ?? app.application_status,
+          stage_color: currentStage?.color ?? "sky",
+          allowed_next_stages: allowedNextStages,
         };
       });
 

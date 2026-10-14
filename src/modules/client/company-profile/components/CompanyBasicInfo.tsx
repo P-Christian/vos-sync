@@ -11,6 +11,7 @@ import { Facebook, Linkedin, Instagram, Youtube, Upload, Image as ImageIcon, Loa
 
 import ImageCropModal from "./ImageCropModal";
 import InlineAITrigger from "./InlineAITrigger";
+import { toast } from "sonner";
 
 interface CompanyBasicInfoProps {
   data: Partial<EditableCompanyFields>;
@@ -104,7 +105,7 @@ export default function CompanyBasicInfo({
       setCropModalState((prev) => ({ ...prev, isOpen: false, imageSrc: null }));
     } catch (err) {
       console.error(err);
-      alert("Failed to upload image. Please try again.");
+      toast.error("Couldn't upload the image. Please try again.");
     } finally {
       if (field === "company_logo") setUploadingLogo(false);
       else setUploadingCover(false);
@@ -115,15 +116,10 @@ export default function CompanyBasicInfo({
     return (
       <div className="space-y-6">
         <div>
-          <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-4 flex items-center gap-2">
-            <span className="inline-block w-1 h-4 bg-primary rounded-full" />
-            Company Information
-          </h3>
-
           {/* Banner & Logo Visualizer (Read Only) */}
           <div className="relative mb-14">
             {/* Cover image container */}
-            <div className="group w-full aspect-[3/1] bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800">
+            <div className="group w-full aspect-[3/1] bg-gradient-to-r from-primary/10 via-sky-500/10 to-primary/5 relative rounded-xl overflow-hidden border border-border/80">
               {data.company_cover ? (
                 <img
                   src={getImageUrl(data.company_cover)}
@@ -131,13 +127,13 @@ export default function CompanyBasicInfo({
                   className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                 />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center text-zinc-400 text-xs">
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs font-medium">
                   No cover photo uploaded
                 </div>
               )}
             </div>
             {/* Logo overlay - positioned absolutely, half-overlapping the bottom border */}
-            <div className="absolute -bottom-4 left-6 h-25 w-25 rounded-xl border-2 border-white dark:border-zinc-950 bg-white dark:bg-zinc-900 shadow-md overflow-hidden flex items-center justify-center z-10 transition-transform duration-300 ease-out hover:scale-105 hover:shadow-lg">
+            <div className="absolute -bottom-4 left-6 h-24 w-24 rounded-2xl border-2 border-background bg-card shadow-md overflow-hidden flex items-center justify-center z-10 transition-transform duration-300 ease-out hover:scale-105 hover:shadow-lg">
               {data.company_logo ? (
                 <img
                   src={getImageUrl(data.company_logo)}
@@ -145,120 +141,150 @@ export default function CompanyBasicInfo({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Building2 className="h-9 w-9 text-zinc-400" />
+                <Building2 className="h-9 w-9 text-muted-foreground" />
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Display Name</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_name || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Display Name</span>
+              <p className="text-sm font-medium text-foreground">{data.company_name || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Legal Company Name</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_legal_name || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Legal Company Name</span>
+              <p className="text-sm font-medium text-foreground">{data.company_legal_name || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Email</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_email || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Email</span>
+              <p className="text-sm font-medium text-foreground">{data.company_email || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Contact</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_contact || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
+              <p className="text-sm font-medium text-foreground">{data.company_contact || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Registration Number</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.registration_no || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Registration Number</span>
+              <p className="text-sm font-medium text-foreground">{data.registration_no || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">TIN</span>
-              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{data.company_tin || "—"}</p>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">TIN</span>
+              <p className="text-sm font-medium text-foreground">{data.company_tin || "—"}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Website</span>
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Website</span>
               {data.company_website ? (
-                <a href={formatWebsiteUrl(data.company_website)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline block truncate max-w-xs">
+                <a href={formatWebsiteUrl(data.company_website)} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:underline hover:text-primary/80 block truncate max-w-xs">
                   {data.company_website}
                 </a>
               ) : (
-                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">—</p>
+                <p className="text-sm font-medium text-foreground">—</p>
               )}
             </div>
             <div className="space-y-1">
-              <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Social Media Links</span>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Social Media Links</span>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
                 {data.company_facebook && (
-                  <a href={formatWebsiteUrl(data.company_facebook)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
-                    <Facebook className="h-3.5 w-3.5 text-blue-600 shrink-0" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_facebook)}</span>
+                  <a
+                    href={formatWebsiteUrl(data.company_facebook)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Facebook: ${extractSocialHandle(data.company_facebook)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card/60 hover:bg-primary/10 hover:border-primary/30 text-xs font-medium text-foreground transition-all"
+                  >
+                    <Facebook className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{extractSocialHandle(data.company_facebook)}</span>
                   </a>
                 )}
                 {data.company_linkedin && (
-                  <a href={formatWebsiteUrl(data.company_linkedin)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
-                    <Linkedin className="h-3.5 w-3.5 text-blue-700 shrink-0" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_linkedin)}</span>
+                  <a
+                    href={formatWebsiteUrl(data.company_linkedin)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`LinkedIn: ${extractSocialHandle(data.company_linkedin)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card/60 hover:bg-primary/10 hover:border-primary/30 text-xs font-medium text-foreground transition-all"
+                  >
+                    <Linkedin className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{extractSocialHandle(data.company_linkedin)}</span>
                   </a>
                 )}
                 {data.company_instagram && (
-                  <a href={formatWebsiteUrl(data.company_instagram)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
-                    <Instagram className="h-3.5 w-3.5 text-pink-600 shrink-0" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_instagram)}</span>
+                  <a
+                    href={formatWebsiteUrl(data.company_instagram)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`Instagram: ${extractSocialHandle(data.company_instagram)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card/60 hover:bg-primary/10 hover:border-primary/30 text-xs font-medium text-foreground transition-all"
+                  >
+                    <Instagram className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{extractSocialHandle(data.company_instagram)}</span>
                   </a>
                 )}
                 {data.company_youtube && (
-                  <a href={formatWebsiteUrl(data.company_youtube)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
-                    <Youtube className="h-3.5 w-3.5 text-red-600 shrink-0" />
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_youtube)}</span>
+                  <a
+                    href={formatWebsiteUrl(data.company_youtube)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`YouTube: ${extractSocialHandle(data.company_youtube)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card/60 hover:bg-primary/10 hover:border-primary/30 text-xs font-medium text-foreground transition-all"
+                  >
+                    <Youtube className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{extractSocialHandle(data.company_youtube)}</span>
                   </a>
                 )}
                 {data.company_x && (
-                  <a href={formatWebsiteUrl(data.company_x)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm md:text-xs text-zinc-600 dark:text-zinc-400 hover:underline truncate max-md:min-h-10">
-                    <span className="h-3.5 w-3.5 flex items-center justify-center font-bold text-zinc-900 dark:text-zinc-100 text-xs shrink-0 select-none">𝕏</span>
-                    <span className="font-medium text-zinc-700 dark:text-zinc-300 text-[13px] truncate">{extractSocialHandle(data.company_x)}</span>
+                  <a
+                    href={formatWebsiteUrl(data.company_x)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={`X: ${extractSocialHandle(data.company_x)}`}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/80 bg-card/60 hover:bg-primary/10 hover:border-primary/30 text-xs font-medium text-foreground transition-all"
+                  >
+                    <span className="h-3.5 w-3.5 flex items-center justify-center font-bold text-foreground text-xs shrink-0 select-none">𝕏</span>
+                    <span>{extractSocialHandle(data.company_x)}</span>
                   </a>
                 )}
                 {!data.company_facebook && !data.company_linkedin && !data.company_instagram && !data.company_youtube && !data.company_x && (
-                  <p className="text-sm md:text-xs text-zinc-400 col-span-2">—</p>
+                  <p className="text-sm font-medium text-foreground">—</p>
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
-          <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Description</span>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_description || "No description provided."}</p>
+        <div className="pt-4 border-t border-border/60 space-y-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Description</span>
+          <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{data.company_description || "No description provided."}</p>
         </div>
 
         {(data.company_mission || data.company_vision) && (
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="pt-4 border-t border-border/60 grid grid-cols-1 md:grid-cols-2 gap-4">
             {data.company_mission && (
               <div className="space-y-1">
-                <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Mission</span>
-                <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_mission}</p>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Mission</span>
+                <p className="text-sm text-foreground/90 leading-relaxed">{data.company_mission}</p>
               </div>
             )}
             {data.company_vision && (
               <div className="space-y-1">
-                <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Vision</span>
-                <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">{data.company_vision}</p>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Vision</span>
+                <p className="text-sm text-foreground/90 leading-relaxed">{data.company_vision}</p>
               </div>
             )}
           </div>
         )}
 
         {data.company_culture && (
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Company Culture</span>
-            <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_culture}</p>
+          <div className="pt-4 border-t border-border/60 space-y-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Company Culture</span>
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{data.company_culture}</p>
           </div>
         )}
 
         {data.company_benefits && (
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-1">
-            <span className="text-xs md:text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Perks & Benefits</span>
-            <p className="text-sm md:text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{data.company_benefits}</p>
+          <div className="pt-4 border-t border-border/60 space-y-1">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">Perks & Benefits</span>
+            <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">{data.company_benefits}</p>
           </div>
         )}
       </div>

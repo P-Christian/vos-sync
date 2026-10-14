@@ -5,7 +5,7 @@ import React from "react";
 
 export function PublicJobSkeleton() {
   return (
-    <div className="bg-card border border-border/60 rounded-2xl p-5 space-y-4 shadow-xs relative overflow-hidden animate-pulse">
+    <div className="bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl px-5 pt-5 pb-3.5 flex flex-col justify-between gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] relative overflow-hidden animate-pulse">
       <div className="space-y-3">
         {/* Top Header: Logo + Title + Badge */}
         <div className="flex items-start justify-between gap-3">

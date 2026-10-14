@@ -13,47 +13,43 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { NavUser } from "@/app/(vos-sync)/vos-sync/_components/nav-user";
 import { NotificationBell as FreelancerNotificationBell } from "@/modules/freelancer/freelancer-notifications/components/NotificationBellWrapper";
 import { ClientNotificationBell } from "@/modules/client/notifications/components/ClientNotificationBellWrapper";
 import { SchoolAdminNotificationBell } from "@/modules/school-admin/components/SchoolAdminNotificationBellWrapper";
 import { UserSearchBar } from "@/modules/shared/search/components/UserSearchBar";
 
-type PortalPageHeaderUser = {
-  name: string;
-  email: string;
-  avatar?: string;
-  terms_accepted_at?: string | null;
-  created_at?: string | null;
-};
-
-interface PortalPageHeaderProps {
-  user: PortalPageHeaderUser;
-}
-
 /**
  * Reusable page header for all portal pages.
- * Includes a SidebarTrigger (hamburger) on the left for mobile support,
- * and Bell, HelpCircle (links to role How It Works guide), and NavUser on the right.
+ * Layout: 3-column grid so the search bar is always truly centered,
+ * regardless of the width of the left/right groups.
+ *  - Left:   SidebarTrigger (hamburger)
+ *  - Center: UserSearchBar (hidden on mobile and for admin routes)
+ *  - Right:  Help (links to role How It Works guide) + Notification bell
  */
-export function PortalPageHeader({ user }: PortalPageHeaderProps) {
+export interface PortalPageHeaderProps {
+  user?: {
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+}
+
+export function PortalPageHeader(_props?: PortalPageHeaderProps) {
+  void _props;
   const pathname = usePathname();
   const isClientRoute = pathname?.startsWith("/vos-sync/client");
   const isFreelancerRoute = pathname?.startsWith("/vos-sync/freelancer");
   const isSchoolAdminRoute = pathname?.startsWith("/vos-sync/school-admin");
   const isVosAdminRoute = pathname?.startsWith("/vos-sync/vos-admin");
 
-  const getHelpRoute = React.useCallback(() => {
+  const helpRoute = React.useMemo(() => {
     if (isClientRoute) return "/vos-sync/client/how-it-works";
     if (isFreelancerRoute) return "/vos-sync/freelancer/how-it-works";
     if (isSchoolAdminRoute) return "/vos-sync/school-admin/how-it-works";
     return "/how-it-works";
   }, [isClientRoute, isFreelancerRoute, isSchoolAdminRoute]);
 
-  const helpRoute = getHelpRoute();
-  const storageKey = React.useMemo(() => {
-    return `vos_help_guide_seen_${user?.email || "guest"}`;
-  }, [user?.email]);
+  const storageKey = `vos_help_guide_seen_${pathname?.split("/")[3] ?? "portal"}`;
 
   const [hasSeenHelp, setHasSeenHelp] = React.useState<boolean>(true);
 
@@ -85,25 +81,60 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
   }, [storageKey]);
 
   const showNewBadge = !hasSeenHelp;
+  const showSearch = !isVosAdminRoute && !isSchoolAdminRoute;
 
   return (
-    <header className="relative z-40 flex h-14 shrink-0 items-center justify-between border-b shadow-xs bg-background sm:h-16 px-4">
-      {/* Left: sidebar toggle + searchbar */}
-        <div className="flex h-full min-w-0 flex-1 items-center gap-4">
-        <SidebarTrigger className="-ml-1 shrink-0" />
-        {!isVosAdminRoute && !isSchoolAdminRoute && (
-          <div className="hidden md:block w-full max-w-2xl min-w-0">
+    <header
+      className="
+        sticky top-0 z-50 isolate
+        grid h-14 shrink-0 items-center gap-3 px-4 sm:h-16 md:gap-4 md:px-6
+        grid-cols-[auto_1fr_auto]
+        md:grid-cols-[1fr_minmax(0,40rem)_1fr]
+        border-b border-border/60
+        bg-gradient-to-r from-background/95 via-background/80 to-background/95
+        backdrop-blur-xl backdrop-saturate-150
+        shadow-[0_1px_0_0_hsl(var(--background)/0.6)_inset,0_4px_20px_-12px_hsl(var(--foreground)/0.25)]
+      "
+    >
+      {/* Decorative background layers */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        {/* soft brand glow, top-left */}
+        <div className="absolute -left-24 -top-24 h-48 w-72 rounded-full bg-primary/10 blur-3xl" />
+        {/* soft accent glow, top-right */}
+        <div className="absolute -right-24 -top-24 h-48 w-72 rounded-full bg-primary/5 blur-3xl" />
+        {/* subtle dot pattern fading toward the center */}
+        <div
+          className="absolute inset-0 opacity-[0.35] dark:opacity-[0.2]
+                     [background-image:radial-gradient(hsl(var(--foreground)/0.08)_1px,transparent_1px)]
+                     [background-size:16px_16px]
+                     [mask-image:linear-gradient(to_right,black,transparent_30%,transparent_70%,black)]"
+        />
+        {/* gradient hairline on the bottom edge */}
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+      </div>
+
+      {/* Left: sidebar toggle */}
+      <div className="flex min-w-0 items-center justify-self-start">
+        <SidebarTrigger
+          className="-ml-1 shrink-0 rounded-xl text-muted-foreground transition-colors duration-150 hover:bg-primary/10 hover:text-primary focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          aria-label="Toggle navigation sidebar"
+        />
+      </div>
+
+      {/* Center: search bar (empty cell on mobile/admin keeps the grid aligned) */}
+      <div className="min-w-0 justify-self-stretch">
+        {showSearch && (
+          <div className="hidden w-full min-w-0 md:block">
             <UserSearchBar />
           </div>
         )}
       </div>
 
-      {/* Right: actions + user avatar */}
-      <div className="flex h-full items-center gap-2 shrink-0 min-w-0">
-        {isClientRoute && <ClientNotificationBell />}
-        {isFreelancerRoute && <FreelancerNotificationBell />}
-        {isSchoolAdminRoute && <SchoolAdminNotificationBell />}
-        
+      {/* Right: Help, then Bell */}
+      <div className="flex shrink-0 items-center justify-self-end gap-1">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -111,29 +142,31 @@ export function PortalPageHeader({ user }: PortalPageHeaderProps) {
                 asChild
                 variant="ghost"
                 size="icon"
-                className="text-muted-foreground hover:text-foreground flex relative cursor-pointer max-md:size-11"
+                aria-label="Help and guides"
+                className="relative cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-foreground max-md:size-11"
               >
                 <Link href={helpRoute} onClick={handleHelpClick}>
                   <HelpCircle className="h-5 w-5" />
                   {showNewBadge && (
-                    <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
                     </span>
                   )}
                 </Link>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="font-semibold text-xs">
-              <span>Need Help?</span>
+            <TooltipContent side="bottom" className="text-xs font-semibold">
+              <span>
+                {showNewBadge ? "New guide & platform updates" : "Need Help?"}
+              </span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
-        <div className="border-l h-6 mx-2 hidden sm:block" />
-        <div className="w-auto max-w-[240px] max-md:max-w-[45vw]">
-          <NavUser user={user} />
-        </div>
+        {isClientRoute && <ClientNotificationBell />}
+        {isFreelancerRoute && <FreelancerNotificationBell />}
+        {isSchoolAdminRoute && <SchoolAdminNotificationBell />}
       </div>
     </header>
   );

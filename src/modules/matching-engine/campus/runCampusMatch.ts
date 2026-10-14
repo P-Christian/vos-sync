@@ -27,7 +27,8 @@ export function runCampusMatch(
 
   if (!candidate.isRegistered) {
     // ACADEMIC pipeline
-    const { score, curriculumItems, gaps } = evaluateAcademicCandidate(candidate, job);
+    const { score, curriculumItems, technicalItems, softItems, gaps } =
+      evaluateAcademicCandidate(candidate, job);
 
     return {
       candidateId: candidate.studentId,
@@ -47,6 +48,8 @@ export function runCampusMatch(
       evidence: {
         curriculum: curriculumItems,
         verifiedSkills: [],
+        technicalSkills: technicalItems ?? [],
+        softSkills: softItems ?? [],
         experience: [],
         responsibilities: [],
       },
@@ -56,8 +59,15 @@ export function runCampusMatch(
   }
 
   // HYBRID pipeline
-  const { score, curriculumItems, verifiedSkillItems, experienceItems, gaps } =
-    evaluateHybridCandidate(candidate, job);
+  const {
+    score,
+    curriculumItems,
+    verifiedSkillItems,
+    technicalSkillItems,
+    softSkillItems,
+    experienceItems,
+    gaps,
+  } = evaluateHybridCandidate(candidate, job);
 
   const evidenceLevel: CandidateEvidenceLevel =
     candidate.verifiedSkills.length > 0
@@ -82,6 +92,8 @@ export function runCampusMatch(
     evidence: {
       curriculum: curriculumItems,
       verifiedSkills: verifiedSkillItems,
+      technicalSkills: technicalSkillItems ?? [],
+      softSkills: softSkillItems ?? [],
       experience: experienceItems,
       responsibilities: [],
     },

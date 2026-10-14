@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Loader2, MapPin, Clock, DollarSign, Filter, ChevronDown } from "lucide-react";
+import { Search, Loader2, MapPin, Clock, DollarSign, Filter, ChevronDown, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CompanyJob, PublicCompanyProfile } from "../../types";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
 
   // Filters state
   const [search, setSearch] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
   const [jobType, setJobType] = useState("ALL");
   const [arrangement, setArrangement] = useState("ALL");
   const [experience, setExperience] = useState("ALL");
@@ -51,14 +52,14 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
   const limit = 5;
   const totalPages = Math.ceil(total / limit);
   const activeFilterCount =
-    (search.trim() ? 1 : 0) + (jobType !== "ALL" ? 1 : 0) + (arrangement !== "ALL" ? 1 : 0);
+    (appliedSearch.trim() ? 1 : 0) + (jobType !== "ALL" ? 1 : 0) + (arrangement !== "ALL" ? 1 : 0);
 
   const loadJobs = async () => {
     setIsLoading(true);
     const startTime = Date.now();
     try {
       const params = new URLSearchParams();
-      if (search.trim()) params.append("search", search.trim());
+      if (appliedSearch.trim()) params.append("search", appliedSearch.trim());
       if (jobType !== "ALL") params.append("job_type", jobType);
       if (arrangement !== "ALL") params.append("work_arrangement", arrangement);
       if (experience !== "ALL") params.append("experience_level", experience);
@@ -99,23 +100,20 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
       return;
     }
 
-    const timer = setTimeout(() => {
-      loadJobs();
-    }, 300);
-
-    return () => clearTimeout(timer);
+    loadJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, jobType, arrangement, experience, page]);
+  }, [appliedSearch, jobType, arrangement, experience, page]);
 
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setAppliedSearch(search);
     setPage(1);
-    loadJobs();
   };
 
   const handleResetFilters = () => {
     setSearch("");
+    setAppliedSearch("");
     setJobType("ALL");
     setArrangement("ALL");
     setExperience("ALL");
@@ -239,14 +237,15 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
       </div>
 
       {/* Mobile filter panel — rendered inline so the on-screen keyboard can never cover it (below md only; the inline card stays at >=768px) */}
+      {/* Mobile filter panel — rendered inline so the on-screen keyboard can never cover it (below md only; the inline card stays at >=768px) */}
       {isFilterOpen && (
-        <div id="jobs-filter-panel" className="md:hidden bg-card border border-border rounded-2xl p-5 shadow-xs">
+        <div id="jobs-filter-panel" className="md:hidden bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
           {filterPanel}
         </div>
       )}
 
       {/* Search and Filters box (inline at >=768px; below md the same panel renders inline above) */}
-      <div className="hidden md:block bg-card border border-border rounded-2xl p-5 shadow-xs">{filterPanel}</div>
+      <div className="hidden md:block bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">{filterPanel}</div>
 
       {/* Jobs results list */}
       <div className="space-y-4">
@@ -280,7 +279,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
             </motion.div>
           ) : (
             <motion.div
-              key={`jobs-list-${search}-${jobType}-${arrangement}-${page}`}
+              key={`jobs-list-${appliedSearch}-${jobType}-${arrangement}-${page}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -296,7 +295,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                     transition={{ duration: 0.3, delay: Math.min(idx * 0.05, 0.3) }}
                     whileHover={{ y: -3, transition: { duration: 0.2 } }}
                     onClick={() => handleOpenJobDetail(job)}
-                    className="group bg-card border border-border p-4 sm:p-5 rounded-2xl hover:shadow-lg hover:border-primary/40 transition-shadow duration-300 flex flex-col justify-between cursor-pointer"
+                    className="group bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 p-4 sm:p-5 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 flex flex-col justify-between cursor-pointer"
                   >
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-3 mb-3">
                       <div>
@@ -332,7 +331,7 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                     )}
 
                     {/* Footer details row */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground mt-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-3 text-xs text-muted-foreground mt-2">
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-medium">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-4 h-4 shrink-0" />
@@ -352,13 +351,14 @@ export function JobsTab({ company, onArrangementsChange }: JobsTabProps) {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="rounded-xl font-semibold cursor-pointer shadow-xs text-xs"
+                          className="h-8 text-xs font-semibold gap-1.5 rounded-full border-border/80 bg-white/70 dark:bg-card/70 backdrop-blur-md text-foreground group-hover:border-primary/40 hover:!bg-primary hover:!text-white hover:!border-primary hover:shadow-[0_4px_16px_rgba(37,99,235,0.3)] hover:scale-[1.03] active:scale-[0.98] transition-all duration-200 cursor-pointer [&>svg]:transition-transform [&>svg]:duration-200 hover:[&>svg]:translate-x-1"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenJobDetail(job);
                           }}
                         >
                           View Details
+                          <ArrowRight className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>

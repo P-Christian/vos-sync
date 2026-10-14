@@ -166,11 +166,22 @@ export function usePipelineSettings() {
       const currentPipelineId = selectedPipeline.id;
       const originalPipelines = [...pipelines];
 
-      // Optimistic update: instantly remove stage from state
+      // Optimistic update: instantly remove stage and clean allowed_next_stage_ids across remaining stages
+      const stageNum = Number(stageId);
       setPipelines((prev) =>
         prev.map((p) =>
           p.id === currentPipelineId
-            ? { ...p, stages: (p.stages ?? []).filter((s) => s.id !== stageId) }
+            ? {
+                ...p,
+                stages: (p.stages ?? [])
+                  .filter((s) => Number(s.id) !== stageNum)
+                  .map((s) => ({
+                    ...s,
+                    allowed_next_stage_ids: (s.allowed_next_stage_ids ?? [])
+                      .map(Number)
+                      .filter((id) => id !== stageNum),
+                  })),
+              }
             : p
         )
       );
@@ -190,6 +201,7 @@ export function usePipelineSettings() {
         }
 
         setSuccess("Stage removed successfully.");
+        await fetchPipelines();
         return true;
       } catch (err) {
         // Rollback on failure
@@ -198,7 +210,7 @@ export function usePipelineSettings() {
         return false;
       }
     },
-    [selectedPipeline, pipelines]
+    [selectedPipeline, pipelines, fetchPipelines]
   );
 
   const updateTransitions = useCallback(

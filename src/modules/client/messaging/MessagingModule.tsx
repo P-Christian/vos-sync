@@ -3,7 +3,7 @@
 // src/modules/client/messaging/MessagingModule.tsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { MessageSquare, AlertCircle } from "lucide-react";
+import {  AlertCircle } from "lucide-react";
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -106,9 +106,8 @@ export default function MessagingModule({
   }, [activeConversation, refreshMessages]);
 
   const handleArchive = useCallback(
-    async (conversationId: number, nextArchived: boolean) => {
-      const ok = await archive(conversationId, nextArchived);
-      if (!ok) return;
+    async (conversationId: number) => {
+      await archive(conversationId, true);
       if (activeConversation?.conversation_id === conversationId) {
         setActiveConversation(null);
         clearMessages();
@@ -138,7 +137,6 @@ export default function MessagingModule({
       // Upload files first
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map((f) => upload(f)));
-        if (uploaded.some((r) => r === null)) return false;
         attachments = uploaded
           .filter((r) => r !== null)
           .map((r) => ({
@@ -162,10 +160,8 @@ export default function MessagingModule({
         attachments: attachments.length > 0 ? attachments : undefined,
       });
 
-      // Refresh conversation list to update preview
-      if (ok) {
-        loadConversations({ archived: showArchived });
-      }
+      // Refresh conversation list to update preview silently without full skeleton reload
+      loadConversations({ archived: showArchived, silent: true });
       return ok;
     },
     [activeConversation, upload, send, loadConversations, showArchived]
@@ -179,7 +175,7 @@ export default function MessagingModule({
 
   return (
     <CompanyVerificationGuard moduleName="Candidate Messages">
-      <div className="space-y-4 md:space-y-6 client-page-transition max-md:flex max-md:min-h-full max-md:flex-col">
+      <div className="space-y-4 md:space-y-6 client-page-transition h-full max-md:flex max-md:min-h-full max-md:flex-col">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -189,21 +185,6 @@ export default function MessagingModule({
             animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
         `}</style>
-
-        {/* ── Page Header ────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute left-1/2 bottom-0 h-24 w-48 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20 relative z-10 shrink-0">
-            <MessageSquare className="h-7 w-7" />
-          </div>
-          <div className="relative z-10">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Messages</h1>
-            <p className="text-sm text-zinc-300 mt-1">
-              Chat with freelancers and manage your conversations
-            </p>
-          </div>
-        </div>
 
         {/* ── Error Banner ────────────────────────────────────────────────── */}
         {convsError && (
@@ -217,8 +198,8 @@ export default function MessagingModule({
         )}
 
         {/* ── Main Chat Layout ────────────────────────────────────────────── */}
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
-          <div className="flex h-[calc(100vh-280px)] min-h-[500px] max-md:h-full max-md:min-h-[65dvh]">
+        <div className="h-[calc(100dvh-96px)] sm:h-[calc(100dvh-104px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+          <div className="flex h-full">
             {/* Conversation List — hidden on mobile when chat is open */}
             <div
               className={cn(
@@ -268,7 +249,7 @@ export default function MessagingModule({
                   />
                 </div>
               ) : (
-                <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+                <div className="w-full h-full flex flex-col items-center justify-center min-h-0 overflow-hidden">
                   <EmptyState />
                 </div>
               )}

@@ -1,17 +1,16 @@
 import Link from "next/link";
 import {
-  Search, MapPin, ChevronRight, CheckCircle2, ArrowRight,
+  MapPin, ChevronRight, CheckCircle2, ArrowRight,
   Megaphone, PenTool, Database, HeartPulse,
   Code2, TrendingUp
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FadeIn, SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 import { LandingCTA } from "@/components/public/LandingCTA";
 import { TrustedCompaniesMarquee } from "@/components/public/TrustedCompaniesMarquee";
-import { NetworkBackground } from "@/components/public/NetworkBackground";
+import { HomeSearchBar } from "@/components/public/HomeSearchBar";
 import { formatAssetUrl } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -184,9 +183,6 @@ export default async function Page() {
 
   return (
     <div className="relative isolate min-h-screen text-foreground font-sans selection:bg-muted">
-      {/* Page-wide Network Background with interactive shockwave and live theme crossfade */}
-      <NetworkBackground />
-
       {/* Main page content layer - elevated above background */}
       <div className="relative z-10">
         {/* HERO SECTION */}
@@ -214,36 +210,16 @@ export default async function Page() {
 
             <StaggerChild>
               {/* Search Bar */}
-              <div className="max-w-4xl mx-auto bg-white/90 dark:bg-card/75 backdrop-blur-xl p-2 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-border/80 flex flex-col md:flex-row gap-2 relative z-10">
-                <div className="flex-1 flex items-center px-4 py-2 min-h-10 md:min-h-0 border-b md:border-b-0 md:border-r border-border">
-                  <Search className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-                  <Input
-                    type="text"
-                    placeholder="Job title, keywords, or company"
-                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-                  />
-                </div>
-                <div className="flex-1 flex items-center px-4 py-2 min-h-10 md:min-h-0">
-                  <MapPin className="w-5 h-5 text-muted-foreground mr-3 shrink-0" />
-                  <Input
-                    type="text"
-                    placeholder="City, state, or 'Remote'"
-                    className="border-0 shadow-none focus-visible:ring-0 px-0 text-base h-auto py-1 bg-transparent"
-                  />
-                </div>
-                <Button size="lg" className="rounded-xl w-full md:w-auto px-8 py-6 text-base shadow-md hover:shadow-lg transition-all cursor-pointer">
-                  Search Jobs
-                </Button>
-              </div>
+              <HomeSearchBar />
             </StaggerChild>
 
             <StaggerChild>
               <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
                 <span>Popular searches:</span>
-                <Link href="#" className="hover:text-foreground underline underline-offset-4">Remote</Link>
-                <Link href="#" className="hover:text-foreground underline underline-offset-4">React</Link>
-                <Link href="#" className="hover:text-foreground underline underline-offset-4">Designer</Link>
-                <Link href="#" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
+                <Link href="/find-jobs?q=Remote" className="hover:text-foreground underline underline-offset-4">Remote</Link>
+                <Link href="/find-jobs?q=React" className="hover:text-foreground underline underline-offset-4">React</Link>
+                <Link href="/find-jobs?q=Designer" className="hover:text-foreground underline underline-offset-4">Designer</Link>
+                <Link href="/find-jobs?q=Marketing" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
               </div>
             </StaggerChild>
           </StaggerContainer>
@@ -285,7 +261,9 @@ export default async function Page() {
                     </div>
 
                     <div className="col-start-2 row-start-1 flex justify-between items-start gap-2">
-                      <h3 className="min-w-0 text-base sm:text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">{job.title}</h3>
+                      <h3 className="min-w-0 text-base sm:text-xl font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors">
+                        <Link href={`/find-jobs?open_job=${job.id}`}>{job.title}</Link>
+                      </h3>
                       <Badge variant="outline" className="bg-muted shrink-0 text-[10px] sm:text-xs">{job.type}</Badge>
                     </div>
 
@@ -305,7 +283,7 @@ export default async function Page() {
                       <div className="text-sm sm:text-base font-semibold text-foreground">{job.salary}</div>
                       <span className="text-xs text-muted-foreground sm:ml-auto">{job.posted}</span>
                       <Button size="sm" variant="outline" className="text-xs sm:text-sm rounded-full shadow-sm cursor-pointer w-full sm:w-auto" asChild>
-                        <Link href="/find-jobs">View Details</Link>
+                        <Link href={`/find-jobs?open_job=${job.id}`}>View Details</Link>
                       </Button>
                     </div>
                   </div>
@@ -330,8 +308,10 @@ export default async function Page() {
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Popular Categories</h2>
               <p className="text-sm sm:text-base text-muted-foreground mt-2">Explore jobs across various domains and industries</p>
             </div>
-            <Button variant="ghost" className="hidden md:flex group cursor-pointer">
-              View all categories <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            <Button variant="ghost" className="hidden md:flex group cursor-pointer" asChild>
+              <Link href="/find-jobs">
+                View all categories <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </Button>
           </div>
 
@@ -339,20 +319,24 @@ export default async function Page() {
             {CATEGORIES.map((cat, idx) => (
               <StaggerChild key={idx}>
                 <HoverScale className="h-full">
-                  <div className="group flex flex-col md:block border border-border/80 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-primary/40 dark:hover:border-primary/40 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] transition-all duration-300 cursor-pointer bg-white/85 dark:bg-card/75 backdrop-blur-xl h-full">
-                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4 ${cat.color} dark:bg-opacity-20`}>
-                      {cat.icon}
+                  <Link href={`/find-jobs?q=${encodeURIComponent(cat.name)}`} className="block h-full">
+                    <div className="group flex flex-col md:block border border-border/80 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-primary/40 dark:hover:border-primary/40 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.12)] transition-all duration-300 cursor-pointer bg-white/85 dark:bg-card/75 backdrop-blur-xl h-full">
+                      <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-4 ${cat.color} dark:bg-opacity-20`}>
+                        {cat.icon}
+                      </div>
+                      <h3 className="text-sm sm:text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
+                      <p className="text-muted-foreground mt-auto pt-1 md:mt-1 md:pt-0 flex items-center text-xs sm:text-sm">
+                        {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      </p>
                     </div>
-                    <h3 className="text-sm sm:text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
-                    <p className="text-muted-foreground mt-auto pt-1 md:mt-1 md:pt-0 flex items-center text-xs sm:text-sm">
-                      {cat.count} <ChevronRight className="w-4 h-4 ml-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                    </p>
-                  </div>
+                  </Link>
                 </HoverScale>
               </StaggerChild>
             ))}
           </StaggerContainer>
-          <Button variant="outline" className="w-full mt-6 md:hidden cursor-pointer">View all categories</Button>
+          <Button variant="outline" className="w-full mt-6 md:hidden cursor-pointer" asChild>
+            <Link href="/find-jobs">View all categories</Link>
+          </Button>
         </div>
       </section>
       </div>

@@ -27,13 +27,7 @@ export const metadata: Metadata = {
 
 export default function HowItWorksPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center p-12 text-center text-xs text-muted-foreground">
-          Loading Process Guide...
-        </div>
-      }
-    >
+    <Suspense>
       <HowItWorksModule />
     </Suspense>
   );

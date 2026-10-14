@@ -10,6 +10,7 @@ import ThemeProvider from "@/components/theme/ThemeProvider"
 import ThemeSettingsProvider from "@/components/theme/ThemeSettingsProvider"
 import { RealtimeProvider } from "@/modules/shared/providers/RealtimeProvider"
 import { Toaster } from "@/components/ui/sonner"
+import TopProgressBar from "@/components/shared/TopProgressBar"
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 <ThemeProvider>
+                    <TopProgressBar />
                     <ThemeSettingsProvider>
                         <RealtimeProvider>
                             {children}

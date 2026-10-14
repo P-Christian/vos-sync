@@ -1,8 +1,8 @@
 // src/modules/public/find-jobs/FindJobsModule.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   JobHeroBanner,
   JobFilterSidebar,
@@ -20,23 +20,36 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function FindJobsModule() {
+interface FindJobsModuleProps {
+  initialJobs?: PublicJobPosting[];
+  initialTotal?: number;
+  initialTotalPages?: number;
+}
+
+export default function FindJobsModule({
+  initialJobs = [],
+  initialTotal = 0,
+  initialTotalPages = 1,
+}: FindJobsModuleProps = {}) {
 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const session = useAuthSession();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [locationQuery, setLocationQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [locationQuery, setLocationQuery] = useState(() => searchParams.get("location") || "");
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState(() => searchParams.get("q") || "");
+  const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => searchParams.get("location") || "");
   const [selectedJobType, setSelectedJobType] = useState("All");
   const [selectedWorkSetup, setSelectedWorkSetup] = useState("All");
   
-  const [jobs, setJobs] = useState<PublicJobPosting[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<PublicJobPosting[]>(initialJobs);
+  const [loading, setLoading] = useState(initialJobs.length === 0);
   const [error, setError] = useState<string | null>(null);
   
-  const [totalJobs, setTotalJobs] = useState(0);
+  const [totalJobs, setTotalJobs] = useState(initialTotal);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(initialTotalPages);
 
   const [selectedJob, setSelectedJob] = useState<PublicJobPosting | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -45,16 +58,90 @@ export default function FindJobsModule() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
+  const resultsTopRef = React.useRef<HTMLDivElement>(null);
+  const [paginationDirection, setPaginationDirection] = useState<1 | -1 | 0>(0);
+  const [isPaginating, setIsPaginating] = useState(false);
+
+  const lastParamsRef = useRef(searchParams.toString());
+  const lastOpenJobRef = useRef<string | null>(null);
+  const isFirstMountRef = useRef(initialJobs.length > 0);
+
+  // Sync filters if URL searchParams change
   useEffect(() => {
+    const currentParams = searchParams.toString();
+    if (currentParams !== lastParamsRef.current) {
+      lastParamsRef.current = currentParams;
+      const qParam = searchParams.get("q") || "";
+      const locParam = searchParams.get("location") || "";
+      setSearchQuery(qParam);
+      setAppliedSearchQuery(qParam);
+      setLocationQuery(locParam);
+      setAppliedLocationQuery(locParam);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  // Handle open_job query param to open job detail modal automatically
+  useEffect(() => {
+    const openJobId = searchParams.get("open_job");
+    if (!openJobId || openJobId === lastOpenJobRef.current) return;
+
+    const found = jobs.find((j) => String(j.job_id) === openJobId);
+    if (found) {
+      lastOpenJobRef.current = openJobId;
+      queueMicrotask(() => {
+        setSelectedJob(found);
+        setIsDetailOpen(true);
+      });
+      return;
+    }
+
+    let isMounted = true;
+    fetch(`/api/public/find-jobs?job_id=${openJobId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted || !data?.data?.length) return;
+        const target = data.data[0];
+        if (target) {
+          lastOpenJobRef.current = openJobId;
+          setSelectedJob(target);
+          setIsDetailOpen(true);
+        }
+      })
+      .catch((err) => console.error("Error fetching open_job details:", err));
+
+    return () => {
+      isMounted = false;
+    };
+  }, [searchParams, jobs]);
+
+  useEffect(() => {
+    // If initial jobs were provided by the server and default filters apply, skip the initial client fetch
+    if (
+      isFirstMountRef.current &&
+      initialJobs.length > 0 &&
+      !appliedSearchQuery &&
+      !appliedLocationQuery &&
+      selectedJobType === "All" &&
+      selectedWorkSetup === "All" &&
+      page === 1
+    ) {
+      isFirstMountRef.current = false;
+      return;
+    }
+    isFirstMountRef.current = false;
+
     let isMounted = true;
     const fetchJobs = async () => {
-      setLoading(true);
+      if (!isPaginating) {
+        setLoading(true);
+      }
       setError(null);
       const startTime = Date.now();
       try {
         const params = new URLSearchParams();
-        if (searchQuery.trim()) params.set("q", searchQuery.trim());
-        if (locationQuery.trim()) params.set("location", locationQuery.trim());
+        if (appliedSearchQuery.trim()) params.set("q", appliedSearchQuery.trim());
+        if (appliedLocationQuery.trim()) params.set("location", appliedLocationQuery.trim());
         if (selectedJobType !== "All") params.set("job_type", selectedJobType);
         if (selectedWorkSetup !== "All") params.set("work_setup", selectedWorkSetup);
         params.set("page", String(page));
@@ -66,10 +153,10 @@ export default function FindJobsModule() {
         }
         const data = await res.json();
         
-        // Minimum 250ms delay for smooth skeleton shimmer transition
+        // Brief minimum delay for smooth visual transition when not paginating
         const elapsed = Date.now() - startTime;
-        if (elapsed < 250) {
-          await new Promise((r) => setTimeout(r, 250 - elapsed));
+        if (!isPaginating && elapsed < 200) {
+          await new Promise((r) => setTimeout(r, 200 - elapsed));
         }
 
         if (isMounted) {
@@ -83,7 +170,10 @@ export default function FindJobsModule() {
           setError(err instanceof Error ? err.message : "Unable to fetch job listings.");
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsPaginating(false);
+        }
       }
     };
 
@@ -92,28 +182,47 @@ export default function FindJobsModule() {
     return () => {
       isMounted = false;
     };
-  }, [searchQuery, locationQuery, selectedJobType, selectedWorkSetup, page]);
+  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length]);
 
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage === page || loading || isPaginating) return;
+    setPaginationDirection(newPage > page ? 1 : -1);
+    setIsPaginating(true);
+    setPage(newPage);
+    resultsTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPaginationDirection(0);
+    setIsPaginating(false);
+    setAppliedSearchQuery(searchQuery);
+    setAppliedLocationQuery(locationQuery);
     setPage(1);
   };
 
   const handleQuickCategoryClick = (tag: string) => {
+    setPaginationDirection(0);
+    setIsPaginating(false);
     if (tag === "Remote" || tag === "On-site" || tag === "Hybrid") {
       setSelectedWorkSetup(tag);
     } else if (tag === "Full Time" || tag === "Part Time" || tag === "Contract") {
       setSelectedJobType(tag);
     } else {
       setSearchQuery(tag);
+      setAppliedSearchQuery(tag);
     }
     setPage(1);
   };
 
   const handleResetFilters = () => {
+    setPaginationDirection(0);
+    setIsPaginating(false);
     setSearchQuery("");
     setLocationQuery("");
+    setAppliedSearchQuery("");
+    setAppliedLocationQuery("");
     setSelectedJobType("All");
     setSelectedWorkSetup("All");
     setPage(1);
@@ -122,8 +231,8 @@ export default function FindJobsModule() {
   const activeFilterCount =
     (selectedJobType !== "All" ? 1 : 0) +
     (selectedWorkSetup !== "All" ? 1 : 0) +
-    (searchQuery.trim() ? 1 : 0) +
-    (locationQuery.trim() ? 1 : 0);
+    (appliedSearchQuery.trim() ? 1 : 0) +
+    (appliedLocationQuery.trim() ? 1 : 0);
 
   const handleApplyClick = (job: PublicJobPosting) => {
     if (session.isJobSeeker) {
@@ -145,7 +254,7 @@ export default function FindJobsModule() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className="min-h-screen text-foreground pb-20 relative z-10">
       {/* 1. Hero Search Section */}
       <JobHeroBanner
         searchQuery={searchQuery}
@@ -168,10 +277,14 @@ export default function FindJobsModule() {
               selectedJobType={selectedJobType}
               selectedWorkSetup={selectedWorkSetup}
               onJobTypeChange={(type) => {
+                setPaginationDirection(0);
+                setIsPaginating(false);
                 setSelectedJobType(type);
                 setPage(1);
               }}
               onWorkSetupChange={(setup) => {
+                setPaginationDirection(0);
+                setIsPaginating(false);
                 setSelectedWorkSetup(setup);
                 setPage(1);
               }}
@@ -188,7 +301,7 @@ export default function FindJobsModule() {
                 onClick={() => setIsFilterSheetOpen(true)}
                 aria-haspopup="dialog"
                 aria-expanded={isFilterSheetOpen}
-                className="w-full h-11 justify-between text-sm font-semibold shadow-sm"
+                className="w-full h-11 justify-between text-sm font-semibold rounded-xl shadow-xs"
               >
                 <span className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
@@ -205,8 +318,11 @@ export default function FindJobsModule() {
               </Button>
             </div>
 
+            {/* Anchor ref for smooth scroll */}
+            <div ref={resultsTopRef} className="scroll-mt-24" />
+
             {/* Header Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-4">
               <div>
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <span>Open Job Opportunities</span>
@@ -224,7 +340,7 @@ export default function FindJobsModule() {
                   variant="outline"
                   size="sm"
                   onClick={handleResetFilters}
-                  className="text-xs h-8"
+                  className="text-xs h-8 rounded-full hover:border-primary/40"
                 >
                   Clear All Filters
                 </Button>
@@ -240,78 +356,87 @@ export default function FindJobsModule() {
             )}
 
             {/* Smooth Animated Job Content Container */}
-
-            <AnimatePresence mode="wait">
-              {loading ? (
-                <motion.div
-                  key="loading-skeleton"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  {[1, 2, 3, 4, 5, 6].map((i) => (
-                    <PublicJobSkeleton key={i} />
-                  ))}
-
-                </motion.div>
-              ) : jobs.length === 0 ? (
-                /* Empty State */
-                <motion.div
-                  key="empty-state"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="bg-card border rounded-2xl p-8 md:p-12 text-center space-y-4 shadow-2xs"
-                >
-                  <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/50 text-muted-foreground flex items-center justify-center">
-                    <Briefcase className="h-7 w-7" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-foreground text-base">No Matching Jobs Found</h3>
-                    <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                      We couldn&apos;t find any positions matching your search filters. Try adjusting your search query or location.
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={handleResetFilters} className="text-xs font-semibold">
-                    Reset Search Filters
-                  </Button>
-                </motion.div>
-              ) : (
-                /* Job Grid */
-                <motion.div
-                  key={`job-grid-${selectedJobType}-${selectedWorkSetup}-${page}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                >
-                  {jobs.map((job, idx) => (
-                    <PublicJobCard
-                      key={job.job_id}
-                      job={job}
-                      index={idx}
-                      onSelectJob={handleSelectJob}
-                      onApplyClick={handleApplyClick}
-                    />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="min-h-[520px]">
+              <AnimatePresence mode="wait" custom={paginationDirection}>
+                {loading && !isPaginating ? (
+                  <motion.div
+                    key="loading-skeleton"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <PublicJobSkeleton key={i} />
+                    ))}
+                  </motion.div>
+                ) : jobs.length === 0 ? (
+                  /* Empty State */
+                  <motion.div
+                    key="empty-state"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="min-h-[380px] flex flex-col items-center justify-center bg-white/85 dark:bg-card/75 backdrop-blur-xl border border-border/80 rounded-2xl p-8 md:p-12 text-center space-y-4 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                  >
+                    <div className="mx-auto h-14 w-14 rounded-2xl bg-muted/60 text-muted-foreground flex items-center justify-center">
+                      <Briefcase className="h-7 w-7" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-foreground text-base">No Matching Jobs Found</h3>
+                      <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                        We couldn&apos;t find any positions matching your search filters. Try adjusting your search query or location.
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleResetFilters} className="text-xs font-semibold rounded-full hover:border-primary/40">
+                      Reset Search Filters
+                    </Button>
+                  </motion.div>
+                ) : (
+                  /* Job Grid */
+                  <motion.div
+                    key={`job-grid-${selectedJobType}-${selectedWorkSetup}-${appliedSearchQuery}-${appliedLocationQuery}-${page}`}
+                    custom={paginationDirection}
+                    initial={{
+                      x: paginationDirection !== 0 ? (paginationDirection > 0 ? 28 : -28) : 0,
+                      opacity: 0,
+                    }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{
+                      x: paginationDirection !== 0 ? (paginationDirection > 0 ? -28 : 28) : 0,
+                      opacity: 0,
+                    }}
+                    transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                    className={`grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity duration-200 ${
+                      isPaginating ? "opacity-60 pointer-events-none" : "opacity-100"
+                    }`}
+                  >
+                    {jobs.map((job, idx) => (
+                      <PublicJobCard
+                        key={job.job_id}
+                        job={job}
+                        index={idx}
+                        onSelectJob={handleSelectJob}
+                        onApplyClick={handleApplyClick}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
 
             {/* Pagination controls */}
             {totalPages > 1 && (
-              <div className="pt-6 border-t flex items-center justify-between">
+              <div className="pt-6 border-t border-border/70 flex items-center justify-between">
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                  className="text-xs gap-1"
+                  disabled={page <= 1 || loading || isPaginating}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="text-xs gap-1.5 rounded-full px-4 hover:border-primary/40 transition-all cursor-pointer disabled:cursor-not-allowed"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" /> Previous
                 </Button>
@@ -323,9 +448,9 @@ export default function FindJobsModule() {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={page >= totalPages || loading}
-                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                  className="text-xs gap-1"
+                  disabled={page >= totalPages || loading || isPaginating}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="text-xs gap-1.5 rounded-full px-4 hover:border-primary/40 transition-all cursor-pointer disabled:cursor-not-allowed"
                 >
                   Next <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
@@ -352,10 +477,14 @@ export default function FindJobsModule() {
               selectedJobType={selectedJobType}
               selectedWorkSetup={selectedWorkSetup}
               onJobTypeChange={(type) => {
+                setPaginationDirection(0);
+                setIsPaginating(false);
                 setSelectedJobType(type);
                 setPage(1);
               }}
               onWorkSetupChange={(setup) => {
+                setPaginationDirection(0);
+                setIsPaginating(false);
                 setSelectedWorkSetup(setup);
                 setPage(1);
               }}

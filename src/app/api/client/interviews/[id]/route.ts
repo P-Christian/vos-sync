@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendHiringEmail, sendRejectionEmail, isEmailEnabledForUser } from "@/lib/mail";
 import { createSystemMessage } from "@/lib/messaging/system-message";
 import { getPHTimeString } from "@/lib/utils";
+import { transitionApplicationStage } from "@/modules/client/pipeline/services/job-pipeline.service";
 import {
   authenticateRequest,
   isAdministratorSession,
@@ -207,7 +208,8 @@ export async function PATCH(
       const interviewApplicationId = targetId;
       const feedbackText = String(payload?.feedback ?? "").trim();
       const attendanceStatus = payload?.attendance_status || "ATTENDED";
-      const decision = payload?.decision; // "HIRED", "REJECTED", "NO_ACTION"
+      const toStageId = payload?.to_stage_id ? Number(payload.to_stage_id) : null;
+      const decision = payload?.decision; // fallback: "HIRED", "REJECTED", "NO_ACTION"
 
       // 1. Fetch junction row first to verify existence and check ownership
       const fetchJunctionRes = await fetch(
@@ -273,26 +275,34 @@ export async function PATCH(
         );
       }
 
-      if (fetchJunctionRes.ok) {
-        const jaData = (await fetchJunctionRes.json()).data;
-        if (jaData?.application_id) {
-          // NO_ACTION (Keep Under Review): leave application status unchanged.
-          // The interview session is marked COMPLETED, but the candidate remains
-          // INTERVIEWING and is eligible for additional interview rounds.
-          if (decision === "HIRED" || decision === "REJECTED") {
-            const targetStatus = decision;
+      if (jaData?.application_id) {
+        // If a valid ATS pipeline stage is selected, transition the candidate via canonical engine
+        if (toStageId && !isNaN(toStageId)) {
+          const moveResult = await transitionApplicationStage({
+            applicationId: jaData.application_id,
+            toStageId,
+            changedByUserId: userId,
+            changeReason: feedbackText ? `Interview feedback: ${feedbackText}` : "Interview evaluation recorded",
+            notes: feedbackText,
+          });
+          if (!moveResult.success) {
+            console.error("transitionApplicationStage error in evaluation:", moveResult.error);
+          }
+        } else if (decision === "HIRED" || decision === "REJECTED") {
+          // Fallback legacy status transition
+          const targetStatus = decision;
 
-            await fetch(
-              `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,application_status,client_notes`,
-              {
-                method: "PATCH",
-                headers: getHeaders(),
-                body: JSON.stringify({
-                  application_status: targetStatus,
-                  client_notes: feedbackText ? `Interview feedback: ${feedbackText}` : undefined,
-                }),
-              }
-            );
+          await fetch(
+            `${DIRECTUS_BASE}/items/vs_job_application/${jaData.application_id}?fields=application_id,application_status,client_notes`,
+            {
+              method: "PATCH",
+              headers: getHeaders(),
+              body: JSON.stringify({
+                application_status: targetStatus,
+                client_notes: feedbackText ? `Interview feedback: ${feedbackText}` : undefined,
+              }),
+            }
+          );
           } else if (feedbackText) {
             // NO_ACTION: only update feedback notes, not the status
             await fetch(
@@ -427,7 +437,6 @@ export async function PATCH(
             console.error("Error sending evaluation email/system message:", evalMailErr);
           }
         }
-      }
 
       return NextResponse.json({ success: true });
     }

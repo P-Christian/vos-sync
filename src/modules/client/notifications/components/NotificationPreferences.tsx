@@ -137,7 +137,7 @@ export default function NotificationPreferences({
             Employer Notification Center
           </h4>
           <p className="text-sm md:text-xs text-indigo-700/80 dark:text-indigo-300/70 mt-0.5">
-            Manage how and when you receive emails and in-app alerts for candidate activity, job updates, and team messages.
+            Manage how and when you receive emails and in-app alerts for candidate activity and job updates.
           </p>
         </div>
       </div>
