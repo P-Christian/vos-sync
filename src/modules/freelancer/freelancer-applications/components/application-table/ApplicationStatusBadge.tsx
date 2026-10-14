@@ -44,15 +44,26 @@ const statusConfig: Record<ApplicationStatus, StatusConfigEntry> = {
   },
 };
 
-export const ApplicationStatusBadge: React.FC<{ status: ApplicationStatus }> = ({ status }) => {
+interface ApplicationStatusBadgeProps {
+  status: ApplicationStatus;
+  stageName?: string | null;
+  stageColor?: string | null;
+}
+
+export const ApplicationStatusBadge: React.FC<ApplicationStatusBadgeProps> = ({
+  status,
+  stageName,
+}) => {
   const config = statusConfig[status] ?? statusConfig.APPLIED;
   const Icon = config.icon;
+  const label = stageName || (STATUS_LABELS[status] ?? status);
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${config.className}`}
     >
       <Icon className="w-3.5 h-3.5" />
-      {STATUS_LABELS[status] ?? status}
+      {label}
     </span>
   );
 };

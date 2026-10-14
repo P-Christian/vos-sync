@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { stripHtmlTags } from '../services/job-referrals.helpers';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -26,13 +27,18 @@ export function JobReferralList() {
 
   // Filter jobs
   const filteredJobs = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return jobs.filter((job) => {
+      const plainDesc = stripHtmlTags(job.job_description).toLowerCase();
+      const plainQuals = stripHtmlTags(job.job_qualifications).toLowerCase();
+
       const matchSearch =
-        search.trim() === '' ||
-        job.job_title.toLowerCase().includes(search.toLowerCase()) ||
-        (job.company_name && job.company_name.toLowerCase().includes(search.toLowerCase())) ||
-        job.job_category.toLowerCase().includes(search.toLowerCase()) ||
-        job.job_description.toLowerCase().includes(search.toLowerCase());
+        q === '' ||
+        job.job_title.toLowerCase().includes(q) ||
+        (job.company_name && job.company_name.toLowerCase().includes(q)) ||
+        job.job_category.toLowerCase().includes(q) ||
+        plainDesc.includes(q) ||
+        plainQuals.includes(q);
 
       const matchType = typeFilter === 'ALL' || job.job_type === typeFilter;
       const matchArrangement = arrangementFilter === 'ALL' || job.work_arrangement === arrangementFilter;

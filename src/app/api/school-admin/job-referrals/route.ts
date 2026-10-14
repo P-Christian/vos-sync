@@ -1,7 +1,5 @@
 // src/app/api/school-admin/job-referrals/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import * as jose from 'jose';
-import { fetchSchoolByUserIdRepo } from '@/modules/school-admin/services/school-admin.repo';
 import {
   getActiveJobsService,
   getEligibleStudentCandidatesService,
@@ -9,34 +7,29 @@ import {
   getAdminReferralsService,
 } from '@/modules/school-admin/job-referrals/services';
 import { createReferralsSchema } from '@/modules/school-admin/job-referrals/types/job-referrals.schema';
+import { resolveSchoolAdminContext, RosterHttpError } from '@/modules/school-admin/student-roster/services/roster-auth';
+import { fetchSchoolByIdRepo } from '@/modules/school-admin/services/school-admin.repo';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const COOKIE_NAME = 'vos_sync_access_token';
-const JWT_SECRET = process.env.JWT_SECRET || 'default_super_secret_key_for_development';
+function toErrorStatus(error: unknown, fallback: number): { status: number; message: string } {
+  if (error instanceof RosterHttpError) {
+    return { status: error.status, message: error.message };
+  }
+  const msg = error instanceof Error ? error.message : 'Internal server error';
+  return { status: fallback, message: msg };
+}
 
 async function getAuthSession(req: NextRequest) {
-  const token = req.cookies.get(COOKIE_NAME)?.value || req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return null;
+  const { userId, schoolId } = await resolveSchoolAdminContext(req);
+  const school = await fetchSchoolByIdRepo(schoolId);
 
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jose.jwtVerify(token, secret);
-    const userId = Number(payload.user_id || payload.sub);
-    if (!userId) return null;
-
-    const school = await fetchSchoolByUserIdRepo(userId);
-    if (!school) return null;
-
-    return {
-      userId,
-      schoolId: school.school_id,
-      schoolName: school.school_name || 'Partner School',
-    };
-  } catch {
-    return null;
-  }
+  return {
+    userId,
+    schoolId,
+    schoolName: school?.school_name || 'Partner School',
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -73,8 +66,8 @@ export async function GET(req: NextRequest) {
       referrals,
     });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Internal Server Error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const { status, message } = toErrorStatus(error, 500);
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -104,7 +97,7 @@ export async function POST(req: NextRequest) {
       data: results,
     }, { status: 201 });
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Failed to create job referrals';
-    return NextResponse.json({ error: msg }, { status: 400 });
+    const { status, message } = toErrorStatus(error, 400);
+    return NextResponse.json({ error: message }, { status });
   }
 }

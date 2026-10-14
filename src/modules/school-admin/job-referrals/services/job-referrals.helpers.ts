@@ -39,6 +39,20 @@ export function getExpirationDate(days: number = 30): string {
   return date.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+export function stripHtmlTags(html: string | null | undefined): string {
+  if (!html) return '';
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function markdownToHtml(md: string): string {
   if (!md) return '';
   return md

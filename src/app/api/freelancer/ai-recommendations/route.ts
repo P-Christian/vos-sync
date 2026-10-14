@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
+// 5-minute in-memory cache to prevent repeated 3-second Gemini calls on navigation
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const recommendationCache = new Map<number, { data: unknown; timestamp: number }>();
+
 function getHeaders(): Record<string, string> {
     const h: Record<string, string> = {
         "Content-Type": "application/json",
@@ -24,6 +28,11 @@ export async function GET(req: NextRequest) {
 
         if (!userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const cached = recommendationCache.get(userId);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+            return NextResponse.json({ recommendations: cached.data });
         }
 
         // 1. Fetch User Profile Data
@@ -111,6 +120,12 @@ export async function GET(req: NextRequest) {
 
         // Generate AI Recommendations using the unified gemini service
         const recommendations = await generateJobRecommendations(normalizedUserProfile, normalizedJobs);
+
+        // Cache for 5 minutes
+        recommendationCache.set(userId, {
+            data: recommendations,
+            timestamp: Date.now(),
+        });
 
         return NextResponse.json({ recommendations });
 
