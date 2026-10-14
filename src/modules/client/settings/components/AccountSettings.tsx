@@ -39,6 +39,17 @@ import {
   Trash2,
 } from "lucide-react";
 import ImageCropModal from "../../company-profile/components/ImageCropModal";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface AccountSettingsProps {
   user: UserProfile | null;
@@ -69,6 +80,7 @@ export default function AccountSettings({
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [confirmRemovePhoto, setConfirmRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formData = useMemo(
@@ -136,14 +148,14 @@ export default function AccountSettings({
       setSelectedImageSrc(null);
     } catch (err) {
       console.error("Photo upload error:", err);
-      alert("Failed to upload photo. Please try again.");
+      toast.error("Couldn't upload your photo. Please try again.");
     } finally {
       setUploadingImage(false);
     }
   };
 
   const handleRemovePhoto = async () => {
-    if (!confirm("Are you sure you want to remove your profile photo?")) return;
+    setConfirmRemovePhoto(false);
     setOverrides((prev) => ({ ...prev, profile_image_url: "" }));
     await onSave({ profile_image_url: "" });
   };
@@ -273,7 +285,7 @@ export default function AccountSettings({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={handleRemovePhoto}
+                    onClick={() => setConfirmRemovePhoto(true)}
                     className="h-7 text-xs font-medium text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
@@ -548,6 +560,21 @@ export default function AccountSettings({
           )}
         </Button>
       </div>
+
+      <AlertDialog open={confirmRemovePhoto} onOpenChange={setConfirmRemovePhoto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove profile photo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your photo will be removed from your account. You can upload a new one at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep photo</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemovePhoto}>Remove photo</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   );
 }

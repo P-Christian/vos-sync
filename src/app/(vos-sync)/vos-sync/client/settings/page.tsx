@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
+import { PageContainer } from "@/components/shared/layout/PageContainer";
 import SettingsModule from "@/modules/client/settings";
 import { cookies } from "next/headers";
 
@@ -59,9 +60,9 @@ export default async function ClientSettingsPage() {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <PortalPageHeader user={headerUser} />
-      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-secondary/10">
+      <PageContainer>
         <SettingsModule />
-      </main>
+      </PageContainer>
     </div>
   );
 }
