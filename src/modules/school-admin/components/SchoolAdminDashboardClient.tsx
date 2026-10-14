@@ -20,24 +20,24 @@ export function SchoolAdminDashboardClient() {
     if (!school?.school_id) return;
 
     let isMounted = true;
-    setMetricsLoading(true);
 
-    fetch(`/api/school-admin/success-metrics?school_id=${school.school_id}`)
-      .then((res) => {
+    const loadMetrics = async () => {
+      setMetricsLoading(true);
+      try {
+        const res = await fetch(`/api/school-admin/success-metrics?school_id=${school.school_id}`);
         if (!res.ok) throw new Error('Failed to fetch metrics');
-        return res.json();
-      })
-      .then((json) => {
+        const json = await res.json();
         if (isMounted && json?.data) {
           setMetrics(json.data);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.warn('[Dashboard] Could not load success metrics:', err);
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setMetricsLoading(false);
-      });
+      }
+    };
+
+    loadMetrics();
 
     return () => {
       isMounted = false;

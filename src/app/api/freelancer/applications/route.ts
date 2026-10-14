@@ -8,7 +8,7 @@ import { handleApplicationSubmissionReferral } from "@/modules/freelancer/freela
 import { getFreelancerProfile } from "@/modules/freelancer/freelancer-profile/services/freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
 import { assignInitialStageToApplication, getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
-import type { JobPipelineVersion, JobPipelineStage, PipelineStage } from "@/modules/client/pipeline/types";
+import type { JobPipelineVersion, JobPipelineStage } from "@/modules/client/pipeline/types";
 import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
 import { getPHTimeString } from "@/lib/utils";
 

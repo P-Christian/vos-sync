@@ -26,7 +26,7 @@ export function DashboardKpiStats({
     applications: propApplications,
     loading: propLoading,
 }: DashboardKpiStatsProps) {
-    const { summary: hookSummary, applications: hookApplications, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
+    const { applications: hookApplications, loading: isAppsLoading, fetchApplications } = useFreelancerApplications();
     const { conversations: hookConversations, loading: isMessagesLoading, loadConversations } = useConversations();
 
     const isControlled = propSummary !== undefined && propConversations !== undefined;
