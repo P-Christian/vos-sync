@@ -282,6 +282,7 @@ export default function MessageBubble({
             <button
               type="button"
               title="Add reaction"
+              aria-label="Add reaction"
               onClick={() => setShowPicker((prev) => !prev)}
               className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
             >
@@ -327,6 +328,7 @@ export default function MessageBubble({
                       key={emoji}
                       type="button"
                       data-emoji={emoji}
+                      aria-label={`React with ${emoji}`}
                       onClick={() => handleReact(emoji)}
                       className={cn(
                         "relative h-8 w-8 flex items-center justify-center rounded-xl text-lg max-md:size-11",
@@ -481,6 +483,7 @@ export default function MessageBubble({
                         type="button"
                         onClick={() => handleReact(r.reaction)}
                         title={tooltipText}
+                        aria-label={`Toggle ${r.reaction} reaction`}
                         className={cn(
                           "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs max-md:min-h-11 max-md:px-3 max-md:py-2",
                           "border transition-colors duration-150 cursor-pointer active:scale-95",
@@ -530,6 +533,7 @@ export default function MessageBubble({
             <button
               type="button"
               title="Add reaction"
+              aria-label="Add reaction"
               onClick={() => setShowPicker((prev) => !prev)}
               className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
             >

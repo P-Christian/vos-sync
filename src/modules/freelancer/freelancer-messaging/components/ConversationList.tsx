@@ -16,7 +16,7 @@ interface Props {
   showArchived: boolean;
   currentUserId: number;
   onSelect: (conv: Conversation) => void;
-  onArchive: (conversationId: number) => void;
+  onArchive: (conversationId: number, nextArchived: boolean) => void;
   onSearch: (q: string) => void;
   onRefresh: () => void;
   onToggleArchived: () => void;

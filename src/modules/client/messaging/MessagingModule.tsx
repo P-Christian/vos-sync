@@ -106,8 +106,9 @@ export default function MessagingModule({
   }, [activeConversation, refreshMessages]);
 
   const handleArchive = useCallback(
-    async (conversationId: number) => {
-      await archive(conversationId, true);
+    async (conversationId: number, nextArchived: boolean) => {
+      const ok = await archive(conversationId, nextArchived);
+      if (!ok) return;
       if (activeConversation?.conversation_id === conversationId) {
         setActiveConversation(null);
         clearMessages();
@@ -124,8 +125,8 @@ export default function MessagingModule({
   }, [clearMessages]);
 
   const handleSend = useCallback(
-    async (content: string, files: File[]) => {
-      if (!activeConversation) return;
+    async (content: string, files: File[]): Promise<boolean> => {
+      if (!activeConversation) return false;
 
       let attachments: {
         file_name: string;
@@ -137,6 +138,7 @@ export default function MessagingModule({
       // Upload files first
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map((f) => upload(f)));
+        if (uploaded.some((r) => r === null)) return false;
         attachments = uploaded
           .filter((r) => r !== null)
           .map((r) => ({
@@ -154,7 +156,7 @@ export default function MessagingModule({
             : "FILE"
           : "TEXT";
 
-      await send(activeConversation.conversation_id, {
+      const ok = await send(activeConversation.conversation_id, {
         message_content: content || undefined,
         message_type: messageType,
         attachments: attachments.length > 0 ? attachments : undefined,

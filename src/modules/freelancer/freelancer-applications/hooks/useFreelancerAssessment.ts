@@ -171,11 +171,11 @@ export function useFreelancerAssessment(
     }
     setSubmitting(true);
     try {
-      if (view.status === "NOT_STARTED") {
-        const entries = buildDraftEntries(view, values);
-        if (entries.length === 0) {
-          return { ok: false, error: "Complete at least one task before submitting." };
-        }
+      const entries = buildDraftEntries(view, values);
+      if (view.status === "NOT_STARTED" && entries.length === 0) {
+        return { ok: false, error: "Complete at least one task before submitting." };
+      }
+      if (entries.length > 0) {
         await saveAssessmentDraft(applicationId, entries);
       }
       await submitFreelancerAssessment(applicationId);

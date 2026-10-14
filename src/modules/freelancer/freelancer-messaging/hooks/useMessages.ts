@@ -263,8 +263,7 @@ export function useMessages() {
               : msg
           )
         );
-      } catch (err) {
-        console.error("Failed to toggle reaction:", err);
+      } catch (err: unknown) {
         const activeId = activeConversationIdRef.current;
         if (activeId) {
           fetchMessages(activeId, { limit: 50, offset: 0 })
@@ -273,6 +272,9 @@ export function useMessages() {
             })
             .catch(() => {});
         }
+        setError(
+          err instanceof Error ? err.message : "Failed to update reaction."
+        );
       }
     },
     []
