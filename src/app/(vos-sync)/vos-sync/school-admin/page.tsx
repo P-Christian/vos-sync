@@ -1,6 +1,6 @@
 import * as React from "react";
 import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
-import { getHeaderUserFromToken } from "@/modules/school-admin/services/token-helper";
+
 import { SchoolAdminDashboardClient } from "@/modules/school-admin/components/SchoolAdminDashboardClient";
 
 export const runtime = "nodejs";

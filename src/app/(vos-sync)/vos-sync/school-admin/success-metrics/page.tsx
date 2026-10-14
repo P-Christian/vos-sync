@@ -1,7 +1,7 @@
 // src/app/(vos-sync)/vos-sync/school-admin/success-metrics/page.tsx
 import React from 'react';
 import { PortalPageHeader } from '@/components/shared/layout/PortalPageHeader';
-import { getHeaderUserFromToken } from '@/modules/school-admin/services/token-helper';
+
 import { SuccessMetricsPage } from '@/modules/school-admin/success-metrics/SuccessMetricsPage';
 import { fetchSchoolByUserIdRepo } from '@/modules/school-admin/services/school-admin.repo';
 import { authenticateCookieSession } from '@/lib/authenticated-session';

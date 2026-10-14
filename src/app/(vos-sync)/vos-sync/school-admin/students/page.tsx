@@ -1,6 +1,6 @@
 import React from 'react';
 import { PortalPageHeader } from '@/components/shared/layout/PortalPageHeader';
-import { getHeaderUserFromToken } from '@/modules/school-admin/services/token-helper';
+
 import { StudentRosterPage } from '@/modules/school-admin/student-roster/StudentRosterPage';
 
 export const runtime = 'nodejs';

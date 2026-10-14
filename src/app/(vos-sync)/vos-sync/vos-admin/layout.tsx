@@ -34,7 +34,7 @@ export default async function SchoolAdminLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { isAdmin, user } = await verifyAdminRole();
+    const { isAdmin } = await verifyAdminRole();
     
     if (!isAdmin) {
         // Redirect unauthorized users to the main dashboard or login

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { Search, X, User, Building2, GraduationCap } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUserSearch } from "../hooks/useUserSearch";
@@ -11,16 +11,16 @@ export function UserSearchBar() {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [isMac, setIsMac] = useState(false);
+  const isMac = useSyncExternalStore(
+    () => () => {},
+    () => /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent || ""),
+    () => false
+  );
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { results, isLoading, error } = useUserSearch(query);
   const router = useRouter();
   const pathname = usePathname();
   const isClientPortal = pathname?.startsWith("/vos-sync/client");
-
-  useEffect(() => {
-    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent || ""));
-  }, []);
 
   // Global Ctrl/Cmd + K listener for client portal
   useEffect(() => {
