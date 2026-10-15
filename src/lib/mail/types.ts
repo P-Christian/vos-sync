@@ -28,6 +28,7 @@ export interface InterviewTemplateData {
   meetingLink?: string | null;
   meetingLocation?: string | null;
   candidateNotes?: string | null;
+  baseUrl?: string;
 }
 
 export type InterviewReminderTemplateData = InterviewTemplateData;
@@ -37,6 +38,7 @@ export interface ApplicationTemplateData {
   companyName: string;
   jobTitle: string;
   appliedAt: string;
+  baseUrl?: string;
 }
 
 export interface NewApplicationNotificationData {
@@ -48,12 +50,14 @@ export interface NewApplicationNotificationData {
   expectedSalary?: string | number | null;
   appliedAt: string;
   applicationId: number;
+  baseUrl?: string;
 }
 
 export interface ShortlistedTemplateData {
   candidateName: string;
   companyName: string;
   jobTitle: string;
+  baseUrl?: string;
 }
 
 export interface HiringTemplateData {
@@ -61,6 +65,7 @@ export interface HiringTemplateData {
   companyName: string;
   jobTitle: string;
   notes?: string | null;
+  baseUrl?: string;
 }
 
 export interface RejectionTemplateData {
@@ -68,6 +73,7 @@ export interface RejectionTemplateData {
   companyName: string;
   jobTitle: string;
   notes?: string | null;
+  baseUrl?: string;
 }
 
 export interface InvitationTemplateData {
@@ -81,5 +87,6 @@ export interface InvitationTemplateData {
   salaryRange?: string | null;
   message: string;
   actionUrl?: string;
+  baseUrl?: string;
 }
 

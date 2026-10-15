@@ -8,6 +8,7 @@ import {
   employerRejectionTemplate,
   EmployerMailParams,
 } from "../templates/employer";
+import { resolveBaseUrl } from "../templates/base-url";
 
 /**
  * Send email upon Employer Account Creation & OTP Verification
@@ -51,8 +52,10 @@ export async function sendEmployerApprovalEmail({
   companyName,
   recipientName,
   loginUrl,
+  baseUrl,
 }: EmployerMailParams & { email: string }) {
-  const template = employerApprovalTemplate({ companyName, recipientName, loginUrl });
+  const resolvedBaseUrl = baseUrl || (await resolveBaseUrl());
+  const template = employerApprovalTemplate({ companyName, recipientName, loginUrl, baseUrl: resolvedBaseUrl });
 
   return sendMail({
     to: email,

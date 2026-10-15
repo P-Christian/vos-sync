@@ -9,16 +9,20 @@ import {
   ShortlistedTemplateData,
   HiringTemplateData,
   RejectionTemplateData,
+  InvitationTemplateData,
 } from "../types";
 import { interviewScheduledTemplate, interviewRescheduledTemplate } from "../templates/interview";
 import { shortlistedTemplate } from "../templates/shortlisted";
 import { applicationSubmittedTemplate, newApplicationReceivedTemplate } from "../templates/application";
 import { hiringTemplate } from "../templates/hiring";
 import { rejectionTemplate } from "../templates/rejection";
+import { invitationTemplate } from "../templates/invitation";
+import { resolveBaseUrl } from "../templates/base-url";
 import { generateICS } from "../calendar/ics";
 
 export async function sendInterviewRescheduledEmail(to: string, data: InterviewTemplateData) {
-  const template = interviewRescheduledTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = interviewRescheduledTemplate({ ...data, baseUrl });
 
   const start = new Date(data.scheduledAt);
   const duration = data.durationMinutes ?? 60;
@@ -48,7 +52,8 @@ export async function sendInterviewRescheduledEmail(to: string, data: InterviewT
 }
 
 export async function sendInterviewScheduledEmail(to: string, data: InterviewTemplateData) {
-  const template = interviewScheduledTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = interviewScheduledTemplate({ ...data, baseUrl });
 
   const start = new Date(data.scheduledAt);
   const duration = data.durationMinutes ?? 60;
@@ -78,7 +83,8 @@ export async function sendInterviewScheduledEmail(to: string, data: InterviewTem
 }
 
 export async function sendInterviewReminderEmail(to: string, data: InterviewReminderTemplateData) {
-  const template = interviewScheduledTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = interviewScheduledTemplate({ ...data, baseUrl });
 
   const start = new Date(data.scheduledAt);
   const duration = data.durationMinutes ?? 60;
@@ -108,7 +114,8 @@ export async function sendInterviewReminderEmail(to: string, data: InterviewRemi
 }
 
 export async function sendApplicationSubmittedEmail(to: string, data: ApplicationTemplateData) {
-  const template = applicationSubmittedTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = applicationSubmittedTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
@@ -117,7 +124,8 @@ export async function sendApplicationSubmittedEmail(to: string, data: Applicatio
 }
 
 export async function sendNewApplicationReceivedEmail(to: string, data: NewApplicationNotificationData) {
-  const template = newApplicationReceivedTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = newApplicationReceivedTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
@@ -126,7 +134,8 @@ export async function sendNewApplicationReceivedEmail(to: string, data: NewAppli
 }
 
 export async function sendShortlistedEmail(to: string, data: ShortlistedTemplateData) {
-  const template = shortlistedTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = shortlistedTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
@@ -135,7 +144,8 @@ export async function sendShortlistedEmail(to: string, data: ShortlistedTemplate
 }
 
 export async function sendHiringEmail(to: string, data: HiringTemplateData) {
-  const template = hiringTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = hiringTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
@@ -143,11 +153,9 @@ export async function sendHiringEmail(to: string, data: HiringTemplateData) {
   });
 }
 
-import { invitationTemplate } from "../templates/invitation";
-import { InvitationTemplateData } from "../types";
-
 export async function sendRejectionEmail(to: string, data: RejectionTemplateData) {
-  const template = rejectionTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = rejectionTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
@@ -156,11 +164,13 @@ export async function sendRejectionEmail(to: string, data: RejectionTemplateData
 }
 
 export async function sendInvitationEmail(to: string, data: InvitationTemplateData) {
-  const template = invitationTemplate(data);
+  const baseUrl = data.baseUrl || (await resolveBaseUrl());
+  const template = invitationTemplate({ ...data, baseUrl });
   return sendMail({
     to,
     subject: template.subject,
     html: template.html,
   });
 }
+
 

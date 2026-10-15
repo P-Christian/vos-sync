@@ -1,8 +1,10 @@
 // src/lib/mail/templates/hiring.ts
 import { HiringTemplateData } from "../types";
+import { getBaseUrl } from "./base-url";
 
 export function hiringTemplate(data: HiringTemplateData) {
-  const { candidateName, companyName, jobTitle, notes } = data;
+  const { candidateName, companyName, jobTitle, notes, baseUrl: customBaseUrl } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   return {
     subject: `Offer Letter / Position Offer: ${jobTitle} at ${companyName}`,
@@ -38,7 +40,7 @@ export function hiringTemplate(data: HiringTemplateData) {
         }
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          Log into your <a href="http://localhost:3000/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a> to view your active offer status.
+          Log into your <a href="${baseUrl}/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a> to view your active offer status.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">
