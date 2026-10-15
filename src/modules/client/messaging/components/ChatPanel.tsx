@@ -256,7 +256,10 @@ export default function ChatPanel({
       if (m.message_type === "SYSTEM" || m.sender_id === currentUserId) continue;
       remaining -= 1;
       if (remaining === 0) {
-        setUnreadMarkerId(m.message_id);
+        const targetId = m.message_id;
+        queueMicrotask(() => {
+          setUnreadMarkerId(targetId);
+        });
         return;
       }
     }

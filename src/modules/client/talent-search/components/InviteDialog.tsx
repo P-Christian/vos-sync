@@ -74,11 +74,13 @@ export default function InviteDialog({
   // Fresh state every time the dialog opens
   useEffect(() => {
     if (!open) return;
-    setMessage(DEFAULT_MESSAGE(talentName));
-    setSelectedJobId("");
-    setSearchQuery("");
-    setIsDropdownOpen(false);
-    void loadJobs();
+    queueMicrotask(() => {
+      setMessage(DEFAULT_MESSAGE(talentName));
+      setSelectedJobId("");
+      setSearchQuery("");
+      setIsDropdownOpen(false);
+      void loadJobs();
+    });
   }, [open, talentName, loadJobs]);
 
   // Close the job dropdown when clicking outside of it

@@ -51,9 +51,13 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
     if (!isPdf) return;
 
     let isMounted = true;
-    setLoading(true);
-    setError(null);
-    setPdfData(null);
+    queueMicrotask(() => {
+      if (isMounted) {
+        setLoading(true);
+        setError(null);
+        setPdfData(null);
+      }
+    });
 
     fetch(proxiedUrl, { credentials: "same-origin" })
       .then((res) => {

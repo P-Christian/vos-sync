@@ -41,7 +41,7 @@ export default function CompanyVerificationGuard({
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const checkCompanyStatus = useCallback(async (retryCount = 0) => {
+  const checkCompanyStatus = useCallback(async function checkStatus(retryCount = 0): Promise<void> {
     setErrorMessage(null);
     try {
       const res = await fetch("/api/client/company-profile", { cache: "no-store" });
@@ -61,7 +61,7 @@ export default function CompanyVerificationGuard({
         // On transient errors (5xx, 429, 401 during concurrent reload bursts), retry up to 2 times
         if (retryCount < 2 && (res.status >= 500 || res.status === 429 || res.status === 401)) {
           setTimeout(() => {
-            void checkCompanyStatus(retryCount + 1);
+            void checkStatus(retryCount + 1);
           }, 600 * (retryCount + 1));
           return;
         }
@@ -90,7 +90,7 @@ export default function CompanyVerificationGuard({
     } catch {
       if (retryCount < 2) {
         setTimeout(() => {
-          void checkCompanyStatus(retryCount + 1);
+          void checkStatus(retryCount + 1);
         }, 600 * (retryCount + 1));
         return;
       }
@@ -114,7 +114,9 @@ export default function CompanyVerificationGuard({
   }, []);
 
   useEffect(() => {
-    void checkCompanyStatus();
+    queueMicrotask(() => {
+      void checkCompanyStatus();
+    });
   }, [checkCompanyStatus]);
 
   if (loading) {

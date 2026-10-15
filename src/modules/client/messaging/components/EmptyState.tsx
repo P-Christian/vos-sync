@@ -3,16 +3,22 @@
 // src/modules/client/messaging/components/EmptyState.tsx
 
 import React from "react";
+import Link from "next/link";
 import { MessageSquareDashed } from "lucide-react";
 
 interface Props {
   message?: string;
   subMessage?: string;
+  action?: {
+    label: string;
+    href: string;
+  };
 }
 
 export default function EmptyState({
   message = "Select a conversation",
   subMessage = "Choose a conversation from the left to start chatting",
+  action,
 }: Props) {
   return (
     <div className="flex flex-col items-center justify-center h-full max-h-full flex-1 gap-5 text-center px-8">
@@ -30,6 +36,14 @@ export default function EmptyState({
           {subMessage}
         </p>
       </div>
+      {action && (
+        <Link
+          href={action.href}
+          className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-primary to-info px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20 transition-all hover:brightness-110 active:scale-[0.98]"
+        >
+          {action.label}
+        </Link>
+      )}
     </div>
   );
 }
