@@ -80,6 +80,8 @@ interface SkillMap {
 
 interface Resume {
   user_id: number;
+  is_primary?: boolean | number | string | null;
+  id?: number;
 }
 
 interface WorkExperience {
@@ -356,7 +358,7 @@ export async function GET(req: NextRequest) {
       ),
 
       fetch(
-        `${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_in]=${userIds.join(",")}&fields=user_id&limit=1000`,
+        `${DIRECTUS_BASE}/items/vs_job_seeker_resumes?filter[user_id][_in]=${userIds.join(",")}&fields=user_id,is_primary,id&limit=1000`,
         {
           headers: getHeaders(),
           cache: "no-store",
@@ -518,9 +520,17 @@ export async function GET(req: NextRequest) {
       workMap[row.user_id].push(row);
     });
 
+    // Count only primary resume per user (is_primary = 1 or true)
     resumeRows.forEach((row) => {
-      resumeMap[row.user_id] =
-        (resumeMap[row.user_id] || 0) + 1;
+      if (row.is_primary === true || row.is_primary === 1 || row.is_primary === "1") {
+        resumeMap[row.user_id] = 1;
+      }
+    });
+    // Fallback: if user has resumes but none was flagged is_primary, default to 1
+    resumeRows.forEach((row) => {
+      if (!resumeMap[row.user_id]) {
+        resumeMap[row.user_id] = 1;
+      }
     });
 
     const referralAppRows: {

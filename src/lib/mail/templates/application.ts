@@ -1,8 +1,10 @@
 // src/lib/mail/templates/application.ts
 import { ApplicationTemplateData, NewApplicationNotificationData } from "../types";
+import { getBaseUrl } from "./base-url";
 
 export function applicationSubmittedTemplate(data: ApplicationTemplateData) {
-  const { candidateName, companyName, jobTitle, appliedAt } = data;
+  const { candidateName, companyName, jobTitle, appliedAt, baseUrl: customBaseUrl } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   return {
     subject: `Application Confirmation: ${jobTitle} at ${companyName}`,
@@ -37,7 +39,7 @@ export function applicationSubmittedTemplate(data: ApplicationTemplateData) {
         </div>
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          You can track your application status anytime via your <a href="http://localhost:3000/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
+          You can track your application status anytime via your <a href="${baseUrl}/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">
@@ -56,7 +58,9 @@ export function newApplicationReceivedTemplate(data: NewApplicationNotificationD
     candidateEmail,
     expectedSalary,
     appliedAt,
+    baseUrl: customBaseUrl,
   } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   const salaryDisplay = expectedSalary ? `PHP ${Number(expectedSalary).toLocaleString()} / month` : "Not specified";
 
@@ -101,7 +105,7 @@ export function newApplicationReceivedTemplate(data: NewApplicationNotificationD
         </div>
 
         <div style="text-align: center; margin: 28px 0;">
-          <a href="http://localhost:3000/vos-sync/client/applicants" style="display: inline-block; background-color: #14a800; color: #ffffff; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
+          <a href="${baseUrl}/vos-sync/client/applicants" style="display: inline-block; background-color: #14a800; color: #ffffff; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 10px; text-decoration: none;">
             Review Application in Portal
           </a>
         </div>

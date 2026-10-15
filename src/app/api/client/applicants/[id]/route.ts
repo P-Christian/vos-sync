@@ -33,7 +33,7 @@ interface WorkExperience {
 
 interface Resume {
   id: number;
-  is_primary?: boolean | null;
+  is_primary?: boolean | number | string | null;
   file_path?: string | null;
   file_url?: string | null;
   url?: string | null;
@@ -461,9 +461,11 @@ export async function GET(
 
     const resumes = (resumeJson.data as Resume[] ?? []).sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
 
-    const latestResumes = resumes.slice(0, 1);
+    // Show only is_primary resume (fallback to latest if none marked primary)
+    const primaryResumes = resumes.filter((r) => r.is_primary === true || r.is_primary === 1 || r.is_primary === "1");
+    const chosenResumes = primaryResumes.length > 0 ? primaryResumes.slice(0, 1) : resumes.slice(0, 1);
 
-    const formattedResumes = latestResumes.map((r) => {
+    const formattedResumes = chosenResumes.map((r) => {
       const rawAsset = r.file_url || r.file_id || r.file || r.file_path || r.url || "";
       let file_url = "";
 
@@ -486,10 +488,7 @@ export async function GET(
       };
     });
 
-    const primaryResume =
-      resumes.find((r) => r.is_primary) ||
-      resumes[0] ||
-      null;
+    const primaryResume = chosenResumes[0] || null;
 
     // ---------------------------------------------------
     // SOCIAL LINKS
@@ -798,8 +797,8 @@ skills = (skillsJson.data as Skill[] ?? []).map(
         application.status_updated_at,
 
       resume: primaryResume,
-
       resumes: formattedResumes,
+      resume_count: formattedResumes.length,
 
       skills,
 
