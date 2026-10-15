@@ -126,8 +126,11 @@ export default function AssessmentMoveConfirmModal({
 
   const latestAttempt = latestReviewAttempt(payload);
   const latestStatus = latestAttempt?.attempt.status ?? null;
+  const isPassed = latestStatus === "PASSED";
   const canPass =
-    latestStatus === "SUBMITTED" || latestStatus === "UNDER_REVIEW";
+    latestStatus === "SUBMITTED" ||
+    latestStatus === "UNDER_REVIEW" ||
+    isPassed;
   const busy = confirming || revisionSaving;
 
   const resetLocalState = () => {
@@ -270,6 +273,11 @@ export default function AssessmentMoveConfirmModal({
               {localError}
             </div>
           )}
+          {!loading && !failed && isPassed && (
+            <p className="text-sm text-muted-foreground md:text-xs">
+              This assessment is already marked as passed. Confirm below to move the candidate to {toStageName}.
+            </p>
+          )}
           {!loading && !failed && !canPass && (
             <p className="text-sm text-muted-foreground md:text-xs">
               Pass is available after the candidate submits (attempt status
@@ -293,7 +301,12 @@ export default function AssessmentMoveConfirmModal({
               setPending("FAIL");
               onConfirm("FAIL");
             }}
-            disabled={busy}
+            disabled={busy || isPassed}
+            title={
+              isPassed
+                ? "An already passed assessment cannot be failed"
+                : "Fail the assessment and keep the candidate in the assessment stage"
+            }
             className="h-9 max-md:min-h-10 text-sm rounded-lg"
           >
             {confirming && pending === "FAIL" ? (
@@ -308,9 +321,11 @@ export default function AssessmentMoveConfirmModal({
           <Button
             variant="secondary"
             onClick={handleRequestRevision}
-            disabled={busy || latestAttempt === null}
+            disabled={busy || latestAttempt === null || isPassed}
             title={
-              latestAttempt === null
+              isPassed
+                ? "An already passed assessment cannot be revised"
+                : latestAttempt === null
                 ? "No assessment submission to revise yet"
                 : "Request a revision without moving the candidate"
             }
@@ -333,7 +348,9 @@ export default function AssessmentMoveConfirmModal({
             disabled={busy || !canPass}
             title={
               canPass
-                ? "Record a pass and move the candidate"
+                ? isPassed
+                  ? "Confirm pass and move candidate"
+                  : "Record a pass and move the candidate"
                 : "Pass unlocks after the candidate submits"
             }
             className="h-9 max-md:min-h-10 text-sm rounded-lg"
@@ -343,6 +360,8 @@ export default function AssessmentMoveConfirmModal({
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
               </span>
+            ) : isPassed ? (
+              "Pass & Move"
             ) : (
               "Pass"
             )}

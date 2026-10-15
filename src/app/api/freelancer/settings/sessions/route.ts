@@ -2,84 +2,77 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { decodeJwtPayload, extractClientIp, resolveIpGeo } from "@/lib/auth-utils";
+import {
+  getActiveSessionsForUser,
+  revokeUserSession,
+  revokeOtherUserSessions,
+  parseUserAgent,
+} from "@/modules/auth/sessions/session.repo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getUserIdFromReq(req: NextRequest): number | null {
+function getAuthInfoFromReq(req: NextRequest): { userId: number | null; sid: string | null } {
   const token =
     req.headers.get("authorization")?.replace("Bearer ", "") ||
     req.cookies.get("vos_sync_access_token")?.value;
-  if (!token) return null;
+  if (!token) return { userId: null, sid: null };
   const decoded = decodeJwtPayload(token);
   const id = decoded?.user_id ?? decoded?.sub ?? decoded?.id ?? null;
-  return id !== null ? Number(id) : null;
+  const sid = typeof decoded?.sid === "string" ? decoded.sid : null;
+  return { userId: id !== null ? Number(id) : null, sid };
 }
 
 // GET: Fetch active sessions
 export async function GET(req: NextRequest) {
   try {
-    const userId = getUserIdFromReq(req);
+    const { userId, sid: currentSid } = getAuthInfoFromReq(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
+    const dbSessions = await getActiveSessionsForUser(userId);
+
     const ip = extractClientIp(req.headers) || "127.0.0.1";
     const userAgent = req.headers.get("user-agent") || "Unknown Browser";
 
-    // Resolve location approx
-    let location = "Unknown Location";
-    if (ip !== "127.0.0.1" && ip !== "::1") {
-      const geo = await resolveIpGeo(ip);
-      if (geo) {
-        location = `Philippines (approx lat: ${geo.latitude}, lon: ${geo.longitude})`;
-      } else {
-        location = "Manila, Philippines";
+    if (dbSessions.length === 0) {
+      // Graceful fallback for legacy sessions prior to table migration
+      const { deviceName, browserName, deviceType } = parseUserAgent(userAgent);
+      let location = "Manila, Philippines (Localhost)";
+      if (ip !== "127.0.0.1" && ip !== "::1") {
+        const geo = await resolveIpGeo(ip);
+        location = geo ? `Philippines (approx lat: ${geo.latitude}, lon: ${geo.longitude})` : "Manila, Philippines";
       }
-    } else {
-      location = "Manila, Philippines (Localhost)";
+
+      return NextResponse.json({
+        sessions: [
+          {
+            session_id: currentSid || "current-session",
+            device: deviceName,
+            device_type: deviceType,
+            browser: browserName,
+            deployment_id: req.headers.get("host") || "local",
+            ip_address: ip,
+            location: location,
+            last_active: "Active now",
+            is_current: true,
+          },
+        ],
+      });
     }
 
-    // Return the current session and two realistic mock sessions for user to manage
-    const sessions = [
-      {
-        session_id: "current-session",
-        device: userAgent.includes("Windows") 
-          ? "Windows PC" 
-          : userAgent.includes("Mac") 
-          ? "MacBook" 
-          : "Linux Desktop",
-        browser: userAgent.includes("Chrome") 
-          ? "Google Chrome" 
-          : userAgent.includes("Firefox") 
-          ? "Mozilla Firefox" 
-          : userAgent.includes("Safari") 
-          ? "Apple Safari" 
-          : "Web Browser",
-        ip_address: ip,
-        location: location,
-        last_active: "Active now",
-        is_current: true,
-      },
-      {
-        session_id: "mock-session-mobile",
-        device: "Apple iPhone 15 Pro",
-        browser: "Safari Mobile",
-        ip_address: "112.204.45.12",
-        location: "Quezon City, Philippines",
-        last_active: "2 hours ago",
-        is_current: false,
-      },
-      {
-        session_id: "mock-session-tablet",
-        device: "Samsung Galaxy Tab S9",
-        browser: "Samsung Internet",
-        ip_address: "49.145.98.204",
-        location: "Cebu City, Philippines",
-        last_active: "3 days ago",
-        is_current: false,
-      }
-    ];
+    const sessions = dbSessions.map((s) => ({
+      session_id: s.session_id,
+      device: s.device_name || "Device",
+      device_type: s.device_type,
+      browser: s.browser_name || "Browser",
+      deployment_id: s.deployment_id,
+      ip_address: s.ip_address || "Unknown IP",
+      location: s.location_label || "Philippines",
+      last_active: s.session_id === currentSid ? "Active now" : (s.last_activity_at || s.created_at),
+      is_current: Boolean(currentSid && s.session_id === currentSid),
+    }));
 
     return NextResponse.json({ sessions });
   } catch (err: unknown) {
@@ -94,7 +87,7 @@ export async function GET(req: NextRequest) {
 // DELETE: Terminate session
 export async function DELETE(req: NextRequest) {
   try {
-    const userId = getUserIdFromReq(req);
+    const { userId, sid: currentSid } = getAuthInfoFromReq(req);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
@@ -106,8 +99,12 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
     }
 
-    // In a production setup, we would delete the session from Directus or token store.
-    // For MVP, we return success. If it's "current-session", the frontend can sign the user out.
+    if (sessionId === "all-other") {
+      const count = await revokeOtherUserSessions(userId, currentSid, "USER_REVOKE_OTHERS");
+      return NextResponse.json({ success: true, terminated: "all-other", count });
+    }
+
+    await revokeUserSession(sessionId, "USER_REVOKED");
     return NextResponse.json({ success: true, terminated: sessionId });
   } catch (err: unknown) {
     console.error("DELETE /api/freelancer/settings/sessions error:", err);

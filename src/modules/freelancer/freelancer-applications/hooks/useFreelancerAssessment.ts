@@ -145,6 +145,29 @@ export function useFreelancerAssessment(
           },
         }));
         setIssues((previous) => withoutIssue(previous, jobTaskId));
+        if (uploaded.attempt) {
+          setView((previous) =>
+            previous
+              ? {
+                  ...previous,
+                  status: uploaded.attempt!.status,
+                  attempt: uploaded.attempt!,
+                  responses: [
+                    ...previous.responses.filter((r) => r.job_task_id !== jobTaskId),
+                    {
+                      job_task_id: jobTaskId,
+                      task_type: "FILE_UPLOAD",
+                      selected_choice_key: null,
+                      response_text: null,
+                      proof_file_id: uploaded.proof_file_id,
+                      proof_file_name: uploaded.proof_file_name,
+                    },
+                  ],
+                }
+              : previous,
+          );
+        }
+        onMutated?.();
         return { ok: true };
       } catch (error) {
         return { ok: false, error: errorMessage(error) };
@@ -153,7 +176,7 @@ export function useFreelancerAssessment(
         setUploadProgress(0);
       }
     },
-    [applicationId],
+    [applicationId, onMutated],
   );
 
   const submit = useCallback(async (): Promise<AssessmentMutationResult> => {

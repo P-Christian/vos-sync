@@ -18,7 +18,7 @@ export const transporter = nodemailer.createTransport({
 });
 
 const DEFAULT_SENDER_NAME = "VOS Sync";
-const DEFAULT_SENDER_ADDRESS = "no-reply@vossync.com";
+const DEFAULT_SENDER_ADDRESS = "vertextechcorpofficial@gmail.com";
 
 const HEADER_INJECTION = /[\r\n]/;
 

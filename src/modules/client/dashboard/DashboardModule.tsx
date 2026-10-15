@@ -10,7 +10,6 @@ import RecentApplicantsCard from "./components/RecentApplicantsCard";
 import UpcomingInterviewsCard from "./components/UpcomingInterviewsCard";
 import ActionRequiredCard from "./components/ActionRequiredCard";
 import DashboardSkeleton from "./components/DashboardSkeleton";
-import { ClientOnboardingCard } from "./components/ClientOnboardingCard";
 import { useClientKeyboardShortcuts } from "./hooks/useClientKeyboardShortcuts";
 import { DashboardData, CompanyInfo, TimeRangeKey } from "./types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,20 +40,27 @@ export default function DashboardModule({ userName, initialData = null }: Dashbo
   const [reloadKey, setReloadKey] = useState(0);
   const isFirstMountRef = useRef(Boolean(initialData));
 
-  // Time range sync with localStorage
-  const [selectedRange, setSelectedRange] = useState<TimeRangeKey>(() => {
-    if (typeof window === "undefined") return "30d";
-    try {
-      const saved = localStorage.getItem(TIMERANGE_STORAGE_KEY) as TimeRangeKey;
-      if (saved && ["7d", "30d", "3m", "6m"].includes(saved)) {
-        return saved;
-      }
-    } catch {
-      // Ignore
-    }
-    return "30d";
-  });
+  // Time range sync with localStorage (deterministic SSR default to avoid hydration mismatch)
+  const [selectedRange, setSelectedRange] = useState<TimeRangeKey>("30d");
   const [isSwitchingRange, setIsSwitchingRange] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    queueMicrotask(() => {
+      if (!isMounted) return;
+      try {
+        const saved = localStorage.getItem(TIMERANGE_STORAGE_KEY) as TimeRangeKey;
+        if (saved && ["7d", "30d", "3m", "6m"].includes(saved)) {
+          setSelectedRange(saved);
+        }
+      } catch {
+        // Ignore
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Live updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -230,13 +236,7 @@ export default function DashboardModule({ userName, initialData = null }: Dashbo
       {/* 1. Header / Greeting with Post a Job CTA */}
       <DashboardHeader company={company} userName={userName} />
 
-      {/* 2. Onboarding Checklist for new clients (dismissible) */}
-      <ClientOnboardingCard
-        company={company}
-        activeJobsCount={baseStats.activeJobs ?? 0}
-      />
-
-      {/* 3. Live update status row */}
+      {/* 2. Live update status row */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
         <div className="flex items-center gap-1.5 font-medium">
           <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />

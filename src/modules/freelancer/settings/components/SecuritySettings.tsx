@@ -5,7 +5,25 @@ import { SecurityPayload } from "@/modules/client/settings/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, KeyRound, ShieldCheck, Lock, Smartphone, Monitor, Globe, LogOut } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Loader2,
+  KeyRound,
+  ShieldCheck,
+  Lock,
+  Smartphone,
+  Monitor,
+  Tablet,
+  Globe,
+  LogOut,
+  Laptop,
+} from "lucide-react";
 import { toast } from "sonner";
 import { validatePasswordStrict } from "@/lib/password-validation";
 import PasswordRequirementsChecklist from "@/components/auth/PasswordRequirementsChecklist";
@@ -19,7 +37,9 @@ interface SecuritySettingsProps {
 interface DeviceSession {
   session_id: string;
   device: string;
+  device_type?: "DESKTOP" | "MOBILE" | "TABLET" | "UNKNOWN";
   browser: string;
+  deployment_id?: string;
   ip_address: string;
   location: string;
   last_active: string;
@@ -36,11 +56,14 @@ export default function SecuritySettings({
     confirm_password: "",
   });
   const [localError, setLocalError] = useState("");
-  
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [dialogLoading, setDialogLoading] = useState(false);
+
   // Sessions states
   const [sessions, setSessions] = useState<DeviceSession[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
 
   const fetchSessions = React.useCallback(async () => {
     try {
@@ -61,7 +84,7 @@ export default function SecuritySettings({
     fetchSessions();
   }, [fetchSessions]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError("");
 
@@ -78,10 +101,31 @@ export default function SecuritySettings({
       return;
     }
 
-    const ok = await onChangePassword(form);
-    if (ok) {
-      setForm({ current_password: "", new_password: "", confirm_password: "" });
-      toast.success("Password changed successfully.");
+    // Open confirmation dialog for Choice B
+    setShowLogoutDialog(true);
+  };
+
+  const executePasswordChange = async (revokeOthers: boolean) => {
+    try {
+      setDialogLoading(true);
+      const payload: SecurityPayload = {
+        ...form,
+        revoke_other_sessions: revokeOthers,
+      };
+
+      const ok = await onChangePassword(payload);
+      if (ok) {
+        setForm({ current_password: "", new_password: "", confirm_password: "" });
+        setShowLogoutDialog(false);
+        if (revokeOthers) {
+          toast.success("Password changed. All other device sessions were signed out.");
+        } else {
+          toast.success("Password changed successfully.");
+        }
+        fetchSessions();
+      }
+    } finally {
+      setDialogLoading(false);
     }
   };
 
@@ -94,12 +138,14 @@ export default function SecuritySettings({
 
       if (!res.ok) throw new Error("Failed to revoke session.");
       toast.success("Session terminated successfully.");
-      
-      if (sessionId === "current-session") {
-        // Log out current session
-        window.location.replace("/");
+
+      const isCurrentSession =
+        sessionId === "current-session" ||
+        sessions.find((s) => s.session_id === sessionId)?.is_current;
+
+      if (isCurrentSession) {
+        window.location.replace("/login");
       } else {
-        // Filter out from UI list
         setSessions((prev) => prev.filter((s) => s.session_id !== sessionId));
       }
     } catch (err: unknown) {
@@ -109,16 +155,49 @@ export default function SecuritySettings({
     }
   };
 
+  const handleRevokeAllOtherSessions = async () => {
+    try {
+      setRevokingAll(true);
+      const res = await fetch("/api/freelancer/settings/sessions?session_id=all-other", {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to revoke other sessions.");
+      toast.success("All other device sessions have been signed out.");
+      fetchSessions();
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Failed to terminate other sessions.");
+    } finally {
+      setRevokingAll(false);
+    }
+  };
+
+  const renderDeviceIcon = (session: DeviceSession) => {
+    const type = session.device_type?.toUpperCase();
+    if (type === "MOBILE" || session.device.toLowerCase().includes("iphone") || session.device.toLowerCase().includes("android")) {
+      return <Smartphone className="h-4 w-4" />;
+    }
+    if (type === "TABLET" || session.device.toLowerCase().includes("ipad") || session.device.toLowerCase().includes("tab")) {
+      return <Tablet className="h-4 w-4" />;
+    }
+    if (session.device.toLowerCase().includes("macbook") || session.device.toLowerCase().includes("laptop")) {
+      return <Laptop className="h-4 w-4" />;
+    }
+    return <Monitor className="h-4 w-4" />;
+  };
+
+  const otherSessionsCount = sessions.filter((s) => !s.is_current).length;
+
   return (
     <div className="space-y-4 md:space-y-8">
       {/* Security Guidance Banner */}
-      <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
+      <div className="bg-primary/10 border border-primary/20 p-4 rounded-2xl flex items-start gap-3 backdrop-blur-md">
         <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <div>
-          <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <h4 className="text-sm font-semibold text-foreground">
             Account Password & Security
           </h4>
-          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          <p className="text-sm md:text-xs text-muted-foreground mt-0.5">
             Ensure your account uses a strong, unique password with at least 8 characters. Changing your credentials requires verifying your current password.
           </p>
         </div>
@@ -127,17 +206,17 @@ export default function SecuritySettings({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
         {/* Password Form */}
         <div className="space-y-5">
-          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Change Password</h3>
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Change Password</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             {localError && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm md:text-xs">
                 {localError}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-zinc-400" /> Current Password
+              <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Current Password
               </Label>
               <Input
                 id="curr-pass"
@@ -145,14 +224,14 @@ export default function SecuritySettings({
                 value={form.current_password}
                 onChange={(e) => setForm((p) => ({ ...p, current_password: e.target.value }))}
                 placeholder="••••••••"
-                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-xl"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> New Password
+              <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> New Password
               </Label>
               <Input
                 id="new-pass"
@@ -160,14 +239,14 @@ export default function SecuritySettings({
                 value={form.new_password}
                 onChange={(e) => setForm((p) => ({ ...p, new_password: e.target.value }))}
                 placeholder="Min. 8 characters"
-                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-xl"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> Confirm New Password
+              <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> Confirm New Password
               </Label>
               <Input
                 id="conf-pass"
@@ -175,7 +254,7 @@ export default function SecuritySettings({
                 value={form.confirm_password}
                 onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
                 placeholder="Re-enter new password"
-                className="h-11 md:h-10 text-base md:text-sm rounded-lg"
+                className="h-11 md:h-10 text-base md:text-sm rounded-xl"
                 required
               />
             </div>
@@ -186,7 +265,7 @@ export default function SecuritySettings({
               <Button
                 type="submit"
                 disabled={saving || !validatePasswordStrict(form.new_password || "")}
-                className="h-10 px-6 text-sm rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium shadow-sm transition-all disabled:opacity-50 max-md:min-h-11"
+                className="h-11 md:h-10 px-6 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md transition-all disabled:opacity-50"
               >
                 {saving ? (
                   <>
@@ -203,56 +282,86 @@ export default function SecuritySettings({
 
         {/* Active Sessions Panel */}
         <div className="space-y-5">
-          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Active Device Sessions</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Active Device Sessions</h3>
+            {otherSessionsCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRevokeAllOtherSessions}
+                disabled={revokingAll}
+                className="rounded-full text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
+              >
+                {revokingAll ? (
+                  <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                ) : (
+                  <LogOut className="h-3 w-3 mr-1.5" />
+                )}
+                Log out other devices
+              </Button>
+            )}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Manage devices and browsers currently signed in to your account across local and production deployments.
+          </p>
+
           {sessionsLoading ? (
             <div className="flex items-center justify-center py-10 gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
-              <span className="text-sm md:text-xs text-zinc-400">Loading active sessions...</span>
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              <span className="text-sm md:text-xs text-muted-foreground">Loading active sessions...</span>
             </div>
           ) : (
             <div className="space-y-3">
               {sessions.map((session) => (
                 <div 
                   key={session.session_id} 
-                  className="flex items-center justify-between p-4 rounded-xl border bg-white dark:bg-zinc-950 shadow-sm max-md:flex-wrap max-md:gap-3"
+                  className="flex items-center justify-between p-4 rounded-2xl border border-primary/10 bg-card/70 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-all max-md:flex-wrap max-md:gap-3"
                 >
                   <div className="flex items-start gap-3 min-w-0">
-                    <div className="p-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg text-zinc-400 mt-0.5">
-                      {session.device.includes("iPhone") || session.device.includes("Android") ? (
-                        <Smartphone className="h-4 w-4" />
-                      ) : (
-                        <Monitor className="h-4 w-4" />
-                      )}
+                    <div className="p-2.5 bg-primary/10 text-primary rounded-xl mt-0.5 shrink-0">
+                      {renderDeviceIcon(session)}
                     </div>
-                    <div className="min-w-0 max-md:break-words">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-zinc-950 dark:text-zinc-100">{session.device}</span>
+                    <div className="min-w-0 max-md:break-words space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-foreground">{session.device}</span>
                         {session.is_current && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-200/30">This device</span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            This device
+                          </span>
+                        )}
+                        {session.deployment_id && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                            {session.deployment_id.includes("msi-lo") || session.deployment_id === "local" ? "Local" : session.deployment_id}
+                          </span>
                         )}
                       </div>
-                      <p className="text-sm md:text-xs text-zinc-400 mt-0.5">
+                      <p className="text-xs text-muted-foreground">
                         {session.browser} • {session.ip_address}
                       </p>
-                      <p className="text-sm md:text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
-                        <Globe className="h-3 w-3" /> {session.location} • {session.last_active}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Globe className="h-3 w-3 shrink-0" /> {session.location} • {session.last_active}
                       </p>
                     </div>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRevokeSession(session.session_id)}
-                    disabled={revokingId === session.session_id}
-                    className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg p-2 max-md:min-h-11"
-                  >
-                    {revokingId === session.session_id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <LogOut className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
+                  {!session.is_current && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeSession(session.session_id)}
+                      disabled={revokingId === session.session_id}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 rounded-xl p-2 shrink-0"
+                      title="Revoke this session"
+                    >
+                      {revokingId === session.session_id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <LogOut className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -263,6 +372,55 @@ export default function SecuritySettings({
       <div className="max-w-2xl">
         <ConnectedAccountsCard returnTo="/vos-sync/freelancer/settings" />
       </div>
+
+      {/* Choice B Password Change Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-primary/20 bg-card/95 backdrop-blur-xl p-6 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              Log Out of Other Devices?
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Would you like to sign out of all other devices and browser sessions? You will stay logged in on this device.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 flex flex-col gap-2.5">
+            <Button
+              type="button"
+              onClick={() => executePasswordChange(true)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
+            >
+              {dialogLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Log Out Other Devices (Recommended)
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => executePasswordChange(false)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full border border-primary/20 bg-card/70 hover:bg-primary/10 font-medium"
+            >
+              Keep Other Devices Logged In
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowLogoutDialog(false)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full text-muted-foreground hover:text-foreground text-xs"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

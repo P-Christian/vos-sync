@@ -9,6 +9,7 @@ import { sendEmployerAccountCreationEmail } from "@/lib/mail";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { issueAuthSession } from "../registration/registration.session";
 import { canAuthenticate } from "@/lib/status-validator";
+import { createUserSession } from "../sessions/session.repo";
 
 // ⚠️ TESTING: 1 min — CHANGE TO 15 * 60 * 1000 (15 min) FOR PRODUCTION
 const LOCK_DURATION_MS = 1 * 60 * 1000;
@@ -19,7 +20,16 @@ const MAX_FAILED_ATTEMPTS = 5;
 // Format as Philippine Time (UTC+8) in YYYY-MM-DD HH:mm:ss
 const getPHTimeString = (d: Date) => new Date(d.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
 
-export async function loginUser(email: string, hashPasswordParam: string) {
+export async function loginUser(
+    email: string,
+    hashPasswordParam: string,
+    clientInfo?: {
+        deploymentId?: string;
+        userAgent?: string | null;
+        ipAddress?: string | null;
+        locationLabel?: string | null;
+    }
+) {
     if (!email || !hashPasswordParam) {
         throw new Error('Both "email" and "password" are required.');
     }
@@ -123,6 +133,20 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         reason: "User logged in successfully",
     });
 
+    let sessionId: string | undefined;
+    try {
+        const sessionRecord = await createUserSession({
+            userId: user.user_id,
+            deploymentId: clientInfo?.deploymentId || "default",
+            userAgent: clientInfo?.userAgent,
+            ipAddress: clientInfo?.ipAddress,
+            locationLabel: clientInfo?.locationLabel,
+        });
+        sessionId = sessionRecord.session_id;
+    } catch (sessionErr) {
+        console.error("[auth.service] Failed to persist session record in vs_user_sessions:", sessionErr);
+    }
+
     const session = await issueAuthSession({
         user_id: user.user_id,
         user_email: user.user_email,
@@ -133,9 +157,10 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         otp_verified: user.otp_verified,
         is_blocked: user.is_blocked,
         lock_until: user.lock_until,
+        session_id: sessionId,
     });
 
-    console.log(`[auth.service] User logged in: user_id=${user.user_id}, role_id=${user.role_id}`);
+    console.log(`[auth.service] User logged in: user_id=${user.user_id}, role_id=${user.role_id}, session_id=${sessionId}`);
 
     return {
         token: session.token,
@@ -143,6 +168,7 @@ export async function loginUser(email: string, hashPasswordParam: string) {
         role: session.role,
         role_name: session.role_name,
         destination: session.destination,
+        session_id: sessionId,
     };
 }
 

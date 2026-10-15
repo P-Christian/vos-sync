@@ -132,6 +132,9 @@ export function NetworkBackground({ interactive = true }: { interactive?: boolea
     let nodes: Node[] = [];
     let packets: Packet[] = [];
     const waves: Wave[] = [];
+    let timer = 0;
+    let lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
+    let scrollDelta = 0;
 
     // live palette, blended between light and dark every frame
     const cur = {} as Record<Col, string>;
@@ -406,10 +409,6 @@ export function NetworkBackground({ interactive = true }: { interactive?: boolea
       redrawRef.current = () => draw(0, 0);
       draw(0, 0);
     } else raf = requestAnimationFrame(frame);
-
-    let timer = 0;
-    let lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
-    let scrollDelta = 0;
 
     const onScroll = () => {
       const currentScrollY = window.scrollY;

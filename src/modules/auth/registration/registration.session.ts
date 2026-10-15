@@ -17,6 +17,7 @@ interface AuthSessionUser {
   otp_verified?: boolean | number | string | null;
   is_blocked?: boolean | number | string | null;
   lock_until?: string | null;
+  session_id?: string;
 }
 
 export function getJwtVerificationSecret(): Uint8Array {
@@ -123,6 +124,7 @@ export async function issueAuthSession(
   };
   if (user.user_fname) claims.user_fname = user.user_fname;
   if (user.user_lname) claims.user_lname = user.user_lname;
+  if (user.session_id) claims.sid = user.session_id;
 
   const token = await new jose.SignJWT(claims)
     .setProtectedHeader({ alg })
@@ -139,6 +141,7 @@ export async function issueAuthSession(
     role: user.role,
     role_id: user.role_id,
     role_name: cleanRoleName,
+    session_id: user.session_id,
   };
 }
 

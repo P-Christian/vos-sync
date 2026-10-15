@@ -172,4 +172,5 @@ export interface SessionTokenResult {
   role: string;
   role_id: number;
   role_name: string;
+  session_id?: string;
 }

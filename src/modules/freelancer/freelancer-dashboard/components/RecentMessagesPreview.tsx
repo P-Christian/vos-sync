@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useConversations } from "@/modules/freelancer/freelancer-messaging/hooks/useConversations";
 import { ArrowRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import type { Conversation } from "@/modules/freelancer/freelancer-messaging/types";
 
 const AVATAR_GRADIENTS = [
     "from-indigo-600 to-blue-500",
@@ -13,8 +14,6 @@ const AVATAR_GRADIENTS = [
     "from-purple-600 to-pink-500",
     "from-emerald-600 to-teal-500",
 ];
-
-import type { Conversation } from "@/modules/freelancer/freelancer-messaging/types";
 
 interface RecentMessagesPreviewProps {
     conversations?: Conversation[];

@@ -82,6 +82,7 @@ export interface UploadProofResponse {
   proof_file_name: string;
   job_task_id: number;
   attempt_id: number;
+  attempt?: AssessmentAttemptDTO;
 }
 
 export function uploadAssessmentProof(

@@ -3,6 +3,7 @@
 
 
 import { formatAssetUrl } from "@/lib/utils";
+import { fetchSchoolByUserIdRepo } from "@/modules/school-admin/services/school-admin.repo";
 
 const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
@@ -476,8 +477,6 @@ export async function getPublicClientProfile(id: number): Promise<PublicClientPr
     return null;
   }
 }
-
-import { fetchSchoolByUserIdRepo } from "@/modules/school-admin/services/school-admin.repo";
 
 export async function getPublicSchoolAdminProfile(id: number): Promise<PublicSchoolAdminProfile | null> {
   try {

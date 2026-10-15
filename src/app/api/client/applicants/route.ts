@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getJobPipeline } from "@/modules/client/pipeline/services/job-pipeline.service";
 import { JobPipelineStage, JobPipelineVersion } from "@/modules/client/pipeline/types";
 import { authenticateRequest, isClientSession } from "@/lib/authenticated-session";
+import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import {
+  groupApplicantEducation,
+  type ApplicantEducationBulkRow,
+} from "@/modules/client/applicants/utils/applicantListEducation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -188,12 +193,6 @@ function calculateProfileCompletion(
 
   return score;
 }
-
-import { checkCompanyVerificationStatus } from "@/lib/status-validator";
-import {
-  groupApplicantEducation,
-  type ApplicantEducationBulkRow,
-} from "@/modules/client/applicants/utils/applicantListEducation";
 
 // GET — List all applicants for company jobs
 

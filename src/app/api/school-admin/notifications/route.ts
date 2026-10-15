@@ -1,5 +1,6 @@
 // src/app/api/school-admin/notifications/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest, hasRole } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +16,6 @@ function getHeaders(): Record<string, string> {
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
 }
-
-import { authenticateRequest, hasRole } from "@/lib/authenticated-session";
 
 export async function GET(req: NextRequest) {
   try {

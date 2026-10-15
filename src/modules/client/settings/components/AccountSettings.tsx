@@ -17,14 +17,6 @@ import {
 } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 
-const CIVIL_STATUS_OPTIONS = [
-  { value: "unspecified", label: "Select Status" },
-  { value: "Single", label: "Single" },
-  { value: "Married", label: "Married" },
-  { value: "Widowed", label: "Widowed" },
-  { value: "Separated", label: "Separated" },
-  { value: "Divorced", label: "Divorced" },
-];
 import {
   Loader2,
   User,
@@ -50,6 +42,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+
+const CIVIL_STATUS_OPTIONS = [
+  { value: "unspecified", label: "Select Status" },
+  { value: "Single", label: "Single" },
+  { value: "Married", label: "Married" },
+  { value: "Widowed", label: "Widowed" },
+  { value: "Separated", label: "Separated" },
+  { value: "Divorced", label: "Divorced" },
+];
 
 interface AccountSettingsProps {
   user: UserProfile | null;

@@ -11,6 +11,7 @@ import { assignInitialStageToApplication, getJobPipeline } from "@/modules/clien
 import type { JobPipelineVersion, JobPipelineStage } from "@/modules/client/pipeline/types";
 import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
 import { getPHTimeString } from "@/lib/utils";
+import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,8 +27,6 @@ function getHeaders(): Record<string, string> {
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
 }
-
-import { authenticateRequest, isFreelancerSession } from "@/lib/authenticated-session";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET — Fetch logged-in freelancer's own applications

@@ -7,7 +7,15 @@ import { SecurityPayload } from "../types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, KeyRound, ShieldCheck, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { validatePasswordStrict } from "@/lib/password-validation";
 import PasswordRequirementsChecklist from "@/components/auth/PasswordRequirementsChecklist";
 import { ConnectedAccountsCard } from "@/modules/auth/components/ConnectedAccountsCard";
@@ -27,8 +35,10 @@ export default function SecuritySettings({
     confirm_password: "",
   });
   const [localError, setLocalError] = useState("");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [dialogLoading, setDialogLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError("");
 
@@ -45,9 +55,29 @@ export default function SecuritySettings({
       return;
     }
 
-    const ok = await onChangePassword(form);
-    if (ok) {
-      setForm({ current_password: "", new_password: "", confirm_password: "" });
+    setShowLogoutDialog(true);
+  };
+
+  const executePasswordChange = async (revokeOthers: boolean) => {
+    try {
+      setDialogLoading(true);
+      const payload: SecurityPayload = {
+        ...form,
+        revoke_other_sessions: revokeOthers,
+      };
+
+      const ok = await onChangePassword(payload);
+      if (ok) {
+        setForm({ current_password: "", new_password: "", confirm_password: "" });
+        setShowLogoutDialog(false);
+        if (revokeOthers) {
+          toast.success("Password changed. All other device sessions were signed out.");
+        } else {
+          toast.success("Password changed successfully.");
+        }
+      }
+    } finally {
+      setDialogLoading(false);
     }
   };
 
@@ -55,28 +85,28 @@ export default function SecuritySettings({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
       {/* Left Column: Password Management */}
       <div className="space-y-5">
-        <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 p-4 rounded-xl flex items-start gap-3">
-          <ShieldCheck className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+        <div className="bg-primary/10 border border-primary/20 p-4 rounded-2xl flex items-start gap-3 backdrop-blur-md">
+          <ShieldCheck className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            <h4 className="text-sm font-semibold text-foreground">
               Account Password & Security
             </h4>
-            <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-              Ensure your account uses a strong, unique password with at least 8 characters.
+            <p className="text-sm md:text-xs text-muted-foreground mt-0.5">
+              Ensure your account uses a strong, unique password with at least 8 characters. Changing your credentials requires verifying your current password.
             </p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {localError && (
-            <div className="p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm md:text-xs">
               {localError}
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-              <Lock className="h-3.5 w-3.5 text-zinc-400" /> Current Password
+            <Label htmlFor="curr-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" /> Current Password
             </Label>
             <Input
               id="curr-pass"
@@ -84,14 +114,14 @@ export default function SecuritySettings({
               value={form.current_password}
               onChange={(e) => setForm((p) => ({ ...p, current_password: e.target.value }))}
               placeholder="••••••••"
-              className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
+              className="h-10 md:text-sm rounded-xl max-md:h-10 max-md:text-base"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-              <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> New Password
+            <Label htmlFor="new-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> New Password
             </Label>
             <Input
               id="new-pass"
@@ -99,14 +129,14 @@ export default function SecuritySettings({
               value={form.new_password}
               onChange={(e) => setForm((p) => ({ ...p, new_password: e.target.value }))}
               placeholder="Min. 8 characters"
-              className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
+              className="h-10 md:text-sm rounded-xl max-md:h-10 max-md:text-base"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-              <KeyRound className="h-3.5 w-3.5 text-zinc-400" /> Confirm New Password
+            <Label htmlFor="conf-pass" className="text-sm md:text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> Confirm New Password
             </Label>
             <Input
               id="conf-pass"
@@ -114,7 +144,7 @@ export default function SecuritySettings({
               value={form.confirm_password}
               onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
               placeholder="Re-enter new password"
-              className="h-10 md:text-sm rounded-lg max-md:h-10 max-md:text-base"
+              className="h-10 md:text-sm rounded-xl max-md:h-10 max-md:text-base"
               required
             />
           </div>
@@ -125,7 +155,7 @@ export default function SecuritySettings({
             <Button
               type="submit"
               disabled={saving || !validatePasswordStrict(form.new_password || "")}
-              className="h-9 max-md:min-h-10 px-6 text-sm rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 font-medium shadow-sm disabled:opacity-50"
+              className="h-10 px-6 text-sm rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -144,6 +174,55 @@ export default function SecuritySettings({
       <div className="w-full">
         <ConnectedAccountsCard returnTo="/vos-sync/client/settings" />
       </div>
+
+      {/* Choice B Password Change Confirmation Dialog */}
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent className="sm:max-w-md rounded-2xl border border-primary/20 bg-card/95 backdrop-blur-xl p-6 shadow-2xl">
+          <DialogHeader className="space-y-3">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShieldCheck className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center text-lg font-bold text-foreground">
+              Log Out of Other Devices?
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm text-muted-foreground">
+              Would you like to sign out of all other devices and browser sessions? You will stay logged in on this device.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 flex flex-col gap-2.5">
+            <Button
+              type="button"
+              onClick={() => executePasswordChange(true)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
+            >
+              {dialogLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Log Out Other Devices (Recommended)
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => executePasswordChange(false)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full border border-primary/20 bg-card/70 hover:bg-primary/10 font-medium"
+            >
+              Keep Other Devices Logged In
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowLogoutDialog(false)}
+              disabled={dialogLoading || saving}
+              className="w-full rounded-full text-muted-foreground hover:text-foreground text-xs"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../t
 import { ApplyModal } from "./ApplyModal";
 import { useFreelancerBookmarks } from "../../freelancer/freelancer-bookmarks/hooks/useFreelancerBookmarks";
 import ReferModal from "../../freelancer/freelancer-referrals/components/ReferModal";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface Props {
   jobId: number;
@@ -73,8 +74,6 @@ const renderInlineMarkdown = (str: string) => {
     return part;
   });
 };
-
-import { sanitizeHtml } from "@/lib/sanitize-html";
 
 function renderFormattedContent(text: string | null | undefined) {
   if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
