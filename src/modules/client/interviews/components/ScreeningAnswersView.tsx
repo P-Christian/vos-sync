@@ -1,6 +1,5 @@
-"use client";
-
 // src/modules/client/interviews/components/ScreeningAnswersView.tsx
+"use client";
 
 import React from "react";
 import { ScreeningAnswer } from "../types";
