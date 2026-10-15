@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
-import { getPHTimeString } from "@/lib/utils";
+
 import { revokeUserSession } from "@/modules/auth/sessions/session.repo";
 
 export const runtime = "nodejs";
@@ -12,8 +12,6 @@ const COOKIE_NAME = "vos_sync_access_token";
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET
 );
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
 export async function POST(req: NextRequest) {
     const token = req.cookies.get(COOKIE_NAME)?.value || req.headers.get("authorization")?.replace("Bearer ", "");

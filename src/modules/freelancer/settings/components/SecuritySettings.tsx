@@ -80,6 +80,7 @@ export default function SecuritySettings({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSessions();
   }, [fetchSessions]);
 
