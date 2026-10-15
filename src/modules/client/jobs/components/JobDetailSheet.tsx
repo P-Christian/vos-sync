@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -35,11 +35,31 @@ import {
   Facebook,
   Instagram,
   Youtube,
+  Twitter,
   Pencil,
+  Clock,
 } from "lucide-react";
-import { PublicJobPosting, JobPosting, JobStatus, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS, JobSkill } from "../types";
+import {
+  PublicJobPosting,
+  JobPosting,
+  JobStatus,
+  JOB_TYPE_LABELS,
+  EXPERIENCE_LEVEL_LABELS,
+  JobSkill,
+} from "../types";
 import JobPipelineSection from "@/modules/client/pipeline/components/JobPipelineSection";
 import { sanitizeHtml } from "@/lib/sanitize-html";
+import { cn } from "@/lib/utils";
+import {
+  applicantsHref,
+  formatPosted,
+  formatSalary,
+  getJobMeta,
+  getStatusStyle,
+  shortLocation,
+  JOB_STATUSES,
+} from "../job-helpers";
+import ConfirmCloseJobDialog from "./ConfirmCloseJobDialog";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -51,19 +71,6 @@ interface Props {
   appliedJobIds?: number[];
 }
 
-function formatSalary(job: PublicJobPosting): string {
-  if (job.salary_negotiable) return "Negotiable";
-  const currency = job.currency ?? "PHP";
-  if (job.salary_type === "Fixed Salary" && job.salary_min) {
-    return `${currency} ${Number(job.salary_min).toLocaleString()} / mo`;
-  }
-  if (job.salary_min && job.salary_max) {
-    return `${currency} ${Number(job.salary_min).toLocaleString()} – ${Number(job.salary_max).toLocaleString()} / mo`;
-  }
-  if (job.salary_min) return `${currency} ${Number(job.salary_min).toLocaleString()}+ / mo`;
-  return "Salary not disclosed";
-}
-
 function getInitials(name?: string | null): string {
   if (!name) return "?";
   return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -71,10 +78,30 @@ function getInitials(name?: string | null): string {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h4>
+    <section className="space-y-2">
+      <h4 className="text-sm font-semibold text-foreground">{title}</h4>
       {children}
+    </section>
+  );
+}
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-0.5">
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium text-foreground">{children}</dd>
     </div>
+  );
+}
+
+function Chip({ icon: Icon, children, title }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; title?: string }) {
+  return (
+    <span
+      title={title}
+      className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground"
+    >
+      <Icon className="h-3 w-3 shrink-0" /> {children}
+    </span>
   );
 }
 
@@ -129,22 +156,22 @@ const renderInlineMarkdown = (str: string) => {
 };
 
 function renderFormattedContent(text: string | null | undefined) {
-  if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
+  if (!text) return <p className="text-sm italic text-muted-foreground">No information provided.</p>;
 
   const trimmed = text.trim();
   if (!trimmed || trimmed === "<p><br></p>" || trimmed === "<br>") {
-    return <p className="text-sm text-muted-foreground italic">No information provided.</p>;
+    return <p className="text-sm italic text-muted-foreground">No information provided.</p>;
   }
 
-  // If text contains HTML tags (from RichTextEditor), render with explicit bullet and list styling
+  // HTML from the RichTextEditor: explicit list/bold styling
   if (/<(b|strong|ul|ol|li|p|div|br|span|em|i)\b[^>]*>/i.test(trimmed)) {
     return (
       <div
-        className="text-sm text-foreground/85 leading-relaxed space-y-2 
-          [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-2 
-          [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:my-2 
+        className="space-y-2 text-sm leading-relaxed text-foreground/85
+          [&_ul]:my-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5
+          [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:space-y-1 [&_ol]:pl-5
           [&_li]:leading-relaxed [&_li]:text-foreground/85
-          [&_b]:font-bold [&_b]:text-foreground 
+          [&_b]:font-bold [&_b]:text-foreground
           [&_strong]:font-bold [&_strong]:text-foreground
           [&_p]:my-1.5 [&_p]:leading-relaxed"
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(trimmed) }}
@@ -152,40 +179,113 @@ function renderFormattedContent(text: string | null | undefined) {
     );
   }
 
-  // Fallback for markdown or plain text with bullets (- , * , • , 1.)
+  // Markdown / plain text with bullets
   const blocks = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
   return (
     <div className="space-y-2">
       {blocks.map((block, bIdx) => {
         const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        const isBullet = (line: string) =>
+          line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line);
         const isList =
           lines.length > 0 &&
-          (lines.every((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line)) ||
-            (lines.length > 1 && lines.some((line) => line.startsWith("-") || line.startsWith("*") || line.startsWith("•") || /^\d+\./.test(line))));
+          (lines.every(isBullet) || (lines.length > 1 && lines.some(isBullet)));
 
         if (isList) {
           return (
-            <ul key={bIdx} className="space-y-1.5 list-disc pl-5 text-sm text-foreground/85 leading-relaxed">
-              {lines.map((line, lIdx) => {
-                const cleaned = line.replace(/^[-*•\d+\.]\s*/, "");
-                return <li key={lIdx}>{renderInlineMarkdown(cleaned)}</li>;
-              })}
+            <ul key={bIdx} className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-foreground/85">
+              {lines.map((line, lIdx) => (
+                <li key={lIdx}>{renderInlineMarkdown(line.replace(/^([-*•]|\d+\.)\s*/, ""))}</li>
+              ))}
             </ul>
           );
-        } else {
-          return (
-            <p key={bIdx} className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
-              {renderInlineMarkdown(block)}
-            </p>
-          );
         }
+        return (
+          <p key={bIdx} className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">
+            {renderInlineMarkdown(block)}
+          </p>
+        );
       })}
     </div>
   );
 }
 
+function CompanyDetails({ job }: { job: PublicJobPosting }) {
+  const address =
+    [job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") ||
+    job.job_location;
+
+  const socials = [
+    { href: job.company_facebook, label: "Facebook", Icon: Facebook },
+    { href: job.company_instagram, label: "Instagram", Icon: Instagram },
+    { href: job.company_x, label: "X (Twitter)", Icon: Twitter },
+    { href: job.company_youtube, label: "YouTube", Icon: Youtube },
+  ].filter((s) => !!s.href);
+
+  return (
+    <dl className="space-y-4">
+      <InfoRow label="Location">
+        <span className="flex items-start gap-1.5">
+          <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <span>{address}</span>
+        </span>
+      </InfoRow>
+
+      {job.company_email && (
+        <InfoRow label="Company email">
+          <a
+            href={`mailto:${job.company_email}`}
+            className="flex items-center gap-1.5 hover:underline"
+            title={job.company_email}
+          >
+            <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">{job.company_email}</span>
+          </a>
+        </InfoRow>
+      )}
+
+      {job.company_contact && (
+        <InfoRow label="Company contact">
+          <a href={`tel:${job.company_contact}`} className="flex items-center gap-1.5 hover:underline">
+            <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            {job.company_contact}
+          </a>
+        </InfoRow>
+      )}
+
+      {socials.length > 0 && (
+        <InfoRow label="Social media">
+          <div className="flex flex-wrap gap-2 pt-1">
+            {socials.map(({ href, label, Icon }) => (
+              <a
+                key={label}
+                href={href as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="flex items-center justify-center rounded-lg bg-muted p-1.5 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground max-md:size-10 max-md:p-0"
+              >
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
+          </div>
+        </InfoRow>
+      )}
+    </dl>
+  );
+}
+
 export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: Props) {
+  const [confirmClose, setConfirmClose] = useState(false);
+
   if (!job) return null;
+
+  // Owners get management controls; candidates browsing the same sheet don't.
+  const isOwner = !!(onEdit || onStatusChange);
+  const meta = getJobMeta(job);
+  const status = getStatusStyle(job.status);
+  const posted = formatPosted(meta.postedAt);
 
   const descData = parseJsonField(job.job_description);
   const reqsData = parseJsonField(job.job_requirements);
@@ -201,302 +301,298 @@ export function JobDetailSheet({ job, open, onClose, onEdit, onStatusChange }: P
   const benefits = (reqsData.extra.benefits as string[]) || job.benefits || [];
   const screeningQuestions = (reqsData.extra.screening_questions as string[]) || job.screening_questions || [];
 
+  const handleStatus = (value: string) => {
+    const next = value as JobStatus;
+    if (next === job.status) return;
+    // Closing affects what candidates can do, so confirm first
+    if (value === "CLOSED") setConfirmClose(true);
+    else onStatusChange?.(job.job_id, next);
+  };
+
+  const applicantLabel =
+    meta.applicantCount === null
+      ? "View applicants"
+      : `${meta.applicantCount} ${meta.applicantCount === 1 ? "applicant" : "applicants"}`;
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-1/2 flex flex-col p-0 gap-0 max-md:max-h-[90dvh]"
-      >
-        {/* Cover Banner */}
-        <div className="h-32 w-full bg-linear-to-r from-emerald-500/10 to-teal-500/10 relative overflow-hidden shrink-0 border-b">
-          {job.company_cover ? (
-            <img
-              src={getImageUrl(job.company_cover)}
-              alt="Company Cover"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800" />
-          )}
-        </div>
-
-        {/* Header */}
-        <SheetHeader className="px-6 pt-5 pb-4 border-b shrink-0 bg-card">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-16 h-16 -mt-12 relative z-20 rounded-2xl border-4 border-background bg-muted flex items-center justify-center text-md font-bold text-foreground shrink-0 overflow-hidden shadow-xs">
-                {job.company_logo ? (
-                  <img src={getImageUrl(job.company_logo)} alt={job.company?.company_name ?? ""} className="w-full h-full object-cover" />
-                ) : (
-                  getInitials(job.company?.company_name)
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <SheetTitle className="text-base font-bold text-foreground leading-tight">
-                  {job.job_title}
-                </SheetTitle>
-                <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                  {job.company?.company_name ?? "Unknown Company"}
-                </SheetDescription>
-              </div>
-            </div>
-
-            {/* Actions in Sheet Header */}
-            <div className="flex items-center gap-2 shrink-0 flex-wrap">
-              {onStatusChange && (
-                <Select
-                  value={job.status}
-                  onValueChange={(v) => onStatusChange(job.job_id, v as JobStatus)}
-                >
-                  <SelectTrigger className="h-8 md:text-xs font-semibold rounded-lg w-28 border-border max-md:min-h-10 max-md:text-base">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE" className="text-sm md:text-xs font-semibold text-primary">Active</SelectItem>
-                    <SelectItem value="DRAFT" className="text-sm md:text-xs font-semibold text-amber-600">Draft</SelectItem>
-                    <SelectItem value="CLOSED" className="text-sm md:text-xs font-semibold text-rose-600">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-
-              {onEdit && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    onClose();
-                    onEdit(job as unknown as JobPosting);
-                  }}
-                  className="h-8 px-3 text-sm md:text-xs gap-1.5 rounded-lg border-border hover:border-primary hover:text-primary font-semibold max-md:min-h-10"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit Job
-                </Button>
-              )}
-
-              <Link href={`/vos-sync/client/applicants?job_id=${job.job_id}`}>
-                <Button
-                  size="sm"
-                  className="h-8 px-3 text-sm md:text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold max-md:min-h-10"
-                >
-                  <Users className="h-3.5 w-3.5" />
-                  View Applicants
-                </Button>
-              </Link>
-            </div>
-          </div>
-
-          {/* Quick meta */}
-          <div className="flex flex-wrap gap-2 mt-3">
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-              <MapPin className="h-3 w-3" /> {job.job_location}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-              <Briefcase className="h-3 w-3" /> {JOB_TYPE_LABELS[job.job_type] ?? job.job_type}
-            </span>
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-              <Building2 className="h-3 w-3" /> {arrangement}
-            </span>
-            {Number(openings) > 1 && (
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full">
-                <Users className="h-3 w-3" /> {openings} openings
-              </span>
+    <>
+      <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+        <SheetContent
+          side="right"
+          // Radix focuses the first control on open, which put a focus ring on the status select.
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="flex w-full flex-col gap-0 p-0 sm:max-w-1/2"
+        >
+          {/* Cover banner */}
+          <div className="relative h-24 w-full shrink-0 overflow-hidden border-b">
+            {job.company_cover ? (
+              <img
+                src={getImageUrl(job.company_cover)}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-r from-zinc-100 to-zinc-200 dark:from-zinc-900 dark:to-zinc-800" />
             )}
           </div>
-        </SheetHeader>
 
-        {/* Scrollable body */}
-        <ScrollArea className="flex-1 overflow-y-auto">
-          <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Left Column: Job Info */}
-            <div className="md:col-span-2 space-y-6">
-              {/* Salary & Requirements Summary */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl bg-muted/40 border">
-                  <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
-                    <DollarSign className="h-3 w-3" /> Salary
-                  </div>
-                  <p className="text-sm font-semibold text-foreground">{formatSalary(job)}</p>
-                  <p className="text-xs md:text-[10px] text-muted-foreground mt-0.5">{salaryType}</p>
+          {/* Header */}
+          <SheetHeader className="shrink-0 border-b bg-card px-6 pb-4 pt-5">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
+                <div className="relative z-20 -mt-12 flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-background bg-muted text-base font-bold text-foreground shadow-xs">
+                  {job.company_logo ? (
+                    <img
+                      src={getImageUrl(job.company_logo)}
+                      alt={job.company?.company_name ?? ""}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    getInitials(job.company?.company_name)
+                  )}
                 </div>
-                {job.experience_level && (
-                  <div className="p-3 rounded-xl bg-muted/40 border">
-                    <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
-                      <Layers className="h-3 w-3" /> Experience
-                    </div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {EXPERIENCE_LEVEL_LABELS[job.experience_level] ?? job.experience_level}
-                    </p>
-                  </div>
-                )}
-                {education && (
-                  <div className="p-3 rounded-xl bg-muted/40 border col-span-2">
-                    <div className="flex items-center gap-1.5 text-xs md:text-[10px] font-medium text-muted-foreground uppercase mb-1">
-                      <GraduationCap className="h-3 w-3" /> Education
-                    </div>
-                    <p className="text-sm text-foreground">{education}</p>
-                  </div>
-                )}
+                <div className="min-w-0 flex-1">
+                  <SheetTitle className="text-lg font-bold leading-tight text-foreground">
+                    {job.job_title}
+                  </SheetTitle>
+                  <SheetDescription className="mt-0.5 text-sm text-muted-foreground">
+                    {job.company?.company_name ?? "Unknown Company"}
+                  </SheetDescription>
+                </div>
               </div>
 
-              <Separator />
-
-              {/* Job Description */}
-              <Section title="Job Description">
-                {renderFormattedContent(descriptionText)}
-              </Section>
-
-              {/* Responsibilities */}
-              {responsibilitiesText && (
-                <>
-                  <Separator />
-                  <Section title="Responsibilities">
-                    {renderFormattedContent(responsibilitiesText)}
-                  </Section>
-                </>
-              )}
-
-              {/* Qualifications */}
-              {qualificationsText && (
-                <>
-                  <Separator />
-                  <Section title="Qualifications">
-                    {renderFormattedContent(qualificationsText)}
-                  </Section>
-                </>
-              )}
-
-              {/* Skills */}
-              {skills && skills.length > 0 && (
-                <>
-                  <Separator />
-                  <Section title="Required Skills">
-                    <div className="flex flex-wrap gap-1.5">
-                      {skills.map((s) => (
-                        <Badge key={s.id} variant="secondary" className="text-xs px-2.5 py-0.5 rounded-full font-normal">
-                          {s.skill_name}
-                        </Badge>
+              {/* Actions */}
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {onStatusChange && (
+                  <Select value={job.status} onValueChange={handleStatus}>
+                    <SelectTrigger
+                      aria-label="Job status"
+                      className="h-9 w-32 rounded-lg border-border text-sm font-medium max-md:min-h-10 max-md:text-base"
+                    >
+                      <span className="flex items-center gap-2">
+                      
+                        <SelectValue />
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JOB_STATUSES.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          <span className="flex items-center gap-2">
+                            <span className={cn("h-2 w-2 rounded-full", getStatusStyle(s).dot)} aria-hidden />
+                            {getStatusStyle(s).label}
+                          </span>
+                        </SelectItem>
                       ))}
-                    </div>
-                  </Section>
-                </>
-              )}
+                    </SelectContent>
+                  </Select>
+                )}
 
-              {/* Benefits */}
-              {benefits && benefits.length > 0 && (
-                <>
-                  <Separator />
-                  <Section title="Benefits">
-                    <div className="flex flex-wrap gap-1.5">
-                      {benefits.map((b) => (
-                        <span
-                          key={b}
-                          className="inline-flex items-center text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50"
-                        >
-                          {b}
+                {onEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      onClose();
+                      onEdit(job as unknown as JobPosting);
+                    }}
+                    className="h-9 gap-1.5 rounded-lg px-3 text-sm font-medium hover:border-primary hover:text-primary max-md:min-h-10"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit job
+                  </Button>
+                )}
+
+                {isOwner && (
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-9 gap-1.5 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 max-md:min-h-10"
+                  >
+                    <Link href={applicantsHref(job.job_id)}>
+                      <Users className="h-3.5 w-3.5" />
+                      {applicantLabel}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick meta */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Chip icon={MapPin} title={job.job_location}>
+                {shortLocation(job.job_location) || job.job_location}
+              </Chip>
+              <Chip icon={Briefcase}>{JOB_TYPE_LABELS[job.job_type] ?? job.job_type}</Chip>
+              <Chip icon={Building2}>{arrangement}</Chip>
+              {Number(openings) > 1 && <Chip icon={Users}>{openings} openings</Chip>}
+              {posted && <Chip icon={Clock}>{posted}</Chip>}
+            </div>
+          </SheetHeader>
+
+          {/* Scrollable body */}
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="grid grid-cols-1 gap-6 px-6 py-5 md:grid-cols-3">
+              {/* Left column: job info */}
+              <div className="space-y-6 md:col-span-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border bg-muted/40 p-3">
+                    <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <DollarSign className="h-3.5 w-3.5" /> Salary
+                    </div>
+                    <p className="text-sm font-semibold text-foreground">{formatSalary(job)}</p>
+                    {/* "Negotiable" + "Salary Range" read as contradictory, so only show the type for real amounts */}
+                    {!job.salary_negotiable && (
+                      <p className="mt-0.5 text-xs text-muted-foreground">{salaryType}</p>
+                    )}
+                  </div>
+                  {job.experience_level && (
+                    <div className="rounded-xl border bg-muted/40 p-3">
+                      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <Layers className="h-3.5 w-3.5" /> Experience
+                      </div>
+                      <p className="text-sm font-semibold text-foreground">
+                        {EXPERIENCE_LEVEL_LABELS[job.experience_level] ?? job.experience_level}
+                      </p>
+                    </div>
+                  )}
+                  {education && (
+                    <div className="col-span-2 rounded-xl border bg-muted/40 p-3">
+                      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                        <GraduationCap className="h-3.5 w-3.5" /> Education
+                      </div>
+                      <p className="text-sm text-foreground">{education}</p>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                <Section title="Job description">{renderFormattedContent(descriptionText)}</Section>
+
+                {responsibilitiesText && (
+                  <>
+                    <Separator />
+                    <Section title="Responsibilities">{renderFormattedContent(responsibilitiesText)}</Section>
+                  </>
+                )}
+
+                {qualificationsText && (
+                  <>
+                    <Separator />
+                    <Section title="Qualifications">{renderFormattedContent(qualificationsText)}</Section>
+                  </>
+                )}
+
+                {skills && skills.length > 0 && (
+                  <>
+                    <Separator />
+                    <Section title="Required skills">
+                      <div className="flex flex-wrap gap-1.5">
+                        {skills.map((s) => (
+                          <Badge key={s.id} variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-normal">
+                            {s.skill_name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Section>
+                  </>
+                )}
+
+                {benefits && benefits.length > 0 && (
+                  <>
+                    <Separator />
+                    <Section title="Benefits">
+                      <div className="flex flex-wrap gap-1.5">
+                        {benefits.map((b) => (
+                          <span
+                            key={b}
+                            className="inline-flex items-center rounded-full border border-emerald-200/50 bg-emerald-50 px-2.5 py-0.5 text-xs text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300"
+                          >
+                            {b}
+                          </span>
+                        ))}
+                      </div>
+                    </Section>
+                  </>
+                )}
+
+                {screeningQuestions && screeningQuestions.length > 0 && (
+                  <>
+                    <Separator />
+                    <Section title={`Screening questions (${screeningQuestions.length})`}>
+                      <ul className="space-y-2">
+                        {screeningQuestions.map((q, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 rounded-lg bg-muted/40 p-2 text-sm text-foreground/80"
+                          >
+                            <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span>{q}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {isOwner
+                          ? "Candidates answer these in the application form."
+                          : "You will answer these questions in the application form."}
+                      </p>
+                    </Section>
+                  </>
+                )}
+
+                <Separator />
+                <Section title="Hiring pipeline">
+                  <JobPipelineSection jobId={job.job_id} readOnly />
+                </Section>
+              </div>
+
+              {/* Right column */}
+              <aside className="space-y-6 border-t border-border/80 pt-5 md:col-span-1 md:border-l md:border-t-0 md:pl-5 md:pt-0">
+                {isOwner && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-foreground">Overview</h3>
+                    <dl className="space-y-3">
+                      <InfoRow label="Status">
+                        <span className="flex items-center gap-2">
+                          <span className={cn("h-2 w-2 rounded-full", status.dot)} aria-hidden />
+                          {status.label}
                         </span>
-                      ))}
-                    </div>
-                  </Section>
-                </>
-              )}
-
-              {/* Screening Questions preview */}
-              {screeningQuestions && screeningQuestions.length > 0 && (
-                <>
-                  <Separator />
-                  <Section title={`Screening Questions (${screeningQuestions.length})`}>
-                    <div className="space-y-2">
-                      {screeningQuestions.map((q, i) => (
-                        <div key={i} className="flex items-start gap-2 text-sm text-foreground/70 bg-muted/40 rounded-lg p-1">
-                          <HelpCircle className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                          <span>{q}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs md:text-[11px] text-muted-foreground mt-2">
-                      You will answer these questions in the application form.
-                    </p>
-                  </Section>
-                </>
-              )}
-
-              {/* Hiring Pipeline Workflow */}
-              <Separator />
-              <Section title="Hiring Pipeline Workflow">
-                <JobPipelineSection jobId={job.job_id} readOnly />
-              </Section>
-            </div>
-
-            {/* Right Column: Client info */}
-            <div className="md:col-span-1 space-y-5 border-t pt-5 md:border-l md:border-l-0 md:pl-5 border-border/80">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">About the client</h3>
-
-              <div className="space-y-4">
-                {/* Location */}
-                <div className="space-y-1">
-                  <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Location</span>
-                  <div className="flex items-start gap-1.5 text-sm md:text-xs text-foreground font-medium">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5 text-zinc-500" />
-                    <span>
-                      {[job.company_address, job.company_city, job.company_province].filter(Boolean).join(", ") || job.job_location}
-                    </span>
+                      </InfoRow>
+                      <InfoRow label="Applicants">
+                        <Link href={applicantsHref(job.job_id)} className="text-primary hover:underline">
+                          {meta.applicantCount === null
+                            ? "View applicants"
+                            : `${meta.applicantCount} ${meta.applicantCount === 1 ? "applicant" : "applicants"}`}
+                        </Link>
+                      </InfoRow>
+                      {posted && <InfoRow label="Posted">{posted.replace(/^Posted /, "")}</InfoRow>}
+                      <InfoRow label="Openings">{openings}</InfoRow>
+                    </dl>
+                    <Separator />
                   </div>
+                )}
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {isOwner ? "Company details shown to candidates" : "About the client"}
+                  </h3>
+                  <CompanyDetails job={job} />
                 </div>
-
-                {/* Email */}
-                {job.company_email && (
-                  <div className="space-y-1">
-                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Email</span>
-                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium truncate">
-                      <Mail className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                      <span className="truncate" title={job.company_email}>{job.company_email}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Contact */}
-                {job.company_contact && (
-                  <div className="space-y-1">
-                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Company Contact</span>
-                    <div className="flex items-center gap-1.5 text-sm md:text-xs text-foreground font-medium">
-                      <Phone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                      <span>{job.company_contact}</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Socials */}
-                {(job.company_facebook|| job.company_instagram || job.company_x || job.company_youtube) && (
-                  <div className="space-y-2 pt-2">
-                    <span className="text-xs md:text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">Social Media</span>
-                    <div className="flex flex-wrap gap-2">
-                      {job.company_facebook && (
-                        <a href={job.company_facebook} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
-                          <Facebook className="h-4 w-4" />
-                        </a>
-                      )}
-
-                      {job.company_instagram && (
-                        <a href={job.company_instagram} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
-                          <Instagram className="h-4 w-4" />
-                        </a>
-                      )}
-                      {job.company_youtube && (
-                        <a href={job.company_youtube} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-muted hover:bg-muted/85 rounded-lg text-zinc-600 dark:text-zinc-400 max-md:size-10 max-md:p-0">
-                          <Youtube className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              </aside>
             </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
-          </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+      <ConfirmCloseJobDialog
+        open={confirmClose}
+        jobTitle={job.job_title}
+        onOpenChange={setConfirmClose}
+        onConfirm={() => {
+          setConfirmClose(false);
+          onStatusChange?.(job.job_id, "CLOSED" as JobStatus);
+        }}
+      />
+    </>
   );
 }

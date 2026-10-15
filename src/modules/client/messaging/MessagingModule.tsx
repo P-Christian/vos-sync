@@ -2,8 +2,8 @@
 
 // src/modules/client/messaging/MessagingModule.tsx
 
-import React, { useEffect, useState, useCallback } from "react";
-import {  AlertCircle } from "lucide-react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import { AlertCircle } from "lucide-react";
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -12,6 +12,9 @@ import EmptyState from "./components/EmptyState";
 import { Conversation } from "./types";
 import { cn } from "@/lib/utils";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
+
+// TODO: point this at your real "Applicants" route
+const APPLICANTS_HREF = "/client/applicants";
 
 interface Props {
   currentUserId: number;
@@ -53,46 +56,80 @@ export default function MessagingModule({
     clearMessages,
   } = useMessages();
 
-  const [activeConversation, setActiveConversation] =
-    useState<Conversation | null>(null);
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [unreadAtOpen, setUnreadAtOpen] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [toast, setToast] = useState<{ text: string; onUndo?: () => void } | null>(null);
 
-  // Load conversations on mount
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoOpenedRef = useRef<number | null>(null);
+
+  const unreadConversations = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
+
+  // ─── Toast ──────────────────────────────────────────────────────────────────
+
+  const showToast = useCallback((text: string, onUndo?: () => void) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ text, onUndo });
+    toastTimerRef.current = setTimeout(() => setToast(null), 6000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    },
+    []
+  );
+
+  // ─── Loading ────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     loadConversations({ archived: showArchived });
   }, [loadConversations, showArchived]);
 
-  // Auto-open if initialFreelancerId is provided
+  const openConversation = useCallback(
+    (conv: Conversation) => {
+      setUnreadAtOpen(conv.unread_count ?? 0);
+      clearUnreadCount(conv.conversation_id);
+      clearMessages();
+      setActiveConversation({ ...conv, unread_count: 0 });
+      loadMessages(conv.conversation_id);
+      setMobileShowChat(true);
+    },
+    [clearUnreadCount, clearMessages, loadMessages]
+  );
+
+  // Auto-open once per freelancer (the ref stops it re-firing when convsLoading flips)
   useEffect(() => {
     if (!initialFreelancerId || convsLoading) return;
+    if (autoOpenedRef.current === initialFreelancerId) return;
+    autoOpenedRef.current = initialFreelancerId;
 
     openOrCreateConversation({
       freelancer_id: initialFreelancerId,
       job_id: initialJobId ?? null,
       conversation_type: initialJobId ? "JOB_APPLICATION" : "DIRECT_MESSAGE",
     }).then((conv) => {
-      if (conv) {
-        clearUnreadCount(conv.conversation_id);
-        setActiveConversation({ ...conv, unread_count: 0 });
-        loadMessages(conv.conversation_id);
-        setMobileShowChat(true);
-      }
+      if (conv) openConversation(conv);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFreelancerId]);
+  }, [initialFreelancerId, initialJobId, convsLoading]);
+
+  // ─── Handlers ───────────────────────────────────────────────────────────────
 
   const handleSelectConversation = useCallback(
     (conv: Conversation) => {
-      clearUnreadCount(conv.conversation_id);
-      if (activeConversation?.conversation_id === conv.conversation_id) return;
-      clearMessages();
-      setActiveConversation({ ...conv, unread_count: 0 });
-      loadMessages(conv.conversation_id);
-      setMobileShowChat(true);
+      if (activeConversation?.conversation_id === conv.conversation_id) {
+        clearUnreadCount(conv.conversation_id);
+        setMobileShowChat(true);
+        return;
+      }
+      openConversation(conv);
     },
-    [activeConversation, clearMessages, clearUnreadCount, loadMessages]
+    [activeConversation, clearUnreadCount, openConversation]
   );
 
   const handleRefreshConversations = useCallback(() => {
@@ -100,28 +137,33 @@ export default function MessagingModule({
   }, [loadConversations, showArchived]);
 
   const handleRefreshMessages = useCallback(() => {
-    if (activeConversation) {
-      refreshMessages(activeConversation.conversation_id);
-    }
+    if (activeConversation) refreshMessages(activeConversation.conversation_id);
   }, [activeConversation, refreshMessages]);
-
-  const handleArchive = useCallback(
-    async (conversationId: number) => {
-      await archive(conversationId, true);
-      if (activeConversation?.conversation_id === conversationId) {
-        setActiveConversation(null);
-        clearMessages();
-        setMobileShowChat(false);
-      }
-    },
-    [archive, activeConversation, clearMessages]
-  );
 
   const handleCloseConversation = useCallback(() => {
     setActiveConversation(null);
     clearMessages();
     setMobileShowChat(false);
   }, [clearMessages]);
+
+  // FIX: the old handler ignored `nextArchived` and always archived, so "Unarchive" did nothing.
+  const handleArchive = useCallback(
+    async (conversationId: number, nextArchived: boolean) => {
+      await archive(conversationId, nextArchived);
+      if (activeConversation?.conversation_id === conversationId) handleCloseConversation();
+      loadConversations({ archived: showArchived, silent: true });
+
+      showToast(
+        nextArchived ? "Conversation archived" : "Moved back to your inbox",
+        async () => {
+          setToast(null);
+          await archive(conversationId, !nextArchived);
+          loadConversations({ archived: showArchived, silent: true });
+        }
+      );
+    },
+    [archive, activeConversation, handleCloseConversation, loadConversations, showArchived, showToast]
+  );
 
   const handleSend = useCallback(
     async (content: string, files: File[]): Promise<boolean> => {
@@ -134,17 +176,18 @@ export default function MessagingModule({
         mime_type: string;
       }[] = [];
 
-      // Upload files first
       if (files.length > 0) {
         const uploaded = await Promise.all(files.map((f) => upload(f)));
-        attachments = uploaded
-          .filter((r) => r !== null)
-          .map((r) => ({
-            file_name: r!.file_name,
-            file_path: r!.file_path,
-            file_size: r!.file_size,
-            mime_type: r!.mime_type,
-          }));
+        // FIX: previously a failed upload was silently dropped and the message still sent.
+        // Now we stop, so the draft and files stay in the input for a retry.
+        if (uploaded.some((r) => r === null)) return false;
+
+        attachments = uploaded.map((r) => ({
+          file_name: r!.file_name,
+          file_path: r!.file_path,
+          file_size: r!.file_size,
+          mime_type: r!.mime_type,
+        }));
       }
 
       const messageType =
@@ -160,7 +203,7 @@ export default function MessagingModule({
         attachments: attachments.length > 0 ? attachments : undefined,
       });
 
-      // Refresh conversation list to update preview silently without full skeleton reload
+      // Update the list preview silently (no skeleton flash)
       loadConversations({ archived: showArchived, silent: true });
       return ok;
     },
@@ -169,13 +212,42 @@ export default function MessagingModule({
 
   const handleToggleArchived = useCallback(() => {
     setShowArchived((prev) => !prev);
-    setActiveConversation(null);
-    clearMessages();
-  }, [clearMessages]);
+    handleCloseConversation();
+  }, [handleCloseConversation]);
+
+  // ─── Keyboard shortcuts: "/" focuses search, Esc closes the open chat ───────
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      const typing =
+        !!target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (typing) return;
+
+      if (e.key === "/") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (
+        e.key === "Escape" &&
+        activeConversation &&
+        !document.querySelector('[role="dialog"]')
+      ) {
+        handleCloseConversation();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [activeConversation, handleCloseConversation]);
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
+  const showNoConversations = !convsLoading && !showArchived && conversations.length === 0;
 
   return (
     <CompanyVerificationGuard moduleName="Candidate Messages">
-      <div className="space-y-4 md:space-y-6 client-page-transition h-full max-md:flex max-md:min-h-full max-md:flex-col">
+      <div className="client-page-transition h-full space-y-4 max-md:flex max-md:min-h-full max-md:flex-col md:space-y-6">
         <style>{`
           @keyframes page-entry {
             from { opacity: 0; transform: translateY(8px); }
@@ -184,26 +256,36 @@ export default function MessagingModule({
           .client-page-transition {
             animation: page-entry 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
           }
+          @media (prefers-reduced-motion: reduce) {
+            .client-page-transition { animation: none; }
+          }
         `}</style>
 
-        {/* ── Error Banner ────────────────────────────────────────────────── */}
+        {/* Error banner */}
         {convsError && (
-          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
+          <div
+            role="alert"
+            className="flex items-center gap-3 rounded-xl border border-rose-200/50 bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
+          >
             <AlertCircle className="h-4 w-4 shrink-0" />
             {convsError}
-            <button onClick={clearConvsError} className="ml-auto text-sm md:text-xs underline max-md:min-h-10">
+            <button
+              type="button"
+              onClick={clearConvsError}
+              className="ml-auto text-sm underline max-md:min-h-10 md:text-xs"
+            >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* ── Main Chat Layout ────────────────────────────────────────────── */}
-        <div className="h-[calc(100dvh-96px)] sm:h-[calc(100dvh-104px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+        {/* Main chat layout */}
+        <div className="relative h-[calc(100dvh-96px)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm sm:h-[calc(100dvh-104px)] max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex h-full">
-            {/* Conversation List — hidden on mobile when chat is open */}
+            {/* Conversation list: hidden on mobile while a chat is open */}
             <div
               className={cn(
-                "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",
+                "flex w-full shrink-0 flex-col sm:w-80 lg:w-96",
                 mobileShowChat ? "hidden sm:flex" : "flex"
               )}
             >
@@ -213,7 +295,7 @@ export default function MessagingModule({
                 loading={convsLoading}
                 searchQuery={searchQuery}
                 showArchived={showArchived}
-                currentUserId={currentUserId}
+                searchInputRef={searchInputRef}
                 onSelect={handleSelectConversation}
                 onArchive={handleArchive}
                 onSearch={setSearchQuery}
@@ -222,16 +304,17 @@ export default function MessagingModule({
               />
             </div>
 
-            {/* Chat Panel */}
+            {/* Chat panel */}
             <div
               className={cn(
-                "flex-1 min-w-0 h-full flex flex-col overflow-hidden",
+                "h-full min-w-0 flex-1 flex-col overflow-hidden",
                 mobileShowChat ? "flex" : "hidden sm:flex"
               )}
             >
               {activeConversation ? (
-                <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+                <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
                   <ChatPanel
+                    key={activeConversation.conversation_id}
                     conversation={activeConversation}
                     messages={messages}
                     currentUserId={currentUserId}
@@ -241,20 +324,63 @@ export default function MessagingModule({
                     sending={sending}
                     uploading={uploading}
                     error={msgsError}
+                    unreadAtOpen={unreadAtOpen}
+                    isArchived={!!activeConversation.archived_by_client}
                     onSend={handleSend}
                     onRefresh={handleRefreshMessages}
                     onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
+                    onArchive={() =>
+                      handleArchive(
+                        activeConversation.conversation_id,
+                        !activeConversation.archived_by_client
+                      )
+                    }
                     onBack={handleCloseConversation}
                     onToggleReaction={toggleReaction}
                   />
                 </div>
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center min-h-0 overflow-hidden">
-                  <EmptyState />
+                <div className="flex h-full min-h-0 w-full flex-col items-center justify-center overflow-hidden">
+                  {showNoConversations ? (
+                    <EmptyState
+                      message="No conversations yet"
+                      subMessage="Message a freelancer from their application and the conversation will appear here."
+                      action={{ label: "Go to applicants", href: APPLICANTS_HREF }}
+                    />
+                  ) : (
+                    <EmptyState
+                      subMessage={
+                        unreadConversations > 0 && !showArchived
+                          ? `You have ${unreadConversations} unread ${
+                              unreadConversations === 1 ? "conversation" : "conversations"
+                            }. Pick one from the list to read it.`
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
               )}
             </div>
           </div>
+
+          {/* Undo toast (absolute, not fixed: the page-entry animation creates a transform context) */}
+          {toast && (
+            <div
+              role="status"
+              className="absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm text-white shadow-lg dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              <span>{toast.text}</span>
+              {toast.onUndo && (
+                <button
+                  type="button"
+                  onClick={toast.onUndo}
+                  className="font-semibold text-indigo-300 underline underline-offset-2 hover:text-indigo-200 max-md:min-h-10 dark:text-indigo-600 dark:hover:text-indigo-700"
+                >
+                  Undo
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </CompanyVerificationGuard>

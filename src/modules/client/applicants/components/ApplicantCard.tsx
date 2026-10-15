@@ -194,7 +194,7 @@ export default function ApplicantCard({
 
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">
                   <FileText className="h-3 w-3 text-muted-foreground/70" />
-                  {applicant.resume_count} {applicant.resume_count === 1 ? "resume" : "resumes"}
+                  {(applicant.resume_count ?? 0) > 0 ? "1 resume" : "0 resumes"}
                 </span>
 
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted/40 border border-border/50">

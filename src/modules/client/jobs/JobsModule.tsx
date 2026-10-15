@@ -23,6 +23,10 @@ import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import ListSkeleton from "../components/ListSkeleton";
 
+import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS } from "./types";
+import { AutoCreateJobModal } from "./components/AutoCreateJobModal";
+import { useRoleCategories } from "./hooks/useRoleCategories";
+
 const JOB_TYPE_OPTIONS = [
   { value: "ALL", label: "All Types" },
   { value: "FULL_TIME", label: "Full-Time" },
@@ -45,9 +49,6 @@ const STATUS_OPTIONS = [
   { value: "DRAFT", label: "Draft" },
   { value: "CLOSED", label: "Closed" },
 ];
-import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS } from "./types";
-import { AutoCreateJobModal } from "./components/AutoCreateJobModal";
-import { useRoleCategories } from "./hooks/useRoleCategories";
 
 export default function JobsModule() {
   const searchParams = useSearchParams();

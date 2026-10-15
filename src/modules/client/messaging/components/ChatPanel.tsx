@@ -1,23 +1,40 @@
 "use client";
 
 // src/modules/client/messaging/components/ChatPanel.tsx
+//
+// NOTE: render this with key={conversation.conversation_id} (MessagingModule does)
+// so scroll, search and unread-marker state reset cleanly per conversation.
 
-import React, { useEffect, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   RefreshCw,
   Briefcase,
   AlertCircle,
-  Loader2,
   ArrowLeft,
-  ChevronUp,
   ArrowDown,
+  ChevronUp,
+  ChevronDown,
+  Loader2,
+  Search,
+  X,
+  MoreVertical,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Conversation, Message } from "../types";
 import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
-import Image from "next/image";
+import Avatar from "./Avatar";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { formatDayLabel, isSameDay, minutesBetween } from "../utils";
 
 interface Props {
   conversation: Conversation;
@@ -29,106 +46,81 @@ interface Props {
   sending: boolean;
   uploading: boolean;
   error: string;
+  /** How many unread messages this conversation had when it was opened */
+  unreadAtOpen?: number;
+  isArchived?: boolean;
   onSend: (content: string, files: File[]) => Promise<boolean>;
   onRefresh: () => void;
   onLoadOlder?: () => void;
-  onBack?: () => void; // for mobile
+  onArchive?: () => void;
+  onBack?: () => void; // mobile
   onToggleReaction?: (messageId: number, reaction: string) => void;
 }
 
-function parseDate(dateStr: string): Date {
-  if (!dateStr) return new Date(0);
-  const cleanStr = String(dateStr).replace("T", " ").replace("Z", "").trim();
-  const [datePart = "", timePart = "00:00:00"] = cleanStr.split(" ");
-  const [year = 1970, month = 1, day = 1] = datePart
-    .split("-")
-    .map((n) => parseInt(n, 10) || 0);
-  const timeClean = timePart.split(".")[0] || "00:00:00";
-  const [hour = 0, minute = 0, second = 0] = timeClean
-    .split(":")
-    .map((n) => parseInt(n, 10) || 0);
-  return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
-}
-
-function getDateLabel(dateStr: string): string {
-  const messageDate = parseDate(dateStr);
-  if (isNaN(messageDate.getTime())) {
-    console.warn("[getDateLabel (Client)] Invalid date for:", dateStr);
-    return "";
-  }
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const mDate = new Date(
-    messageDate.getFullYear(),
-    messageDate.getMonth(),
-    messageDate.getDate()
-  );
-
-  const diffDays = Math.round(
-    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  let label = "";
-  if (diffDays === 0) label = "Today";
-  else if (diffDays === 1) label = "Yesterday";
-  else {
-    label = messageDate.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
-  console.log(`[getDateLabel (Client)] dateStr="${dateStr}" => diffDays=${diffDays} => label="${label}"`);
-  return label;
-}
-
-function isSameDayStr(a: string, b: string): boolean {
-  if (!a || !b) return false;
-  const dateA = parseDate(a);
-  const dateB = parseDate(b);
-  if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return false;
-  return (
-    dateA.getFullYear() === dateB.getFullYear() &&
-    dateA.getMonth() === dateB.getMonth() &&
-    dateA.getDate() === dateB.getDate()
-  );
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0] ?? "")
-    .join("")
-    .toUpperCase();
-}
-
+// Only keep the most recent "interview rescheduled" card
 function filterLatestInterviewCards(msgs: Message[]): Message[] {
-  let latestRescheduledMsgId: number | null = null;
-
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    const m = msgs[i];
-    if (
-      m.message_type === "SYSTEM" &&
-      m.system_message?.event_type === "INTERVIEW_UPDATED"
-    ) {
-      if (latestRescheduledMsgId === null || m.message_id > latestRescheduledMsgId) {
-        latestRescheduledMsgId = m.message_id;
-      }
+  let latestId: number | null = null;
+  for (const m of msgs) {
+    if (m.message_type === "SYSTEM" && m.system_message?.event_type === "INTERVIEW_UPDATED") {
+      if (latestId === null || m.message_id > latestId) latestId = m.message_id;
     }
   }
+  return msgs.filter(
+    (m) =>
+      !(m.message_type === "SYSTEM" && m.system_message?.event_type === "INTERVIEW_UPDATED") ||
+      m.message_id === latestId
+  );
+}
 
-  return msgs.filter((m) => {
-    if (
-      m.message_type === "SYSTEM" &&
-      m.system_message?.event_type === "INTERVIEW_UPDATED"
-    ) {
-      return m.message_id === latestRescheduledMsgId;
-    }
-    return true;
-  });
+const GROUP_WINDOW_MIN = 5;
+
+function sameGroup(a?: Message, b?: Message): boolean {
+  return (
+    !!a &&
+    !!b &&
+    a.message_type !== "SYSTEM" &&
+    b.message_type !== "SYSTEM" &&
+    a.sender_id === b.sender_id &&
+    isSameDay(a.created_at, b.created_at) &&
+    minutesBetween(a.created_at, b.created_at) < GROUP_WINDOW_MIN
+  );
+}
+
+function UnreadDivider({ count }: { count: number }) {
+  return (
+    <div className="my-3 flex select-none items-center gap-3 px-2" role="separator">
+      <div className="h-px flex-1 bg-indigo-200 dark:bg-indigo-900" />
+      <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+        {count} new {count === 1 ? "message" : "messages"}
+      </span>
+      <div className="h-px flex-1 bg-indigo-200 dark:bg-indigo-900" />
+    </div>
+  );
+}
+
+function MessagesSkeleton() {
+  const rows: Array<["left" | "right", string]> = [
+    ["left", "w-48"],
+    ["left", "w-64"],
+    ["right", "w-40"],
+    ["left", "w-56"],
+    ["right", "w-52"],
+  ];
+  return (
+    <div className="flex flex-1 animate-pulse flex-col justify-end gap-3" aria-hidden="true">
+      {rows.map(([side, width], i) => (
+        <div key={i} className={cn("flex", side === "right" ? "justify-end" : "justify-start")}>
+          <div
+            className={cn(
+              "h-9 max-w-[75%] rounded-2xl",
+              width,
+              side === "right" ? "bg-indigo-200/60 dark:bg-indigo-900/40" : "bg-zinc-200 dark:bg-zinc-800"
+            )}
+          />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function ChatPanel({
@@ -141,282 +133,516 @@ export default function ChatPanel({
   sending,
   uploading,
   error,
+  unreadAtOpen = 0,
+  isArchived = false,
   onSend,
   onRefresh,
   onLoadOlder,
+  onArchive,
   onBack,
   onToggleReaction,
 }: Props) {
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const [showScrollBottom, setShowScrollBottom] = React.useState(false);
-
-  const displayMessages = React.useMemo(
-    () => filterLatestInterviewCards(messages),
-    [messages]
-  );
-
   const {
-    other_party_name = "Freelancer",
     other_party_avatar,
     other_party_email,
     job_title,
     conversation_type,
+    conversation_id,
   } = conversation;
+  const otherName = conversation.other_party_name || "Freelancer";
+  const firstName = otherName.split(" ")[0];
 
-  const [imgError, setImgError] = React.useState(false);
-  const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true); // true while the user is at (or near) the bottom
+  const anchorRef = useRef<{ height: number; top: number } | null>(null);
+  const prevLastIdRef = useRef<number | null>(null);
+  const markerComputedRef = useRef(false);
 
-  if (other_party_avatar !== prevAvatar) {
-    setPrevAvatar(other_party_avatar);
-    setImgError(false);
-  }
+  const [showJump, setShowJump] = useState(false);
+  const [newBelow, setNewBelow] = useState(0);
+  const [unreadMarkerId, setUnreadMarkerId] = useState<number | null>(null);
 
-  const handleScroll = React.useCallback(() => {
-    if (!messagesContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    const isFarFromBottom = scrollHeight - scrollTop - clientHeight > 150;
-    setShowScrollBottom(isFarFromBottom);
+  // header menu
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // in-chat search
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [matchIndex, setMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const displayMessages = useMemo(() => filterLatestInterviewCards(messages), [messages]);
+
+  // ─── Scrolling ────────────────────────────────────────────────────────────
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
   }, []);
 
-  const scrollToBottom = React.useCallback((smooth = false) => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-    }
-    bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distance < 120;
+    stickRef.current = nearBottom;
+    setShowJump(distance > 200);
+    if (nearBottom) setNewBelow(0);
   }, []);
 
-  const prevMessagesLengthRef = useRef(messages.length);
-  const prevConversationIdRef = useRef(conversation.conversation_id);
-  const wasLoadingOlderRef = useRef(loadingOlder);
-
-  // Auto scroll to bottom whenever conversation changes, loading completes, or new messages are appended
+  // Keep pinned to the bottom while content grows (images loading, new messages, etc.)
   useEffect(() => {
-    const isNewConversation = prevConversationIdRef.current !== conversation.conversation_id;
-    const isNewMessageAdded = messages.length > prevMessagesLengthRef.current;
-    const justFinishedLoadingOlder = wasLoadingOlderRef.current && !loadingOlder;
+    const content = contentRef.current;
+    if (!content || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (stickRef.current) scrollToBottom(false);
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [scrollToBottom]);
 
-    prevConversationIdRef.current = conversation.conversation_id;
-    prevMessagesLengthRef.current = messages.length;
-    wasLoadingOlderRef.current = loadingOlder;
-
+  // Initial load + new message handling
+  useEffect(() => {
     if (loading) return;
+    const last = messages[messages.length - 1];
+    const prevLastId = prevLastIdRef.current;
+    prevLastIdRef.current = last?.message_id ?? null;
+    if (!last) return;
 
-    if (isNewConversation) {
+    if (prevLastId === null) {
+      stickRef.current = true;
       scrollToBottom(false);
-      const t1 = setTimeout(() => scrollToBottom(false), 50);
-      const t2 = setTimeout(() => scrollToBottom(false), 200);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+      return;
     }
+    if (last.message_id === prevLastId) return;
 
-    if (isNewMessageAdded && !justFinishedLoadingOlder) {
+    if (last.sender_id === currentUserId || stickRef.current) {
+      stickRef.current = true;
       scrollToBottom(true);
-      const t1 = setTimeout(() => scrollToBottom(true), 50);
-      const t2 = setTimeout(() => scrollToBottom(true), 150);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+    } else {
+      setNewBelow((n) => n + 1);
     }
-  }, [conversation.conversation_id, messages.length, loading, loadingOlder, scrollToBottom]);
+  }, [messages, loading, currentUserId, scrollToBottom]);
+
+  // Load older: remember scroll position, then restore it so the view doesn't jump
+  const handleLoadOlder = () => {
+    const el = scrollRef.current;
+    if (el) anchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+    stickRef.current = false;
+    onLoadOlder?.();
+  };
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    const anchor = anchorRef.current;
+    if (!el || !anchor || loadingOlder) return;
+    el.scrollTop = anchor.top + (el.scrollHeight - anchor.height);
+    anchorRef.current = null;
+  }, [messages, loadingOlder]);
+
+  // ─── "N new messages" marker (computed once, so it doesn't drift) ─────────
+
+  useEffect(() => {
+    if (loading || markerComputedRef.current || displayMessages.length === 0) return;
+    markerComputedRef.current = true;
+    if (unreadAtOpen <= 0) return;
+
+    let remaining = unreadAtOpen;
+    for (let i = displayMessages.length - 1; i >= 0; i--) {
+      const m = displayMessages[i];
+      if (m.message_type === "SYSTEM" || m.sender_id === currentUserId) continue;
+      remaining -= 1;
+      if (remaining === 0) {
+        const targetId = m.message_id;
+        queueMicrotask(() => {
+          setUnreadMarkerId(targetId);
+        });
+        return;
+      }
+    }
+  }, [loading, displayMessages, unreadAtOpen, currentUserId]);
+
+  // ─── In-chat search ───────────────────────────────────────────────────────
+
+  const trimmedQuery = query.trim().toLowerCase();
+  const matchIds = useMemo(
+    () =>
+      trimmedQuery
+        ? displayMessages
+            .filter((m) => m.message_content?.toLowerCase().includes(trimmedQuery))
+            .map((m) => m.message_id)
+        : [],
+    [displayMessages, trimmedQuery]
+  );
+  const activeIdx = matchIds.length > 0 ? Math.min(matchIndex, matchIds.length - 1) : -1;
+  const activeMatchId = activeIdx >= 0 ? matchIds[activeIdx] : null;
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (activeMatchId === null) return;
+    stickRef.current = false;
+    scrollRef.current
+      ?.querySelector(`[data-message-id="${activeMatchId}"]`)
+      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [activeMatchId]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery("");
+  };
+
+  const stepMatch = (dir: 1 | -1) => {
+    if (matchIds.length === 0) return;
+    setMatchIndex((activeIdx + dir + matchIds.length) % matchIds.length);
+  };
+
+  // ─── Header menu: outside click / Escape ──────────────────────────────────
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault(); // tells the module-level Esc handler we've used it
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, [menuOpen]);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  const typeLabel =
+    conversation_type === "JOB_APPLICATION"
+      ? "Applicant"
+      : conversation_type === "DIRECT_MESSAGE"
+      ? "Direct"
+      : "Support";
+
+  const iconButton =
+    "flex items-center justify-center rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 max-md:size-10 max-md:p-0 dark:hover:bg-zinc-800 dark:hover:text-zinc-300";
 
   return (
     <motion.div
-      key={conversation.conversation_id}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22, ease: "easeOut" }}
-      className="relative flex flex-col h-full"
+      className="relative flex h-full min-h-0 flex-col"
     >
-      {/* Chat Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0">
+      {/* Header */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
         {onBack && (
           <button
+            type="button"
             onClick={onBack}
             aria-label="Back to conversations"
-            className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition max-md:size-10 max-md:p-0"
+            className={cn(iconButton, "text-zinc-500")}
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
         )}
 
-        {/* Avatar */}
-        {other_party_avatar && !imgError ? (
-          <Image
-            src={other_party_avatar}
-            alt={other_party_name}
-            width={50}
-            height={50}
-            unoptimized
-            onError={() => setImgError(true)}
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shrink-0"
-          />
-        ) : (
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
-            {getInitials(other_party_name)}
-          </div>
-        )}
+        <Avatar name={otherName} src={other_party_avatar} size={36} />
 
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100 truncate">
-              {other_party_name}
-            </span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs md:text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 shrink-0">
-              {conversation_type === "JOB_APPLICATION"
-                ? "Applicant"
-                : conversation_type === "DIRECT_MESSAGE"
-                ? "Direct"
-                : "Support"}
+            <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+              {otherName}
+            </h2>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+              {typeLabel}
             </span>
           </div>
           {(job_title || other_party_email) && (
-            <div className="flex items-center gap-2 mt-0.5">
-              {job_title && (
-                <div className="flex items-center gap-1">
-                  <Briefcase className="h-2.5 w-2.5 text-indigo-400" />
-                  <span className="text-sm md:text-xs md:text-[10px] text-indigo-500 dark:text-indigo-400 font-medium truncate">
+            <div className="mt-0.5 flex items-center gap-1">
+              {job_title ? (
+                <>
+                  <Briefcase className="h-3 w-3 shrink-0 text-indigo-400" />
+                  <span className="truncate text-xs font-medium text-indigo-600 dark:text-indigo-400">
                     {job_title}
                   </span>
-                </div>
-              )}
-              {other_party_email && !job_title && (
-                <span className="text-sm md:text-xs md:text-[10px] text-zinc-400 truncate">
-                  {other_party_email}
-                </span>
+                </>
+              ) : (
+                <span className="truncate text-xs text-zinc-500">{other_party_email}</span>
               )}
             </div>
           )}
         </div>
 
         <button
-          onClick={onRefresh}
-          disabled={loading}
-          title="Refresh messages"
-          className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-40 shrink-0 max-md:size-10 max-md:p-0"
+          type="button"
+          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+          title="Search in conversation"
+          aria-label="Search in conversation"
+          aria-pressed={searchOpen}
+          className={cn(
+            iconButton,
+            searchOpen && "bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400"
+          )}
         >
-          <RefreshCw
-            className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-          />
+          <Search className="h-4 w-4" />
         </button>
-      </div>
 
-      {/* Messages */}
-      <div
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-4 py-4 bg-zinc-50/50 dark:bg-zinc-950/20"
-      >
-        {loading ? (
-          <div className="flex justify-center items-center h-full">
-            <Loader2 className="h-6 w-6 text-indigo-500 animate-spin" />
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-            <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-              <span className="text-2xl">💬</span>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                No messages yet
-              </p>
-              <p className="text-sm md:text-xs text-zinc-400 mt-1">
-                Send a message to start the conversation
-              </p>
-            </div>
-          </div>
-        ) : (
-          <motion.div
-            key={messages.length > 0 ? messages[0].message_id : "empty"}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
-            className="flex flex-col justify-start space-y-2 min-h-full"
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            title="More"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            className={iconButton}
           >
-            {/* Load Older Messages Trigger */}
-            {hasMore && (
-              <div className="flex justify-center mb-2">
+            <MoreVertical className="h-4 w-4" />
+          </button>
+
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-zinc-200 bg-white py-1 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                disabled={loading}
+                onClick={() => {
+                  setMenuOpen(false);
+                  onRefresh();
+                }}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 max-md:min-h-11 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                <RefreshCw className={cn("h-4 w-4 text-zinc-400", loading && "animate-spin")} />
+                Refresh messages
+              </button>
+              {onArchive && (
                 <button
-                  onClick={onLoadOlder}
-                  disabled={loadingOlder}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shadow-2xs hover:bg-zinc-50 dark:hover:bg-zinc-700/60 transition disabled:opacity-50 max-md:min-h-10"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onArchive();
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 max-md:min-h-11 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
-                  {loadingOlder ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
-                      <span>Loading older messages...</span>
-                    </>
+                  {isArchived ? (
+                    <ArchiveRestore className="h-4 w-4 text-zinc-400" />
                   ) : (
-                    <>
-                      <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
-                      <span>Load older messages</span>
-                    </>
+                    <Archive className="h-4 w-4 text-zinc-400" />
                   )}
+                  {isArchived ? "Move to inbox" : "Archive conversation"}
                 </button>
-              </div>
-            )}
-
-            {displayMessages.map((msg, index) => {
-              const isOwn = msg.sender_id === currentUserId;
-              const prevMsg = displayMessages[index - 1];
-              const showDateDivider =
-                !prevMsg ||
-                !isSameDayStr(prevMsg.created_at, msg.created_at);
-              const dateLabel = showDateDivider ? getDateLabel(msg.created_at) : undefined;
-              if (showDateDivider) {
-                console.log(`[ChatPanel (Client)] Message #${msg.message_id} created_at="${msg.created_at}" showDateDivider=true dateLabel="${dateLabel}"`);
-              }
-              return (
-                <MessageBubble
-                  key={msg.message_id}
-                  message={msg}
-                  isOwn={isOwn}
-                  showDateDivider={showDateDivider}
-                  dateLabel={dateLabel}
-                  onToggleReaction={onToggleReaction}
-                />
-              );
-            })}
-            <div ref={bottomRef} />
-          </motion.div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Floating Jump to Bottom Button */}
-      <AnimatePresence>
-        {showScrollBottom && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            onClick={() => scrollToBottom(true)}
-            title="Jump to recent messages"
-            className="absolute right-6 bottom-20 z-20 p-2.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/30 transition-transform active:scale-95 flex items-center justify-center cursor-pointer max-md:size-10"
+      {/* In-conversation search bar */}
+      {searchOpen && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-zinc-200 bg-white px-4 py-2 dark:border-zinc-800 dark:bg-zinc-900">
+          <Search className="h-4 w-4 shrink-0 text-zinc-400" />
+          <input
+            ref={searchInputRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setMatchIndex(Number.MAX_SAFE_INTEGER); // clamps to the newest match
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.preventDefault();
+                closeSearch();
+              } else if (e.key === "Enter") {
+                e.preventDefault();
+                stepMatch(e.shiftKey ? -1 : 1);
+              }
+            }}
+            placeholder="Search in this conversation"
+            aria-label="Search in this conversation"
+            className="min-w-0 flex-1 bg-transparent text-sm text-zinc-800 outline-none placeholder:text-zinc-400 max-md:text-base dark:text-zinc-100"
+          />
+          <span className="shrink-0 text-xs tabular-nums text-zinc-500" aria-live="polite">
+            {trimmedQuery
+              ? matchIds.length > 0
+                ? `${activeIdx + 1} of ${matchIds.length}`
+                : "No matches"
+              : hasMore
+              ? "Loaded messages only"
+              : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => stepMatch(-1)}
+            disabled={matchIds.length === 0}
+            aria-label="Previous match"
+            className={cn(iconButton, "disabled:opacity-30")}
           >
-            <ArrowDown className="h-4 w-4" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-sm md:text-xs text-rose-600 dark:text-rose-400 shrink-0">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          {error}
+            <ChevronUp className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => stepMatch(1)}
+            disabled={matchIds.length === 0}
+            aria-label="Next match"
+            className={cn(iconButton, "disabled:opacity-30")}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={closeSearch} aria-label="Close search" className={iconButton}>
+            <X className="h-4 w-4" />
+          </button>
         </div>
       )}
 
-      {/* Input */}
+      {/* Messages */}
+      <div className="relative min-h-0 flex-1">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          role="log"
+          aria-live="polite"
+          aria-label={`Conversation with ${otherName}`}
+          aria-busy={loading}
+          className="h-full overflow-y-auto overscroll-contain bg-zinc-50/50 px-4 py-4 dark:bg-zinc-950/20"
+        >
+          <div ref={contentRef} className="flex min-h-full flex-col justify-end">
+            {loading ? (
+              <MessagesSkeleton />
+            ) : messages.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 py-10 text-center">
+                <div className="rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-800">
+                  <span className="text-2xl" aria-hidden="true">
+                    💬
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Start the conversation with {firstName}
+                  </p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs text-zinc-500">
+                    {job_title
+                      ? `Ask about availability, rates, or past work for ${job_title}. Quick replies are under the ⚡ button.`
+                      : "Send a message below. Quick replies are under the ⚡ button."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {hasMore && (
+                  <div className="mb-3 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleLoadOlder}
+                      disabled={loadingOlder}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-600 shadow-2xs transition hover:bg-zinc-50 disabled:opacity-50 max-md:min-h-10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700/60"
+                    >
+                      {loadingOlder ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                          Loading older messages...
+                        </>
+                      ) : (
+                        <>
+                          <ChevronUp className="h-3.5 w-3.5 text-indigo-500" />
+                          Load older messages
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {displayMessages.map((msg, index) => {
+                  const prev = displayMessages[index - 1];
+                  const next = displayMessages[index + 1];
+                  const showDateDivider = !prev || !isSameDay(prev.created_at, msg.created_at);
+                  const startsUnread = msg.message_id === unreadMarkerId;
+
+                  return (
+                    <React.Fragment key={msg.message_id}>
+                      {startsUnread && <UnreadDivider count={unreadAtOpen} />}
+                      <MessageBubble
+                        message={msg}
+                        isOwn={msg.sender_id === currentUserId}
+                        showDateDivider={showDateDivider}
+                        dateLabel={showDateDivider ? formatDayLabel(msg.created_at) : undefined}
+                        isFirstInGroup={startsUnread || !sameGroup(prev, msg)}
+                        isLastInGroup={!sameGroup(msg, next) || next?.message_id === unreadMarkerId}
+                        otherParty={{ name: otherName, avatar: other_party_avatar }}
+                        searchQuery={searchOpen ? query : ""}
+                        isActiveMatch={msg.message_id === activeMatchId}
+                        onToggleReaction={onToggleReaction}
+                      />
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Jump to latest (shows a count when new messages arrived while scrolled up) */}
+        <AnimatePresence>
+          {showJump && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, scale: 0.9, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 8 }}
+              onClick={() => {
+                stickRef.current = true;
+                setNewBelow(0);
+                scrollToBottom(true);
+              }}
+              aria-label={newBelow > 0 ? `${newBelow} new messages, jump to latest` : "Jump to latest message"}
+              className={cn(
+                "absolute bottom-4 right-4 z-20 flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 transition-transform hover:bg-indigo-700 active:scale-95",
+                newBelow > 0 ? "px-4 text-xs font-semibold" : "w-10"
+              )}
+            >
+              <ArrowDown className="h-4 w-4" />
+              {newBelow > 0 && <span>{newBelow} new</span>}
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div
+          role="alert"
+          className="flex shrink-0 items-center gap-2 border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
+        >
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="shrink-0 rounded px-2 py-1 font-semibold underline underline-offset-2 hover:bg-rose-100 max-md:min-h-10 dark:hover:bg-rose-900/30"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Input: per-conversation drafts via draftKey */}
       <MessageInput
         disabled={loading}
         sending={sending}
         uploading={uploading}
+        draftKey={conversation_id}
         onSend={onSend}
       />
     </motion.div>

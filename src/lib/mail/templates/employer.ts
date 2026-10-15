@@ -1,4 +1,5 @@
 // src/lib/mail/templates/employer.ts
+import { getBaseUrl } from "./base-url";
 
 export interface EmployerMailParams {
   companyName: string;
@@ -6,10 +7,11 @@ export interface EmployerMailParams {
   loginUrl?: string;
   rejectionReason?: string;
   supportEmail?: string;
+  baseUrl?: string;
 }
 
 const PLATFORM_NAME = process.env.NEXT_PUBLIC_APP_NAME || "VOS-Sync";
-const BASE_APP_URL = (process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+ 
 
 // 1. Upon Account Creation and OTP Verified (To Employer)
 
@@ -127,10 +129,10 @@ export function employerVerificationTemplate({ companyName, recipientName }: Emp
  * Subject: Account Approved: Welcome to [Platform Name]!
  * Body: Business profile verified, CTA link to log in and create first job post.
  */
-export function employerApprovalTemplate({ companyName, recipientName, loginUrl }: EmployerMailParams) {
+export function employerApprovalTemplate({ companyName, recipientName, loginUrl, baseUrl }: EmployerMailParams) {
   const subject = `Account Approved: Welcome to ${PLATFORM_NAME}!`;
   const greeting = recipientName ? `Hello ${recipientName},` : "Hello,";
-  const targetLogin = loginUrl || `${BASE_APP_URL}/login`;
+  const targetLogin = loginUrl || `${getBaseUrl(baseUrl)}/login`;
 
   const html = `
     <!DOCTYPE html>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/TextLayer.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -8,8 +8,10 @@ import { Loader2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, AlertCir
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-// Configure pdfjs worker
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configure pdfjs worker to use local public worker (same-origin, strictly compliant with CSP and no external CDN dependency)
+if (typeof window !== "undefined") {
+  pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+}
 
 interface DocumentViewerProps {
   fileUrl: string;
@@ -21,6 +23,7 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
   const [error, setError] = useState<string | null>(null);
 
   // PDF state
+  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -40,8 +43,45 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
     proxiedUrl = `/api/assets/${assetsMatch[1]}`;
   }
 
-  // General Zoom state (for DOCX & Images & fallback)
+  // General Zoom state (for DOCX & Images)
   const [zoom, setZoom] = useState(1.0);
+
+  // Effect to load PDF authenticated buffer
+  useEffect(() => {
+    if (!isPdf) return;
+
+    let isMounted = true;
+    queueMicrotask(() => {
+      if (isMounted) {
+        setLoading(true);
+        setError(null);
+        setPdfData(null);
+      }
+    });
+
+    fetch(proxiedUrl, { credentials: "same-origin" })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Failed to load document (${res.status})`);
+        }
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        if (!isMounted) return;
+        setPdfData(buffer);
+      })
+      .catch((err) => {
+        console.error("PDF Preview fetch error:", err);
+        if (isMounted) {
+          setError("Failed to load PDF document.");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isPdf, proxiedUrl]);
 
   // Effect to load DOCX using docx-preview
   useEffect(() => {
@@ -51,7 +91,7 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
     setLoading(true);
     setError(null);
 
-    fetch(proxiedUrl)
+    fetch(proxiedUrl, { credentials: "same-origin" })
       .then((res) => {
         if (!res.ok) throw new Error(`Failed to load document (${res.status})`);
         return res.arrayBuffer();
@@ -91,6 +131,11 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
       isMounted = false;
     };
   }, [isDocx, proxiedUrl]);
+
+  // Memoized source for react-pdf to avoid unnecessary re-parsing
+  const fileSource = useMemo(() => {
+    return pdfData ? { data: pdfData } : null;
+  }, [pdfData]);
 
   function onDocumentLoadSuccess({ numPages }: { numPages: number }) {
     setNumPages(numPages);
@@ -210,11 +255,11 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
           </div>
         </div>
 
-        {/* PDF Renderer */}
+        {/* PDF Canvas Renderer */}
         <div className="flex-1 overflow-auto p-4 flex justify-center bg-zinc-900">
           {loading && (
             <div className="flex items-center gap-2 text-zinc-400 text-xs my-auto">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
               Loading PDF...
             </div>
           )}
@@ -231,21 +276,23 @@ export function DocumentViewer({ fileUrl, fileName }: DocumentViewerProps) {
               </a>
             </div>
           )}
-          <Document
-            file={proxiedUrl}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading={null}
-            className="flex flex-col items-center"
-          >
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              renderAnnotationLayer={false}
-              renderTextLayer={true}
-              className="shadow-lg rounded"
-            />
-          </Document>
+          {fileSource && (
+            <Document
+              file={fileSource}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={null}
+              className="flex flex-col items-center"
+            >
+              <Page
+                pageNumber={pageNumber}
+                scale={scale}
+                renderAnnotationLayer={false}
+                renderTextLayer={true}
+                className="shadow-lg rounded"
+              />
+            </Document>
+          )}
         </div>
       </div>
     );

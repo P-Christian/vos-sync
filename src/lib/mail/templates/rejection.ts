@@ -1,8 +1,10 @@
 // src/lib/mail/templates/rejection.ts
 import { RejectionTemplateData } from "../types";
+import { getBaseUrl } from "./base-url";
 
 export function rejectionTemplate(data: RejectionTemplateData) {
-  const { candidateName, companyName, jobTitle, notes } = data;
+  const { candidateName, companyName, jobTitle, notes, baseUrl: customBaseUrl } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   return {
     subject: `Application Update: ${jobTitle} at ${companyName}`,
@@ -35,7 +37,7 @@ export function rejectionTemplate(data: RejectionTemplateData) {
         }
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          We appreciate your interest in <strong>${companyName}</strong> and encourage you to apply for future opportunities on <a href="http://localhost:3000/vos-sync/freelancer/jobs" style="color: #14a800; font-weight: 600;">VOS Sync</a>.
+          We appreciate your interest in <strong>${companyName}</strong> and encourage you to apply for future opportunities on <a href="${baseUrl}/vos-sync/freelancer/jobs" style="color: #14a800; font-weight: 600;">VOS Sync</a>.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">

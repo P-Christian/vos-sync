@@ -1,5 +1,6 @@
 // src/lib/mail/templates/invitation.ts
 import { InvitationTemplateData } from "../types";
+import { getBaseUrl } from "./base-url";
 
 function escapeHtml(str?: string | null): string {
   if (!str) return "";
@@ -23,6 +24,7 @@ export function invitationTemplate(data: InvitationTemplateData) {
     salaryRange,
     message,
     actionUrl,
+    baseUrl: customBaseUrl,
   } = data;
 
   const safeCandidateName = escapeHtml(candidateName);
@@ -37,7 +39,7 @@ export function invitationTemplate(data: InvitationTemplateData) {
 
   const rawTargetUrl =
     actionUrl ||
-    `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/vos-sync/freelancer/applications`;
+    `${getBaseUrl(customBaseUrl)}/vos-sync/freelancer/applications`;
   const targetUrl = encodeURI(rawTargetUrl);
 
   const subjectTitle = jobTitle

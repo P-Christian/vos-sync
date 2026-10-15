@@ -119,7 +119,7 @@ export function ApplicantAiAnalysisModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] !max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border bg-background shadow-2xl max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
+      <DialogContent showCloseButton={false} className="w-[95vw] !max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-border bg-background shadow-2xl max-md:max-w-[calc(100vw-2rem)] max-md:max-h-[90dvh] max-md:overflow-y-auto">
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b border-border/70 flex flex-row items-center justify-between space-y-0 bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-4">
@@ -141,18 +141,7 @@ export function ApplicantAiAnalysisModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => fetchAnalysis(true)}
-              disabled={loading}
-              className="h-8 max-md:min-h-10 px-3 text-sm gap-1.5 border-border hover:bg-muted font-medium cursor-pointer md:text-xs"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
-              Regenerate
-            </Button>
-          </div>
+
         </DialogHeader>
 
         {/* Modal Body Content */}
@@ -312,8 +301,19 @@ export function ApplicantAiAnalysisModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-border/70 bg-muted/20 flex items-center justify-end shrink-0">
- 
+        <div className="px-6 py-3 border-t gap-2 border-border/70 bg-muted/20 flex items-center justify-end shrink-0">
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => fetchAnalysis(true)}
+            disabled={loading}
+            className="h-8 max-md:min-h-10 px-3 text-sm gap-1.5 border-border hover:bg-muted font-medium cursor-pointer md:text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
+            Regenerate
+          </Button>
+
           <Button size="sm" variant="outline" onClick={() => onOpenChange(false)} className="text-sm max-md:min-h-10 md:text-xs">
             Close
           </Button>

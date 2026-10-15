@@ -24,6 +24,7 @@ import type {
   AssessmentTaskEditorEndpoints,
   AssessmentTaskEditorProps,
 } from "./assessment-task-editor/types";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 
 export type { AssessmentTaskEditorEndpoints, AssessmentTaskEditorProps };
 
@@ -41,11 +42,13 @@ export default function AssessmentTaskEditor({
     error,
     submitting,
     busyTaskId,
+    isReordering,
     loadInitial,
     createTask,
     updateTask,
     deleteTask,
     moveTask,
+    reorderTasks,
   } = useAssessmentTasks({
     listUrl: endpoints.list,
     createUrl: endpoints.create,
@@ -202,51 +205,73 @@ export default function AssessmentTaskEditor({
           )}
         </div>
       ) : (
-        <div className="space-y-2">
-          {tasks.map((task, index) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              index={index}
-              isFirst={index === 0}
-              isLast={index === tasks.length - 1}
-              busy={busyTaskId === task.id}
-              submitting={submitting}
-              editing={editingTaskId === task.id}
-              confirmingDelete={confirmDeleteId === task.id}
-              readOnly={readOnly}
-              onMove={(direction) => void moveTask(task.id, direction)}
-              onStartEdit={() => {
-                setConfirmDeleteId(null);
-                setShowAddForm(false);
-                setEditingTaskId(task.id);
-              }}
-              onCancelEdit={() => setEditingTaskId(null)}
-              onSubmitEdit={(payload) => handleUpdate(task.id, payload)}
-              onAskDelete={() => {
-                setEditingTaskId(null);
-                setConfirmDeleteId(task.id);
-              }}
-              onCancelDelete={() => setConfirmDeleteId(null)}
-              onConfirmDelete={() => void handleConfirmDelete(task.id)}
-            />
-          ))}
-        </div>
+        <Reorder.Group
+          axis="y"
+          values={tasks}
+          onReorder={(newTasks) => {
+            if (!isReordering && !submitting && busyTaskId === null) {
+              void reorderTasks(newTasks);
+            }
+          }}
+          className="space-y-2"
+        >
+          <AnimatePresence initial={false} mode="popLayout">
+            {tasks.map((task, index) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                index={index}
+                isFirst={index === 0}
+                isLast={index === tasks.length - 1}
+                busy={busyTaskId === task.id}
+                submitting={submitting}
+                isReordering={isReordering}
+                editing={editingTaskId === task.id}
+                confirmingDelete={confirmDeleteId === task.id}
+                readOnly={readOnly}
+                onMove={(direction) => void moveTask(task.id, direction)}
+                onStartEdit={() => {
+                  setConfirmDeleteId(null);
+                  setShowAddForm(false);
+                  setEditingTaskId(task.id);
+                }}
+                onCancelEdit={() => setEditingTaskId(null)}
+                onSubmitEdit={(payload) => handleUpdate(task.id, payload)}
+                onAskDelete={() => {
+                  setEditingTaskId(null);
+                  setConfirmDeleteId(task.id);
+                }}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+                onConfirmDelete={() => void handleConfirmDelete(task.id)}
+              />
+            ))}
+          </AnimatePresence>
+        </Reorder.Group>
       )}
 
-      {showAddForm && !readOnly && (
-        <TaskForm
-          key={`add-${reuseSeq}`}
-          initial={reuseInitial}
-          sortOrder={tasks.length + 1}
-          submitting={submitting}
-          onCancel={() => {
-            setShowAddForm(false);
-            setReuseInitial(null);
-          }}
-          onSubmit={handleCreate}
-        />
-      )}
+      <AnimatePresence>
+        {showAddForm && !readOnly && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <TaskForm
+              key={`add-${reuseSeq}`}
+              initial={reuseInitial}
+              sortOrder={tasks.length + 1}
+              submitting={submitting}
+              onCancel={() => {
+                setShowAddForm(false);
+                setReuseInitial(null);
+              }}
+              onSubmit={handleCreate}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {endpoints.library ? (
         <TaskSourceModal

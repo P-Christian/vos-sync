@@ -12,14 +12,14 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   MapPin, Briefcase, GraduationCap, Award, Link2, FileText,
-  Send, BookmarkPlus, BookmarkCheck, Loader2, AlertCircle,   Download, ExternalLink,
+  Send, BookmarkPlus, BookmarkCheck, AlertCircle, Download, ExternalLink,
+  Sparkles, Loader2, Check, Mail, Banknote, Building2, Globe, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TalentProfile, MatchBreakdown } from "../types";
+import { TalentProfile, MatchBreakdown, AvailabilityStatus, AVAILABILITY_LABELS } from "../types";
 import { formatExperienceYears, formatDateRange, getInitials, matchScoreColor, getPlatformIcon, getImageUrl } from "../utils/talentUtils";
 import { getCachedExplanation, setCachedExplanation } from "@/lib/gemini/useExplanationCache";
 import { orderEducation } from "@/modules/client/education/order-education";
@@ -39,6 +39,90 @@ interface TalentProfileDrawerProps {
   saving: boolean;
 }
 
+const sectionHeading =
+  "mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground md:text-xs";
+
+const tabTrigger =
+  "rounded-lg text-sm max-md:px-1.5 max-md:text-xs md:text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40";
+
+const SKILL_PREVIEW_LIMIT = 12;
+
+// Taxonomy names often arrive verbose ("Structure query language SQL"); show the short form.
+const SKILL_ALIASES: Record<string, string> = {
+  "structure query language sql": "SQL",
+  "google angular": "Angular",
+  "microsoft .net framework": ".NET Framework",
+};
+const displaySkill = (s: string) => SKILL_ALIASES[s.trim().toLowerCase()] ?? s;
+
+// Salary can arrive as a decimal string ("140000.00"), so coerce before formatting.
+function formatSalary(value: number | string | null | undefined): string | null {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? `₱${n.toLocaleString("en-PH", { maximumFractionDigits: 0 })}` : null;
+}
+
+function ExpandableText({
+  text,
+  threshold = 220,
+  clamp = "line-clamp-3",
+  className,
+}: {
+  text: string;
+  threshold?: number;
+  clamp?: string;
+  className?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > threshold;
+  return (
+    <div>
+      <p
+        className={cn(
+          "whitespace-pre-line text-sm leading-relaxed text-muted-foreground md:text-xs",
+          className,
+          isLong && !expanded && clamp
+        )}
+      >
+        {text}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-xs font-semibold text-primary hover:underline max-md:min-h-10"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function GlanceCard({
+  icon,
+  label,
+  value,
+  sub,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  sub?: string | null;
+  className?: string;
+}) {
+  return (
+    <div className={cn("rounded-xl border border-border bg-muted/30 p-3", className)}>
+      <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground md:text-[10px]">
+        {icon}
+        {label}
+      </div>
+      <p className="truncate text-sm font-semibold text-foreground">{value}</p>
+      {sub && <p className="truncate text-xs text-muted-foreground">{sub}</p>}
+    </div>
+  );
+}
+
 export default function TalentProfileDrawer({
   open,
   profile,
@@ -53,7 +137,19 @@ export default function TalentProfileDrawer({
   onInvite,
   saving,
 }: TalentProfileDrawerProps) {
-  const [tab, setTab] = useState("overview");
+  // Tab selection is remembered per candidate, so opening someone new always starts on Overview
+  const [tabState, setTabState] = useState<{ userId: number | null; tab: string }>({
+    userId: null,
+    tab: "overview",
+  });
+  const currentUserId = profile?.user_id ?? null;
+  const tab = tabState.userId === currentUserId ? tabState.tab : "overview";
+  const setTab = (t: string) => setTabState({ userId: currentUserId, tab: t });
+
+  // Skills collapse is also per candidate
+  const [skillsExpandedFor, setSkillsExpandedFor] = useState<number | null>(null);
+  const showAllSkills = skillsExpandedFor === currentUserId;
+
   const [lazyExplanation, setLazyExplanation] = useState<string | null>(null);
   const [fetchingExplanation, setFetchingExplanation] = useState(false);
 
@@ -136,61 +232,123 @@ export default function TalentProfileDrawer({
       })
     : [];
 
+  const isAvailable =
+    profile?.availability_status === "AVAILABLE" || profile?.availability_status === "IMMEDIATELY_AVAILABLE";
+  const availabilityLabel = profile
+    ? AVAILABILITY_LABELS[profile.availability_status as AvailabilityStatus] ??
+      (isAvailable ? "Available" : "Employed")
+    : "";
+
+  const currentRole = profile
+    ? profile.work_experience.find((e) => e.is_current_role) ?? profile.work_experience[0] ?? null
+    : null;
+  const salaryLabel = profile ? formatSalary(profile.expected_salary) : null;
+  const emailIsMasked = !!profile?.email && profile.email.includes("*");
+  const educationCount = profile ? profile.education.length + profile.certifications.length : 0;
+  const primaryResumes = profile
+    ? profile.resumes.filter(
+        (r) => r.is_primary === true || (r.is_primary as unknown) === 1 || (r.is_primary as unknown) === "1"
+      )
+    : [];
+  const displayResumes = primaryResumes.length > 0
+    ? primaryResumes.slice(0, 1)
+    : (profile?.resumes.slice(0, 1) ?? []);
+  const portfolioCount = profile ? profile.social_links.length + displayResumes.length : 0;
+
+  const visibleSkills = profile
+    ? showAllSkills
+      ? profile.skills
+      : profile.skills.slice(0, SKILL_PREVIEW_LIMIT)
+    : [];
+  const hiddenSkillCount = profile ? Math.max(0, profile.skills.length - SKILL_PREVIEW_LIMIT) : 0;
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-2xl lg:max-w-[760px] p-0 flex flex-col h-full max-md:max-h-[90dvh] bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800"
+        className="flex h-full w-full flex-col gap-0 border-l border-border bg-background p-0 sm:max-w-2xl lg:max-w-[760px] max-md:max-h-[90dvh]"
       >
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center justify-center flex-1 gap-3">
-            <Loader2 className="h-7 w-7 animate-spin text-indigo-500" />
-            <span className="text-sm text-zinc-400">Loading profile…</span>
-          </div>
+          <>
+            <SheetTitle className="sr-only">Loading candidate profile</SheetTitle>
+            <div className="animate-pulse space-y-5 p-6" aria-busy="true">
+              <div className="flex items-start gap-4">
+                <div className="h-16 w-16 shrink-0 rounded-2xl bg-muted" />
+                <div className="flex-1 space-y-2.5 pt-1">
+                  <div className="h-5 w-1/2 rounded bg-muted" />
+                  <div className="h-3.5 w-2/3 rounded bg-muted/70" />
+                  <div className="h-3 w-1/3 rounded bg-muted/60" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <div className="h-6 w-24 rounded-full bg-muted" />
+                <div className="h-6 w-20 rounded-full bg-muted" />
+              </div>
+              <div className="h-9 w-full rounded-xl bg-muted" />
+              <div className="space-y-2.5">
+                <div className="h-3.5 w-full rounded bg-muted/70" />
+                <div className="h-3.5 w-11/12 rounded bg-muted/70" />
+                <div className="h-3.5 w-4/5 rounded bg-muted/70" />
+              </div>
+            </div>
+          </>
         )}
 
         {/* Error */}
         {!loading && error && (
-          <div className="flex flex-col items-center justify-center flex-1 gap-3 px-8 text-center">
-            <AlertCircle className="h-8 w-8 text-rose-400" />
-            <span className="text-sm text-zinc-500">{error}</span>
-          </div>
+          <>
+            <SheetTitle className="sr-only">Candidate profile unavailable</SheetTitle>
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+              <AlertCircle className="h-8 w-8 text-destructive/80" />
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          </>
+        )}
+
+        {/* Nothing to show (e.g. closing animation) — keep the dialog accessible */}
+        {!loading && !error && !profile && (
+          <SheetTitle className="sr-only">Candidate profile</SheetTitle>
         )}
 
         {/* Profile */}
         {!loading && !error && profile && (
           <>
-            {/* Cover / Header */}
-            <div className="relative bg-gradient-to-br from-indigo-950 via-zinc-900 to-violet-950 px-6 pt-8 pb-6 shrink-0">
-              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-400 to-transparent pointer-events-none" />
-              <SheetHeader className="relative z-10">
-                <div className="flex items-start gap-4">
-                  {/* Avatar */}
+            {/* Header */}
+            <div className="shrink-0 border-b border-border bg-muted/30 px-6 pb-4 pt-6">
+              <SheetHeader className="space-y-3 p-0">
+                <div className="flex items-start gap-4 pr-8">
                   {avatarSrc ? (
                     <Image
                       src={avatarSrc}
-                      alt={profile.name}
+                      alt=""
                       width={64}
                       height={64}
-                      className="h-16 w-16 rounded-2xl object-cover border-2 border-white/20 shrink-0"
+                      className="h-16 w-16 shrink-0 rounded-2xl border border-border object-cover shadow-sm"
                       unoptimized
                     />
                   ) : (
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-600 flex items-center justify-center text-white font-bold text-xl border-2 border-white/20 shrink-0">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-xl font-bold text-primary">
                       {initials}
                     </div>
                   )}
 
-                  <div className="flex-1 min-w-0">
-                    <SheetTitle className="text-white text-lg font-bold leading-tight">
+                  <div className="min-w-0 flex-1">
+                    <SheetTitle className="text-lg font-bold leading-tight text-foreground">
                       {profile.name}
                     </SheetTitle>
-                    {profile.headline && (
-                      <p className="text-indigo-200 text-sm mt-0.5 leading-snug">{profile.headline}</p>
+                    {/* Fall back to the current role so the header is never name-only */}
+                    {(profile.headline || currentRole) && (
+                      <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                        {profile.headline ??
+                          `${currentRole?.job_title}${currentRole?.company_name ? ` at ${currentRole.company_name}` : ""}`}
+                      </p>
                     )}
                     {profile.location && (
-                      <p className="flex items-center gap-1 text-zinc-400 text-sm md:text-xs mt-1.5">
+                      <p className="mt-1.5 flex items-center gap-1 text-sm text-muted-foreground/80 md:text-xs">
                         <MapPin className="h-3 w-3" />
                         {profile.location}
                       </p>
@@ -198,283 +356,457 @@ export default function TalentProfileDrawer({
                   </div>
                 </div>
 
-                {/* Stats row */}
-                <div className="flex items-center gap-3 mt-4 flex-wrap">
+                {/* Quick facts */}
+                <div className="flex flex-wrap items-center gap-2">
                   {matchScore !== null && matchScore !== undefined && (
-                    <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1", scoreClass)}>
-                      {matchScore}% Compatibility
+                    <span className={cn("rounded-full border px-2.5 py-1 text-xs font-bold", scoreClass)}>
+                      {matchScore}% match
                     </span>
                   )}
                   {profile.experience_years > 0 && (
-                    <Badge variant="secondary" className="bg-white/10 text-white border-white/20 text-sm md:text-xs">
-                      <Briefcase className="h-3 w-3 mr-1" />
+                    <Badge variant="secondary" className="gap-1 text-sm md:text-xs">
+                      <Briefcase className="h-3 w-3" />
                       {formatExperienceYears(profile.experience_years)}
                     </Badge>
                   )}
-                  <Badge
-                    variant="secondary"
+                  <span
                     className={cn(
-                      "text-sm md:text-xs border",
-                      profile.availability_status === "AVAILABLE" || profile.availability_status === "IMMEDIATELY_AVAILABLE"
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                        : "bg-white/10 text-zinc-300 border-white/20"
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium",
+                      isAvailable
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "border-border bg-muted text-muted-foreground"
                     )}
                   >
-                    {profile.availability_status === "AVAILABLE" || profile.availability_status === "IMMEDIATELY_AVAILABLE"
-                      ? "✓ Available"
-                      : "Employed"}
-                  </Badge>
+                    <span
+                      aria-hidden
+                      className={cn("h-1.5 w-1.5 rounded-full", isAvailable ? "bg-emerald-500" : "bg-muted-foreground/50")}
+                    />
+                    {availabilityLabel}
+                  </span>
+                  {salaryLabel && (
+                    <Badge variant="secondary" className="gap-1 text-sm md:text-xs">
+                      <Banknote className="h-3 w-3" />
+                      {salaryLabel}
+                    </Badge>
+                  )}
+                  {profile.is_saved && (
+                    <Badge variant="outline" className="gap-1 border-primary/30 text-xs text-primary">
+                      <BookmarkCheck className="h-3 w-3" />
+                      Saved
+                    </Badge>
+                  )}
                 </div>
               </SheetHeader>
             </div>
 
-            {/* Gemini AI Match Explanation */}
-            {activeExplanation && (
-              <div className="mx-6 mt-3 mb-1 px-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 flex gap-2.5 items-start">
-                <span className="text-base shrink-0 mt-0.5">✦</span>
-                <p className="text-sm md:text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">{activeExplanation}</p>
-              </div>
-            )}
-            {fetchingExplanation && !activeExplanation && (
-              <div className="mx-6 mt-3 mb-1 px-4 py-2.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/40 flex gap-2 items-center text-sm md:text-xs text-indigo-500">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500 shrink-0" />
-                <span>Generating AI match insight…</span>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 px-6 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 shrink-0">
-              <Button
-                id={`drawer-save-${profile.user_id}`}
-                variant="outline"
-                size="sm"
-                onClick={() => onToggleSave(profile)}
-                disabled={saving}
-                className={cn(
-                  "h-9 max-md:min-h-10 flex-1 rounded-xl text-sm max-md:text-xs gap-1.5",
-                  profile.is_saved
-                    ? "border-indigo-300 dark:border-indigo-700 text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30"
-                    : ""
-                )}
-              >
-                {profile.is_saved ? (
-                  <BookmarkCheck className="h-4 w-4" />
-                ) : (
-                  <BookmarkPlus className="h-4 w-4" />
-                )}
-                {profile.is_saved ? "Saved" : "Save Candidate"}
-              </Button>
-              <Button
-                id={`drawer-invite-${profile.user_id}`}
-                size="sm"
-                onClick={() => onInvite(profile)}
-                className="h-9 max-md:min-h-10 flex-1 rounded-xl text-sm max-md:text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white border-0 font-medium"
-              >
-                <Send className="h-4 w-4" />
-                Send Invitation
-              </Button>
-            </div>
-
             {/* Tabs */}
-            <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
-              <TabsList className="flex shrink-0 mx-6 mt-3 h-9 max-md:min-h-10 bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1">
-                <TabsTrigger value="overview" className="flex-1 text-sm md:text-xs max-md:px-1.5 max-md:text-xs rounded-lg">Overview</TabsTrigger>
-                <TabsTrigger value="experience" className="flex-1 text-sm md:text-xs max-md:px-1.5 max-md:text-xs rounded-lg">Experience</TabsTrigger>
-                <TabsTrigger value="education" className="flex-1 text-sm md:text-xs max-md:px-1.5 max-md:text-xs rounded-lg">Education</TabsTrigger>
-                <TabsTrigger value="portfolio" className="flex-1 text-sm md:text-xs max-md:px-1.5 max-md:text-xs rounded-lg">Portfolio</TabsTrigger>
+            <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
+              <TabsList className="mx-6 mt-3 grid h-9 shrink-0 grid-cols-4 rounded-xl bg-muted p-1 max-md:min-h-10">
+                <TabsTrigger value="overview" className={tabTrigger}>
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="experience" className={tabTrigger}>
+                  Experience
+                  {profile.work_experience.length > 0 && (
+                    <span className="ml-1 text-muted-foreground">({profile.work_experience.length})</span>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="education" className={tabTrigger}>
+                  Education
+                  {educationCount > 0 && <span className="ml-1 text-muted-foreground">({educationCount})</span>}
+                </TabsTrigger>
+                <TabsTrigger value="portfolio" className={tabTrigger}>
+                  Portfolio
+                  {portfolioCount > 0 && <span className="ml-1 text-muted-foreground">({portfolioCount})</span>}
+                </TabsTrigger>
               </TabsList>
 
-              <div className="flex-1 overflow-y-auto px-6 pb-8">
+              <div className="flex-1 overflow-y-auto px-6 pb-6">
                 {/* ── OVERVIEW ── */}
-                <TabsContent value="overview" className="mt-4 space-y-5">
-                  {/* Browse Mode Helper Banner */}
-                  {!matchBreakdown && (
-                    <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 text-sm md:text-xs text-zinc-500 dark:text-zinc-400">
-                      <span className="font-semibold text-zinc-700 dark:text-zinc-300 block mb-0.5">
-                        Compatibility Score
-                      </span>
-                      Search for a role, select required skills, or choose a job posting to evaluate candidate match.
+                <TabsContent value="overview" className="mt-4 space-y-6">
+                  {/* AI match insight */}
+                  {activeExplanation && (
+                    <div className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <div>
+                        <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                          AI match insight
+                        </p>
+                        <p className="text-sm leading-relaxed text-foreground/90 md:text-xs">{activeExplanation}</p>
+                      </div>
+                    </div>
+                  )}
+                  {fetchingExplanation && !activeExplanation && (
+                    <div className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-4 py-2.5 text-sm text-primary md:text-xs">
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      <span>Generating AI match insight…</span>
                     </div>
                   )}
 
-                  {/* Match Breakdown Card */}
+                  {/* At a glance */}
+                  {(currentRole || profile.experience_years > 0 || salaryLabel || profile.nationality) && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {currentRole && (
+                        <GlanceCard
+                          className="col-span-2"
+                          icon={<Building2 className="h-3 w-3" />}
+                          label={currentRole.is_current_role ? "Current role" : "Latest role"}
+                          value={currentRole.job_title}
+                          sub={currentRole.company_name}
+                        />
+                      )}
+                      {profile.experience_years > 0 && (
+                        <GlanceCard
+                          icon={<Briefcase className="h-3 w-3" />}
+                          label="Experience"
+                          value={formatExperienceYears(profile.experience_years)}
+                        />
+                      )}
+                      {salaryLabel && (
+                        <GlanceCard
+                          icon={<Banknote className="h-3 w-3" />}
+                          label="Expected salary"
+                          value={salaryLabel}
+                          sub="per month"
+                        />
+                      )}
+                      {profile.nationality && (
+                        <GlanceCard
+                          icon={<Globe className="h-3 w-3" />}
+                          label="Nationality"
+                          value={profile.nationality}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Browse-mode hint: only when there is nothing match-related to show */}
+                  {!matchBreakdown && !activeExplanation && !fetchingExplanation && (
+                    <p className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                      Search for a role or skill and open a result to see a compatibility score.
+                    </p>
+                  )}
+
+                  {/* Match breakdown */}
                   {matchBreakdown && (
-                    <div className="p-4 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 space-y-3">
-                      <div className="flex items-center justify-between">
+                    <div className="space-y-4 rounded-xl border border-primary/15 bg-primary/5 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm md:text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
-                            Compatibility Analysis
+                          <h4 className="text-sm font-bold uppercase tracking-wider text-foreground md:text-xs">
+                            Compatibility analysis
                           </h4>
                           {matchBreakdown.confidence && (
                             <span
                               className={cn(
-                                "text-xs md:text-[10px] font-extrabold px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                "rounded-full border px-2 py-0.5 text-xs font-bold uppercase tracking-wider md:text-[10px]",
                                 matchBreakdown.confidence.level === "HIGH"
-                                  ? "bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300"
+                                  ? "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"
                                   : matchBreakdown.confidence.level === "MEDIUM"
-                                  ? "bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300"
-                                  : "bg-zinc-100 text-zinc-600 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-400"
+                                  ? "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300"
+                                  : "border-border bg-muted text-muted-foreground"
                               )}
                             >
-                              {matchBreakdown.confidence.level} Confidence
+                              {matchBreakdown.confidence.level} confidence
                             </span>
                           )}
                         </div>
-                        <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
-                          {matchBreakdown.overallScore}% Match
+                        <span className="text-xl font-black tabular-nums text-primary">
+                          {matchBreakdown.overallScore}%
                         </span>
                       </div>
 
-                      {/* Explanation Summary Banner */}
+                      {/* Overall bar */}
+                      <div
+                        className="h-2 w-full overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-valuenow={matchBreakdown.overallScore}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label="Overall match"
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${Math.min(100, Math.max(0, matchBreakdown.overallScore))}%` }}
+                        />
+                      </div>
+
                       {matchBreakdown.explanation?.summary && (
-                        <p className="text-sm md:text-xs font-medium text-indigo-900/80 dark:text-indigo-200/80 bg-white/60 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-indigo-100 dark:border-indigo-900/40">
+                        <p className="rounded-lg border border-border/70 bg-background/70 p-2.5 text-sm font-medium text-foreground/80 md:text-xs">
                           {matchBreakdown.explanation.summary}
                         </p>
                       )}
 
-                      {/* Dynamic Data-Driven Breakdown Sections */}
+                      {/* Section scores as bars */}
                       {matchBreakdown.sections && matchBreakdown.sections.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm md:text-xs">
-                          {matchBreakdown.sections.map((sec, idx) => (
-                            <div key={idx} className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                              <span className="text-zinc-400 block text-sm md:text-xs md:text-[11px] font-medium">{sec.label}</span>
-                              <span className="font-bold text-zinc-800 dark:text-zinc-200">
-                                {sec.score} / {sec.max} pts
-                              </span>
-                            </div>
-                          ))}
+                        <div className="space-y-2.5">
+                          {matchBreakdown.sections.map((sec, idx) => {
+                            const pct = sec.max > 0 ? Math.min(100, Math.round((sec.score / sec.max) * 100)) : 0;
+                            return (
+                              <div key={idx}>
+                                <div className="mb-1 flex items-center justify-between text-sm md:text-xs">
+                                  <span className="font-medium text-foreground/80">{sec.label}</span>
+                                  <span className="font-semibold tabular-nums text-foreground">
+                                    {sec.score} / {sec.max} pts
+                                  </span>
+                                </div>
+                                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                  <div className="h-full rounded-full bg-primary/70" style={{ width: `${pct}%` }} />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         /* Fallback legacy section rendering if sections not present */
                         <div className="grid grid-cols-2 gap-2.5 text-sm md:text-xs">
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                            <span className="text-zinc-400 block text-sm md:text-xs md:text-[11px]">Skills</span>
-                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.skills ?? 0} pts</span>
+                          <div className="rounded-lg border border-border/70 bg-background p-2.5">
+                            <span className="block text-muted-foreground">Skills</span>
+                            <span className="font-bold text-foreground">{matchBreakdown.skills ?? 0} pts</span>
                           </div>
-                          <div className="p-2.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                            <span className="text-zinc-400 block text-sm md:text-xs md:text-[11px]">Experience</span>
-                            <span className="font-bold text-zinc-800 dark:text-zinc-200">{matchBreakdown.experience?.score ?? 0} pts</span>
+                          <div className="rounded-lg border border-border/70 bg-background p-2.5">
+                            <span className="block text-muted-foreground">Experience</span>
+                            <span className="font-bold text-foreground">{matchBreakdown.experience?.score ?? 0} pts</span>
                           </div>
                         </div>
                       )}
 
-                      {/* Structured Evidence Chips */}
+                      {/* Evidence chips */}
                       {matchBreakdown.evidence && matchBreakdown.evidence.length > 0 && (
-                        <div className="pt-2.5 border-t border-indigo-100 dark:border-indigo-900/40 text-sm md:text-xs space-y-1.5">
-                          <span className="text-indigo-900 dark:text-indigo-200 font-bold block text-sm md:text-xs md:text-[11px] uppercase tracking-wider">
-                            ✓ Verified Match Signals:
+                        <div className="space-y-1.5 border-t border-primary/15 pt-3">
+                          <span className="block text-xs font-bold uppercase tracking-wider text-foreground md:text-[11px]">
+                            Verified match signals
                           </span>
                           <div className="flex flex-wrap gap-1.5 pt-0.5">
                             {matchBreakdown.evidence.map((ev, idx) => (
                               <span
                                 key={idx}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm md:text-xs md:text-[11px] font-semibold bg-white dark:bg-zinc-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs"
+                                className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-background px-2.5 py-1 text-sm font-semibold text-foreground shadow-xs md:text-[11px]"
                               >
-                                <span className="text-emerald-500 font-bold">✓</span>
-                                {ev.label}: <span className="font-normal text-zinc-600 dark:text-zinc-400">{ev.value}</span>
+                                <Check className="h-3 w-3 text-emerald-500" />
+                                {ev.label}: <span className="font-normal text-muted-foreground">{ev.value}</span>
                               </span>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {/* Key Strengths */}
+                      {/* Highlights */}
                       {matchBreakdown.explanation?.strengths && matchBreakdown.explanation.strengths.length > 0 && (
-                        <div className="pt-2 border-t border-indigo-100 dark:border-indigo-900/40 text-sm md:text-xs space-y-1">
-                          <span className="text-emerald-600 dark:text-emerald-400 font-bold block text-sm md:text-xs md:text-[11px] uppercase tracking-wider">
-                            Highlights:
+                        <div className="space-y-1.5 border-t border-primary/15 pt-3">
+                          <span className="block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 md:text-[11px]">
+                            Highlights
                           </span>
-                          <ul className="space-y-1 list-disc list-inside text-zinc-700 dark:text-zinc-300">
+                          <ul className="space-y-1 text-sm text-foreground/85 md:text-xs">
                             {matchBreakdown.explanation.strengths.map((str, idx) => (
-                              <li key={idx}>{str}</li>
+                              <li key={idx} className="flex items-start gap-2">
+                                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                                <span>{str}</span>
+                              </li>
                             ))}
                           </ul>
                         </div>
                       )}
                     </div>
                   )}
-                  
+
                   {/* Summary */}
                   {profile.summary && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">Professional Summary</h4>
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">{profile.summary}</p>
+                      <h4 className={sectionHeading}>Professional summary</h4>
+                      <ExpandableText
+                        text={profile.summary}
+                        threshold={320}
+                        clamp="line-clamp-4"
+                        className="text-foreground/85 md:text-sm"
+                      />
                     </div>
                   )}
-
-                  <Separator />
 
                   {/* Skills */}
                   {profile.skills.length > 0 && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Skills</h4>
+                      <h4 className={sectionHeading}>
+                        Skills
+                        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold leading-none">
+                          {profile.skills.length}
+                        </span>
+                      </h4>
                       <div className="flex flex-wrap gap-1.5">
-                        {profile.skills.map((skill) => (
+                        {visibleSkills.map((skill) => (
                           <span
                             key={skill}
-                            className="px-2.5 py-1 rounded-full text-xs bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-medium"
+                            className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
                           >
-                            {skill}
+                            {displaySkill(skill)}
                           </span>
+                        ))}
+                        {hiddenSkillCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSkillsExpandedFor(showAllSkills ? null : currentUserId)}
+                            className="rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary max-md:min-h-10"
+                          >
+                            {showAllSkills ? "Show fewer" : `+${hiddenSkillCount} more`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Experience preview */}
+                  {profile.work_experience.length > 0 && (
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h4 className={cn(sectionHeading, "mb-0")}>
+                          <Briefcase className="h-3.5 w-3.5" />
+                          Recent experience
+                        </h4>
+                        {profile.work_experience.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setTab("experience")}
+                            className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline max-md:min-h-10"
+                          >
+                            View all {profile.work_experience.length}
+                            <ChevronRight className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {profile.work_experience.slice(0, 2).map((exp) => (
+                          <div key={exp.id} className="rounded-xl border border-border bg-muted/30 p-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">{exp.job_title}</p>
+                              {exp.is_current_role && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-300 bg-emerald-50 px-1.5 py-0 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                >
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-primary md:text-xs">
+                              {exp.company_name}
+                              <span className="text-muted-foreground">
+                                {" · "}
+                                {formatDateRange(exp.start_date, exp.end_date, exp.is_current_role)}
+                              </span>
+                            </p>
+                          </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Personal details */}
-                  <div>
-                    <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3">Details</h4>
-                    <div className="space-y-2 text-sm">
-                      {profile.email && (
-                        <div className="flex gap-2 text-zinc-600 dark:text-zinc-400">
-                          <span className="text-zinc-400 w-20 shrink-0 text-sm md:text-xs font-medium">Email</span>
-                          <span className="truncate">{profile.email}</span>
-                        </div>
-                      )}
-                      {profile.expected_salary && (
-                        <div className="flex gap-2 text-zinc-600 dark:text-zinc-400">
-                          <span className="text-zinc-400 w-20 shrink-0 text-sm md:text-xs font-medium">Expected</span>
-                          <span>₱{profile.expected_salary.toLocaleString()}</span>
-                        </div>
-                      )}
-                      {profile.nationality && (
-                        <div className="flex gap-2 text-zinc-600 dark:text-zinc-400">
-                          <span className="text-zinc-400 w-20 shrink-0 text-sm md:text-xs font-medium">Nationality</span>
-                          <span>{profile.nationality}</span>
-                        </div>
-                      )}
+                  {/* Education preview */}
+                  {orderedEducation.length > 0 && (
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h4 className={cn(sectionHeading, "mb-0")}>
+                          <GraduationCap className="h-3.5 w-3.5" />
+                          Education
+                        </h4>
+                        {(orderedEducation.length > 1 || profile.certifications.length > 0) && (
+                          <button
+                            type="button"
+                            onClick={() => setTab("education")}
+                            className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline max-md:min-h-10"
+                          >
+                            View all
+                            <ChevronRight className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="rounded-xl border border-border bg-muted/30 p-3">
+                        <p className="text-sm font-semibold text-foreground">{orderedEducation[0].school_name ?? "—"}</p>
+                        {orderedEducation[0].course_name && (
+                          <p className="text-sm text-primary md:text-xs">{orderedEducation[0].course_name}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Contact */}
+                  {(profile.email || profile.nationality) && (
+                    <div>
+                      <h4 className={sectionHeading}>Contact</h4>
+                      <dl className="grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-sm">
+                        {profile.email && (
+                          <>
+                            <dt className="text-sm font-medium text-muted-foreground md:text-xs">Email</dt>
+                            <dd className="min-w-0 truncate">
+                              {emailIsMasked ? (
+                                // Masked addresses can't be mailed — show as text and point to the invite flow
+                                <span className="inline-flex items-center gap-1.5 text-foreground/85">
+                                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">{profile.email}</span>
+                                  <span className="text-xs text-muted-foreground">· send an invitation to connect</span>
+                                </span>
+                              ) : (
+                                <a
+                                  href={`mailto:${profile.email}`}
+                                  className="inline-flex items-center gap-1.5 text-foreground/85 hover:text-primary hover:underline"
+                                >
+                                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                                  <span className="truncate">{profile.email}</span>
+                                </a>
+                              )}
+                            </dd>
+                          </>
+                        )}
+                      </dl>
+                    </div>
+                  )}
                 </TabsContent>
 
                 {/* ── EXPERIENCE ── */}
                 <TabsContent value="experience" className="mt-4 space-y-4">
                   {profile.work_experience.length === 0 ? (
-                    <p className="text-sm text-zinc-400 text-center py-8">No work experience listed.</p>
+                    <p className="py-8 text-center text-sm text-muted-foreground">No work experience listed.</p>
                   ) : (
                     profile.work_experience.map((exp) => (
-                      <div key={exp.id} className="relative pl-5 border-l-2 border-indigo-200 dark:border-indigo-800 pb-4 last:pb-0">
-                        <div className="absolute left-[-5px] top-1.5 h-2.5 w-2.5 rounded-full bg-indigo-500 border-2 border-white dark:border-zinc-900" />
-                        <p className="font-semibold text-sm text-zinc-900 dark:text-white">{exp.job_title}</p>
-                        <p className="text-sm md:text-xs text-indigo-600 dark:text-indigo-400 font-medium">{exp.company_name}</p>
-                        <p className="text-sm md:text-xs text-zinc-400 mt-0.5">
+                      <div
+                        key={exp.id}
+                        className="relative border-l-2 border-primary/30 pb-4 pl-5 last:pb-0"
+                      >
+                        <div className="absolute left-[-5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-background bg-primary" />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">{exp.job_title}</p>
+                          {exp.is_current_role && (
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-300 bg-emerald-50 px-1.5 py-0 text-[10px] font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            >
+                              Current
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm font-medium text-primary md:text-xs">{exp.company_name}</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground md:text-xs">
                           {formatDateRange(exp.start_date, exp.end_date, exp.is_current_role)}
                           {exp.employment_type && ` · ${exp.employment_type}`}
                         </p>
                         {exp.location && (
-                          <p className="text-sm md:text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+                          <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground md:text-xs">
                             <MapPin className="h-2.5 w-2.5" />
                             {exp.location}
                           </p>
                         )}
                         {exp.description && (
-                          <p className="text-sm md:text-xs text-zinc-500 dark:text-zinc-400 mt-2 leading-relaxed line-clamp-3">{exp.description}</p>
+                          <div className="mt-2">
+                            <ExpandableText text={exp.description} />
+                          </div>
                         )}
                         {exp.skills.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
+                          <div className="mt-2 flex flex-wrap gap-1">
                             {exp.skills.map((s) => (
-                              <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border border-zinc-200 dark:border-zinc-700">
-                                {s}
+                              <span
+                                key={s}
+                                className="rounded-full border border-border bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                              >
+                                {displaySkill(s)}
                               </span>
                             ))}
                           </div>
@@ -485,28 +817,27 @@ export default function TalentProfileDrawer({
                 </TabsContent>
 
                 {/* ── EDUCATION ── */}
-                <TabsContent value="education" className="mt-4 space-y-4">
-                  {/* Education */}
+                <TabsContent value="education" className="mt-4 space-y-5">
                   {profile.education.length > 0 && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                      <h4 className={sectionHeading}>
                         <GraduationCap className="h-3.5 w-3.5" />
                         Education
                       </h4>
                       <div className="space-y-3">
                         {orderedEducation.map((edu) => (
-                          <div key={edu.id} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-                            <p className="font-semibold text-sm text-zinc-900 dark:text-white">{edu.school_name ?? "—"}</p>
+                          <div key={edu.id} className="rounded-xl border border-border bg-muted/40 p-3">
+                            <p className="text-sm font-semibold text-foreground">{edu.school_name ?? "—"}</p>
                             {edu.course_name && (
-                              <p className="text-sm md:text-xs text-indigo-600 dark:text-indigo-400">{edu.course_name}</p>
+                              <p className="text-sm text-primary md:text-xs">{edu.course_name}</p>
                             )}
                             {(edu.start_date || edu.end_date) && (
-                              <p className="text-sm md:text-xs text-zinc-400 mt-0.5">
+                              <p className="mt-0.5 text-sm text-muted-foreground md:text-xs">
                                 {formatDateRange(edu.start_date, edu.end_date, false)}
                               </p>
                             )}
                             {edu.school_location && (
-                              <p className="text-sm md:text-xs text-zinc-400 flex items-center gap-1 mt-0.5">
+                              <p className="mt-0.5 flex items-center gap-1 text-sm text-muted-foreground md:text-xs">
                                 <MapPin className="h-2.5 w-2.5" />
                                 {edu.school_location}
                               </p>
@@ -517,21 +848,24 @@ export default function TalentProfileDrawer({
                     </div>
                   )}
 
-                  {/* Certifications */}
                   {profile.certifications.length > 0 && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                      <h4 className={sectionHeading}>
                         <Award className="h-3.5 w-3.5" />
                         Certifications
                       </h4>
                       <div className="space-y-2">
                         {profile.certifications.map((cert) => (
-                          <div key={cert.id} className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
-                            <p className="font-semibold text-sm text-zinc-900 dark:text-white">{cert.certificate_name}</p>
-                            <p className="text-sm md:text-xs text-zinc-500">{cert.issuing_organization}</p>
+                          <div key={cert.id} className="rounded-xl border border-border bg-muted/40 p-3">
+                            <p className="text-sm font-semibold text-foreground">{cert.certificate_name}</p>
+                            <p className="text-sm text-muted-foreground md:text-xs">{cert.issuing_organization}</p>
                             {cert.issue_date && (
-                              <p className="text-sm md:text-xs text-zinc-400 mt-0.5">
-                                Issued {new Date(cert.issue_date).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                              <p className="mt-0.5 text-sm text-muted-foreground/80 md:text-xs">
+                                Issued{" "}
+                                {new Date(cert.issue_date).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  year: "numeric",
+                                })}
                               </p>
                             )}
                             {cert.credential_url && (
@@ -539,7 +873,7 @@ export default function TalentProfileDrawer({
                                 href={cert.credential_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm md:text-xs text-indigo-500 hover:underline flex items-center gap-1 mt-1 max-md:min-h-10"
+                                className="mt-1 flex items-center gap-1 text-sm text-primary hover:underline md:text-xs max-md:min-h-10"
                               >
                                 <ExternalLink className="h-3 w-3" />
                                 View credential
@@ -552,18 +886,17 @@ export default function TalentProfileDrawer({
                   )}
 
                   {profile.education.length === 0 && profile.certifications.length === 0 && (
-                    <p className="text-sm text-zinc-400 text-center py-8">No education records listed.</p>
+                    <p className="py-8 text-center text-sm text-muted-foreground">No education records listed.</p>
                   )}
                 </TabsContent>
 
                 {/* ── PORTFOLIO ── */}
                 <TabsContent value="portfolio" className="mt-4 space-y-5">
-                  {/* Social Links */}
                   {profile.social_links.length > 0 && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                      <h4 className={sectionHeading}>
                         <Link2 className="h-3.5 w-3.5" />
-                        Links &amp; Portfolio
+                        Links &amp; portfolio
                       </h4>
                       <div className="space-y-2">
                         {profile.social_links.map((link) => (
@@ -572,69 +905,102 @@ export default function TalentProfileDrawer({
                             href={link.profile_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-2.5 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors group"
+                            className="group flex items-center gap-2.5 rounded-xl border border-border bg-muted/40 p-3 transition-colors hover:border-primary/40"
                           >
                             <span className="text-lg">{getPlatformIcon(link.platform_name)}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 capitalize">{link.platform_name}</p>
-                              <p className="text-sm md:text-xs text-zinc-400 truncate">{link.profile_url}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold capitalize text-foreground md:text-xs">
+                                {link.platform_name}
+                              </p>
+                              <p className="truncate text-sm text-muted-foreground md:text-xs">{link.profile_url}</p>
                             </div>
-                            <ExternalLink className="h-3.5 w-3.5 text-zinc-400 group-hover:text-indigo-500 shrink-0" />
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground group-hover:text-primary" />
                           </a>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Resumes */}
-                  {profile.resumes.length > 0 && (
+                  {displayResumes.length > 0 && (
                     <div>
-                      <h4 className="text-sm md:text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-2">
+                      <h4 className={sectionHeading}>
                         <FileText className="h-3.5 w-3.5" />
-                        Resumes
+                        Primary Resume
                       </h4>
                       <div className="space-y-2">
-                        {profile.resumes.map((resume) => (
+                        {displayResumes.map((resume) => (
                           <div
                             key={resume.id}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700"
+                            className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3"
                           >
-                            <FileText className="h-5 w-5 text-indigo-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">
+                            <FileText className="h-5 w-5 shrink-0 text-primary" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-foreground md:text-xs">
                                 {resume.file_name ?? "Resume"}
                               </p>
                               {resume.is_primary && (
-                                <span className="text-sm md:text-xs text-indigo-500">Primary</span>
+                                <span className="text-xs font-medium text-primary">Primary</span>
                               )}
                             </div>
-                            <a
-                              href={resume.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="shrink-0"
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="h-7 shrink-0 gap-1 rounded-lg px-2.5 text-xs max-md:min-h-10"
                             >
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2.5 text-xs rounded-lg gap-1 max-md:min-h-10"
-                              >
+                              <a href={resume.file_url} target="_blank" rel="noopener noreferrer">
                                 <Download className="h-3 w-3" />
                                 Download
-                              </Button>
-                            </a>
+                              </a>
+                            </Button>
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {profile.social_links.length === 0 && profile.resumes.length === 0 && (
-                    <p className="text-sm text-zinc-400 text-center py-8">No portfolio links or resumes uploaded.</p>
+                  {profile.social_links.length === 0 && displayResumes.length === 0 && (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      No portfolio links or resumes uploaded.
+                    </p>
                   )}
                 </TabsContent>
               </div>
             </Tabs>
+
+            {/* Sticky actions */}
+            <div className="flex shrink-0 items-center gap-3 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-sm">
+              <Button
+                id={`drawer-save-${profile.user_id}`}
+                variant="outline"
+                size="sm"
+                onClick={() => onToggleSave(profile)}
+                disabled={saving}
+                title={profile.is_saved ? "Click to remove from saved candidates" : undefined}
+                className={cn(
+                  "h-9 flex-1 gap-1.5 rounded-xl text-sm max-md:min-h-10 max-md:text-xs",
+                  profile.is_saved && "border-primary/40 bg-primary/10 text-primary"
+                )}
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : profile.is_saved ? (
+                  <BookmarkCheck className="h-4 w-4" />
+                ) : (
+                  <BookmarkPlus className="h-4 w-4" />
+                )}
+                {profile.is_saved ? "Saved" : "Save candidate"}
+              </Button>
+              <Button
+                id={`drawer-invite-${profile.user_id}`}
+                size="sm"
+                onClick={() => onInvite(profile)}
+                className="h-9 flex-1 gap-1.5 rounded-xl text-sm font-medium max-md:min-h-10 max-md:text-xs"
+              >
+                <Send className="h-4 w-4" />
+                Send invitation
+              </Button>
+            </div>
           </>
         )}
       </SheetContent>

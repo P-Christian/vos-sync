@@ -649,8 +649,8 @@ export default function PipelineSettingsTab({ isStandalonePage = true }: Pipelin
       )}
 
       {/* Main Pipeline Container Card */}
-      <Card className="overflow-hidden rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm">
-        <CardContent className="p-0">
+      <Card className="overflow-hidden rounded-2xl !py-0 border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm">
+        <CardContent className="p-0  pt-2 ">
           {/* Pipeline Status Summary Toolbar */}
           {selectedPipeline && (
             <div className="p-4 sm:px-6 border-b border-primary/10 bg-muted/20 flex flex-wrap items-center justify-between gap-3 text-xs">

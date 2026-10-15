@@ -5,12 +5,11 @@
 import React from "react";
 import Image from "next/image";
 import { MapPin, Briefcase, BookmarkPlus, BookmarkCheck, GraduationCap, Eye } from "lucide-react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { TalentCard as TalentCardType } from "../types";
+import { TalentCard as TalentCardType, AvailabilityStatus, AVAILABILITY_LABELS } from "../types";
 import { getInitials, matchScoreColor, formatExperienceYears, truncate, getImageUrl } from "../utils/talentUtils";
-
-import { motion } from "framer-motion";
 
 interface TalentCardProps {
   talent: TalentCardType;
@@ -24,80 +23,101 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
   const scoreClass = matchScoreColor(talent.match_score);
   const avatarSrc = getImageUrl(talent.profile_image_url);
 
+  const isAvailable =
+    talent.availability_status === "AVAILABLE" || talent.availability_status === "IMMEDIATELY_AVAILABLE";
+  const availabilityLabel =
+    AVAILABILITY_LABELS[talent.availability_status as AvailabilityStatus] ??
+    (isAvailable ? "Available" : "Employed");
+
+  const hasScore = talent.match_score !== null && talent.match_score !== undefined;
+  const relevantYears = talent.relevant_experience_years ?? talent.experience_years;
+  const showExperience = talent.experience_years > 0 || (talent.relevant_experience_years ?? 0) > 0;
+  const latestJob = talent.work_experience[0];
+  const educationCount = talent.education_count ?? talent.education.length;
+
   return (
-    <motion.div
+    <motion.article
       layout="position"
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        "group relative rounded-2xl border border-border/80",
-        "bg-card/90 backdrop-blur-sm shadow-2xs hover:shadow-md hover:border-primary/40",
-        "transition-colors p-5 flex flex-col gap-4"
+        "group relative flex flex-col gap-4 rounded-2xl border border-border/80 p-5",
+        "bg-card/90 shadow-2xs backdrop-blur-sm transition-colors hover:border-primary/40 hover:shadow-md"
       )}
     >
-      {/* Match Score badge (Search mode only) */}
-      {talent.match_score !== null && talent.match_score !== undefined && (
-        <div className={cn("absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-xs font-semibold border shadow-2xs", scoreClass)}>
-          <span className="flex items-center gap-1">
-            {talent.match_score}% Match
-          </span>
-        </div>
-      )}
-
-      {/* Header */}
+      {/* Header: identity (opens profile) + match score */}
       <div className="flex items-start gap-3">
-        {/* Avatar */}
-        <div className="shrink-0">
-          {avatarSrc ? (
-            <Image
-              src={avatarSrc}
-              alt={talent.name}
-              width={48}
-              height={48}
-              className="h-12 w-12 rounded-xl object-cover border border-border shadow-2xs"
-              unoptimized
-            />
-          ) : (
-            <div className="h-12 w-12 rounded-xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-base shadow-2xs">
-              {initials}
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => onViewProfile(talent)}
+          aria-label={`View profile of ${talent.name}`}
+          className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <span className="shrink-0">
+            {avatarSrc ? (
+              <Image
+                src={avatarSrc}
+                alt=""
+                width={48}
+                height={48}
+                className="h-12 w-12 rounded-xl border border-border object-cover shadow-2xs"
+                unoptimized
+              />
+            ) : (
+              <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-base font-bold text-primary shadow-2xs">
+                {initials}
+              </span>
+            )}
+          </span>
 
-        <div className="flex-1 min-w-0 pr-8">
-          <h3 className="font-semibold text-foreground text-sm truncate tracking-tight">{talent.name}</h3>
-          {talent.headline && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{talent.headline}</p>
-          )}
-          {talent.location && (
-            <p className="flex items-center gap-1 text-xs text-muted-foreground/80 mt-1">
-              <MapPin className="h-3 w-3 shrink-0" />
-              {talent.location}
-            </p>
-          )}
-        </div>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+              {talent.name}
+            </span>
+            {talent.headline && (
+              <span className="mt-0.5 block truncate text-xs text-muted-foreground">{talent.headline}</span>
+            )}
+            {talent.location && (
+              <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground/80">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">{talent.location}</span>
+              </span>
+            )}
+          </span>
+        </button>
+
+        {hasScore && (
+          <span
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-semibold shadow-2xs",
+              scoreClass
+            )}
+            title="How well this profile matches your search"
+          >
+            {talent.match_score}% match
+          </span>
+        )}
       </div>
 
       {/* Experience */}
-      {(talent.experience_years > 0 || (talent.relevant_experience_years ?? 0) > 0) && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Briefcase className="h-3.5 w-3.5 text-primary" />
-          <span className="font-semibold text-foreground">
-            {formatExperienceYears(talent.relevant_experience_years ?? talent.experience_years)} relevant exp
-          </span>
-          {talent.experience_years > (talent.relevant_experience_years ?? talent.experience_years) && (
-            <span className="text-muted-foreground/75 text-[11px]">
-              ({formatExperienceYears(talent.experience_years)} total)
+      {showExperience && (
+        <div className="space-y-0.5 text-xs text-muted-foreground">
+          <p className="flex flex-wrap items-center gap-x-1.5">
+            <Briefcase className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="font-semibold text-foreground">
+              {formatExperienceYears(relevantYears)} relevant exp
             </span>
-          )}
-          {talent.work_experience[0] && (
-            <span className="text-muted-foreground/40 mx-1">·</span>
-          )}
-          {talent.work_experience[0] && (
-            <span className="truncate">
-              {talent.work_experience[0].is_current_role ? "Currently at " : ""}
-              {talent.work_experience[0].company_name}
-            </span>
+            {talent.experience_years > relevantYears && (
+              <span className="text-[11px] text-muted-foreground/75">
+                ({formatExperienceYears(talent.experience_years)} total)
+              </span>
+            )}
+          </p>
+          {latestJob && (
+            <p className="truncate pl-5">
+              {latestJob.is_current_role ? "Currently at " : "Previously at "}
+              <span className="text-foreground/80">{latestJob.company_name}</span>
+            </p>
           )}
         </div>
       )}
@@ -108,13 +128,16 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
           {talent.skills.slice(0, 5).map((skill) => (
             <span
               key={skill}
-              className="px-2 py-0.5 rounded-full text-xs bg-muted text-muted-foreground border border-border/80 font-medium hover:border-primary/30 transition-colors"
+              className="rounded-full border border-border/80 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/30"
             >
               {skill}
             </span>
           ))}
           {talent.skills.length > 5 && (
-            <span className="px-2 py-0.5 rounded-full text-xs text-muted-foreground bg-muted/60 border border-border/60">
+            <span
+              className="rounded-full border border-border/60 bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
+              title={talent.skills.slice(5).join(", ")}
+            >
               +{talent.skills.length - 5}
             </span>
           )}
@@ -127,7 +150,7 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
           {talent.education.slice(0, 2).map((edu, idx) => (
             <p
               key={edu.id ?? `edu-${idx}`}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground truncate"
+              className="flex items-center gap-1.5 truncate text-xs text-muted-foreground"
             >
               <GraduationCap className="h-3.5 w-3.5 shrink-0 text-primary" />
               <span className="truncate">
@@ -136,9 +159,9 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
               </span>
             </p>
           ))}
-          {(talent.education_count ?? talent.education.length) > 2 && (
-            <span className="px-2 py-0.5 rounded-full text-xs text-muted-foreground bg-muted/60 border border-border/60 w-fit">
-              +{(talent.education_count ?? talent.education.length) - 2} more
+          {educationCount > 2 && (
+            <span className="w-fit rounded-full border border-border/60 bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground">
+              +{educationCount - 2} more
             </span>
           )}
         </div>
@@ -146,28 +169,29 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
 
       {/* Summary */}
       {talent.summary && (
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
           {truncate(talent.summary, 140)}
         </p>
       )}
 
-      {/* Availability badge */}
-      <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+      {/* Footer: availability + actions */}
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/60 pt-3">
         <span
           className={cn(
-            "text-xs px-2.5 py-0.5 rounded-full font-medium border shadow-2xs",
-            talent.availability_status === "AVAILABLE" || talent.availability_status === "IMMEDIATELY_AVAILABLE"
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "bg-muted text-muted-foreground border-border"
+            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+            isAvailable
+              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+              : "border-border bg-muted text-muted-foreground"
           )}
         >
-          {talent.availability_status === "AVAILABLE" || talent.availability_status === "IMMEDIATELY_AVAILABLE"
-            ? "✓ Available"
-            : "Employed"}
+          <span
+            aria-hidden
+            className={cn("h-1.5 w-1.5 rounded-full", isAvailable ? "bg-emerald-500" : "bg-muted-foreground/50")}
+          />
+          {availabilityLabel}
         </span>
 
         <div className="flex gap-1.5">
-          {/* Save/unsave */}
           <motion.div whileTap={{ scale: 0.95 }}>
             <Button
               id={`talent-save-${talent.user_id}`}
@@ -175,15 +199,16 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
               size="sm"
               onClick={() => onToggleSave(talent)}
               disabled={saving}
+              title={talent.is_saved ? "Remove from saved" : "Save candidate"}
               className={cn(
-                "h-8 max-md:min-h-10 px-2.5 rounded-lg text-xs gap-1.5 transition-all shadow-2xs",
+                "h-8 gap-1.5 rounded-lg px-2.5 text-xs shadow-2xs transition-all max-md:min-h-10",
                 talent.is_saved
-                  ? "border-primary/40 text-primary bg-primary/10 hover:bg-destructive/10 hover:border-destructive/30 hover:text-destructive"
+                  ? "border-primary/40 bg-primary/10 text-primary hover:border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
                   : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
               )}
             >
               {talent.is_saved ? (
-                <BookmarkCheck className="h-3.5 w-3.5 text-primary" />
+                <BookmarkCheck className="h-3.5 w-3.5" />
               ) : (
                 <BookmarkPlus className="h-3.5 w-3.5" />
               )}
@@ -191,13 +216,12 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
             </Button>
           </motion.div>
 
-          {/* View Profile */}
           <motion.div whileTap={{ scale: 0.95 }}>
             <Button
               id={`talent-view-${talent.user_id}`}
               size="sm"
               onClick={() => onViewProfile(talent)}
-              className="h-8 max-md:min-h-10 px-3 rounded-lg text-xs gap-1.5 font-medium shadow-2xs"
+              className="h-8 gap-1.5 rounded-lg px-3 text-xs font-medium shadow-2xs max-md:min-h-10"
             >
               <Eye className="h-3.5 w-3.5" />
               View
@@ -205,6 +229,6 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
           </motion.div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
