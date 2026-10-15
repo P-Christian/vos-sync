@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import InterviewStatusBadge from "./InterviewStatusBadge";
- 
+
 import {
   Calendar,
   Clock,
@@ -27,7 +27,7 @@ import {
   RefreshCw,
   XCircle,
   ExternalLink,
- 
+
   StickyNote,
 } from "lucide-react";
 import {
@@ -37,8 +37,8 @@ import {
   formatLabel,
   isActiveInterview,
   normalizeLink,
-  relativeDayLabel,
-  screeningCount,
+  relativeDayLabel
+
 } from "./interviewUtils";
 
 interface InterviewDetailsModalProps {
@@ -222,7 +222,7 @@ export default function InterviewDetailsModal({
             <div className="space-y-3">
               {applications.map((app) => {
                 const attendance = attendanceMeta(app.attendance_status);
-                 
+
 
                 return (
                   <div
@@ -259,8 +259,8 @@ export default function InterviewDetailsModal({
                       </div>
                     )}
 
- 
-    
+
+
                   </div>
                 );
               })}
