@@ -16,6 +16,8 @@ export interface AssessmentDraftEntry {
   task_type: "SINGLE_CHOICE" | "TEXT_RESPONSE" | "EXTERNAL_TASK" | "FILE_UPLOAD";
   selected_choice_key?: string;
   response_text?: string;
+  proof_file_id?: string;
+  proof_file_name?: string | null;
 }
 
 export function isEditableStatus(status: AttemptStatus): boolean {
@@ -98,6 +100,14 @@ export function buildDraftEntries(
         break;
       }
       case "FILE_UPLOAD":
+        if (value.proof_file_id) {
+          entries.push({
+            job_task_id,
+            task_type: "FILE_UPLOAD",
+            proof_file_id: value.proof_file_id,
+            proof_file_name: value.proof_file_name ?? null,
+          });
+        }
         break;
       default: {
         const unreachable: never = value;

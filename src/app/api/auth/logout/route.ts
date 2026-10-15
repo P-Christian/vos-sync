@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { createAuditRecordRepo } from "@/modules/vos-admin/audit-trail";
 import { getPHTimeString } from "@/lib/utils";
+import { revokeUserSession } from "@/modules/auth/sessions/session.repo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,29 +18,23 @@ const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 export async function POST(req: NextRequest) {
     const token = req.cookies.get(COOKIE_NAME)?.value || req.headers.get("authorization")?.replace("Bearer ", "");
     let userId: number | null = null;
+    let sessionId: string | null = null;
 
     if (token) {
         try {
             const { payload } = await jwtVerify(token, JWT_SECRET);
             userId = Number(payload.sub || payload.user_id || payload.id);
+            sessionId = typeof payload.sid === "string" ? payload.sid : null;
         } catch {
             // Ignore invalid token on logout
         }
     }
 
-    if (userId && DIRECTUS_BASE) {
+    if (sessionId) {
         try {
-            const headers: Record<string, string> = { "Content-Type": "application/json" };
-            if (DIRECTUS_TOKEN) headers["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
-            await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
-                method: "PATCH",
-                headers,
-                body: JSON.stringify({
-                    session_epoch: getPHTimeString(),
-                }),
-            });
+            await revokeUserSession(sessionId, "LOGOUT");
         } catch (err) {
-            console.error("[api/auth/logout] Failed to update session_epoch:", err);
+            console.error("[api/auth/logout] Failed to revoke session in vs_user_sessions:", err);
         }
     }
 

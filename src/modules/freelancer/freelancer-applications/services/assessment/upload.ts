@@ -15,6 +15,7 @@ import {
   directusAuthHeader,
   directusBase,
 } from "./directus";
+import { toAttemptDTO, type AssessmentAttemptDTO } from "@/modules/shared/assessment";
 import { createFirstAttempt, loadLatestAttempt, upsertResponseRow } from "./store";
 
 export type UploadResult =
@@ -24,6 +25,7 @@ export type UploadResult =
       proof_file_name: string;
       job_task_id: number;
       attempt_id: number;
+      attempt: AssessmentAttemptDTO;
     }
   | { ok: false; status: 400 | 409 | 422 | 502; error: string };
 
@@ -99,5 +101,6 @@ export async function uploadProofFile(
     proof_file_name: proofFileName,
     job_task_id: jobTaskId,
     attempt_id: attempt.id,
+    attempt: toAttemptDTO(attempt),
   };
 }

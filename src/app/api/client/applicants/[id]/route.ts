@@ -12,6 +12,8 @@ import {
   loadCompanyApplication,
   resolveReviewerCompany,
 } from "@/modules/client/assessment-review/services/context";
+import { checkCompanyVerificationStatus } from "@/lib/status-validator";
+import { orderEducation } from "@/modules/client/education/order-education";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -115,9 +117,6 @@ const VALID_STATUSES = [
   "REJECTED",
   "WITHDRAWN",
 ];
-
-import { checkCompanyVerificationStatus } from "@/lib/status-validator";
-import { orderEducation } from "@/modules/client/education/order-education";
 
 // GET — Retrieve details profile for a single job seeker application
 export async function GET(

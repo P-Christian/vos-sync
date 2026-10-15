@@ -40,20 +40,27 @@ export default function DashboardModule({ userName, initialData = null }: Dashbo
   const [reloadKey, setReloadKey] = useState(0);
   const isFirstMountRef = useRef(Boolean(initialData));
 
-  // Time range sync with localStorage
-  const [selectedRange, setSelectedRange] = useState<TimeRangeKey>(() => {
-    if (typeof window === "undefined") return "30d";
-    try {
-      const saved = localStorage.getItem(TIMERANGE_STORAGE_KEY) as TimeRangeKey;
-      if (saved && ["7d", "30d", "3m", "6m"].includes(saved)) {
-        return saved;
-      }
-    } catch {
-      // Ignore
-    }
-    return "30d";
-  });
+  // Time range sync with localStorage (deterministic SSR default to avoid hydration mismatch)
+  const [selectedRange, setSelectedRange] = useState<TimeRangeKey>("30d");
   const [isSwitchingRange, setIsSwitchingRange] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    queueMicrotask(() => {
+      if (!isMounted) return;
+      try {
+        const saved = localStorage.getItem(TIMERANGE_STORAGE_KEY) as TimeRangeKey;
+        if (saved && ["7d", "30d", "3m", "6m"].includes(saved)) {
+          setSelectedRange(saved);
+        }
+      } catch {
+        // Ignore
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Live updated timestamp
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());

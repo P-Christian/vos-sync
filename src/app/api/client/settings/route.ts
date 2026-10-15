@@ -3,6 +3,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { authenticateRequest } from "@/lib/authenticated-session";
+import { revokeOtherUserSessions } from "@/modules/auth/sessions/session.repo";
+import { decodeJwtPayload } from "@/lib/auth-utils";
+import { getPHTimeString } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -119,6 +122,7 @@ export async function PATCH(req: NextRequest) {
     if (type === "PASSWORD") {
       const currentPassword = String(payload?.current_password ?? "").trim();
       const newPassword = String(payload?.new_password ?? "").trim();
+      const revokeOtherSessions = Boolean(payload?.revoke_other_sessions);
 
       if (!currentPassword || !newPassword) {
         return NextResponse.json(
@@ -157,13 +161,20 @@ export async function PATCH(req: NextRequest) {
       // Hash new password
       const newHash = await bcrypt.hash(newPassword, 10);
 
+      const updateData: Record<string, unknown> = {
+        hash_password: newHash,
+        user_password: newHash,
+      };
+
+      if (revokeOtherSessions) {
+        // Also update session_epoch to invalidate any legacy session tokens lacking sid
+        updateData.session_epoch = getPHTimeString();
+      }
+
       const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_user/${userId}`, {
         method: "PATCH",
         headers: getHeaders(),
-        body: JSON.stringify({
-          hash_password: newHash,
-          user_password: newHash,
-        }),
+        body: JSON.stringify(updateData),
       });
 
       if (!patchRes.ok) {
@@ -173,6 +184,16 @@ export async function PATCH(req: NextRequest) {
           { error: "Failed to update password." },
           { status: patchRes.status }
         );
+      }
+
+      // Revoke all other active sessions in vs_user_sessions
+      if (revokeOtherSessions) {
+        const token =
+          req.headers.get("authorization")?.replace("Bearer ", "") ||
+          req.cookies.get("vos_sync_access_token")?.value;
+        const decoded = token ? decodeJwtPayload(token) : null;
+        const currentSid = typeof decoded?.sid === "string" ? decoded.sid : null;
+        await revokeOtherUserSessions(Number(userId), currentSid, "PASSWORD_RESET");
       }
 
       return NextResponse.json({ success: true });

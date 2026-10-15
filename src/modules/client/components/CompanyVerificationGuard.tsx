@@ -19,25 +19,9 @@ export default function CompanyVerificationGuard({
 }: CompanyVerificationGuardProps) {
   const router = useRouter();
 
-  // Initialize with cached verification status if available to avoid unneeded layout jumps
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return sessionStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  });
-
-  const [loading, setLoading] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const cached = sessionStorage.getItem(STORAGE_KEY);
-      return cached !== "VERIFIED";
-    } catch {
-      return true;
-    }
-  });
+  // Initialize consistently to avoid SSR-to-client hydration mismatches
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -115,6 +99,18 @@ export default function CompanyVerificationGuard({
 
   useEffect(() => {
     queueMicrotask(() => {
+      try {
+        const cached = sessionStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          setVerificationStatus(cached);
+          if (cached === "VERIFIED") {
+            setLoading(false);
+          }
+        }
+      } catch {
+        // Ignore storage restrictions
+      }
+
       void checkCompanyStatus();
     });
   }, [checkCompanyStatus]);

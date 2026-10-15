@@ -28,6 +28,10 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { usePathname, useSearchParams } from "next/navigation";
+import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target, TrendingUp, GitFork } from "lucide-react";
+import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 const data = {
     navMain: [
@@ -62,11 +66,6 @@ const data = {
         { title: "Announcement", url: "/employee-relations/announcement", icon: Users },
     ],
 };
-
-import { usePathname, useSearchParams } from "next/navigation";
-import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target, TrendingUp, GitFork } from "lucide-react";
-import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 export function AppSidebar({
     className,

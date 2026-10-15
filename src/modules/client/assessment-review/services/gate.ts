@@ -70,7 +70,11 @@ export async function checkAssessmentGate(input: {
     });
     const attemptRows = await directusList("vs_application_assessment_attempts", attemptParams);
     const latestStatus = attemptRows[0]?.status;
-    if (latestStatus !== "SUBMITTED" && latestStatus !== "UNDER_REVIEW") {
+    if (
+      latestStatus !== "SUBMITTED" &&
+      latestStatus !== "UNDER_REVIEW" &&
+      latestStatus !== "PASSED"
+    ) {
       return "This assessment has not been passed (no submission, in progress, or failed). Request a revision or reject the candidate.";
     }
   } catch (error) {

@@ -163,10 +163,31 @@ export async function middleware(req: NextRequest) {
                             return NextResponse.redirect(url);
                         }
 
-                        const sessionEpoch = parseDbTimestamp(dbUser.session_epoch);
-                        const tokenIat = payload.iat ? payload.iat * 1000 : 0;
-                        if (sessionEpoch > 0 && tokenIat > 0 && sessionEpoch > tokenIat) {
-                            return redirectToLogin(req);
+                        const sid = typeof payload.sid === "string" ? payload.sid : null;
+                        if (sid) {
+                            const sessionRes = await fetch(`${DIRECTUS_BASE}/items/vs_user_sessions/${sid}?fields=session_id,revoked_at,expires_at`, {
+                                headers,
+                                cache: "no-store",
+                            });
+                            if (sessionRes.ok) {
+                                const sessionJson = await sessionRes.json();
+                                const sessionData = sessionJson?.data;
+                                if (!sessionData || sessionData.revoked_at) {
+                                    return redirectToLogin(req);
+                                }
+                                const expiresAtMs = sessionData.expires_at ? parseDbTimestamp(sessionData.expires_at) : 0;
+                                if (expiresAtMs > 0 && Date.now() > expiresAtMs) {
+                                    return redirectToLogin(req);
+                                }
+                            } else if (sessionRes.status === 404) {
+                                return redirectToLogin(req);
+                            }
+                        } else {
+                            const sessionEpoch = parseDbTimestamp(dbUser.session_epoch);
+                            const tokenIat = payload.iat ? payload.iat * 1000 : 0;
+                            if (sessionEpoch > 0 && tokenIat > 0 && sessionEpoch > tokenIat) {
+                                return redirectToLogin(req);
+                            }
                         }
                     }
                 } else if (statusRes.status === 404) {

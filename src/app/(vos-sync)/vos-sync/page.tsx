@@ -11,6 +11,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NavUser } from "./_components/nav-user";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 // ✅ Wire the module you asked for
 import ComingSoon from "./_components/ComingSoon";
@@ -71,8 +72,6 @@ function buildHeaderUserFromToken(token: string | null | undefined) {
         avatar: "/avatars/shadcn.jpg",
     };
 }
-
-import { redirect } from "next/navigation";
 
 export default async function Page() {
     // ✅ Next.js 16: cookies() is async

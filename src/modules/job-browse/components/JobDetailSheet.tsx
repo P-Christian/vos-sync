@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { PublicJobPosting, JOB_TYPE_LABELS, EXPERIENCE_LEVEL_LABELS } from "../types";
 import ReferModal from "../../freelancer/freelancer-referrals/components/ReferModal";
+import { sanitizeHtml } from "@/lib/sanitize-html";
 
 interface Props {
   job: PublicJobPosting | null;
@@ -108,8 +109,6 @@ const renderInlineMarkdown = (str: string) => {
     return part;
   });
 };
-
-import { sanitizeHtml } from "@/lib/sanitize-html";
 
 function renderFormattedContent(text: string | null | undefined) {
   if (!text) return <p className="text-sm text-muted-foreground italic">No information provided.</p>;

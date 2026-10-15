@@ -25,15 +25,15 @@ const CONTACT_INFO = [
   {
     icon: Mail,
     label: "Email us",
-    value: "hello@vossync.com",
+    value: "vertextechcorpofficial@gmail.com",
     desc: "We reply within 24 hours.",
-    href: "mailto:hello@vossync.com",
+    href: "mailto:vertextechcorpofficial@gmail.com",
   },
   {
     icon: Phone,
     label: "Call us",
     value: "+63 900 000 0000",
-    desc: "Mon–Fri, 9am–6pm PHT.",
+    desc: "Mon–Fri, 8am–5pm PHT.",
     href: "tel:+639000000000",
   },
   {
@@ -46,7 +46,7 @@ const CONTACT_INFO = [
   {
     icon: Clock,
     label: "Support hours",
-    value: "Mon–Fri, 9am–6pm",
+    value: "Mon–Fri, 8am–5pm",
     desc: "Philippine Time (PHT)",
     href: "#",
   },

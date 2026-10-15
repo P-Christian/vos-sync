@@ -26,6 +26,7 @@ export interface SecurityPayload {
   current_password?: string;
   new_password?: string;
   confirm_password?: string;
+  revoke_other_sessions?: boolean;
 }
 
 export interface TeamMember {

@@ -194,7 +194,7 @@ export default function PrivacyPolicy() {
                 <div className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-6 space-y-3">
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-zinc-500" />
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">privacy@vossync.com</span>
+                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">vertextechcorpofficial@gmail.com</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Globe className="w-5 h-5 text-zinc-500" />

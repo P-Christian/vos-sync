@@ -14,8 +14,17 @@ export async function POST(req: NextRequest) {
     const email = String(body?.email ?? "").trim();
     const hashPassword = String(body?.hashPassword ?? body?.password ?? "").trim();
 
+    const userAgent = req.headers.get("user-agent");
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ipAddress = forwarded ? forwarded.split(",")[0].trim() : req.headers.get("x-real-ip") || "127.0.0.1";
+    const deploymentId = req.headers.get("host") || req.nextUrl.hostname || "default";
+
     try {
-        const { token, role_id, role, role_name, destination } = await loginUser(email, hashPassword);
+        const { token, role_id, role, role_name, destination } = await loginUser(
+            email,
+            hashPassword,
+            { deploymentId, userAgent, ipAddress }
+        );
 
         const res = NextResponse.json(
             {
