@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import InterviewStatusBadge from "./InterviewStatusBadge";
-import ScreeningAnswersView from "./ScreeningAnswersView";
+ 
 import {
   Calendar,
   Clock,
@@ -27,7 +27,7 @@ import {
   RefreshCw,
   XCircle,
   ExternalLink,
-  FileQuestion,
+ 
   StickyNote,
 } from "lucide-react";
 import {
@@ -222,7 +222,7 @@ export default function InterviewDetailsModal({
             <div className="space-y-3">
               {applications.map((app) => {
                 const attendance = attendanceMeta(app.attendance_status);
-                const answers = screeningCount(app);
+                 
 
                 return (
                   <div

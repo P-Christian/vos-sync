@@ -11,7 +11,7 @@ export interface EmployerMailParams {
 }
 
 const PLATFORM_NAME = process.env.NEXT_PUBLIC_APP_NAME || "VOS-Sync";
-const BASE_APP_URL = getBaseUrl();
+ 
 
 // 1. Upon Account Creation and OTP Verified (To Employer)
 

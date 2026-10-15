@@ -333,9 +333,9 @@ export default function MessageBubble({
                     <button
                       key={emoji}
                       type="button"
-                      role="menuitem"
+                      role="menuitemcheckbox"
                       aria-label={`React with ${emoji}`}
-                      aria-pressed={isSelected}
+                      aria-checked={isSelected}
                       onClick={() => handleReact(emoji)}
                       className={cn(
                         "relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-lg transition-colors duration-150 max-md:size-10",
