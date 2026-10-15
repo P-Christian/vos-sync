@@ -15,7 +15,9 @@ import {
   CheckCircle,
   ExternalLink,
   FileText,
+  GripVertical,
   ListChecks,
+  Loader2,
   Pencil,
   Trash2,
   Upload,
@@ -23,6 +25,7 @@ import {
 import { TASK_TYPE_META } from "./types";
 import { formStateFromTask } from "./task-form-state";
 import TaskForm from "./TaskForm";
+import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 
 function TaskTypeIcon({ taskType }: { taskType: AssessmentTaskType }) {
   switch (taskType) {
@@ -59,6 +62,7 @@ interface TaskRowProps {
   isLast: boolean;
   busy: boolean;
   submitting: boolean;
+  isReordering?: boolean;
   editing: boolean;
   confirmingDelete: boolean;
   readOnly?: boolean;
@@ -78,6 +82,7 @@ export default function TaskRow({
   isLast,
   busy,
   submitting,
+  isReordering = false,
   editing,
   confirmingDelete,
   readOnly = false,
@@ -89,10 +94,53 @@ export default function TaskRow({
   onCancelDelete,
   onConfirmDelete,
 }: TaskRowProps) {
+  const dragControls = useDragControls();
+  const isMoveDisabled = isFirst || busy || isReordering || submitting;
+  const isDownDisabled = isLast || busy || isReordering || submitting;
+
   return (
-    <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-3">
+    <Reorder.Item
+      value={task}
+      id={String(task.id)}
+      layout
+      dragListener={false}
+      dragControls={dragControls}
+      initial={{ opacity: 0, y: 10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{
+        opacity: 0,
+        scale: 0.95,
+        height: 0,
+        marginBottom: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        overflow: "hidden",
+        transition: { duration: 0.25, ease: "easeInOut" },
+      }}
+      transition={{
+        layout: { type: "spring", stiffness: 450, damping: 32 },
+        opacity: { duration: 0.2 },
+      }}
+      className="space-y-2 rounded-lg border border-border/70 bg-card p-3 shadow-xs select-none transition-colors hover:border-primary/30"
+    >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
+        <div className="flex min-w-0 items-start gap-1.5 sm:gap-2">
+          {!readOnly && (
+            <button
+              type="button"
+              onPointerDown={(e) => {
+                if (!busy && !isReordering && !submitting) {
+                  dragControls.start(e);
+                }
+              }}
+              disabled={busy || isReordering || submitting}
+              className="cursor-grab active:cursor-grabbing p-1 -ml-1 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/80 disabled:opacity-20 disabled:pointer-events-none transition-colors touch-none"
+              title="Drag to reorder task"
+            >
+              <GripVertical className="h-3.5 w-3.5" />
+            </button>
+          )}
+
           <span className="mt-0.5 w-4 shrink-0 text-center text-[10px] font-bold text-muted-foreground">
             {index + 1}
           </span>
@@ -133,9 +181,9 @@ export default function TaskRow({
               variant="ghost"
               size="sm"
               onClick={() => onMove("up")}
-              disabled={isFirst || busy}
-              className="h-7 w-7 p-0"
-              title="Move up"
+              disabled={isMoveDisabled}
+              className="h-7 w-7 p-0 disabled:opacity-25 transition-opacity"
+              title={isReordering ? "Saving order..." : isFirst ? "First task" : "Move up"}
             >
               <ArrowUp className="h-3.5 w-3.5" />
             </Button>
@@ -144,9 +192,9 @@ export default function TaskRow({
               variant="ghost"
               size="sm"
               onClick={() => onMove("down")}
-              disabled={isLast || busy}
-              className="h-7 w-7 p-0"
-              title="Move down"
+              disabled={isDownDisabled}
+              className="h-7 w-7 p-0 disabled:opacity-25 transition-opacity"
+              title={isReordering ? "Saving order..." : isLast ? "Last task" : "Move down"}
             >
               <ArrowDown className="h-3.5 w-3.5" />
             </Button>
@@ -155,8 +203,8 @@ export default function TaskRow({
               variant="ghost"
               size="sm"
               onClick={onStartEdit}
-              disabled={busy}
-              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              disabled={busy || isReordering}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground disabled:opacity-25"
               title="Edit task"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -166,8 +214,8 @@ export default function TaskRow({
               variant="ghost"
               size="sm"
               onClick={onAskDelete}
-              disabled={busy}
-              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+              disabled={busy || isReordering}
+              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 disabled:opacity-25"
               title="Delete task"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -176,49 +224,75 @@ export default function TaskRow({
         )}
       </div>
 
-      {editing && !readOnly && (
-        <TaskForm
-          initial={formStateFromTask(task)}
-          sortOrder={task.sort_order}
-          submitting={submitting}
-          onCancel={onCancelEdit}
-          onSubmit={onSubmitEdit}
-        />
-      )}
+      <AnimatePresence>
+        {editing && !readOnly && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <TaskForm
+              initial={formStateFromTask(task)}
+              sortOrder={task.sort_order}
+              submitting={submitting}
+              onCancel={onCancelEdit}
+              onSubmit={onSubmitEdit}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {confirmingDelete && !readOnly && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5">
-          <p className="text-xs text-muted-foreground">
-            Delete{" "}
-            <span className="font-semibold text-foreground">
-              {task.title}
-            </span>
-            ? This cannot be undone.
-          </p>
-          <div className="flex items-center gap-1.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onCancelDelete}
-              disabled={busy}
-              className="h-7 text-xs"
-            >
-              Keep
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              onClick={onConfirmDelete}
-              disabled={busy}
-              className="h-7 text-xs"
-            >
-              {busy ? "Deleting..." : "Delete task"}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+      <AnimatePresence>
+        {confirmingDelete && !readOnly && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5">
+              <p className="text-xs text-muted-foreground">
+                Delete{" "}
+                <span className="font-semibold text-foreground">
+                  {task.title}
+                </span>
+                ? This cannot be undone.
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onCancelDelete}
+                  disabled={busy}
+                  className="h-7 text-xs"
+                >
+                  Keep
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={onConfirmDelete}
+                  disabled={busy}
+                  className="h-7 text-xs"
+                >
+                  {busy ? (
+                    <span className="flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Deleting...
+                    </span>
+                  ) : (
+                    "Delete task"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Reorder.Item>
   );
 }
