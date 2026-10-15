@@ -1,6 +1,7 @@
 // src/lib/mail/templates/interview.ts
 import { InterviewTemplateData } from "../types";
 import { createGoogleCalendarUrl } from "../calendar/google-calendar";
+import { getBaseUrl } from "./base-url";
 
 export function interviewScheduledTemplate(data: InterviewTemplateData) {
   const {
@@ -14,7 +15,9 @@ export function interviewScheduledTemplate(data: InterviewTemplateData) {
     meetingLink,
     meetingLocation,
     candidateNotes,
+    baseUrl: customBaseUrl,
   } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   const formattedDate = new Date(scheduledAt).toLocaleString("en-US", {
     weekday: "long",
@@ -110,7 +113,7 @@ export function interviewScheduledTemplate(data: InterviewTemplateData) {
         }
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          You can review your active applications and upcoming interview schedules anytime by logging into your <a href="http://localhost:3000/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
+          You can review your active applications and upcoming interview schedules anytime by logging into your <a href="${baseUrl}/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">
@@ -133,7 +136,9 @@ export function interviewRescheduledTemplate(data: InterviewTemplateData) {
     meetingLink,
     meetingLocation,
     candidateNotes,
+    baseUrl: customBaseUrl,
   } = data;
+  const baseUrl = getBaseUrl(customBaseUrl);
 
   const formattedDate = new Date(scheduledAt).toLocaleString("en-US", {
     weekday: "long",
@@ -229,7 +234,7 @@ export function interviewRescheduledTemplate(data: InterviewTemplateData) {
         }
 
         <p style="font-size: 13px; color: #71717a; line-height: 1.5;">
-          You can review your active applications and upcoming interview schedules anytime by logging into your <a href="http://localhost:3000/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
+          You can review your active applications and upcoming interview schedules anytime by logging into your <a href="${baseUrl}/vos-sync/freelancer/applications" style="color: #14a800; font-weight: 600;">VOS Sync Portal</a>.
         </p>
 
         <div style="border-top: 1px solid #f4f4f5; margin-top: 32px; padding-top: 16px; font-size: 11px; color: #a1a1aa; text-align: center;">

@@ -238,7 +238,7 @@ export default function InterviewEvaluationModal({
           {/* Feedback Text */}
           <div className="space-y-2">
             <Label htmlFor="eval-feedback" className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-              Candidate Evaluation Feedback *pr
+              Candidate Evaluation Feedback <span className="text-rose-500">*</span>
             </Label>
             <Textarea
               id="eval-feedback"
@@ -259,9 +259,7 @@ export default function InterviewEvaluationModal({
                 <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                   Candidate Pipeline Action (Optional)
                 </Label>
-                <span className="text-xs md:text-[11px] text-zinc-400">
-                  Governed by job&apos;s ATS pipeline
-                </span>
+
               </div>
 
               {/* 3 Main Action Toggles */}

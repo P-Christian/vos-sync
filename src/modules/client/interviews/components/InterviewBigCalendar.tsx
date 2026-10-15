@@ -788,7 +788,7 @@ export default function InterviewBigCalendar({
                                 onClick={() => onViewDetails(item)}
                                 className="h-7 max-md:min-h-10 text-xs md:text-[10px] px-2 rounded-md font-semibold"
                               >
-                                <Eye className="h-3 w-3 mr-1 text-zinc-500" /> View & Q&A
+                                <Eye className="h-3 w-3 mr-1 text-zinc-500" /> View Details
                               </Button>
                               <Button
                                 size="sm"
@@ -930,7 +930,7 @@ export default function InterviewBigCalendar({
                             }}
                             className="h-8 max-md:min-h-10 text-sm md:text-xs px-3 rounded-lg font-semibold"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View & Q&A
+                            <Eye className="h-3.5 w-3.5 mr-1.5 text-zinc-500" /> View Details
                           </Button>
                           <Button
                             size="sm"
@@ -1436,9 +1436,6 @@ export default function InterviewBigCalendar({
                     <Label className="text-sm md:text-xs font-semibold text-zinc-700 dark:text-zinc-300">
                       Candidate Pipeline Action (Optional)
                     </Label>
-                    <span className="text-xs md:text-[11px] text-zinc-400">
-                      Governed by job&apos;s ATS pipeline
-                    </span>
                   </div>
 
                   {/* 3 Main Action Toggles */}

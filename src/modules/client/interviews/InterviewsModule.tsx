@@ -249,15 +249,15 @@ export default function InterviewsModule() {
         `}</style>
 
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-4 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-          <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/70 backdrop-blur-xl border border-primary/10 shadow-lg shadow-primary/5 p-4 sm:p-8 rounded-2xl relative overflow-hidden text-foreground">
+          <div className="absolute right-0 top-0 h-40 w-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
           <div className="flex items-center gap-4 relative z-10">
-            <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+            <div className="p-3 bg-primary/10 text-primary backdrop-blur-md rounded-2xl border border-primary/15">
               <CalendarDays className="h-7 w-7" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Interview & Batch Screening Workspace</h1>
-              <p className="text-sm text-zinc-300 mt-1">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">Interview & Batch Screening Workspace</h1>
+              <p className="text-sm text-muted-foreground mt-1">
                 Schedule candidate batch interviews, review screening answers, and record individual candidate evaluations.
               </p>
             </div>
@@ -265,7 +265,7 @@ export default function InterviewsModule() {
 
           <Button
             onClick={handleOpenSchedule}
-            className="relative z-10 h-10 max-md:min-h-10 px-5 max-md:px-4 text-sm max-md:text-xs md:text-xs font-semibold rounded-xl bg-[#14a800] hover:bg-[#118f00] text-white border-0 shadow-md gap-2"
+            className="relative z-10 h-10 max-md:min-h-10 px-5 max-md:px-4 text-sm max-md:text-xs md:text-xs font-semibold rounded-full bg-gradient-to-r from-primary to-info text-primary-foreground hover:brightness-110 border-0 shadow-lg shadow-primary/25 gap-2 transition-all"
           >
             <Plus className="h-4 w-4" />
             Schedule Interview
