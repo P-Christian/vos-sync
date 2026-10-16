@@ -121,3 +121,52 @@ export function formatAssetUrl(pathOrUrl?: string | null): string | null {
   return `/api/assets/${encodeURIComponent(basePart)}${query}`;
 }
 
+/**
+ * Safe clipboard copy with fallback for non-secure contexts (HTTP, LAN IPs, older browsers)
+ */
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (typeof window === "undefined" || !text) return false;
+
+  // 1. Try modern Async Clipboard API if supported and in secure context
+  if (navigator?.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall through to legacy fallback if writeText fails or is blocked
+    }
+  }
+
+  // 2. Fallback for non-secure contexts (HTTP / LAN IPs) using temporary textarea
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+    textarea.style.opacity = "0";
+    textarea.setAttribute("readonly", "");
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return successful;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * RFC4122 v4 compliant UUID generator with fallback for non-secure contexts (HTTP, LAN IPs, older browsers)
+ */
+export function generateUUID(): string {
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
