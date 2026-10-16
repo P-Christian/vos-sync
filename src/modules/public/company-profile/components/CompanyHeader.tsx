@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { copyToClipboard } from "@/lib/utils";
 
 interface HeaderProps {
   company: PublicCompanyProfile;
@@ -65,12 +66,16 @@ export function CompanyHeader({ company, onTabChange }: HeaderProps) {
     Number(session.companyId) === Number(company.company_id)
   );
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    toast.success("Company profile link copied to clipboard!");
-    setTimeout(() => setCopied(false), 2000);
+    const success = await copyToClipboard(url);
+    if (success) {
+      setCopied(true);
+      toast.success("Company profile link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error("Failed to copy link to clipboard.");
+    }
   };
 
   return (

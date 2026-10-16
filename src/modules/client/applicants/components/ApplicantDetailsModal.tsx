@@ -62,7 +62,7 @@ import {
   faGithub,
 } from "@fortawesome/free-brands-svg-icons";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import { Applicant, ApplicationStatus, CandidateDetail, STATUS_LABELS } from "../types";
 import { STAGE_COLOR_CLASSES } from "@/modules/client/pipeline/types";
 import {
@@ -234,12 +234,10 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
+    const success = await copyToClipboard(value);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable — fail silently */
     }
   };
 

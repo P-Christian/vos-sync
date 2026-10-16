@@ -81,7 +81,7 @@ export function JobBrowseFilters({
           onValueChange={(v) => onJobTypeChange(v as JobType | "ALL")}
           options={JOB_TYPE_OPTIONS}
           placeholder="Job Type"
-          triggerClassName="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11"
+          triggerClassName="h-8 w-40 text-sm md:text-xs rounded-lg max-md:min-h-11"
         />
 
         {/* Work Arrangement */}
@@ -90,7 +90,7 @@ export function JobBrowseFilters({
           onValueChange={(v) => onArrangementChange(v as WorkArrangement | "ALL")}
           options={ARRANGEMENT_OPTIONS}
           placeholder="Arrangement"
-          triggerClassName="h-8 w-36 text-sm md:text-xs rounded-lg max-md:min-h-11"
+          triggerClassName="h-8 w-45 text-sm md:text-xs rounded-lg max-md:min-h-11"
         />
 
         {/* Experience Level */}

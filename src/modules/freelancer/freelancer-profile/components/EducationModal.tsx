@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { generateUUID } from "@/lib/utils";
 
 interface EducationModalProps {
     isOpen: boolean;
@@ -129,7 +130,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                 setEndDate(educationToEdit.end_date ? educationToEdit.end_date.split("T")[0] : "");
             } else {
                 if (newDraftKeyRef.current === null) {
-                    newDraftKeyRef.current = crypto.randomUUID();
+                    newDraftKeyRef.current = generateUUID();
                 }
                 setSchoolId("");
                 setIsUnverifiedSchool(false);

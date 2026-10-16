@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import {
   CampusMatchResult,
   CampusEvidenceItem,
@@ -238,11 +238,13 @@ function StudentMatchDrawerContent({
     : "ST";
 
   const [copied, setCopied] = useState(false);
-  const handleCopyEmail = useCallback(() => {
+  const handleCopyEmail = useCallback(async () => {
     if (!result.email) return;
-    navigator.clipboard.writeText(result.email);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const success = await copyToClipboard(result.email);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   }, [result.email]);
 
   const isMatchEvaluated =

@@ -5,7 +5,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { FileText, ImageIcon, Check, Download, Eye, Smile, Copy } from "lucide-react";
 import { Message, ALLOWED_REACTIONS } from "../types";
-import { cn } from "@/lib/utils";
+import { cn, copyToClipboard } from "@/lib/utils";
 import Image from "next/image";
 import SystemMessageRenderer from "@/modules/shared/messaging/components/SystemMessageRenderer";
 import dynamic from "next/dynamic";
@@ -180,13 +180,11 @@ export default function MessageBubble({
 
   const handleCopy = useCallback(async () => {
     if (!message_content) return;
-    try {
-      await navigator.clipboard.writeText(message_content);
+    const success = await copyToClipboard(message_content);
+    if (success) {
       setCopied(true);
       if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard can be blocked; fail quietly */
     }
     setShowPicker(false);
   }, [message_content]);
