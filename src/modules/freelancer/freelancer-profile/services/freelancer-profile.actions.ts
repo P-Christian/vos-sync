@@ -438,7 +438,18 @@ export async function saveAllProfileChangesAction(payload: any) {
             for (const action of education) {
                 if (action.type === 'ADD') await addEducationService(userId, action.payload);
                 else if (action.type === 'UPDATE') await updateEducationService(action.id, userId, action.payload);
-                else if (action.type === 'DELETE') await deleteEducationService(action.id, userId);
+                else if (action.type === 'DELETE') {
+                    try {
+                        await deleteEducationService(action.id, userId);
+                    } catch (delErr: any) {
+                        // If record was already deleted or not found, do not abort saving the rest of the profile
+                        if (delErr?.name === "EducationDeletionError" || delErr?.message?.includes("not found")) {
+                            console.warn(`Education deletion warning for id ${action.id}:`, delErr.message);
+                        } else {
+                            throw delErr;
+                        }
+                    }
+                }
             }
         }
 

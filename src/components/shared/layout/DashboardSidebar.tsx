@@ -218,10 +218,14 @@ export function DashboardSidebar({
 
             if (hasNotificationsItem) {
                 try {
-                    const res = await fetch("/api/client/notifications?unread_only=true&limit=100");
+                    const isFreelancer = pathname?.startsWith("/vos-sync/freelancer") || pathname?.startsWith("/freelancer");
+                    const endpoint = isFreelancer
+                        ? "/api/freelancer/notifications?unread_only=true"
+                        : "/api/client/notifications?unread_only=true&limit=100";
+                    const res = await fetch(endpoint);
                     if (res.ok) {
                         const data = await res.json();
-                        setUnreadNotifications(data.notifications?.length || 0);
+                        setUnreadNotifications(data.unreadCount ?? data.notifications?.length ?? 0);
                     }
                 } catch {
                     // Silently ignore if not client route or endpoint unavailable
