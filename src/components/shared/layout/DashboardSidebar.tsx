@@ -237,7 +237,7 @@ export function DashboardSidebar({
 
         const interval = setInterval(fetchCounts, 30000);
         return () => clearInterval(interval);
-    }, [config.navItems]);
+    }, [config.navItems, pathname]);
 
     const handleFooterClick = async (e: React.MouseEvent<HTMLAnchorElement | HTMLDivElement>, href: string) => {
         if (href !== "/logout") return;

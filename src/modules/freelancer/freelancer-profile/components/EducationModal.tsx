@@ -141,7 +141,7 @@ export function EducationModal({ isOpen, onClose, userId, educationToEdit }: Edu
                 setEndDate("");
             }
         }
-    }, [isOpen, educationToEdit]);
+    }, [isOpen, educationToEdit, fetchSchools]);
 
     useEffect(() => {
         async function fetchCourses(sId: string) {
