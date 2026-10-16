@@ -30,18 +30,17 @@ export function AdminPendingQueue({ items, isLoading = false }: AdminPendingQueu
     );
   }
 
-  const formatRelativeTime = (isoString: string | null) => {
+  const formatSubmissionDate = (isoString: string | null) => {
     if (!isoString) return 'Pending review';
     try {
-      const diffMs = Date.now() - new Date(isoString).getTime();
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      if (diffHours < 1) return 'Just now';
-      if (diffHours === 1) return '1 hour ago';
-      if (diffHours < 24) return `${diffHours} hours ago`;
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays}d ago`;
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Pending review';
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+      }).format(date);
     } catch {
-      return 'Recent';
+      return 'Pending review';
     }
   };
 
@@ -108,7 +107,7 @@ export function AdminPendingQueue({ items, isLoading = false }: AdminPendingQueu
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="hidden sm:flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock className="h-3 w-3" />
-                      <span>{formatRelativeTime(item.submittedAt)}</span>
+                      <span>{formatSubmissionDate(item.submittedAt)}</span>
                     </div>
 
                     <Button asChild size="sm" variant="outline" className="h-7 text-xs rounded-lg px-2.5">

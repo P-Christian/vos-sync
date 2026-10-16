@@ -55,6 +55,14 @@ export function useSchoolVerification() {
         const data = await fetchSchoolVerifications();
         if (isMounted) {
           setAllRecords(data);
+
+          if (targetSchoolId) {
+            const match = data.find((r) => String(r.school_id) === String(targetSchoolId));
+            if (match) {
+              setSelectedSchool(match);
+              setIsDetailModalOpen(true);
+            }
+          }
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -72,17 +80,7 @@ export function useSchoolVerification() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  // Auto-open modal if schoolId/id searchParam matches a loaded record
-  useEffect(() => {
-    if (!targetSchoolId || allRecords.length === 0) return;
-    const match = allRecords.find((r) => String(r.school_id) === String(targetSchoolId));
-    if (match) {
-      setSelectedSchool(match);
-      setIsDetailModalOpen(true);
-    }
-  }, [targetSchoolId, allRecords]);
+  }, [targetSchoolId]);
 
   // Derive KPI counts from all fetched records
   const kpiData: SchoolVerificationKPIs = useMemo(() => {

@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import { RefreshCw, Shield, Sparkles } from 'lucide-react';
+import { RefreshCw, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAdminDashboardData } from '../hooks/useAdminDashboardData';
 import { AdminMetricCards } from './dashboard/AdminMetricCards';

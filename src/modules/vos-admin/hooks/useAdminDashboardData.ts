@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // src/modules/vos-admin/hooks/useAdminDashboardData.ts
 'use client';
 

@@ -49,6 +49,14 @@ export function useCompanyVerification() {
           setRecords(data);
           setError(null);
           setLoading(false);
+
+          if (targetCompanyId) {
+            const match = data.find((r) => String(r.company_id) === String(targetCompanyId));
+            if (match) {
+              setSelectedCompany(match);
+              setIsDetailModalOpen(true);
+            }
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -63,17 +71,7 @@ export function useCompanyVerification() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  // Auto-open modal if companyId/id searchParam matches a loaded record
-  useEffect(() => {
-    if (!targetCompanyId || records.length === 0) return;
-    const match = records.find((r) => String(r.company_id) === String(targetCompanyId));
-    if (match) {
-      setSelectedCompany(match);
-      setIsDetailModalOpen(true);
-    }
-  }, [targetCompanyId, records]);
+  }, [targetCompanyId]);
 
   // Pure filtered dataset
   const filteredRecords = useMemo(() => {
