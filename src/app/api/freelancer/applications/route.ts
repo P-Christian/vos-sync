@@ -270,6 +270,28 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Enrich with Profile Snapshot from vs_job_application_profile_snapshot
+    const profileSnapshotMap: Record<number, Record<string, unknown>> = {};
+    if (appIds.length > 0) {
+      try {
+        const snapRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_job_application_profile_snapshot?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,profile_data,captured_at&limit=500`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (snapRes.ok) {
+          const snapJson = await snapRes.json();
+          const snapRows: Array<{ application_id: number; profile_data: Record<string, unknown> }> = snapJson.data ?? [];
+          snapRows.forEach((s) => {
+            if (s.application_id && s.profile_data) {
+              profileSnapshotMap[s.application_id] = s.profile_data;
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load profile snapshots for freelancer applications:", err);
+      }
+    }
+
     // Merge all data
     const enriched = applications.map((app) => {
       const job = jobsMap[app.job_id as number] ?? {};
@@ -318,6 +340,7 @@ export async function GET(req: NextRequest) {
         company_name: company?.company_name ?? null,
         company_details: company ?? null,
         screening_answers: screeningMap[appId] ?? null,
+        profile_snapshot: (profileSnapshotMap[appId] as unknown as ApplicationItem["profile_snapshot"]) ?? null,
         resume: app.resume_id ? (resumeMap[app.resume_id as number] ?? null) : null,
         is_referred: !!refData?.is_referred,
         referral_letter: refData?.referral_letter || null,

@@ -5,12 +5,12 @@ import { useState, useCallback, useMemo } from "react";
 import {
   ApplicationAssessmentInfo,
   ApplicationItem,
-  ApplicationStatus,
   ApplicationSummary,
 } from "../types";
 import type { ApplicationAssessmentSummary } from "../types/assessment";
 import type { AttemptStatus } from "@/modules/shared/assessment";
 import { fetchAssessmentSummaries } from "../services/assessment-client";
+import type { DateRangeFilterValue } from "../components/application-table/DateRangeFilter";
 
 /**
  * Assessment stages persist the canonical UNDER_REVIEW legacy status, so only
@@ -47,6 +47,18 @@ function toAssessmentInfo(
   };
 }
 
+/**
+ * Helper to format raw status enum or stage identifier into user-friendly title case.
+ * e.g., "UNDER_REVIEW" -> "Under Review", "SHORTLISTED" -> "Shortlisted"
+ */
+function formatStatusLabel(val: string): string {
+  return val
+    .toLowerCase()
+    .split(/[_\s]+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function useFreelancerApplications() {
   const [allApplications, setAllApplications] = useState<ApplicationItem[]>([]);
   const [assessmentSummaries, setAssessmentSummaries] = useState<
@@ -54,7 +66,8 @@ export function useFreelancerApplications() {
   >({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [filterStatus, setFilterStatus] = useState<ApplicationStatus | "ALL">("ALL");
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
+  const [dateFilter, setDateFilter] = useState<DateRangeFilterValue>({ preset: "ALL" });
   const [search, setSearch] = useState("");
 
   const fetchApplications = useCallback(async () => {
@@ -77,6 +90,32 @@ export function useFreelancerApplications() {
     }
   }, []);
 
+  // Dynamically derive filter status options from actual application data.
+  // No hardcoded constant status list.
+  const statusOptions = useMemo(() => {
+    const optionsMap = new Map<string, string>();
+    optionsMap.set("ALL", "All Statuses");
+
+    for (const app of allApplications) {
+      // 1. Current dynamic stage name if configured
+      if (app.current_stage?.stage_name) {
+        optionsMap.set(app.current_stage.stage_name, app.current_stage.stage_name);
+      }
+      // 2. Canonical application status (e.g. WITHDRAWN, APPLIED, SHORTLISTED, etc.)
+      if (app.application_status) {
+        const key = app.application_status;
+        if (!optionsMap.has(key)) {
+          optionsMap.set(key, formatStatusLabel(key));
+        }
+      }
+    }
+
+    return Array.from(optionsMap.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }, [allApplications]);
+
   // Computed summary KPIs
   const summary: ApplicationSummary = useMemo(() => {
     const total = allApplications.length;
@@ -95,33 +134,72 @@ export function useFreelancerApplications() {
     };
   }, [allApplications]);
 
-  // Client-side filtered list
+  // Client-side filtered list with date range and dynamic status filtering
   const applications = useMemo(() => {
+    const now = new Date();
+
     return allApplications
       .filter((a) => {
+        // Status matching: match canonical status or stage name
         const matchesStatus =
-          filterStatus === "ALL" || a.application_status === filterStatus;
+          filterStatus === "ALL" ||
+          a.application_status === filterStatus ||
+          a.current_stage?.stage_name === filterStatus;
+
+        // Search matching
         const q = search.toLowerCase();
         const matchesSearch =
           !q ||
           (a.job_title ?? "").toLowerCase().includes(q) ||
           (a.company_name ?? "").toLowerCase().includes(q) ||
           (a.job_location ?? "").toLowerCase().includes(q);
-        return matchesStatus && matchesSearch;
+
+        // Date range matching
+        let matchesDate = true;
+        if (dateFilter.preset !== "ALL" && a.applied_at) {
+          const appliedDate = new Date(a.applied_at);
+          if (dateFilter.preset === "7_DAYS") {
+            const cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            matchesDate = appliedDate >= cutoff;
+          } else if (dateFilter.preset === "30_DAYS") {
+            const cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            matchesDate = appliedDate >= cutoff;
+          } else if (dateFilter.preset === "90_DAYS") {
+            const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            matchesDate = appliedDate >= cutoff;
+          } else if (dateFilter.preset === "CUSTOM") {
+            if (dateFilter.startDate) {
+              const start = new Date(dateFilter.startDate);
+              start.setHours(0, 0, 0, 0);
+              if (appliedDate < start) matchesDate = false;
+            }
+            if (dateFilter.endDate && matchesDate) {
+              const end = new Date(dateFilter.endDate);
+              end.setHours(23, 59, 59, 999);
+              if (appliedDate > end) matchesDate = false;
+            }
+          }
+        }
+
+        return matchesStatus && matchesSearch && matchesDate;
       })
       .map((application) => ({
         ...application,
         assessment: toAssessmentInfo(assessmentSummaries[application.application_id]),
       }));
-  }, [allApplications, filterStatus, search, assessmentSummaries]);
+  }, [allApplications, filterStatus, search, dateFilter, assessmentSummaries]);
 
   return {
     applications,
+    allApplications,
     summary,
     loading,
     error,
     filterStatus,
     setFilterStatus,
+    dateFilter,
+    setDateFilter,
+    statusOptions,
     search,
     setSearch,
     fetchApplications,
