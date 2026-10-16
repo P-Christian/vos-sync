@@ -153,8 +153,11 @@ export function resolveCanonicalRedirectUri(incomingHost: string | null, incomin
   const proto = incomingProto?.trim() || (cleanHost.includes("localhost") || cleanHost.startsWith("127.0.0.1") ? "http" : "https");
 
   let requestOrigin: string;
+  let incomingHostname = "";
   try {
-    requestOrigin = new URL(`${proto}://${cleanHost}`).origin.toLowerCase();
+    const parsedUrl = new URL(`${proto}://${cleanHost}`);
+    requestOrigin = parsedUrl.origin.toLowerCase();
+    incomingHostname = parsedUrl.hostname.toLowerCase();
   } catch {
     throw new GoogleOAuthError(`Invalid host header: ${incomingHost}`, "INVALID_HOST", 400);
   }
@@ -169,10 +172,14 @@ export function resolveCanonicalRedirectUri(incomingHost: string | null, incomin
   });
   if (exactOrigin) return `${exactOrigin}${CANONICAL_CALLBACK_PATH}`;
 
-  // 2. Fallback to host match
+  // 2. Fallback to host match or normalized hostname match (handles reverse proxy ports e.g. :4000)
   const matchedOrigin = allowedOrigins.find((allowed) => {
     try {
-      return new URL(allowed).host.toLowerCase() === cleanHost.toLowerCase();
+      const u = new URL(allowed);
+      return (
+        u.host.toLowerCase() === cleanHost.toLowerCase() ||
+        (Boolean(incomingHostname) && u.hostname.toLowerCase() === incomingHostname)
+      );
     } catch {
       return false;
     }
@@ -203,8 +210,11 @@ export function resolveRequestOrigin(
       (cleanHost.includes("localhost") || cleanHost.startsWith("127.0.0.1") ? "http" : "https");
 
     let reqOrigin = "";
+    let incomingHostname = "";
     try {
-      reqOrigin = new URL(`${proto}://${cleanHost}`).origin.toLowerCase();
+      const parsedUrl = new URL(`${proto}://${cleanHost}`);
+      reqOrigin = parsedUrl.origin.toLowerCase();
+      incomingHostname = parsedUrl.hostname.toLowerCase();
     } catch {
       // ignore invalid URL
     }
@@ -222,7 +232,11 @@ export function resolveRequestOrigin(
 
     const hostMatch = allowedOrigins.find((allowed) => {
       try {
-        return new URL(allowed).host.toLowerCase() === cleanHost.toLowerCase();
+        const u = new URL(allowed);
+        return (
+          u.host.toLowerCase() === cleanHost.toLowerCase() ||
+          (Boolean(incomingHostname) && u.hostname.toLowerCase() === incomingHostname)
+        );
       } catch {
         return false;
       }

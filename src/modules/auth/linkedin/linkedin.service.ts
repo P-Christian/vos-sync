@@ -121,8 +121,11 @@ export function resolveCanonicalRedirectUri(
     (cleanHost.includes("localhost") || cleanHost.startsWith("127.0.0.1") ? "http" : "https");
 
   let requestOrigin: string;
+  let incomingHostname = "";
   try {
-    requestOrigin = new URL(`${proto}://${cleanHost}`).origin.toLowerCase();
+    const parsedUrl = new URL(`${proto}://${cleanHost}`);
+    requestOrigin = parsedUrl.origin.toLowerCase();
+    incomingHostname = parsedUrl.hostname.toLowerCase();
   } catch {
     throw new LinkedInOAuthError(`Invalid host header: ${incomingHost}`, "INVALID_HOST", 400);
   }
@@ -137,10 +140,14 @@ export function resolveCanonicalRedirectUri(
   });
   if (exactOrigin) return `${exactOrigin}${CANONICAL_CALLBACK_PATH}`;
 
-  // 2. Host match
+  // 2. Host match or normalized hostname match (handles reverse proxy ports e.g. :4000)
   const matchedOrigin = allowedOrigins.find((allowed) => {
     try {
-      return new URL(allowed).host.toLowerCase() === cleanHost.toLowerCase();
+      const u = new URL(allowed);
+      return (
+        u.host.toLowerCase() === cleanHost.toLowerCase() ||
+        (Boolean(incomingHostname) && u.hostname.toLowerCase() === incomingHostname)
+      );
     } catch {
       return false;
     }
