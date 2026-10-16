@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   SchoolVerificationRecord,
@@ -15,6 +16,9 @@ import {
 import { computeSchoolKpis } from "../services/schoolVerification.helpers";
 
 export function useSchoolVerification() {
+  const searchParams = useSearchParams();
+  const targetSchoolId = searchParams?.get("schoolId") || searchParams?.get("id");
+
   const [allRecords, setAllRecords] = useState<SchoolVerificationRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +73,16 @@ export function useSchoolVerification() {
       isMounted = false;
     };
   }, []);
+
+  // Auto-open modal if schoolId/id searchParam matches a loaded record
+  useEffect(() => {
+    if (!targetSchoolId || allRecords.length === 0) return;
+    const match = allRecords.find((r) => String(r.school_id) === String(targetSchoolId));
+    if (match) {
+      setSelectedSchool(match);
+      setIsDetailModalOpen(true);
+    }
+  }, [targetSchoolId, allRecords]);
 
   // Derive KPI counts from all fetched records
   const kpiData: SchoolVerificationKPIs = useMemo(() => {
