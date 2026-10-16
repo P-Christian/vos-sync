@@ -29,12 +29,16 @@ export default function JobBrowseModule() {
     appliedJobIds,
     search,
     setSearch,
-    filterJobType,
-    setFilterJobType,
-    filterArrangement,
-    setFilterArrangement,
-    filterExperience,
-    setFilterExperience,
+    filterJobTypes,
+    setFilterJobTypes,
+    filterArrangements,
+    setFilterArrangements,
+    filterExperienceLevels,
+    setFilterExperienceLevels,
+    filterDatePosted,
+    setFilterDatePosted,
+    hasActiveFilters,
+    clearAllFilters,
     selectedJob,
     sheetOpen,
     applyModalOpen,
@@ -129,12 +133,16 @@ export default function JobBrowseModule() {
         <JobBrowseFilters
           search={search}
           onSearchChange={setSearch}
-          filterJobType={filterJobType}
-          onJobTypeChange={setFilterJobType}
-          filterArrangement={filterArrangement}
-          onArrangementChange={setFilterArrangement}
-          filterExperience={filterExperience}
-          onExperienceChange={setFilterExperience}
+          filterJobTypes={filterJobTypes}
+          onJobTypesChange={setFilterJobTypes}
+          filterArrangements={filterArrangements}
+          onArrangementsChange={setFilterArrangements}
+          filterExperienceLevels={filterExperienceLevels}
+          onExperienceLevelsChange={setFilterExperienceLevels}
+          filterDatePosted={filterDatePosted}
+          onDatePostedChange={setFilterDatePosted}
+          hasActiveFilters={hasActiveFilters}
+          onClearAll={clearAllFilters}
           totalCount={totalCount}
           filteredCount={filteredCount}
         />
@@ -176,7 +184,7 @@ export default function JobBrowseModule() {
           ) : (
             <div className="space-y-6">
               <motion.div
-                key={`freelancer-jobs-grid-${page}-${filterJobType}-${filterArrangement}-${filterExperience}`}
+                key={`freelancer-jobs-grid-${page}-${filterJobTypes.join(",")}-${filterArrangements.join(",")}-${filterExperienceLevels.join(",")}-${filterDatePosted}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
