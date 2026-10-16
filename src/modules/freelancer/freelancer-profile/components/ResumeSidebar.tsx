@@ -95,6 +95,17 @@ export function ResumeSidebar() {
                     if (parsed.professional_summary) {
                         setProfessionalSummaryDraft(parsed.professional_summary);
                     }
+                    const sanitizeDate = (d: unknown): string | null => {
+                        if (!d || typeof d !== "string") return null;
+                        const trimmed = d.trim();
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+                        const dateObj = new Date(trimmed);
+                        if (!isNaN(dateObj.getTime())) {
+                            return dateObj.toISOString().split("T")[0];
+                        }
+                        return null;
+                    };
+
                     if (parsed.work_experience && parsed.work_experience.length > 0) {
                         const newWorkExp = parsed.work_experience.map((we: { job_title: string; company_name: string; start_date: string; end_date: string | null; description: string }, i: number) => {
                             const existingMatch = data.work_experience?.find(
@@ -107,8 +118,8 @@ export function ResumeSidebar() {
                                 user_id: data.user_id,
                                 job_title: we.job_title,
                                 company_name: we.company_name,
-                                start_date: we.start_date,
-                                end_date: we.end_date,
+                                start_date: sanitizeDate(we.start_date) || new Date().toISOString().split("T")[0],
+                                end_date: sanitizeDate(we.end_date),
                                 job_description: we.description,
                                 is_current_role: !we.end_date,
                                 location: existingMatch?.location || null,
@@ -130,9 +141,10 @@ export function ResumeSidebar() {
                                 user_id: data.user_id,
                                 school_name_raw: ed.school_name,
                                 course_name_raw: ed.course_name,
-                                start_date: ed.start_date,
-                                end_date: ed.end_date,
-                                education_status: existingMatch?.education_status || 'Unverified' as const,
+                                start_date: sanitizeDate(ed.start_date),
+                                end_date: sanitizeDate(ed.end_date),
+                                education_status: existingMatch?.education_status || 'Pending' as const,
+                                course_request_draft_key: existingMatch?.course_request_draft_key || crypto.randomUUID(),
                                 school_id: existingMatch?.school_id || null,
                                 school_course_id: existingMatch?.school_course_id || null
                             };
