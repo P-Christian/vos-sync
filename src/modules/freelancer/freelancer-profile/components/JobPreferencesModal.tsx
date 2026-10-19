@@ -5,7 +5,6 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { VsJobPreferences } from "../types/freelancer-profile.types";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Input } from "@/components/ui/input";
 import { fetchProvinces, fetchCities, PsgcItem } from "@/lib/psgc";
