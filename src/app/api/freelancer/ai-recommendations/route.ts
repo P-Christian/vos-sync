@@ -69,6 +69,13 @@ export async function GET(req: NextRequest) {
             }
         };
 
+        // Guard: If freelancer profile is empty (no skills and no summary), do not generate recommendations
+        const hasSkills = userSkills.length > 0;
+        const hasSummary = Boolean(normalizedUserProfile.professional_summary?.trim());
+        if (!hasSkills && !hasSummary) {
+            return NextResponse.json({ recommendations: [] });
+        }
+
         // Fetch Active Jobs
         const jobsUrl = new URL(`${DIRECTUS_BASE}/items/vs_job_posting`);
         jobsUrl.searchParams.append("filter[status][_eq]", "ACTIVE");
