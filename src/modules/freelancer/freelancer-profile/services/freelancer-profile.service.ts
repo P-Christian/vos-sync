@@ -193,6 +193,7 @@ export async function updatePersonalInfoService(userId: number, payload: any) {
         user_lname: payload.user_lname,
         suffix_name: payload.suffix_name,
         nickname: payload.nickname,
+        user_position: payload.user_position !== undefined ? (String(payload.user_position).trim() || null) : undefined,
         user_contact: payload.user_contact,
         user_bday: payload.user_bday ? formatToPHDate(payload.user_bday) : null,
         gender: payload.gender,

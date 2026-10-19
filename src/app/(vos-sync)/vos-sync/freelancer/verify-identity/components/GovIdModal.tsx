@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { uploadVerificationDocumentAction, submitIdentityVerificationAction } from "@/modules/freelancer/freelancer-profile/services/identity-verification.actions";
 import { toast } from "sonner";
+import { ImageUploadSlot } from "./ImageUploadSlot";
 
 interface GovIdModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    onSubmittingChange?: (isSubmitting: boolean) => void;
     rejectionNote?: string;
 }
 
@@ -28,7 +30,7 @@ const ID_TYPE_OPTIONS = [
     { value: "Others", label: "Others" },
 ];
 
-export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }: GovIdModalProps) {
+export default function GovIdModal({ isOpen, onClose, onSuccess, onSubmittingChange, rejectionNote }: GovIdModalProps) {
     const [idType, setIdType] = useState<string>("");
     const [otherIdName, setOtherIdName] = useState<string>("");
     const [frontId, setFrontId] = useState<File | null>(null);
@@ -44,6 +46,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
 
         try {
             setIsSubmitting(true);
+            onSubmittingChange?.(true);
             
             const frontFormData = new FormData();
             frontFormData.append("file", frontId);
@@ -69,9 +72,10 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
             if (!submitRes.success) throw new Error(submitRes.error);
 
             toast.success("Government ID submitted successfully for review.");
-            onSuccess();
             onClose();
+            await onSuccess();
         } catch (error) {
+            onSubmittingChange?.(false);
             const message = error instanceof Error ? error.message : "Failed to submit Government ID.";
             toast.error(message);
         } finally {
@@ -117,24 +121,23 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                             />
                         </div>
                     )}
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium">Front of ID *</label>
-                        <Input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={(e) => setFrontId(e.target.files?.[0] || null)} 
-                            className="max-md:min-h-11"
-                        />
-                    </div>
-                    <div className="grid gap-2">
-                        <label className="text-sm font-medium">Selfie holding ID *</label>
-                        <Input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={(e) => setSelfieId(e.target.files?.[0] || null)} 
-                            className="max-md:min-h-11"
-                        />
-                    </div>
+                    <ImageUploadSlot
+                        label="Front of ID"
+                        file={frontId}
+                        onChange={setFrontId}
+                        facingMode="environment"
+                        cameraModalTitle="Capture Front of ID"
+                        required={true}
+                    />
+
+                    <ImageUploadSlot
+                        label="Selfie holding ID"
+                        file={selfieId}
+                        onChange={setSelfieId}
+                        facingMode="user"
+                        cameraModalTitle="Take Selfie holding ID"
+                        required={true}
+                    />
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="max-md:min-h-11">Cancel</Button>

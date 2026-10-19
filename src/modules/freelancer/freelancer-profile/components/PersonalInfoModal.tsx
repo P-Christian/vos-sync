@@ -8,6 +8,8 @@ import { FreelancerProfile, VsUserSocialLink } from "../types/freelancer-profile
 import { Plus, X } from "lucide-react";
 import { fetchProvinces, fetchCities, fetchBarangays, PsgcItem } from "@/lib/psgc";
 import { SearchableAddressSelect } from "./SearchableAddressSelect";
+import { SOCIAL_PLATFORMS, validateSocialUrl } from "../constants/social-platforms";
+import { toast } from "sonner";
 
 interface PersonalInfoModalProps {
     isOpen: boolean;
@@ -28,6 +30,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
     const [selectedProvinceCode, setSelectedProvinceCode] = useState("");
     const [selectedCityCode, setSelectedCityCode] = useState("");
     const [locationError, setLocationError] = useState<string | null>(null);
+    const [socialLinkErrors, setSocialLinkErrors] = useState<Record<number, string>>({});
 
     useEffect(() => {
         if (isOpen && data) {
@@ -40,6 +43,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                 user_lname: source.user_lname || source.last_name || "",
                 suffix_name: source.suffix_name || "",
                 nickname: source.nickname || "",
+                user_position: source.user_position || "",
                 user_contact: source.user_contact || "",
                 user_bday: source.user_bday || "",
                 gender: source.gender || "",
@@ -155,8 +159,29 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
     if (!isOpen || !data) return null;
 
     const handleApply = () => {
+        const errors: Record<number, string> = {};
+        const normalizedLinks = socialLinks.map((link) => {
+            if (!link.profile_url || !link.profile_url.trim()) {
+                return link;
+            }
+            const validation = validateSocialUrl(link.platform_name, link.profile_url);
+            if (!validation.isValid) {
+                errors[link.id] = validation.error || "Invalid URL";
+            }
+            return {
+                ...link,
+                profile_url: validation.normalizedUrl || link.profile_url.trim(),
+            };
+        });
+
+        if (Object.keys(errors).length > 0) {
+            setSocialLinkErrors(errors);
+            toast.error("Please fix invalid social profile URLs before applying changes.");
+            return;
+        }
+
         setPersonalInfoDraft(formData);
-        setSocialLinksDraft(socialLinks);
+        setSocialLinksDraft(normalizedLinks);
         onClose();
     };
 
@@ -274,6 +299,17 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                                     name="nickname"
                                     value={formData.nickname || ""}
                                     onChange={handleChange}
+                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                />
+                            </div>
+                            <div className="space-y-2 sm:col-span-2">
+                                <label className="text-sm font-medium text-foreground">Primary Role</label>
+                                <input
+                                    type="text"
+                                    name="user_position"
+                                    value={formData.user_position || ""}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Senior Frontend Developer, Virtual Assistant"
                                     className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
@@ -444,47 +480,101 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                             </Button>
                         </div>
                         <div className="space-y-4">
-                            {socialLinks.map((link, idx) => (
-                                <div key={link.id} className="flex items-center gap-3 max-md:flex-wrap">
-                                    <select
-                                        value={link.platform_name}
-                                        onChange={(e) => {
-                                            const newLinks = [...socialLinks];
-                                            newLinks[idx].platform_name = e.target.value as VsUserSocialLink['platform_name'];
-                                            setSocialLinks(newLinks);
-                                        }}
-                                        className="flex h-11 md:h-10 w-40 shrink-0 rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-md:w-full"
-                                    >
-                                        <option value="Github">Github</option>
-                                        <option value="LinkedIn">LinkedIn</option>
-                                        <option value="X (Twitter)">X (Twitter)</option>
-                                        <option value="Personal Portfolio">Personal Portfolio</option>
-                                    </select>
-                                    <input
-                                        type="url"
-                                        placeholder="Profile URL"
-                                        value={link.profile_url}
-                                        onChange={(e) => {
-                                            const newLinks = [...socialLinks];
-                                            newLinks[idx].profile_url = e.target.value;
-                                            setSocialLinks(newLinks);
-                                        }}
-                                        className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                    />
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive max-md:size-11"
-                                        onClick={() => {
-                                            const newLinks = [...socialLinks];
-                                            newLinks.splice(idx, 1);
-                                            setSocialLinks(newLinks);
-                                        }}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                            {socialLinks.map((link, idx) => {
+                                const currentPlatformConfig = SOCIAL_PLATFORMS.find(
+                                    (p) => p.name.toLowerCase() === (link.platform_name || "").toLowerCase()
+                                );
+                                const linkError = socialLinkErrors[link.id];
+
+                                return (
+                                    <div key={link.id} className="space-y-1">
+                                        <div className="flex items-center gap-3 max-md:flex-wrap">
+                                            <select
+                                                value={link.platform_name}
+                                                onChange={(e) => {
+                                                    const newPlatform = e.target.value as VsUserSocialLink['platform_name'];
+                                                    const newLinks = [...socialLinks];
+                                                    newLinks[idx].platform_name = newPlatform;
+                                                    setSocialLinks(newLinks);
+                                                    // Re-validate if url has content
+                                                    if (newLinks[idx].profile_url.trim()) {
+                                                        const validation = validateSocialUrl(newPlatform, newLinks[idx].profile_url);
+                                                        setSocialLinkErrors((prev) => ({
+                                                            ...prev,
+                                                            [link.id]: validation.isValid ? "" : (validation.error || "Invalid URL"),
+                                                        }));
+                                                    }
+                                                }}
+                                                className="flex h-11 md:h-10 w-44 shrink-0 rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring max-md:w-full"
+                                            >
+                                                {SOCIAL_PLATFORMS.map((platform) => (
+                                                    <option key={platform.name} value={platform.name}>
+                                                        {platform.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="url"
+                                                placeholder={currentPlatformConfig?.placeholder || "https://example.com/profile"}
+                                                value={link.profile_url}
+                                                onChange={(e) => {
+                                                    const newLinks = [...socialLinks];
+                                                    newLinks[idx].profile_url = e.target.value;
+                                                    setSocialLinks(newLinks);
+                                                    if (socialLinkErrors[link.id]) {
+                                                        const validation = validateSocialUrl(link.platform_name, e.target.value);
+                                                        setSocialLinkErrors((prev) => ({
+                                                            ...prev,
+                                                            [link.id]: validation.isValid ? "" : (validation.error || "Invalid URL"),
+                                                        }));
+                                                    }
+                                                }}
+                                                onBlur={(e) => {
+                                                    const val = e.target.value.trim();
+                                                    if (val) {
+                                                        const validation = validateSocialUrl(link.platform_name, val);
+                                                        setSocialLinkErrors((prev) => ({
+                                                            ...prev,
+                                                            [link.id]: validation.isValid ? "" : (validation.error || "Invalid URL"),
+                                                        }));
+                                                    } else {
+                                                        setSocialLinkErrors((prev) => {
+                                                            const copy = { ...prev };
+                                                            delete copy[link.id];
+                                                            return copy;
+                                                        });
+                                                    }
+                                                }}
+                                                className={`flex h-11 md:h-10 w-full rounded-md border bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
+                                                    linkError ? "border-destructive focus-visible:ring-destructive" : "border-input"
+                                                }`}
+                                            />
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-10 w-10 shrink-0 text-muted-foreground hover:text-destructive max-md:size-11"
+                                                onClick={() => {
+                                                    const newLinks = [...socialLinks];
+                                                    newLinks.splice(idx, 1);
+                                                    setSocialLinks(newLinks);
+                                                    setSocialLinkErrors((prev) => {
+                                                        const copy = { ...prev };
+                                                        delete copy[link.id];
+                                                        return copy;
+                                                    });
+                                                }}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        {linkError && (
+                                            <p className="text-xs text-destructive font-medium pl-1">
+                                                {linkError}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                             {socialLinks.length === 0 && (
                                 <p className="text-sm text-muted-foreground text-center py-4">No social links added yet.</p>
                             )}

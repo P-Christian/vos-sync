@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createVerificationSubmission, approveMobileVerification, deleteExistingVerification, IdentityVerification } from "./identity-verification.repo";
+import { createVerificationSubmission, approveMobileVerification, deleteExistingVerification, fetchUserVerifications, IdentityVerification } from "./identity-verification.repo";
 import { getFreelancerProfile } from "./freelancer-profile.service";
 import { checkRestriction } from "@/lib/status-validator";
 import {
@@ -131,6 +131,17 @@ export async function submitIdentityVerificationAction(payload: Partial<Identity
             verificationPayload.address_doc_image_uuid = requireFileReference(payload.address_doc_image_uuid, "Proof of address document");
         } else if (payload.mobile_number) {
             verificationPayload.mobile_number = String(payload.mobile_number).slice(0, 40);
+        }
+
+        // Backend Idempotency & Debounce Guard: Reject duplicate submissions if one is already pending within the last 30 seconds
+        const existingVerifications = await fetchUserVerifications(profile.user_id);
+        const recentPending = existingVerifications.find((v) => {
+            if (v.type !== type || v.status !== "pending") return false;
+            const submittedTime = new Date(v.submitted_at).getTime();
+            return !isNaN(submittedTime) && Date.now() - submittedTime < 30000;
+        });
+        if (recentPending) {
+            throw new Error("A submission for this requirement is already being processed. Please wait a moment.");
         }
 
         // Delete any existing verification record and associated files for this type
