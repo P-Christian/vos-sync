@@ -24,15 +24,35 @@ export function ApplicationPipelineDonut({ applications = [], loading = false }:
         let hired = 0;
 
         applications.forEach((app) => {
-            const status = (app.application_status || "").toUpperCase();
-            const stageType = (app.current_stage?.stage_type || "").toUpperCase();
+            const status = (app.application_status || "").trim().toUpperCase();
+            const stageType = (app.current_stage?.stage_type || "").trim().toUpperCase();
+            const isStageTerminal = Boolean(app.current_stage?.is_terminal);
+
+            // Terminal, withdrawn, or draft statuses must NOT be counted in the active funnel
+            const isTerminalOrWithdrawn =
+                ["WITHDRAWN", "REJECTED", "DECLINED", "CANCELLED", "CANCELLED_CLOSED", "DRAFT"].includes(status) ||
+                ["WITHDRAWN", "REJECTED", "DECLINED", "CANCELLED", "DRAFT"].includes(stageType) ||
+                (isStageTerminal && stageType !== "HIRED" && status !== "HIRED");
+
+            if (isTerminalOrWithdrawn) {
+                return;
+            }
 
             if (status === "HIRED" || stageType === "HIRED") {
                 hired += 1;
             } else if (status === "INTERVIEWING" || status === "INTERVIEW" || stageType === "INTERVIEW") {
                 interviewing += 1;
-            } else if (status === "UNDER_REVIEW" || status === "SHORTLISTED" || stageType === "SCREENING" || stageType === "ASSESSMENT") {
+            } else if (
+                status === "UNDER_REVIEW" ||
+                status === "SHORTLISTED" ||
+                stageType === "SCREENING" ||
+                stageType === "ASSESSMENT" ||
+                stageType === "SHORTLISTED" ||
+                stageType === "UNDER_REVIEW"
+            ) {
                 screening += 1;
+            } else if (status === "APPLIED" || status === "PENDING" || stageType === "APPLIED") {
+                applied += 1;
             } else {
                 applied += 1;
             }
@@ -127,10 +147,10 @@ export function ApplicationPipelineDonut({ applications = [], loading = false }:
                         {/* Center Metric Label */}
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                             <span className="text-2xl font-extrabold text-slate-900 dark:text-foreground">
-                                {totalCount}
+                                {activeCount}
                             </span>
                             <span className="text-[10px] font-medium text-slate-400 dark:text-muted-foreground tracking-tight uppercase">
-                                Total Apps
+                                Active Apps
                             </span>
                         </div>
                     </>
