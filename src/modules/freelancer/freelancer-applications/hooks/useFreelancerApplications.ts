@@ -59,6 +59,43 @@ function formatStatusLabel(val: string): string {
     .join(" ");
 }
 
+/**
+ * Canonical mapping for stage/status naming normalization.
+ * Maps synonymous terms (e.g. "APPLIED" -> "Application Received")
+ * so standard initial applications share the exact same status identity.
+ */
+function normalizeStageName(val: string): string {
+  const trimmed = val.trim();
+  if (trimmed.toUpperCase() === "APPLIED") {
+    return "Application Received";
+  }
+  return trimmed;
+}
+
+/**
+ * Derives the single authoritative display/filter status for an application.
+ * If application has progressed to a more advanced canonical status (e.g. INTERVIEWING)
+ * but current_stage is missing or lagged, this ensures consistent status representation.
+ */
+function getApplicationEffectiveStatus(app: ApplicationItem): string {
+  // If stage name exists and is not a lagged initial stage when status is advanced
+  const stageName = app.current_stage?.stage_name ? normalizeStageName(app.current_stage.stage_name) : null;
+  const canonicalLabel = formatStatusLabel(app.application_status);
+
+  // If status is advanced (e.g. INTERVIEWING, HIRED, REJECTED, WITHDRAWN)
+  // but current_stage says "Application Received", prioritize the actual application_status
+  if (
+    stageName === "Application Received" &&
+    app.application_status &&
+    app.application_status !== "APPLIED" &&
+    app.application_status !== "DRAFT"
+  ) {
+    return canonicalLabel;
+  }
+
+  return stageName || canonicalLabel;
+}
+
 export function useFreelancerApplications() {
   const [allApplications, setAllApplications] = useState<ApplicationItem[]>([]);
   const [assessmentSummaries, setAssessmentSummaries] = useState<
@@ -91,29 +128,20 @@ export function useFreelancerApplications() {
   }, []);
 
   // Dynamically derive filter status options from actual application data.
-  // No hardcoded constant status list.
+  // Each application has a single effective status, preventing overlapping filters.
   const statusOptions = useMemo(() => {
-    const optionsMap = new Map<string, string>();
-    optionsMap.set("ALL", "All Statuses");
+    const optionsMap = new Map<string, { value: string; label: string }>();
+    optionsMap.set("all", { value: "ALL", label: "All Statuses" });
 
     for (const app of allApplications) {
-      // 1. Current dynamic stage name if configured
-      if (app.current_stage?.stage_name) {
-        optionsMap.set(app.current_stage.stage_name, app.current_stage.stage_name);
-      }
-      // 2. Canonical application status (e.g. WITHDRAWN, APPLIED, SHORTLISTED, etc.)
-      if (app.application_status) {
-        const key = app.application_status;
-        if (!optionsMap.has(key)) {
-          optionsMap.set(key, formatStatusLabel(key));
-        }
+      const effective = getApplicationEffectiveStatus(app);
+      const normKey = effective.toLowerCase();
+      if (!optionsMap.has(normKey)) {
+        optionsMap.set(normKey, { value: effective, label: effective });
       }
     }
 
-    return Array.from(optionsMap.entries()).map(([value, label]) => ({
-      value,
-      label,
-    }));
+    return Array.from(optionsMap.values());
   }, [allApplications]);
 
   // Computed summary KPIs
@@ -140,11 +168,11 @@ export function useFreelancerApplications() {
 
     return allApplications
       .filter((a) => {
-        // Status matching: match canonical status or stage name
+        // Status matching: strict match against authoritative effective status
+        const appStatus = getApplicationEffectiveStatus(a);
         const matchesStatus =
           filterStatus === "ALL" ||
-          a.application_status === filterStatus ||
-          a.current_stage?.stage_name === filterStatus;
+          appStatus.toLowerCase() === filterStatus.toLowerCase();
 
         // Search matching
         const q = search.toLowerCase();
@@ -183,10 +211,19 @@ export function useFreelancerApplications() {
 
         return matchesStatus && matchesSearch && matchesDate;
       })
-      .map((application) => ({
-        ...application,
-        assessment: toAssessmentInfo(assessmentSummaries[application.application_id]),
-      }));
+      .map((application) => {
+        const effectiveStatus = getApplicationEffectiveStatus(application);
+        return {
+          ...application,
+          current_stage: application.current_stage
+            ? {
+                ...application.current_stage,
+                stage_name: effectiveStatus,
+              }
+            : null,
+          assessment: toAssessmentInfo(assessmentSummaries[application.application_id]),
+        };
+      });
   }, [allApplications, filterStatus, search, dateFilter, assessmentSummaries]);
 
   return {
