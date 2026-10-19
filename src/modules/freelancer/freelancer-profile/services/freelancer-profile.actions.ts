@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { generateProfessionalSummaryWithGemini } from "@/lib/gemini/resumeParser";
+import { VsMasterSkill } from "../types/freelancer-profile.types";
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET 
