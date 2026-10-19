@@ -7,6 +7,7 @@ import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvi
 import { FreelancerProfile, VsUserSocialLink } from "../types/freelancer-profile.types";
 import { Plus, X } from "lucide-react";
 import { fetchProvinces, fetchCities, fetchBarangays, PsgcItem } from "@/lib/psgc";
+import { SearchableAddressSelect } from "./SearchableAddressSelect";
 
 interface PersonalInfoModalProps {
     isOpen: boolean;
@@ -31,12 +32,12 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
     useEffect(() => {
         if (isOpen && data) {
             // Use pending draft if it exists, otherwise use live data
-            const source = pendingPersonalInfo || data;
+            const source = (pendingPersonalInfo || data) as (FreelancerProfile & { first_name?: string; last_name?: string });
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData({
-                user_fname: source.user_fname || "",
+                user_fname: source.user_fname || source.first_name || "",
                 user_mname: source.user_mname || "",
-                user_lname: source.user_lname || "",
+                user_lname: source.user_lname || source.last_name || "",
                 suffix_name: source.suffix_name || "",
                 nickname: source.nickname || "",
                 user_contact: source.user_contact || "",
@@ -164,38 +165,51 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const code = e.target.value;
-        const selected = provinces.find(p => p.code === code);
+    const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        if (!val) {
+            setFormData(prev => ({ ...prev, user_bday: "" }));
+            return;
+        }
+
+        // Enforce strict 4-digit maximum on the year segment (YYYY-MM-DD)
+        const parts = val.split("-");
+        if (parts[0] && parts[0].length > 4) {
+            return;
+        }
+
+        setFormData(prev => ({ ...prev, user_bday: val }));
+    };
+
+    const handleProvinceSelect = (code: string, name: string) => {
         setSelectedProvinceCode(code);
         setSelectedCityCode("");
         setBarangays([]);
         setFormData(prev => ({
             ...prev,
-            user_province: selected ? selected.name : "",
+            user_province: name,
             user_city: "",
             user_brgy: ""
         }));
     };
 
-    const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const code = e.target.value;
-        const selected = cities.find(c => c.code === code);
+    const handleCitySelect = (code: string, name: string) => {
         setSelectedCityCode(code);
         setFormData(prev => ({
             ...prev,
-            user_city: selected ? selected.name : "",
+            user_city: name,
             user_brgy: ""
         }));
     };
 
-    const handleBarangayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const name = e.target.value;
+    const handleBarangaySelect = (_code: string, name: string) => {
         setFormData(prev => ({
             ...prev,
             user_brgy: name
         }));
     };
+
+    const todayString = new Date().toISOString().split("T")[0];
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -271,7 +285,7 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Contact</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Contact Number</label>
+                                <label className="text-sm font-medium text-foreground">Contact Number *</label>
                                 <input
                                     type="text"
                                     name="user_contact"
@@ -288,17 +302,19 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 border-b pb-2">Personal Details</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Birthday</label>
+                                <label className="text-sm font-medium text-foreground">Birthday *</label>
                                 <input
                                     type="date"
                                     name="user_bday"
-                                    value={formData.user_bday || ""}
-                                    onChange={handleChange}
+                                    min="1900-01-01"
+                                    max={todayString}
+                                    value={formData.user_bday ? formData.user_bday.slice(0, 10) : ""}
+                                    onChange={handleBirthdayChange}
                                     className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Gender</label>
+                                <label className="text-sm font-medium text-foreground">Gender *</label>
                                 <select
                                     name="gender"
                                     value={formData.gender || ""}
@@ -379,48 +395,37 @@ export function PersonalInfoModal({ isOpen, onClose }: PersonalInfoModalProps) {
                         )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">Province</label>
-                                <select
-                                    name="user_province"
-                                    value={selectedProvinceCode || ""}
-                                    onChange={handleProvinceChange}
-                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                >
-                                    <option value="">Select Province</option>
-                                    {provinces.map(p => (
-                                        <option key={p.code} value={p.code}>{p.name}</option>
-                                    ))}
-                                </select>
+                                <label className="text-sm font-medium text-foreground">Province *</label>
+                                <SearchableAddressSelect
+                                    options={provinces}
+                                    value={selectedProvinceCode}
+                                    onChange={handleProvinceSelect}
+                                    placeholder="Select Province"
+                                    searchPlaceholder="Search province..."
+                                />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-foreground">City/Municipality</label>
-                                <select
-                                    name="user_city"
-                                    value={selectedCityCode || ""}
-                                    onChange={handleCityChange}
+                                <label className="text-sm font-medium text-foreground">City/Municipality *</label>
+                                <SearchableAddressSelect
+                                    options={cities}
+                                    value={selectedCityCode}
+                                    onChange={handleCitySelect}
+                                    placeholder="Select City/Municipality"
+                                    searchPlaceholder="Search city/municipality..."
                                     disabled={!selectedProvinceCode || cities.length === 0}
-                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                                >
-                                    <option value="">Select City/Municipality</option>
-                                    {cities.map(c => (
-                                        <option key={c.code} value={c.code}>{c.name}</option>
-                                    ))}
-                                </select>
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-foreground">Barangay</label>
-                                <select
-                                    name="user_brgy"
+                                <SearchableAddressSelect
+                                    options={barangays}
                                     value={formData.user_brgy || ""}
-                                    onChange={handleBarangayChange}
+                                    onChange={handleBarangaySelect}
+                                    placeholder="Select Barangay"
+                                    searchPlaceholder="Search barangay..."
                                     disabled={!selectedCityCode || barangays.length === 0}
-                                    className="flex h-11 md:h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                                >
-                                    <option value="">Select Barangay</option>
-                                    {barangays.map(b => (
-                                        <option key={b.code} value={b.name}>{b.name}</option>
-                                    ))}
-                                </select>
+                                    matchByName={true}
+                                />
                             </div>
                         </div>
                     </div>

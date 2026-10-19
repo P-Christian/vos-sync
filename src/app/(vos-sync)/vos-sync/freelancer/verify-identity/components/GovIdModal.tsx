@@ -14,21 +14,30 @@ interface GovIdModalProps {
 }
 
 const ID_TYPE_OPTIONS = [
-    { value: "driver_license", label: "Driver's License" },
-    { value: "passport", label: "Passport" },
-    { value: "national_id", label: "National ID (PhilSys)" },
-    { value: "postal_id", label: "Postal ID" },
-    { value: "umid", label: "UMID" },
+    { value: "PhilSys National ID", label: "PhilSys National ID" },
+    { value: "Philippine Passport", label: "Philippine Passport" },
+    { value: "Driver's License (LTO)", label: "Driver's License (LTO)" },
+    { value: "SSS ID", label: "SSS ID" },
+    { value: "GSIS ID", label: "GSIS ID" },
+    { value: "UMID", label: "UMID" },
+    { value: "PRC ID", label: "PRC ID" },
+    { value: "Voter's ID (COMELEC)", label: "Voter's ID (COMELEC)" },
+    { value: "TIN ID (BIR)", label: "TIN ID (BIR)" },
+    { value: "Postal ID", label: "Postal ID" },
+    { value: "PhilHealth ID", label: "PhilHealth ID" },
+    { value: "Others", label: "Others" },
 ];
 
 export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }: GovIdModalProps) {
     const [idType, setIdType] = useState<string>("");
+    const [otherIdName, setOtherIdName] = useState<string>("");
     const [frontId, setFrontId] = useState<File | null>(null);
     const [selfieId, setSelfieId] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async () => {
-        if (!idType || !frontId || !selfieId) {
+        const resolvedIdType = idType === "Others" ? otherIdName.trim() : idType;
+        if (!resolvedIdType || !frontId || !selfieId) {
             toast.error("Please fill in all fields and upload both images.");
             return;
         }
@@ -52,7 +61,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
 
             const submitRes = await submitIdentityVerificationAction({
                 type: 'gov_id',
-                gov_id_type: idType,
+                gov_id_type: resolvedIdType,
                 gov_id_front_image_uuid: frontRes.fileId,
                 gov_id_selfie_image_uuid: selfieRes.fileId
             });
@@ -87,7 +96,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                         </div>
                     )}
                     <div className="grid gap-2">
-                        <label className="text-sm font-medium">ID Type</label>
+                        <label className="text-sm font-medium">ID Type *</label>
                         <SearchableSelect
                             value={idType}
                             onValueChange={setIdType}
@@ -96,8 +105,20 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                             triggerClassName="max-md:min-h-11 w-full"
                         />
                     </div>
+                    {idType === "Others" && (
+                        <div className="grid gap-2">
+                            <label className="text-sm font-medium">Specify ID Type *</label>
+                            <Input
+                                type="text"
+                                value={otherIdName}
+                                onChange={(e) => setOtherIdName(e.target.value)}
+                                placeholder="e.g. Senior Citizen ID, PWD ID"
+                                className="max-md:min-h-11"
+                            />
+                        </div>
+                    )}
                     <div className="grid gap-2">
-                        <label className="text-sm font-medium">Front of ID</label>
+                        <label className="text-sm font-medium">Front of ID *</label>
                         <Input 
                             type="file" 
                             accept="image/*" 
@@ -106,7 +127,7 @@ export default function GovIdModal({ isOpen, onClose, onSuccess, rejectionNote }
                         />
                     </div>
                     <div className="grid gap-2">
-                        <label className="text-sm font-medium">Selfie holding ID</label>
+                        <label className="text-sm font-medium">Selfie holding ID *</label>
                         <Input 
                             type="file" 
                             accept="image/*" 

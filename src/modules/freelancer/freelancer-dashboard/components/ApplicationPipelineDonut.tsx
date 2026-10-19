@@ -17,7 +17,7 @@ interface StageData {
 }
 
 export function ApplicationPipelineDonut({ applications = [], loading = false }: ApplicationPipelineDonutProps) {
-    const { chartData, activeCount, totalCount } = useMemo(() => {
+    const { chartData, activeCount } = useMemo(() => {
         let applied = 0;
         let screening = 0;
         let interviewing = 0;
@@ -66,9 +66,8 @@ export function ApplicationPipelineDonut({ applications = [], loading = false }:
         ].filter((d) => d.value > 0);
 
         const active = applied + screening + interviewing;
-        const total = applications.length;
 
-        return { chartData: data, activeCount: active, totalCount: total };
+        return { chartData: data, activeCount: active };
     }, [applications]);
 
     if (loading) {
