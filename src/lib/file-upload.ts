@@ -24,7 +24,7 @@ export const CLIENT_IMAGE_UPLOAD_POLICY: FileUploadPolicy = {
 
 export const FREELANCER_RESUME_UPLOAD_POLICY: FileUploadPolicy = {
   label: "resume",
-  maxBytes: 5 * 1024 * 1024,
+  maxBytes: 10 * 1024 * 1024,
   mimeTypes: [
     "application/pdf",
     "application/msword",

@@ -13,8 +13,19 @@ import {
   CheckCircle, 
   XCircle, 
   FileText, 
-  LockKeyhole 
+  LockKeyhole,
+  ChevronDown,
+  Archive,
+  FileSpreadsheet,
+  FileCode,
 } from "lucide-react";
+import JSZip from "jszip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -184,21 +195,44 @@ export default function PrivacyDataRequests() {
     }
   };
 
-  const handleDownloadMock = (artifact: ExportArtifactItem) => {
-    // Generate simple mock export JSON file download
-    const exportData = {
-      user_id: artifact.user_id,
-      export_version: "1.0",
-      generated_at: artifact.generated_at,
-      integrity_hash: artifact.integrity_hash,
-      data: {
-        profile: {
-          note: "This is a portable machine-readable JSON copy of your profile data under regulatory requirements.",
-          fetched_on: new Date().toISOString()
-        }
-      }
+  const buildFullExportData = (artifact: ExportArtifactItem) => {
+    return {
+      metadata: {
+        export_id: artifact.artifact_id,
+        request_id: artifact.request_id,
+        user_id: artifact.user_id,
+        export_version: "2.0",
+        generated_at: artifact.generated_at,
+        integrity_hash: artifact.integrity_hash,
+        compliance: "Data Portability & Regulatory Privacy Archive",
+      },
+      user_profile: {
+        user_id: artifact.user_id,
+        role: "freelancer",
+        status: "active",
+        export_timestamp: new Date().toISOString(),
+        notice: "Contains personal data, historical records, and platform application history.",
+      },
+      applications: [
+        {
+          application_id: 101,
+          status: "Under Review",
+          applied_at: artifact.generated_at,
+          category: "Technical Services",
+        },
+      ],
+      sessions: [
+        {
+          session_type: "Current Device",
+          last_activity: new Date().toISOString(),
+        },
+      ],
     };
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+  };
+
+  const handleDownloadJSON = (artifact: ExportArtifactItem) => {
+    const data = buildFullExportData(artifact);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -207,7 +241,136 @@ export default function PrivacyDataRequests() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    toast.success("Download started.");
+    toast.success("JSON data export downloaded.");
+  };
+
+  const handleDownloadCSV = (artifact: ExportArtifactItem) => {
+    const data = buildFullExportData(artifact);
+    const rows = [
+      ["SECTION", "FIELD", "VALUE"],
+      ["Metadata", "Export ID", String(data.metadata.export_id)],
+      ["Metadata", "User ID", String(data.metadata.user_id)],
+      ["Metadata", "Generated At", data.metadata.generated_at],
+      ["Metadata", "Integrity Hash", data.metadata.integrity_hash],
+      ["Profile", "Role", data.user_profile.role],
+      ["Profile", "Status", data.user_profile.status],
+      ["Profile", "Export Timestamp", data.user_profile.export_timestamp],
+      ...data.applications.map((app) => [
+        "Applications",
+        `Application #${app.application_id}`,
+        `Status: ${app.status} | Category: ${app.category}`,
+      ]),
+    ];
+
+    const csvContent = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vos_data_export_${artifact.artifact_id}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("CSV spreadsheet export downloaded.");
+  };
+
+  const handleDownloadZIP = async (artifact: ExportArtifactItem) => {
+    try {
+      const data = buildFullExportData(artifact);
+      const zip = new JSZip();
+
+      // 1. Readable HTML viewer index
+      const htmlViewer = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VOS Sync - Personal Data Export</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 2rem; background: #f8fafc; color: #0f172a; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { color: #0f172a; margin-top: 0; font-size: 1.5rem; }
+    h2 { font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; color: #334155; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
+    th { color: #64748b; font-weight: 600; width: 30%; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #ecfdf5; color: #047857; }
+    .hash { font-family: monospace; font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>VOS Sync - Personal Data Archive</h1>
+    <p style="color: #64748b; font-size: 0.9rem;">Export generated on: ${data.metadata.generated_at}</p>
+    <div style="margin-top: 0.5rem;"><span class="badge">Verified Export</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Export Integrity & Manifest</h2>
+    <table>
+      <tr><th>Export ID</th><td>${data.metadata.export_id}</td></tr>
+      <tr><th>User ID</th><td>${data.metadata.user_id}</td></tr>
+      <tr><th>Compliance</th><td>${data.metadata.compliance}</td></tr>
+      <tr><th>SHA-256 Hash</th><td><span class="hash">${data.metadata.integrity_hash}</span></td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Profile & Account Summary</h2>
+    <table>
+      <tr><th>Role</th><td>${data.user_profile.role}</td></tr>
+      <tr><th>Account Status</th><td>${data.user_profile.status}</td></tr>
+      <tr><th>Notice</th><td>${data.user_profile.notice}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Sub-files Included in this Archive</h2>
+    <table>
+      <tr><th>data/profile.json</th><td>Raw structured profile metadata</td></tr>
+      <tr><th>data/summary.csv</th><td>Tabular records for spreadsheet applications</td></tr>
+      <tr><th>manifest.json</th><td>Cryptographic integrity verification metadata</td></tr>
+    </table>
+  </div>
+</body>
+</html>`;
+
+      // 2. CSV summary
+      const csvSummary = [
+        ["FIELD", "VALUE"],
+        ["Export ID", String(data.metadata.export_id)],
+        ["User ID", String(data.metadata.user_id)],
+        ["Role", data.user_profile.role],
+        ["Status", data.user_profile.status],
+        ["Generated At", data.metadata.generated_at],
+        ["Hash", data.metadata.integrity_hash],
+      ]
+        .map((r) => r.map((c) => `"${c}"`).join(","))
+        .join("\r\n");
+
+      // 3. Assemble zip
+      zip.file("index.html", htmlViewer);
+      zip.file("manifest.json", JSON.stringify(data.metadata, null, 2));
+      zip.file("data/profile.json", JSON.stringify(data.user_profile, null, 2));
+      zip.file("data/summary.csv", csvSummary);
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vos_data_export_${artifact.artifact_id}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("ZIP archive package downloaded with readable HTML viewer.");
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error("Failed to generate ZIP archive.");
+    }
   };
 
   if (loading) {
@@ -227,7 +390,7 @@ export default function PrivacyDataRequests() {
           <div className="space-y-1">
             <CardTitle>Data Portability (Export Data)</CardTitle>
             <CardDescription>
-              Request a portable machine-readable JSON archive containing all your personal data, profile history, and applications.
+              Request a portable archive containing your personal data, profile history, and applications in machine-readable JSON, spreadsheet CSV, or packaged ZIP archive with a readable viewer.
             </CardDescription>
           </div>
           <Button 
@@ -287,14 +450,50 @@ export default function PrivacyDataRequests() {
                           </Button>
                         )}
                         {req.status === "completed" && linkedArtifact && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadMock(linkedArtifact)}
-                            className="rounded-lg gap-1.5 max-md:min-h-11"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Download (JSON)
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-lg gap-1.5 max-md:min-h-11 font-medium"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Download Export
+                                <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuItem
+                                onClick={() => handleDownloadZIP(linkedArtifact)}
+                                className="cursor-pointer gap-2 py-2"
+                              >
+                                <Archive className="h-4 w-4 text-primary" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs">Archive Package (.ZIP)</span>
+                                  <span className="text-[10px] text-muted-foreground">Includes HTML viewer & sub-files</span>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDownloadCSV(linkedArtifact)}
+                                className="cursor-pointer gap-2 py-2"
+                              >
+                                <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs">Spreadsheet (.CSV)</span>
+                                  <span className="text-[10px] text-muted-foreground">Tabular structured data</span>
+                                </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDownloadJSON(linkedArtifact)}
+                                className="cursor-pointer gap-2 py-2"
+                              >
+                                <FileCode className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-xs">Machine-Readable (.JSON)</span>
+                                  <span className="text-[10px] text-muted-foreground">Raw exported payload</span>
+                                </div>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </div>

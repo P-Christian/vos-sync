@@ -9,10 +9,11 @@ interface AddressModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    onSubmittingChange?: (isSubmitting: boolean) => void;
     rejectionNote?: string;
 }
 
-export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote }: AddressModalProps) {
+export default function AddressModal({ isOpen, onClose, onSuccess, onSubmittingChange, rejectionNote }: AddressModalProps) {
     const [addressDoc, setAddressDoc] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -24,6 +25,7 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
 
         try {
             setIsSubmitting(true);
+            onSubmittingChange?.(true);
             
             const formData = new FormData();
             formData.append("file", addressDoc);
@@ -40,9 +42,10 @@ export default function AddressModal({ isOpen, onClose, onSuccess, rejectionNote
             if (!submitRes.success) throw new Error(submitRes.error);
 
             toast.success("Address document submitted successfully for review.");
-            onSuccess();
             onClose();
+            await onSuccess();
         } catch (error) {
+            onSubmittingChange?.(false);
             const message = error instanceof Error ? error.message : "Failed to submit Address verification.";
             toast.error(message);
         } finally {

@@ -19,10 +19,13 @@ function getHeaders(): Record<string, string> {
 
 // Canonical categories for freelancers
 const KNOWN_FREELANCER_CATEGORIES = [
+  { category: "APPLICATION_SUBMITTED", defaultEmail: true, defaultInApp: true },
+  { category: "APPLICATION_STATUS_UPDATED", defaultEmail: true, defaultInApp: true },
   { category: "Application Updates", defaultEmail: true, defaultInApp: true },
   { category: "INTERVIEW", defaultEmail: true, defaultInApp: true },
   { category: "Referral Updates", defaultEmail: true, defaultInApp: true },
   { category: "Profile Activity", defaultEmail: false, defaultInApp: true },
+  { category: "EDUCATION_VERIFICATION", defaultEmail: false, defaultInApp: true },
   { category: "MESSAGE_RECEIVED", defaultEmail: true, defaultInApp: true },
   { category: "UNREAD_MESSAGE_REMINDER", defaultEmail: true, defaultInApp: true },
   { category: "PRODUCT_UPDATES", defaultEmail: false, defaultInApp: true },

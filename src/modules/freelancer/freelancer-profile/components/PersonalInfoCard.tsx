@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { User, Mail, MapPin, Briefcase, Camera } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGithub, faLinkedin, faXTwitter } from '@fortawesome/free-brands-svg-icons';
+import { faGithub, faGitlab, faLinkedin, faXTwitter, faYoutube, faFacebook } from '@fortawesome/free-brands-svg-icons';
 import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { useFreelancerProfileContext } from "../providers/FreelancerProfileProvider";
 import { Button } from "@/components/ui/button";
@@ -62,9 +62,13 @@ export function PersonalInfoCard() {
     const getPlatformIcon = (platform: string) => {
         switch (platform) {
             case 'Github': return <FontAwesomeIcon icon={faGithub} className="text-2xl" />;
+            case 'GitLab': return <FontAwesomeIcon icon={faGitlab} className="text-2xl" />;
             case 'LinkedIn': return <FontAwesomeIcon icon={faLinkedin} className="text-2xl" />;
             case 'X (Twitter)': return <FontAwesomeIcon icon={faXTwitter} className="text-2xl" />;
+            case 'YouTube': return <FontAwesomeIcon icon={faYoutube} className="text-2xl" />;
+            case 'Facebook': return <FontAwesomeIcon icon={faFacebook} className="text-2xl" />;
             case 'Personal Portfolio': return <FontAwesomeIcon icon={faGlobe} className="text-2xl" />;
+            case 'Other': return <FontAwesomeIcon icon={faGlobe} className="text-2xl" />;
             default: return <FontAwesomeIcon icon={faGlobe} className="text-2xl" />;
         }
     };

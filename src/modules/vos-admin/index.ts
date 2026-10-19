@@ -1,4 +1,6 @@
 export { SchoolAdminDashboard } from './components/SchoolAdminDashboard';
+export * from './types/dashboard';
+export * from './hooks/useAdminDashboardData';
 export * from './account-status-management';
 export * from './school-verification';
 export {

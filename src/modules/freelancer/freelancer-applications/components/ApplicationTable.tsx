@@ -19,16 +19,32 @@ import { AssessmentDueBadge } from "./application-table/AssessmentDueBadge";
 import { ApplicationDetailsDrawer } from "./application-table/ApplicationDetailsDrawer";
 import { ApplicationMobileList } from "./application-table/ApplicationMobileList";
 import { WithdrawApplicationDialog } from "./application-table/WithdrawApplicationDialog";
-import { formatDate, getInitials } from "./application-table/formatters";
+import { formatDate, getInitials, formatJobType } from "./application-table/formatters";
 import { AssessmentSubmissionDialog } from "./AssessmentSubmissionDialog";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { DateRangeFilter, DateRangeFilterValue } from "./application-table/DateRangeFilter";
 
 interface Props {
   applications: ApplicationItem[];
   onRefresh?: () => void;
   mobileSearch?: string;
+  filterStatus?: string;
+  onFilterChange?: (status: string) => void;
+  statusOptions?: Array<{ value: string; label: string }>;
+  dateFilter?: DateRangeFilterValue;
+  onDateFilterChange?: (val: DateRangeFilterValue) => void;
 }
 
-export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mobileSearch }) => {
+export const ApplicationTable: React.FC<Props> = ({
+  applications,
+  onRefresh,
+  mobileSearch,
+  filterStatus = "ALL",
+  onFilterChange,
+  statusOptions = [],
+  dateFilter,
+  onDateFilterChange,
+}) => {
   const [selectedApp, setSelectedApp] = useState<ApplicationItem | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<CompanyProfile | null>(null);
   const [isCompanyOpen, setIsCompanyOpen] = useState(false);
@@ -55,7 +71,7 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
           <div>
             <div className="text-sm font-semibold text-foreground">{app.job_title ?? "—"}</div>
             <div className="text-sm md:text-xs text-muted-foreground mt-0.5">
-              {[app.job_type, app.job_location].filter(Boolean).join(" • ")}
+              {[formatJobType(app.job_type), app.job_location].filter(Boolean).join(" • ")}
             </div>
           </div>
         );
@@ -181,6 +197,25 @@ export const ApplicationTable: React.FC<Props> = ({ applications, onRefresh, mob
           searchKey="job_title"
           emptyTitle="No applications found"
           emptyDescription="You haven't applied to any jobs yet."
+          filterComponent={
+            <div className="flex items-center gap-2">
+              {onFilterChange && (
+                <SearchableSelect
+                  options={statusOptions}
+                  value={filterStatus}
+                  onValueChange={(val) => onFilterChange(val)}
+                  placeholder="Filter by status"
+                  className="w-[180px] h-10"
+                />
+              )}
+              {dateFilter && onDateFilterChange && (
+                <DateRangeFilter
+                  value={dateFilter}
+                  onChange={onDateFilterChange}
+                />
+              )}
+            </div>
+          }
         />
       </div>
 

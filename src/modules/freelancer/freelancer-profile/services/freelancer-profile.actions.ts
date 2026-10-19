@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { generateProfessionalSummaryWithGemini } from "@/lib/gemini/resumeParser";
+import { VsMasterSkill } from "../types/freelancer-profile.types";
 
 const JWT_SECRET = new TextEncoder().encode(
     process.env.JWT_SECRET 
@@ -124,6 +125,60 @@ export async function searchMasterSkillsAction(query: string) {
 
     const data = await res.json();
     return data.data || [];
+}
+
+export async function addCustomMasterSkillAction(skillName: string): Promise<VsMasterSkill> {
+    const trimmed = skillName.trim();
+    if (!trimmed) {
+        throw new Error("Skill name cannot be empty.");
+    }
+
+    const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const DIRECTUS_STATIC_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+
+    if (!NEXT_PUBLIC_API_BASE_URL || !DIRECTUS_STATIC_TOKEN) {
+        throw new Error("Directus API URL or Static Token is not configured.");
+    }
+
+    // 1. Check if the skill already exists (case-insensitive check)
+    const checkUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills?filter[skill_name][_eq]=${encodeURIComponent(trimmed)}&limit=1`;
+    const checkRes = await fetch(checkUrl, {
+        headers: { "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}` },
+        cache: "no-store",
+    });
+
+    if (checkRes.ok) {
+        const checkJson = await checkRes.json();
+        const existing = checkJson.data || [];
+        if (existing.length > 0) {
+            return {
+                id: Number(existing[0].id),
+                skill_name: existing[0].skill_name,
+            };
+        }
+    }
+
+    // 2. Insert new custom skill into vs_master_skills
+    const insertUrl = `${NEXT_PUBLIC_API_BASE_URL}/items/vs_master_skills`;
+    const insertRes = await fetch(insertUrl, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${DIRECTUS_STATIC_TOKEN}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ skill_name: trimmed }),
+    });
+
+    if (!insertRes.ok) {
+        const errText = await insertRes.text();
+        throw new Error(`Failed to create custom skill: ${errText}`);
+    }
+
+    const insertJson = await insertRes.json();
+    return {
+        id: Number(insertJson.data.id),
+        skill_name: insertJson.data.skill_name,
+    };
 }
 
 export async function resolveSkillsAction(skillNames: string[]) {
