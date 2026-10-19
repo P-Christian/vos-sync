@@ -11,6 +11,7 @@ interface CameraCaptureModalProps {
     onCapture: (file: File) => void;
     title?: string;
     facingMode?: "user" | "environment";
+    onRequestFileUpload?: () => void;
 }
 
 export function CameraCaptureModal({
@@ -18,13 +19,14 @@ export function CameraCaptureModal({
     onClose,
     onCapture,
     title = "Take Photo",
-    facingMode = "user"
+    facingMode = "user",
+    onRequestFileUpload
 }: CameraCaptureModalProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
     const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
-    const [cameraError, setCameraError] = useState<string | null>(null);
+    const [cameraError, setCameraError] = useState<{ message: string; isPermission?: boolean } | null>(null);
     const [isStreaming, setIsStreaming] = useState(false);
 
     const stopStream = useCallback(() => {
@@ -36,8 +38,11 @@ export function CameraCaptureModal({
     }, []);
 
     const initStream = useCallback(async () => {
+        setCameraError(null);
         if (!navigator?.mediaDevices?.getUserMedia) {
-            setCameraError("Camera access is not supported by your browser.");
+            setCameraError({
+                message: "Camera access is not supported by your browser. Please use 'Browse File' instead."
+            });
             return;
         }
 
@@ -47,14 +52,29 @@ export function CameraCaptureModal({
                 streamRef.current = null;
             }
 
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: facingMode,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                },
-                audio: false
-            });
+            let stream: MediaStream;
+            try {
+                // First attempt: try requested ideal facingMode
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: facingMode },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+            } catch (err: unknown) {
+                const errorName = err instanceof Error ? err.name : "";
+                // If it's a constraint or device error (e.g. desktop doesn't have environment camera), fallback to any video camera
+                if (errorName === "OverconstrainedError" || errorName === "ConstraintNotSatisfiedError") {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                } else {
+                    throw err;
+                }
+            }
 
             streamRef.current = stream;
             if (videoRef.current) {
@@ -62,9 +82,27 @@ export function CameraCaptureModal({
                 await videoRef.current.play();
                 setIsStreaming(true);
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error("Camera access error:", err);
-            setCameraError("Unable to access camera. Please ensure permissions are granted.");
+            const errorName = err instanceof Error ? err.name : "";
+            if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+                setCameraError({
+                    message: "Camera permission was blocked. Please click the lock or camera icon in your browser address bar to allow camera access.",
+                    isPermission: true
+                });
+            } else if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+                setCameraError({
+                    message: "No camera device detected on this device. Please connect a webcam or browse an existing photo."
+                });
+            } else if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+                setCameraError({
+                    message: "Camera is currently being used by another application. Please close other camera apps and try again."
+                });
+            } else {
+                setCameraError({
+                    message: "Unable to start camera. Please ensure permissions are granted or upload an image directly."
+                });
+            }
             setIsStreaming(false);
         }
     }, [facingMode]);
@@ -148,8 +186,35 @@ export function CameraCaptureModal({
 
                 <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                     {cameraError ? (
-                        <div className="p-4 text-center text-sm text-destructive bg-destructive/10 rounded-lg m-4">
-                            {cameraError}
+                        <div className="p-4 text-center space-y-3 max-w-[90%]">
+                            <div className="p-3 text-xs md:text-sm text-destructive bg-destructive/15 rounded-lg border border-destructive/20">
+                                {cameraError.message}
+                            </div>
+                            <div className="flex items-center justify-center gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => initStream()}
+                                    className="text-xs h-8 text-foreground"
+                                >
+                                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                                    Try Again
+                                </Button>
+                                {onRequestFileUpload && (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={() => {
+                                            onClose();
+                                            onRequestFileUpload();
+                                        }}
+                                        className="text-xs h-8 bg-primary text-primary-foreground"
+                                    >
+                                        Upload File Instead
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     ) : capturedPreview ? (
                         // eslint-disable-next-line @next/next/no-img-element

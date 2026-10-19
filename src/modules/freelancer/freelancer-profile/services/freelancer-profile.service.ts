@@ -220,6 +220,20 @@ export async function updatePersonalInfoService(userId: number, payload: any) {
 export async function saveJobPreferencesService(userId: number, payload: any) {
     const { upsertJobPreferencesInDirectus } = await import("./freelancer-profile.repo");
 
+    // Format current timestamp in PH local time (Asia/Manila, UTC+8) formatted as YYYY-MM-DD HH:mm:ss for MySQL timestamp
+    const now = new Date();
+    const dtf = new Intl.DateTimeFormat("sv-SE", {
+        timeZone: "Asia/Manila",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+    });
+    const phTimestamp = dtf.format(now);
+
     const data = {
         job_type: payload.job_type,
         work_setup: payload.work_setup,
@@ -229,6 +243,7 @@ export async function saveJobPreferencesService(userId: number, payload: any) {
         currency: payload.currency,
         availability: payload.availability,
         preferred_industry: payload.preferred_industry,
+        updated_at: phTimestamp,
     };
 
     return await upsertJobPreferencesInDirectus(userId, data);

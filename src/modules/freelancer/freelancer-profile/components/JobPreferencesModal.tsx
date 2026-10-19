@@ -36,6 +36,52 @@ const AVAILABILITY_OPTIONS = [
   { value: "Not Looking", label: "Not Looking currently" },
 ];
 
+const WORK_SETUP_OPTIONS = ["Remote", "Hybrid", "On-site"];
+
+const PREFERRED_INDUSTRY_OPTIONS = [
+  "Information Technology & Services",
+  "Financial Services, Accounting & Banking",
+  "BPO & Customer Support",
+  "Healthcare & Pharmaceuticals",
+  "Education & Training",
+  "Manufacturing & Logistics",
+  "Marketing, Advertising & Creative Media",
+  "Real Estate & Construction",
+  "Retail, E-commerce & Consumer Goods",
+  "Hospitality, Travel & Tourism",
+  "Legal & Professional Services",
+  "Telecommunications",
+];
+
+export function parseIndustries(raw: string | null | undefined): string[] {
+    if (!raw || !raw.trim()) return [];
+    
+    // If separated by semicolon
+    if (raw.includes(";")) {
+        return Array.from(new Set(raw.split(";").map(s => s.trim()).filter(Boolean)));
+    }
+    
+    // If legacy comma separated, check if it matches catalog items before splitting
+    let text = raw.trim();
+    const result: string[] = [];
+    
+    // Check for catalog items that contain commas first
+    for (const opt of PREFERRED_INDUSTRY_OPTIONS) {
+        if (text.includes(opt)) {
+            result.push(opt);
+            text = text.replace(opt, "").replace(/^[,\s]+|[,\s]+$/g, "");
+        }
+    }
+    
+    // If fragments remain, split by comma
+    if (text) {
+        const remaining = text.split(",").map(s => s.trim()).filter(Boolean);
+        result.push(...remaining);
+    }
+    
+    return Array.from(new Set(result));
+}
+
 interface JobPreferencesModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -129,9 +175,22 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
     if (!isOpen) return null;
 
     const handleSave = () => {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat("sv-SE", {
+            timeZone: "Asia/Manila",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });
+        const phTimestamp = dtf.format(now);
+
         setJobPreferencesDraft({
             ...preferences,
-            updated_at: new Date().toISOString()
+            updated_at: phTimestamp
         });
         onClose();
     };
@@ -177,30 +236,80 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Job Type</label>
-                            <SearchableSelect 
-                                options={JOB_TYPE_OPTIONS}
-                                value={preferences.job_type || ""} 
-                                onValueChange={(val) => handleChange("job_type", val)}
-                                placeholder="Select job type"
-                                className="max-md:min-h-11"
-                            />
+                            <p className="text-xs text-muted-foreground">Select one or more job types</p>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {JOB_TYPE_OPTIONS.map(opt => {
+                                    const currentValues = (preferences.job_type || "")
+                                        .split(",")
+                                        .map(s => s.trim())
+                                        .filter(Boolean);
+                                    const isSelected = currentValues.includes(opt.value);
+
+                                    const toggleJobType = () => {
+                                        let updated: string[];
+                                        if (isSelected) {
+                                            updated = currentValues.filter(v => v !== opt.value);
+                                        } else {
+                                            updated = [...currentValues, opt.value];
+                                        }
+                                        handleChange("job_type", updated.length > 0 ? updated.join(", ") : null);
+                                    };
+
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={toggleJobType}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer select-none max-md:py-2 max-md:px-3.5 ${
+                                                isSelected
+                                                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                    : "bg-background text-foreground border-input hover:bg-muted/70"
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Work Setup</label>
-                            <Select 
-                                value={preferences.work_setup || ""} 
-                                onValueChange={(val) => handleChange("work_setup", val)}
-                            >
-                                <SelectTrigger className="max-md:min-h-11">
-                                    <SelectValue placeholder="Select work setup" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Remote">Remote</SelectItem>
-                                    <SelectItem value="On-site">On-site</SelectItem>
-                                    <SelectItem value="Hybrid">Hybrid</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <p className="text-xs text-muted-foreground">Select one or more work setups</p>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {WORK_SETUP_OPTIONS.map(setup => {
+                                    const currentValues = (preferences.work_setup || "")
+                                        .split(",")
+                                        .map(s => s.trim())
+                                        .filter(Boolean);
+                                    const isSelected = currentValues.includes(setup);
+
+                                    const toggleWorkSetup = () => {
+                                        let updated: string[];
+                                        if (isSelected) {
+                                            updated = currentValues.filter(v => v !== setup);
+                                        } else {
+                                            updated = [...currentValues, setup];
+                                        }
+                                        handleChange("work_setup", updated.length > 0 ? updated.join(", ") : null);
+                                    };
+
+                                    return (
+                                        <button
+                                            key={setup}
+                                            type="button"
+                                            onClick={toggleWorkSetup}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer select-none max-md:py-2 max-md:px-3.5 ${
+                                                isSelected
+                                                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                    : "bg-background text-foreground border-input hover:bg-muted/70"
+                                            }`}
+                                        >
+                                            {setup}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -231,12 +340,71 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Preferred Industry</label>
-                            <Input 
-                                value={preferences.preferred_industry || ""} 
-                                onChange={(e) => handleChange("preferred_industry", e.target.value)}
-                                placeholder="e.g. Technology, Healthcare, etc."
-                            />
+                            <div className="flex items-center justify-between">
+                                <label className="text-sm font-medium">Preferred Industry</label>
+                                <span className="text-xs text-muted-foreground">Up to 5 industries</span>
+                            </div>
+                            
+                            {(() => {
+                                const selectedIndustries = parseIndustries(preferences.preferred_industry);
+
+                                const removeIndustry = (industryToRemove: string) => {
+                                    const updated = selectedIndustries.filter(i => i !== industryToRemove);
+                                    handleChange("preferred_industry", updated.length > 0 ? updated.join("; ") : null);
+                                };
+
+                                const addIndustry = (industryToAdd: string) => {
+                                    if (selectedIndustries.length >= 5) return;
+                                    if (!selectedIndustries.includes(industryToAdd)) {
+                                        const updated = [...selectedIndustries, industryToAdd];
+                                        handleChange("preferred_industry", updated.join("; "));
+                                    }
+                                };
+
+                                const availableOptions = PREFERRED_INDUSTRY_OPTIONS
+                                    .filter(opt => !selectedIndustries.includes(opt))
+                                    .map(opt => ({ value: opt, label: opt }));
+
+                                return (
+                                    <div className="space-y-2">
+                                        {selectedIndustries.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 pb-1">
+                                                {selectedIndustries.map((industry, idx) => (
+                                                    <span 
+                                                        key={`${industry}-${idx}`}
+                                                        className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 shadow-xs transition-colors"
+                                                    >
+                                                        <span>{industry}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeIndustry(industry)}
+                                                            className="text-primary/70 hover:text-primary hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                                                            aria-label={`Remove ${industry}`}
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {selectedIndustries.length < 5 ? (
+                                            <SearchableSelect 
+                                                options={availableOptions}
+                                                value=""
+                                                onValueChange={addIndustry}
+                                                placeholder="Select industry..."
+                                                searchPlaceholder="Search industry..."
+                                                className="max-md:min-h-11"
+                                            />
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground italic">
+                                                Maximum of 5 industries selected.
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div className="space-y-2">

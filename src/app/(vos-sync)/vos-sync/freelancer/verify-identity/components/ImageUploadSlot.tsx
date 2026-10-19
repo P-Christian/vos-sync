@@ -161,6 +161,7 @@ export function ImageUploadSlot({
                 }}
                 title={cameraModalTitle}
                 facingMode={facingMode}
+                onRequestFileUpload={() => fileInputRef.current?.click()}
             />
         </div>
     );
