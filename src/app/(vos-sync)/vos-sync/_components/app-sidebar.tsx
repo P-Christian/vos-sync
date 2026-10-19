@@ -115,7 +115,7 @@ export function AppSidebar({
                     { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
                     { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
                     // { label: "How It Works", href: "/vos-sync/freelancer/how-it-works", icon: HelpCircle },
-                    { label: "Configuration", href: "/vos-sync/freelancer/settings", icon: Settings2, group: "Account" },
+                    { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2, group: "Account" },
                   ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
