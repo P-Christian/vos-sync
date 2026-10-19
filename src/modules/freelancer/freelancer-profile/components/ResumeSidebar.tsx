@@ -61,8 +61,9 @@ export function ResumeSidebar() {
         if (!file) return;
 
         // Basic validation
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error("File exceeds 5MB limit.");
+        if (file.size > 10 * 1024 * 1024) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            toast.error(`File is too large (${sizeMB}MB). Maximum allowed size is 10MB.`);
             return;
         }
 
@@ -176,8 +177,9 @@ export function ResumeSidebar() {
             } else {
                 toast.error(res.error || "Failed to process resume");
             }
-        } catch {
-            toast.error("An unexpected error occurred");
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "An unexpected error occurred";
+            toast.error(msg);
         } finally {
             setIsUploading(false);
             if (isAutofill) setIsAutofilling(false);
@@ -274,7 +276,7 @@ export function ResumeSidebar() {
                 <div>
                     <h3 className="text-lg font-semibold text-foreground">Resume/CV</h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-[200px] mx-auto">
-                        Upload your latest professional document. PDF, DOCX (Max 5MB)
+                        Upload your latest professional document. PDF, DOCX (Max 10MB)
                     </p>
                 </div>
                 <Button 

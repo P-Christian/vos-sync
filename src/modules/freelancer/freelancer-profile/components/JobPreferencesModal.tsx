@@ -28,6 +28,16 @@ const CURRENCY_OPTIONS = [
   { value: "JPY", label: "JPY (¥)" },
 ];
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  PHP: "₱",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  AUD: "A$",
+  SGD: "S$",
+  JPY: "¥",
+};
+
 const AVAILABILITY_OPTIONS = [
   { value: "Immediate", label: "Immediate" },
   { value: "1 Week Notice", label: "1 Week Notice" },
@@ -407,41 +417,57 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                             })()}
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Minimum Salary</label>
-                            <Input 
-                                type="text"
-                                value={preferences.salary_range_min !== null && preferences.salary_range_min !== undefined ? preferences.salary_range_min.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
-                                onChange={(e) => {
-                                    const numericStr = e.target.value.replace(/[^\d]/g, "");
-                                    handleChange("salary_range_min", numericStr ? Number(numericStr) : null);
-                                }}
-                                placeholder="Min expected salary"
-                            />
-                        </div>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Currency</label>
+                                <SearchableSelect 
+                                    options={CURRENCY_OPTIONS}
+                                    value={preferences.currency || "PHP"} 
+                                    onValueChange={(val) => handleChange("currency", val)}
+                                    placeholder="Select currency"
+                                    className="max-md:min-h-11"
+                                />
+                            </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Maximum Salary</label>
-                            <Input 
-                                type="text"
-                                value={preferences.salary_range_max !== null && preferences.salary_range_max !== undefined ? preferences.salary_range_max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
-                                onChange={(e) => {
-                                    const numericStr = e.target.value.replace(/[^\d]/g, "");
-                                    handleChange("salary_range_max", numericStr ? Number(numericStr) : null);
-                                }}
-                                placeholder="Max expected salary"
-                            />
-                        </div>
+                            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Minimum Salary</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none select-none">
+                                            {CURRENCY_SYMBOLS[preferences.currency || "PHP"] || "₱"}
+                                        </span>
+                                        <Input 
+                                            type="text"
+                                            value={preferences.salary_range_min !== null && preferences.salary_range_min !== undefined ? preferences.salary_range_min.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
+                                            onChange={(e) => {
+                                                const numericStr = e.target.value.replace(/[^\d]/g, "");
+                                                handleChange("salary_range_min", numericStr ? Number(numericStr) : null);
+                                            }}
+                                            placeholder="Min expected salary"
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Currency</label>
-                            <SearchableSelect 
-                                options={CURRENCY_OPTIONS}
-                                value={preferences.currency || "PHP"} 
-                                onValueChange={(val) => handleChange("currency", val)}
-                                placeholder="Select currency"
-                                className="max-md:min-h-11"
-                            />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Maximum Salary</label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none select-none">
+                                            {CURRENCY_SYMBOLS[preferences.currency || "PHP"] || "₱"}
+                                        </span>
+                                        <Input 
+                                            type="text"
+                                            value={preferences.salary_range_max !== null && preferences.salary_range_max !== undefined ? preferences.salary_range_max.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") : ""} 
+                                            onChange={(e) => {
+                                                const numericStr = e.target.value.replace(/[^\d]/g, "");
+                                                handleChange("salary_range_max", numericStr ? Number(numericStr) : null);
+                                            }}
+                                            placeholder="Max expected salary"
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -462,7 +488,7 @@ export function JobPreferencesModal({ isOpen, onClose, initialPreferences }: Job
                         Cancel
                     </Button>
                     <Button onClick={handleSave} className="max-md:min-h-11">
-                        Save Draft
+                        Save Changes
                     </Button>
                 </div>
             </div>

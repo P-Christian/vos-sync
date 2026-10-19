@@ -150,14 +150,42 @@ export async function deleteEducationService(id: number, userId: number) {
     await deleteOwnedEducationWithLinks(id, userId);
 }
 
+function validateCertificationIssueDate(rawDate?: string | null): string | null {
+    if (!rawDate) return null;
+    const trimmed = String(rawDate).trim();
+    if (!trimmed) return null;
+
+    // Validate standard YYYY-MM-DD pattern
+    const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+        throw new Error("Invalid issue date format. Expected YYYY-MM-DD.");
+    }
+
+    const year = parseInt(match[1], 10);
+    const todayStr = new Date().toISOString().split("T")[0];
+    const currentYear = new Date().getFullYear();
+
+    if (year < 1900 || year > currentYear) {
+        throw new Error(`Issue year must be between 1900 and ${currentYear}.`);
+    }
+
+    if (trimmed > todayStr) {
+        throw new Error("Issue date cannot be in the future.");
+    }
+
+    return trimmed;
+}
+
 export async function addCertificationService(userId: number, payload: any) {
     const { addCertificationToDirectus } = await import("./freelancer-profile.repo");
+
+    const validatedDate = validateCertificationIssueDate(payload.issue_date);
 
     const data = {
         user_id: userId,
         certificate_name: payload.certificate_name,
         issuing_organization: payload.issuing_organization,
-        issue_date: payload.issue_date || null,
+        issue_date: validatedDate,
         credential_url: payload.credential_url || null,
         image_uuid: payload.image_uuid || null,
     };
@@ -168,10 +196,12 @@ export async function addCertificationService(userId: number, payload: any) {
 export async function updateCertificationService(id: number, userId: number, payload: any) {
     const { updateCertificationInDirectus } = await import("./freelancer-profile.repo");
 
+    const validatedDate = validateCertificationIssueDate(payload.issue_date);
+
     const data = {
         certificate_name: payload.certificate_name,
         issuing_organization: payload.issuing_organization,
-        issue_date: payload.issue_date || null,
+        issue_date: validatedDate,
         credential_url: payload.credential_url || null,
         image_uuid: payload.image_uuid || null,
     };
