@@ -24,7 +24,6 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  ExternalLink,
   Sparkles,
   Star,
   Clock,
@@ -77,7 +76,7 @@ export function ArticleTable({
         <BookOpen className="h-10 w-10 text-muted-foreground/40 mb-3" />
         <h3 className="text-sm font-semibold text-foreground">No articles found</h3>
         <p className="text-xs text-muted-foreground max-w-sm mt-1">
-          No articles match your current search or filter criteria. Click "Create Article" to write your first post.
+          No articles match your current search or filter criteria. Click &quot;Create Article&quot; to write your first post.
         </p>
       </div>
     );

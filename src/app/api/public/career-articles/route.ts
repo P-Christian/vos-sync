@@ -1,6 +1,7 @@
 // src/app/api/public/career-articles/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { formatAssetUrl } from "@/lib/utils";
+import { CareerArticle } from "@/modules/vos-admin/career-advice-management/types/article.types";
 
 export const dynamic = "force-dynamic";
 
@@ -63,14 +64,14 @@ export async function GET(req: NextRequest) {
     const total = json.meta?.filter_count ?? rawArticles.length;
 
     // Normalize asset URLs for browser delivery
-    const articles = rawArticles.map((art: any) => ({
+    const articles: CareerArticle[] = rawArticles.map((art: CareerArticle) => ({
       ...art,
       featured_image_url: formatAssetUrl(art.featured_image_url) || art.featured_image_url,
-      is_featured: Boolean(art.is_featured === 1 || art.is_featured === true),
+      is_featured: Boolean(art.is_featured),
     }));
 
     // Find the primary featured article
-    const featuredArticle = articles.find((a: any) => a.is_featured) || articles[0] || null;
+    const featuredArticle = articles.find((a) => a.is_featured) || articles[0] || null;
 
     return NextResponse.json({
       articles,
@@ -80,8 +81,9 @@ export async function GET(req: NextRequest) {
       limit: Number(limit),
       totalPages: Math.ceil(total / Number(limit)) || 1,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/public/career-articles GET] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to load career articles" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to load career articles";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

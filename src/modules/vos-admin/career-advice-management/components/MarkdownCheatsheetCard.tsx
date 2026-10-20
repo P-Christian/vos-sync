@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Keyboard, HelpCircle, Sparkles } from "lucide-react";
+import { Keyboard, Sparkles } from "lucide-react";
 
 export function MarkdownCheatsheetCard() {
   const shortcuts = [

@@ -34,9 +34,10 @@ export async function GET(req: NextRequest) {
 
     const result = await CareerArticleService.listArticles(parsedFilters.data);
     return NextResponse.json(result);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles GET] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to fetch articles" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to fetch articles";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -60,8 +61,9 @@ export async function POST(req: NextRequest) {
     const userId = session?.userId ? Number(session.userId) : undefined;
     const created = await CareerArticleService.createArticle(parsed.data, userId);
     return NextResponse.json({ data: created }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles POST] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to create article" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to create article";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

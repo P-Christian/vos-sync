@@ -2,10 +2,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, Wand2, RefreshCw, Check, ArrowRight, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, Check, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_CAREER_CATEGORIES } from "../services/article.helpers";
 import { useArticleAiAssistant } from "../hooks/useArticleAiAssistant";
 import { AiAssistResponsePayload } from "../types/article.types";
@@ -232,7 +231,7 @@ export function AiArticleAssistant({
           {result.excerpt && (
             <div>
               <p className="text-[11px] font-semibold text-muted-foreground">Teaser Excerpt:</p>
-              <p className="text-xs text-muted-foreground italic">"{result.excerpt}"</p>
+              <p className="text-xs text-muted-foreground italic">&quot;{result.excerpt}&quot;</p>
             </div>
           )}
 

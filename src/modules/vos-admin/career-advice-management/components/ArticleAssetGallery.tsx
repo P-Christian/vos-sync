@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { ArticleAsset } from "../types/article.types";
-import { Copy, Check, Trash2, ExternalLink, Image as ImageIcon, Upload } from "lucide-react";
+import { Copy, Check, Trash2, Image as ImageIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -79,7 +79,7 @@ export function ArticleAssetGallery({
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8 text-center">
           <ImageIcon className="h-8 w-8 text-muted-foreground/50 mb-2" />
           <p className="text-xs font-medium text-foreground">No assets uploaded yet</p>
-          <p className="text-[11px] text-muted-foreground">Upload images above to build this article's media library</p>
+          <p className="text-[11px] text-muted-foreground">Upload images above to build this article&apos;s media library</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">

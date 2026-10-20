@@ -30,9 +30,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/assets/[id] PATCH] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to update asset" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to update asset";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -51,8 +52,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await CareerArticleService.removeAsset(assetId);
     return NextResponse.json({ success: true, message: "Asset deleted" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/assets/[id] DELETE] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to delete asset" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to delete asset";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

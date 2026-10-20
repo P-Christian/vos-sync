@@ -6,7 +6,7 @@ import Image from "next/image";
 import { formatAssetUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Clock, Calendar, User, Share2, Sparkles, BookOpen } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, BookOpen } from "lucide-react";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

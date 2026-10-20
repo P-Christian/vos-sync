@@ -27,8 +27,9 @@ export function useCareerArticleMutations(onSuccess?: () => void) {
       toast.success("Article created successfully!");
       if (onSuccess) onSuccess();
       return json.data;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create article");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create article";
+      toast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -53,8 +54,9 @@ export function useCareerArticleMutations(onSuccess?: () => void) {
       toast.success("Article updated successfully!");
       if (onSuccess) onSuccess();
       return json.data;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to update article");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update article";
+      toast.error(message);
       return null;
     } finally {
       setIsSubmitting(false);
@@ -76,8 +78,9 @@ export function useCareerArticleMutations(onSuccess?: () => void) {
       toast.success("Article deleted successfully");
       if (onSuccess) onSuccess();
       return true;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to delete article");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to delete article";
+      toast.error(message);
       return false;
     } finally {
       setIsSubmitting(false);
@@ -89,7 +92,14 @@ export function useCareerArticleMutations(onSuccess?: () => void) {
     articleId?: number,
     assetRole: string = "INLINE_BODY",
     caption?: string
-  ): Promise<{ file_id: string; file_url: string; asset?: ArticleAsset } | null> => {
+  ): Promise<{
+    file_id: string;
+    file_url: string;
+    file_name?: string;
+    file_type?: string;
+    file_size_bytes?: number;
+    asset?: ArticleAsset;
+  } | null> => {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -110,8 +120,9 @@ export function useCareerArticleMutations(onSuccess?: () => void) {
       const json = await res.json();
       toast.success("Image uploaded successfully");
       return json.data;
-    } catch (err: any) {
-      toast.error(err.message || "Upload error");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Upload error";
+      toast.error(message);
       return null;
     }
   };

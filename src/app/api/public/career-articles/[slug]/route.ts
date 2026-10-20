@@ -53,8 +53,9 @@ export async function GET(
     };
 
     return NextResponse.json({ data: formattedArticle });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/public/career-articles/[slug] GET] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to load article" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to load article";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -27,8 +27,9 @@ export function useArticleAiAssistant() {
       setLastResult(json.data);
       toast.success("AI suggestion generated!");
       return json.data;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to generate AI assistance");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate AI assistance";
+      toast.error(message);
       return null;
     } finally {
       setIsGenerating(false);

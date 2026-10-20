@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, BookOpen, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCareerArticles } from "./hooks/useCareerArticles";
 import { useCareerArticleMutations } from "./hooks/useCareerArticleMutations";

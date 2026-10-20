@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Search, Filter, RotateCcw } from "lucide-react";
+import { Search, RotateCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_CAREER_CATEGORIES } from "../services/article.helpers";
@@ -10,7 +10,7 @@ import { ArticleFilters as ArticleFiltersType, ArticleStatus } from "../types/ar
 
 interface ArticleFilterBarProps {
   filters: ArticleFiltersType;
-  onChange: (key: keyof ArticleFiltersType, value: any) => void;
+  onChange: (key: keyof ArticleFiltersType, value: ArticleFiltersType[keyof ArticleFiltersType]) => void;
   onReset: () => void;
 }
 

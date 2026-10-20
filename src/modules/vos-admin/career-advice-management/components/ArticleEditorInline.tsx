@@ -1,20 +1,16 @@
 // src/modules/vos-admin/career-advice-management/components/ArticleEditorInline.tsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   ArrowLeft,
-  Check,
   Globe,
   Sparkles,
   Save,
   Send,
-  Eye,
   Clock,
   UserCheck,
-  Image as ImageIcon,
   Loader2,
-  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +31,19 @@ interface ArticleEditorInlineProps {
   article: CareerArticle | null;
   onBack: () => void;
   onSave: (data: CreateCareerArticleInput, articleId?: number) => Promise<void>;
-  onUploadMedia: (file: File, articleId?: number, role?: string, caption?: string) => Promise<any>;
+  onUploadMedia: (
+    file: File,
+    articleId?: number,
+    role?: string,
+    caption?: string
+  ) => Promise<{
+    file_id: string;
+    file_url: string;
+    file_name?: string;
+    file_type?: string;
+    file_size_bytes?: number;
+    asset?: ArticleAsset;
+  } | null>;
   isSubmitting: boolean;
 }
 
@@ -52,29 +60,32 @@ export function ArticleEditorInline({
   const [pendingAction, setPendingAction] = useState<ConfirmActionType | null>(null);
 
   // Form State
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState<string>("Career Strategy");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(null);
-  const [featuredImageId, setFeaturedImageId] = useState<string | null>(null);
-  const [authorName, setAuthorName] = useState("");
-  const [authorRole, setAuthorRole] = useState("Career Specialist");
-  const [readTime, setReadTime] = useState(5);
-  const [status, setStatus] = useState<ArticleStatus>("DRAFT");
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [aiGenerated, setAiGenerated] = useState(false);
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
-
-  const [assets, setAssets] = useState<ArticleAsset[]>([]);
+  const [prevArticleId, setPrevArticleId] = useState<number | undefined | null>(article?.article_id);
+  const [title, setTitle] = useState(article?.title || "");
+  const [slug, setSlug] = useState(article?.slug || "");
+  const [category, setCategory] = useState<string>(article?.category || "Career Strategy");
+  const [excerpt, setExcerpt] = useState(article?.excerpt || "");
+  const [content, setContent] = useState(article?.content || "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(article?.featured_image_url || null);
+  const [featuredImageId, setFeaturedImageId] = useState<string | null>(article?.featured_image_id || null);
+  const [authorName, setAuthorName] = useState(
+    article?.author_name || (profile?.name && profile.name !== "Guest" ? profile.name : "VOS Career Team")
+  );
+  const [authorRole, setAuthorRole] = useState(article?.author_role || "Career Specialist");
+  const [readTime, setReadTime] = useState(article?.read_time_minutes || 5);
+  const [status, setStatus] = useState<ArticleStatus>(article?.status || "DRAFT");
+  const [isFeatured, setIsFeatured] = useState(article?.is_featured || false);
+  const [aiGenerated, setAiGenerated] = useState(article?.ai_generated || false);
+  const [seoTitle, setSeoTitle] = useState(article?.seo_title || "");
+  const [seoDescription, setSeoDescription] = useState(article?.seo_description || "");
+  const [assets, setAssets] = useState<ArticleAsset[]>(article?.assets || []);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
 
   // Active right-sidebar inspector tab
   const [activeInspectorTab, setActiveInspectorTab] = useState<"settings" | "seo" | "media" | "ai">("settings");
 
-  useEffect(() => {
+  if (article?.article_id !== prevArticleId) {
+    setPrevArticleId(article?.article_id);
     if (article) {
       setTitle(article.title);
       setSlug(article.slug);
@@ -111,7 +122,7 @@ export function ArticleEditorInline({
       setSeoDescription("");
       setAssets([]);
     }
-  }, [article, profile]);
+  }
 
   const handleTitleChange = (val: string) => {
     setTitle(val);

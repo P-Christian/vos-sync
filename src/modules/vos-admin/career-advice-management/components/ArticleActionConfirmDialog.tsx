@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, HelpCircle, Loader2, Send, Save, ArrowLeft } from "lucide-react";
+import { AlertCircle, Loader2, Send, Save } from "lucide-react";
 
 export type ConfirmActionType = "DRAFT" | "PUBLISH" | "DISCARD";
 

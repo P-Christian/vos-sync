@@ -25,9 +25,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     return NextResponse.json({ data: article });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/[id] GET] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to fetch article" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to fetch article";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -56,9 +57,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const updated = await CareerArticleService.updateArticle(articleId, parsed.data);
     return NextResponse.json({ data: updated });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/[id] PATCH] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to update article" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to update article";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -77,8 +79,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await CareerArticleService.deleteArticle(articleId);
     return NextResponse.json({ success: true, message: "Article deleted successfully" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/[id] DELETE] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to delete article" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to delete article";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -41,7 +41,7 @@ export function ArticleDeleteDialog({
           </div>
           <DialogDescription className="text-xs text-muted-foreground pt-2">
             Are you sure you want to permanently delete{" "}
-            <span className="font-semibold text-foreground">"{article.title}"</span>?
+            <span className="font-semibold text-foreground">&quot;{article.title}&quot;</span>?
             This will also delete associated asset tracking records. This action cannot be undone.
           </DialogDescription>
         </DialogHeader>

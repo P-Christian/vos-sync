@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/authenticated-session";
 import { CareerArticleService } from "@/modules/vos-admin/career-advice-management/services/article.service";
+import { AssetRole } from "@/modules/vos-admin/career-advice-management/types/article.types";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
         file_name: directusFile.filename_download || file.name,
         file_type: directusFile.type || file.type,
         file_size_bytes: directusFile.filesize ? Number(directusFile.filesize) : file.size,
-        asset_role: assetRole as any,
+        asset_role: (assetRole as AssetRole) || "GALLERY",
         caption: caption || undefined,
       });
     }
@@ -81,8 +82,9 @@ export async function POST(req: NextRequest) {
         asset: assetRecord,
       },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/upload POST] Error:", err);
-    return NextResponse.json({ error: err.message || "Failed to process upload" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Failed to process upload";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

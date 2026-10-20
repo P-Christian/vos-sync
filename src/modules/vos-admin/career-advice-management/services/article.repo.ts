@@ -64,10 +64,10 @@ export async function fetchArticlesFromRepo(filters: ArticleFilters): Promise<{ 
   const rawArticles = json.data || [];
   const total = json.meta?.filter_count ?? rawArticles.length;
 
-  const articles: CareerArticle[] = rawArticles.map((item: any) => ({
+  const articles: CareerArticle[] = rawArticles.map((item: CareerArticle) => ({
     ...item,
-    is_featured: Boolean(item.is_featured === 1 || item.is_featured === true),
-    ai_generated: Boolean(item.ai_generated === 1 || item.ai_generated === true),
+    is_featured: Boolean(item.is_featured),
+    ai_generated: Boolean(item.ai_generated),
   }));
 
   return { articles, total };
@@ -140,7 +140,7 @@ export async function createArticleInRepo(data: Partial<CareerArticle>): Promise
 }
 
 export async function updateArticleInRepo(articleId: number, data: Partial<CareerArticle>): Promise<CareerArticle> {
-  const payload: Record<string, any> = { ...data };
+  const payload: Record<string, unknown> = { ...data };
   if ("is_featured" in data) payload.is_featured = data.is_featured ? 1 : 0;
   if ("ai_generated" in data) payload.ai_generated = data.ai_generated ? 1 : 0;
 

@@ -38,7 +38,6 @@ import {
   Code,
   Table as TableIcon,
   Loader2,
-  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

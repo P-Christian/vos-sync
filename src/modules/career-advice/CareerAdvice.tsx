@@ -4,15 +4,11 @@
 import React, { useState, useEffect } from "react";
 import {
   BookOpen,
-  PenLine,
-  DollarSign,
   Search,
   Clock,
   ChevronRight,
-  ArrowRight,
   TrendingUp,
   RotateCcw,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";

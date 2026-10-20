@@ -15,7 +15,7 @@ interface UseCareerArticlesReturn {
   filters: ArticleFilters;
   setFilters: React.Dispatch<React.SetStateAction<ArticleFilters>>;
   refresh: () => Promise<void>;
-  updateFilter: (key: keyof ArticleFilters, value: any) => void;
+  updateFilter: <K extends keyof ArticleFilters>(key: K, value: ArticleFilters[K]) => void;
 }
 
 export function useCareerArticles(initialFilters?: Partial<ArticleFilters>): UseCareerArticlesReturn {
@@ -62,23 +62,66 @@ export function useCareerArticles(initialFilters?: Partial<ArticleFilters>): Use
 
       const json = await res.json();
       setData(json);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[useCareerArticles] fetch error:", err);
-      setError(err.message || "Failed to load articles");
+      const message = err instanceof Error ? err.message : "Failed to load articles";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+    let ignore = false;
 
-  const updateFilter = useCallback((key: keyof ArticleFilters, value: any) => {
+    const run = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const queryParams = new URLSearchParams();
+        if (filters.page) queryParams.set("page", String(filters.page));
+        if (filters.limit) queryParams.set("limit", String(filters.limit));
+        if (filters.status && filters.status !== "ALL") queryParams.set("status", filters.status);
+        if (filters.category && filters.category !== "ALL") queryParams.set("category", filters.category);
+        if (filters.search) queryParams.set("search", filters.search);
+        if (filters.sort_by) queryParams.set("sort_by", filters.sort_by);
+        if (filters.sort_order) queryParams.set("sort_order", filters.sort_order);
+
+        const res = await fetch(`/api/vos-admin/career-articles?${queryParams.toString()}`);
+        if (!res.ok) {
+          const errorJson = await res.json().catch(() => ({}));
+          throw new Error(errorJson.error || `HTTP ${res.status}`);
+        }
+
+        const json = await res.json();
+        if (!ignore) {
+          setData(json);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          console.error("[useCareerArticles] fetch error:", err);
+          const message = err instanceof Error ? err.message : "Failed to load articles";
+          setError(message);
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    run();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filters]);
+
+  const updateFilter = useCallback(<K extends keyof ArticleFilters>(key: K, value: ArticleFilters[K]) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: key === "page" ? value : 1, // Reset to page 1 on search/filter update
+      page: key === "page" ? (value as number) : 1, // Reset to page 1 on search/filter update
     }));
   }, []);
 

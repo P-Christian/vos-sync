@@ -104,16 +104,17 @@ Return strict JSON:
     }
 
     const cleanedText = rawResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
-    let resultJson: any = {};
+    let resultJson: Record<string, unknown> = {};
     try {
-      resultJson = JSON.parse(cleanedText);
+      resultJson = JSON.parse(cleanedText) as Record<string, unknown>;
     } catch {
       resultJson = { raw_output: rawResponse };
     }
 
     return NextResponse.json({ success: true, data: resultJson });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[api/career-articles/ai-assist POST] Error:", err);
-    return NextResponse.json({ error: err.message || "AI assist failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "AI assist failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

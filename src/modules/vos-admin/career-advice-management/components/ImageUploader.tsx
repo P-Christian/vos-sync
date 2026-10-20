@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { UploadCloud, Image as ImageIcon, Loader2, X, Check } from "lucide-react";
+import { UploadCloud, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatAssetUrl } from "@/lib/utils";
 import Image from "next/image";
@@ -66,9 +66,10 @@ export function ImageUploader({
         file_id: json.data.file_id,
         file_url: json.data.file_url,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("[ImageUploader] error:", err);
-      setError(err.message || "Failed to upload image");
+      const message = err instanceof Error ? err.message : "Failed to upload image";
+      setError(message);
     } finally {
       setIsUploading(false);
     }
