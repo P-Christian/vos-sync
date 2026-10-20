@@ -114,9 +114,21 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
     };
   }, [selectedSchoolYear, selectedCourseId, selectedStatus, searchQuery, isAlumni]);
 
+  const fetchCourses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/school-admin/school/courses');
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data.courses || data || []);
+      }
+    } catch {
+      // Non-blocking
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
-    const fetchCourses = async () => {
+    (async () => {
       try {
         const res = await fetch('/api/school-admin/school/courses');
         if (res.ok && isMounted) {
@@ -126,8 +138,7 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
       } catch {
         // Non-blocking
       }
-    };
-    fetchCourses();
+    })();
     return () => {
       isMounted = false;
     };
@@ -177,6 +188,7 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
     }
 
     await fetchStudents();
+    await fetchCourses();
   };
 
   const deleteStudent = async (studentId: number) => {
