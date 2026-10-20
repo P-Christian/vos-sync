@@ -196,6 +196,22 @@ export async function addAssetToArticleInRepo(asset: Partial<ArticleAsset>): Pro
   return json.data;
 }
 
+export async function updateAssetInRepo(assetId: number, data: Partial<ArticleAsset>): Promise<ArticleAsset> {
+  const res = await fetch(`${DIRECTUS_BASE}/items/vs_career_article_assets/${assetId}`, {
+    method: "PATCH",
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Failed to update asset #${assetId}: HTTP ${res.status} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  return json.data;
+}
+
 export async function deleteAssetFromRepo(assetId: number): Promise<boolean> {
   const res = await fetch(`${DIRECTUS_BASE}/items/vs_career_article_assets/${assetId}`, {
     method: "DELETE",

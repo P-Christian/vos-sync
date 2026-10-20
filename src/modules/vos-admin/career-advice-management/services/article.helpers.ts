@@ -47,3 +47,13 @@ export function createExcerptFromHtml(html: string, maxLength: number = 180): st
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength).trim() + "...";
 }
+
+/**
+ * Returns the current date-time formatted explicitly as a pure UTC SQL string:
+ * "YYYY-MM-DD HH:mm:ss"
+ * Prevents local system timezone translation issues in MySQL datetime columns.
+ */
+export function getUtcNowSqlString(): string {
+  const now = new Date();
+  return now.toISOString().slice(0, 19).replace("T", " ");
+}

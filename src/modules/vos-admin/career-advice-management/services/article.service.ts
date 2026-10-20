@@ -6,9 +6,10 @@ import {
   updateArticleInRepo,
   deleteArticleFromRepo,
   addAssetToArticleInRepo,
+  updateAssetInRepo,
   deleteAssetFromRepo,
 } from "./article.repo";
-import { generateSlug, calculateReadTime, createExcerptFromHtml } from "./article.helpers";
+import { generateSlug, calculateReadTime, createExcerptFromHtml, getUtcNowSqlString } from "./article.helpers";
 import {
   CareerArticle,
   ArticleFilters,
@@ -44,8 +45,9 @@ export class CareerArticleService {
     const readTime = input.read_time_minutes || calculateReadTime(input.content);
     const excerpt = input.excerpt?.trim() || createExcerptFromHtml(input.content);
 
+    // Save strictly in UTC
     const publishedAt =
-      input.status === "PUBLISHED" ? new Date().toISOString() : null;
+      input.status === "PUBLISHED" ? getUtcNowSqlString() : null;
 
     const newArticle = await createArticleInRepo({
       ...input,
@@ -85,9 +87,9 @@ export class CareerArticleService {
       updates.slug = generateSlug(input.title);
     }
 
-    // Set published_at timestamp when status transitions to PUBLISHED
+    // Set published_at timestamp strictly in UTC when status transitions to PUBLISHED
     if (input.status === "PUBLISHED" && existing.status !== "PUBLISHED") {
-      updates.published_at = new Date().toISOString();
+      updates.published_at = getUtcNowSqlString();
     }
 
     return await updateArticleInRepo(id, updates);
@@ -102,6 +104,10 @@ export class CareerArticleService {
       ...asset,
       article_id: articleId,
     });
+  }
+
+  static async updateAsset(assetId: number, data: Partial<ArticleAsset>): Promise<ArticleAsset> {
+    return await updateAssetInRepo(assetId, data);
   }
 
   static async removeAsset(assetId: number): Promise<boolean> {

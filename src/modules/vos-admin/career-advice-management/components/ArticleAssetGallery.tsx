@@ -104,13 +104,40 @@ export function ArticleAssetGallery({
                 </Badge>
               </div>
 
-              <div className="p-2 flex flex-col justify-between flex-1 gap-1.5 min-w-0">
-                <div className="min-w-0">
+              <div className="p-2.5 flex flex-col justify-between flex-1 gap-2 min-w-0">
+                <div className="min-w-0 space-y-1">
                   <p className="text-xs font-medium text-foreground truncate" title={asset.file_name || ""}>
                     {asset.file_name || "Image file"}
                   </p>
+                  
+                  {/* Inline Editable Caption Field */}
+                  <div className="space-y-0.5">
+                    <input
+                      type="text"
+                      placeholder="Add image caption..."
+                      defaultValue={asset.caption || ""}
+                      onBlur={async (e) => {
+                        const newCaption = e.target.value.trim();
+                        if (asset.asset_id && newCaption !== (asset.caption || "")) {
+                          try {
+                            await fetch(`/api/vos-admin/career-articles/assets/${asset.asset_id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ caption: newCaption }),
+                            });
+                            toast.success("Caption saved");
+                            asset.caption = newCaption;
+                          } catch {
+                            toast.error("Failed to save caption");
+                          }
+                        }
+                      }}
+                      className="w-full text-[11px] px-1.5 py-0.5 rounded border border-input bg-background text-foreground focus:outline-none focus:border-primary truncate"
+                    />
+                  </div>
+
                   <p className="text-[10px] font-mono text-muted-foreground truncate">
-                    ID: {asset.directus_file_id.slice(0, 8)}...
+                    UUID: {asset.directus_file_id.slice(0, 8)}...
                   </p>
                 </div>
 

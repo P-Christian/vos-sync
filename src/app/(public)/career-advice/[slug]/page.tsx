@@ -161,7 +161,7 @@ export default async function ArticleReaderPage({ params }: PageProps) {
             [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2
             [&_p]:mb-5 [&_p]:leading-relaxed
             [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-5 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-5
-            [&_blockquote]:border-l-4 [&_blockquote]:border-primary [&_blockquote]:bg-primary/5 [&_blockquote]:p-4 [&_blockquote]:rounded-r-lg [&_blockquote]:italic [&_blockquote]:my-6
+            [&_blockquote]:border-l-4 [&_blockquote]:border-cyan-500 [&_blockquote]:bg-cyan-500/10 dark:[&_blockquote]:bg-cyan-950/20 [&_blockquote]:p-5 [&_blockquote]:rounded-r-xl [&_blockquote]:italic [&_blockquote]:my-6 [&_blockquote]:text-foreground/95
             [&_img]:rounded-xl [&_img]:my-8 [&_img]:w-full [&_img]:shadow-md [&_img]:border [&_img]:border-border
             [&_table]:w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:border [&_table]:border-border
             [&_th]:border [&_th]:border-border [&_th]:bg-muted/70 [&_th]:p-3 [&_th]:text-left [&_th]:font-semibold

@@ -1,0 +1,58 @@
+// src/app/api/vos-admin/career-articles/assets/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/authenticated-session";
+import { CareerArticleService } from "@/modules/vos-admin/career-advice-management/services/article.service";
+
+export const dynamic = "force-dynamic";
+
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const assetId = Number(id);
+    if (isNaN(assetId)) {
+      return NextResponse.json({ error: "Invalid asset ID" }, { status: 400 });
+    }
+
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const updated = await CareerArticleService.updateAsset(assetId, {
+      caption: body.caption,
+      asset_role: body.asset_role,
+      display_order: body.display_order,
+    });
+
+    return NextResponse.json({ success: true, data: updated });
+  } catch (err: any) {
+    console.error("[api/career-articles/assets/[id] PATCH] Error:", err);
+    return NextResponse.json({ error: err.message || "Failed to update asset" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const assetId = Number(id);
+    if (isNaN(assetId)) {
+      return NextResponse.json({ error: "Invalid asset ID" }, { status: 400 });
+    }
+
+    await CareerArticleService.removeAsset(assetId);
+    return NextResponse.json({ success: true, message: "Asset deleted" });
+  } catch (err: any) {
+    console.error("[api/career-articles/assets/[id] DELETE] Error:", err);
+    return NextResponse.json({ error: err.message || "Failed to delete asset" }, { status: 500 });
+  }
+}

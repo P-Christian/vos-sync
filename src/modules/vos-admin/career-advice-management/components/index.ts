@@ -6,5 +6,7 @@ export * from "./AiArticleAssistant";
 export * from "./ArticleFilters";
 export * from "./ArticleTable";
 export * from "./ArticleDeleteDialog";
+export * from "./ArticleActionConfirmDialog";
+export * from "./MarkdownCheatsheetCard";
 export * from "./ArticleEditorModal";
 export * from "./ArticleEditorInline";

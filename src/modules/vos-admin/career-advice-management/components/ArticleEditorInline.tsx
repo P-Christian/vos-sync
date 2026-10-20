@@ -24,6 +24,8 @@ import { TipTapEditor } from "./TipTapEditor";
 import { ImageUploader } from "./ImageUploader";
 import { ArticleAssetGallery } from "./ArticleAssetGallery";
 import { AiArticleAssistant } from "./AiArticleAssistant";
+import { ArticleActionConfirmDialog, ConfirmActionType } from "./ArticleActionConfirmDialog";
+import { MarkdownCheatsheetCard } from "./MarkdownCheatsheetCard";
 import { DEFAULT_CAREER_CATEGORIES, generateSlug, calculateReadTime } from "../services/article.helpers";
 import { CareerArticle, ArticleStatus, ArticleAsset } from "../types/article.types";
 import { CreateCareerArticleInput } from "../types/article.schema";
@@ -45,6 +47,9 @@ export function ArticleEditorInline({
   isSubmitting,
 }: ArticleEditorInlineProps) {
   const profile = useUserProfile();
+
+  // Confirmation Dialog State
+  const [pendingAction, setPendingAction] = useState<ConfirmActionType | null>(null);
 
   // Form State
   const [title, setTitle] = useState("");
@@ -188,8 +193,66 @@ export function ArticleEditorInline({
     }
   };
 
+  // Dirty check: check if user modified anything from initial state
+  const isDirty = (): boolean => {
+    if (article) {
+      return (
+        title !== article.title ||
+        slug !== article.slug ||
+        category !== article.category ||
+        excerpt !== article.excerpt ||
+        content !== article.content ||
+        featuredImageUrl !== (article.featured_image_url || null) ||
+        authorName !== article.author_name ||
+        authorRole !== article.author_role ||
+        isFeatured !== article.is_featured ||
+        seoTitle !== (article.seo_title || "") ||
+        seoDescription !== (article.seo_description || "")
+      );
+    }
+    // New article: dirty if title, excerpt, content, or featured image changed from blank
+    return (
+      title.trim() !== "" ||
+      excerpt.trim() !== "" ||
+      content.trim() !== "" ||
+      featuredImageUrl !== null
+    );
+  };
+
+  const handleBackClick = () => {
+    if (isDirty()) {
+      setPendingAction("DISCARD");
+    } else {
+      onBack();
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+
+    if (pendingAction === "DISCARD") {
+      setPendingAction(null);
+      onBack();
+    } else if (pendingAction === "DRAFT") {
+      setPendingAction(null);
+      await submitArticle("DRAFT");
+    } else if (pendingAction === "PUBLISH") {
+      setPendingAction(null);
+      await submitArticle("PUBLISHED");
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background text-foreground">
+      {/* Action Re-confirmation Dialog */}
+      <ArticleActionConfirmDialog
+        isOpen={pendingAction !== null}
+        actionType={pendingAction}
+        isSubmitting={isSubmitting}
+        onClose={() => setPendingAction(null)}
+        onConfirm={handleConfirmAction}
+      />
+
       {/* Top Sticky Header Command Bar */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/95 px-4 md:px-8 py-3 backdrop-blur-md shadow-xs">
         <div className="flex items-center gap-3">
@@ -197,7 +260,7 @@ export function ArticleEditorInline({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={onBack}
+            onClick={handleBackClick}
             className="text-xs h-8 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="mr-1.5 h-3.5 w-3.5" /> Back to Articles
@@ -240,7 +303,7 @@ export function ArticleEditorInline({
             variant="outline"
             size="sm"
             disabled={isSubmitting || !title.trim() || !content.trim()}
-            onClick={() => submitArticle("DRAFT")}
+            onClick={() => setPendingAction("DRAFT")}
             className="text-xs h-8 shadow-xs"
           >
             {isSubmitting ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Save className="mr-1.5 h-3 w-3" />}
@@ -251,7 +314,7 @@ export function ArticleEditorInline({
             type="button"
             size="sm"
             disabled={isSubmitting || !title.trim() || !content.trim()}
-            onClick={() => submitArticle("PUBLISHED")}
+            onClick={() => setPendingAction("PUBLISH")}
             className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
           >
             {isSubmitting ? <Loader2 className="mr-1.5 h-3 w-3 animate-spin" /> : <Send className="mr-1.5 h-3 w-3" />}
@@ -447,6 +510,9 @@ export function ArticleEditorInline({
                   </select>
                 </div>
               </div>
+
+              {/* Markdown & Writing Shortcuts Cheat Sheet */}
+              <MarkdownCheatsheetCard />
             </div>
           )}
 
