@@ -179,6 +179,7 @@ export function AppSidebar({
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck, group: "Management" },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
+                { label: "Career Advice", href: "/vos-sync/vos-admin/career-articles", icon: FileText, group: "Content" },
                 { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2, group: "Verification" },
                 { label: "School Verification", href: "/vos-sync/vos-admin/school-verification", icon: GraduationCap },
                 { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target, group: "System" },
