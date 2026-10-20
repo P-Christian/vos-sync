@@ -36,27 +36,89 @@ export async function addSingleStudent(schoolId: number, createdByUserId: number
   return await repo.createStudentRepo(payload);
 }
 
+import { getMyCourses, createMyCourse } from '@/modules/school-admin/services/school-admin.service';
+
 export async function addBulkStudents(schoolId: number, createdByUserId: number, inputList: BulkStudentInput): Promise<VsSchoolStudent[]> {
   const validatedList = bulkStudentSchema.parse(inputList);
-  
-  const payloadList: Partial<VsSchoolStudent>[] = validatedList.map((item) => ({
-    school_id: schoolId,
-    student_number: item.student_number || null,
-    first_name: item.first_name,
-    middle_name: (item.middle_name ?? '').trim(),
-    last_name: item.last_name,
-    email: item.email.toLowerCase(),
-    school_course_id: item.school_course_id || null,
-    school_year: item.school_year,
-    gpa: item.gpa ?? null,
-    is_alumni: false,
-    employee_education_id: null,
-    registered_user_id: null,
-    invitation_status: 'Not Sent',
-    created_by: createdByUserId,
-  }));
 
-  return await repo.bulkCreateStudentsRepo(payloadList);
+  // Fetch current courses for the school to resolve/auto-create
+  let existingCourses = await getMyCourses(schoolId);
+
+  // Map to cache course resolution: normalized key -> school_course_id
+  const courseCache = new Map<string, number>();
+  existingCourses.forEach((c) => {
+    if (c.course_code) {
+      courseCache.set(c.course_code.trim().toUpperCase(), c.school_course_id);
+    }
+    if (c.course_name) {
+      courseCache.set(c.course_name.trim().toLowerCase(), c.school_course_id);
+    }
+  });
+
+  const resolvedList: Partial<VsSchoolStudent>[] = [];
+
+  for (const item of validatedList) {
+    let resolvedCourseId = item.school_course_id || null;
+
+    const codeKey = item.course_code ? item.course_code.trim().toUpperCase() : null;
+    const nameKey = item.course_name ? item.course_name.trim().toLowerCase() : null;
+
+    if (!resolvedCourseId) {
+      if (codeKey && courseCache.has(codeKey)) {
+        resolvedCourseId = courseCache.get(codeKey)!;
+      } else if (nameKey && courseCache.has(nameKey)) {
+        resolvedCourseId = courseCache.get(nameKey)!;
+      } else if (codeKey || nameKey) {
+        // Auto-create course in the school courses
+        const courseName = item.course_name?.trim() || item.course_code?.trim() || 'General Course';
+        const courseCode = item.course_code?.trim() || null;
+        try {
+          const newCourse = await createMyCourse(
+            schoolId,
+            {
+              course_name: courseName,
+              course_code: courseCode,
+              degree: 'Bachelor',
+              course_status: 'Active',
+            },
+            createdByUserId
+          );
+          resolvedCourseId = newCourse.school_course_id;
+          if (courseCode) courseCache.set(courseCode.toUpperCase(), newCourse.school_course_id);
+          courseCache.set(courseName.toLowerCase(), newCourse.school_course_id);
+        } catch {
+          // If auto-creation fails (e.g. duplicate constraint or DB issue), attempt refetching courses
+          existingCourses = await getMyCourses(schoolId);
+          const found = existingCourses.find((c) =>
+            (courseCode && c.course_code?.toUpperCase() === courseCode.toUpperCase()) ||
+            c.course_name?.toLowerCase() === courseName.toLowerCase()
+          );
+          if (found) {
+            resolvedCourseId = found.school_course_id;
+          }
+        }
+      }
+    }
+
+    resolvedList.push({
+      school_id: schoolId,
+      student_number: item.student_number || null,
+      first_name: item.first_name,
+      middle_name: (item.middle_name ?? '').trim(),
+      last_name: item.last_name,
+      email: item.email.toLowerCase(),
+      school_course_id: resolvedCourseId,
+      school_year: item.school_year,
+      gpa: item.gpa ?? null,
+      is_alumni: false,
+      employee_education_id: null,
+      registered_user_id: null,
+      invitation_status: 'Not Sent',
+      created_by: createdByUserId,
+    });
+  }
+
+  return await repo.bulkCreateStudentsRepo(resolvedList);
 }
 
 export async function updateStudentAcademics(

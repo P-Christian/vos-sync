@@ -7,6 +7,8 @@ export const createStudentSchema = z.object({
   last_name: z.string().trim().min(1, 'Last name is required'),
   email: z.string().trim().min(1, 'Email is required').email('Invalid email address format'),
   school_course_id: z.number().nullable().optional(),
+  course_code: z.string().trim().nullable().optional(),
+  course_name: z.string().trim().nullable().optional(),
   school_year: z.string().trim().min(1, 'School year is required'),
   gpa: z.number().min(0).max(5.0).nullable().optional(),
 });

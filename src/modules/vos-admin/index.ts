@@ -14,3 +14,5 @@ export {
   type VerificationDecisionPayload as CompanyVerificationDecisionPayload,
   type VerificationStatus as CompanyVerificationStatus,
 } from './company-verification';
+export { CareerAdviceManagementPage } from './career-advice-management';
+export type { CareerArticle, ArticleStatus, ArticleAsset, ArticleFilters } from './career-advice-management';
