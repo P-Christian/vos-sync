@@ -277,7 +277,7 @@ function LoginForm() {
 
                     <div className="relative z-10">
                         <div className="mb-10">
-                            <span className="text-xl font-bold text-primary mb-2 block">Vos Sync</span>
+                            <span className="text-xl font-bold text-primary mb-2 block">VOS Sync</span>
                             <h1 className="text-5xl font-bold text-foreground mb-4 tracking-tight">How it Works</h1>
                             <div className="w-16 h-1.5 bg-primary rounded-full"></div>
                         </div>
@@ -288,9 +288,9 @@ function LoginForm() {
                                     <User className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-semibold text-foreground">Register</h3>
+                                    <h3 className="text-xl font-semibold text-foreground">Create Profile</h3>
                                     <p className="text-base text-muted-foreground max-w-sm mt-1">
-                                        Sign up through your social handles and register for challenges that excite you.
+                                        Register as a job seeker, verified employer, or educational institution partner.
                                     </p>
                                 </div>
                             </div>
@@ -299,9 +299,9 @@ function LoginForm() {
                                     <Code2 className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-semibold text-foreground">Participate</h3>
+                                    <h3 className="text-xl font-semibold text-foreground">Match & Connect</h3>
                                     <p className="text-base text-muted-foreground max-w-sm mt-1">
-                                        Once you&apos;re shortlisted you&apos;ll be able to see the problem statements and solve them.
+                                        Explore verified job opportunities, post hiring requisitions, and review applicant credentials.
                                     </p>
                                 </div>
                             </div>
@@ -310,9 +310,9 @@ function LoginForm() {
                                     <CheckCircle2 className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-semibold text-foreground">Get Hired</h3>
+                                    <h3 className="text-xl font-semibold text-foreground">Direct Hiring</h3>
                                     <p className="text-base text-muted-foreground max-w-sm mt-1">
-                                        Top performers get to be shortlisted by companies for further rounds of interview.
+                                        Coordinate interviews, evaluate assessments, and make direct verified hires with ease.
                                     </p>
                                 </div>
                             </div>
@@ -327,7 +327,7 @@ function LoginForm() {
                             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
                                 <Briefcase className="w-5 h-5 text-primary-foreground" />
                             </div>
-                            <span className="text-xl font-bold text-foreground">Vos Sync</span>
+                            <span className="text-xl font-bold text-foreground">VOS Sync</span>
                         </div>
 
                         <div className="mb-5 md:mb-8">
