@@ -115,7 +115,7 @@ export function AppSidebar({
                     { label: "Referrals", href: "/vos-sync/freelancer/referrals", icon: Share2 },
                     { label: "Notifications", href: "/vos-sync/freelancer/notifications", icon: Bell },
                     // { label: "How It Works", href: "/vos-sync/freelancer/how-it-works", icon: HelpCircle },
-                    { label: "Configuration", href: "/vos-sync/freelancer/settings", icon: Settings2, group: "Account" },
+                    { label: "Settings", href: "/vos-sync/freelancer/settings", icon: Settings2, group: "Account" },
                   ],
             footerLinks: [
                 { label: "Log out", href: "/logout", icon: LogOut },
@@ -179,6 +179,7 @@ export function AppSidebar({
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck, group: "Management" },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
+                { label: "Career Advice", href: "/vos-sync/vos-admin/career-articles", icon: FileText, group: "Content" },
                 { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2, group: "Verification" },
                 { label: "School Verification", href: "/vos-sync/vos-admin/school-verification", icon: GraduationCap },
                 { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target, group: "System" },

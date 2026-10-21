@@ -8,8 +8,8 @@ export const metadata = {
 
 export default function SchoolAdminPage() {
     return (
-        <div className="flex flex-col min-h-screen">
-            <main className="flex-1">
+        <div className="flex-1 overflow-y-auto min-h-0">
+            <main className="w-full">
                 <SchoolAdminDashboard />
             </main>
         </div>

@@ -168,16 +168,16 @@ export function JobBrowseCard({ job, onViewDetail, isBookmarked, onToggleBookmar
                 <Badge
                   key={s.id}
                   variant="secondary"
-                  className="text-[10px] px-2 py-0 h-5 rounded-md font-normal max-w-[120px] truncate"
+                  className="text-[10px] px-2 py-0.5 h-auto rounded-md font-normal max-w-[130px] inline-flex items-center"
                   title={s.skill_name}
                 >
-                  {s.skill_name}
+                  <span className="truncate">{s.skill_name}</span>
                 </Badge>
               ))}
               {job.skills.length > 3 && (
                 <Badge
                   variant="outline"
-                  className="text-[10px] px-1.5 py-0 h-5 rounded-md font-normal text-muted-foreground"
+                  className="text-[10px] px-1.5 py-0.5 h-auto rounded-md font-normal text-muted-foreground shrink-0"
                 >
                   +{job.skills.length - 3} more
                 </Badge>

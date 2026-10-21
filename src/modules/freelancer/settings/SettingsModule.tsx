@@ -17,14 +17,15 @@ import {
   CheckCircle,
   ChevronRight,
   Database,
+  Palette,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SettingsTab = "account" | "general" | "security" | "notifications" | "privacy";
+type SettingsTab = "account" | "appearance" | "security" | "notifications" | "privacy";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "account", label: "Account Profile", icon: User },
-  { id: "general", label: "General & Accessibility", icon: Settings2 },
+  { id: "appearance", label: "Appearance & Themes", icon: Palette },
   { id: "security", label: "Security & Sessions", icon: Shield },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "privacy", label: "Data & Privacy Requests", icon: Database },
@@ -155,7 +156,7 @@ export default function SettingsModule() {
               {activeTab === "account" && (
                 <AccountSettings user={user} saving={saving} onSave={saveProfile} />
               )}
-              {activeTab === "general" && (
+              {activeTab === "appearance" && (
                 <GeneralSettings />
               )}
               {activeTab === "security" && (

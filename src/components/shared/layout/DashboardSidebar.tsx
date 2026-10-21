@@ -203,6 +203,8 @@ export function DashboardSidebar({
         const hasMessagesItem = config.navItems.some((item) => item.label === "Messages");
         const hasNotificationsItem = config.navItems.some((item) => item.label === "Notifications");
 
+        let isCircuitBroken = false;
+
         const fetchCounts = async () => {
             if (hasMessagesItem) {
                 try {
@@ -216,19 +218,31 @@ export function DashboardSidebar({
                 }
             }
 
-            if (hasNotificationsItem) {
-                try {
-                    const isFreelancer = pathname?.startsWith("/vos-sync/freelancer") || pathname?.startsWith("/freelancer");
-                    const endpoint = isFreelancer
-                        ? "/api/freelancer/notifications?unread_only=true"
-                        : "/api/client/notifications?unread_only=true&limit=100";
-                    const res = await fetch(endpoint);
-                    if (res.ok) {
-                        const data = await res.json();
-                        setUnreadNotifications(data.unreadCount ?? data.notifications?.length ?? 0);
+            if (hasNotificationsItem && !isCircuitBroken) {
+                const isFreelancer = pathname?.startsWith("/vos-sync/freelancer") || pathname?.startsWith("/freelancer");
+                const isClient = pathname?.startsWith("/vos-sync/client") || pathname?.startsWith("/client");
+
+                const endpoint = isFreelancer
+                    ? "/api/freelancer/notifications?unread_only=true"
+                    : isClient
+                    ? "/api/client/notifications?unread_only=true&limit=100"
+                    : null;
+
+                if (endpoint) {
+                    try {
+                        const res = await fetch(endpoint);
+                        if (res.status === 401 || res.status === 403) {
+                            // Trip circuit breaker to avoid infinite 403 / 401 polling flood
+                            isCircuitBroken = true;
+                            return;
+                        }
+                        if (res.ok) {
+                            const data = await res.json();
+                            setUnreadNotifications(data.unreadCount ?? data.notifications?.length ?? 0);
+                        }
+                    } catch {
+                        // Silently ignore if endpoint unavailable or network error
                     }
-                } catch {
-                    // Silently ignore if not client route or endpoint unavailable
                 }
             }
         };

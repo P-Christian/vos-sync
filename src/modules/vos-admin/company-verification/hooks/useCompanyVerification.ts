@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { CompanyVerificationRecord, CompanyVerificationKPIs, VerificationDecisionPayload, VerificationStatus } from "../types";
 import { fetchCompanyVerifications, submitVerificationDecision } from "../services/companyVerification.service";
 import { calculateCompanyKPIs, filterCompanyRecords } from "../utils/companyVerification.utils";
 import { toast } from "sonner";
 
 export function useCompanyVerification() {
+  const searchParams = useSearchParams();
+  const targetCompanyId = searchParams?.get("companyId") || searchParams?.get("id");
+
   const [records, setRecords] = useState<CompanyVerificationRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +49,14 @@ export function useCompanyVerification() {
           setRecords(data);
           setError(null);
           setLoading(false);
+
+          if (targetCompanyId) {
+            const match = data.find((r) => String(r.company_id) === String(targetCompanyId));
+            if (match) {
+              setSelectedCompany(match);
+              setIsDetailModalOpen(true);
+            }
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -59,7 +71,7 @@ export function useCompanyVerification() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [targetCompanyId]);
 
   // Pure filtered dataset
   const filteredRecords = useMemo(() => {

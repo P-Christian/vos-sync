@@ -19,6 +19,7 @@ export default function VerifyIdentityPage() {
 
 
     const [activeModal, setActiveModal] = useState<'gov_id' | 'address' | 'mobile_number' | null>(null);
+    const [submittingTypes, setSubmittingTypes] = useState<Record<string, boolean>>({});
 
     const fetchData = async () => {
         await Promise.resolve();
@@ -38,6 +39,9 @@ export default function VerifyIdentityPage() {
             }
         } catch (error) {
             console.error("Error fetching verification data:", error);
+        } finally {
+            // Clear optimistic loading overrides once backend data is synchronized
+            setSubmittingTypes({});
         }
     };
 
@@ -47,7 +51,19 @@ export default function VerifyIdentityPage() {
         });
     }, []);
 
+    const handleSubmittingChange = (type: string, isSubmitting: boolean) => {
+        setSubmittingTypes((prev) => ({
+            ...prev,
+            [type]: isSubmitting,
+        }));
+    };
+
+    const isPendingOrSubmitting = (type: string) => {
+        return !!submittingTypes[type] || getVerificationStatus(type) === 'pending';
+    };
+
     const getVerificationStatus = (type: string) => {
+        if (submittingTypes[type]) return 'pending';
         const match = verifications.find(v => v.type === type);
         return match ? match.status : 'not_submitted';
     };
@@ -55,6 +71,16 @@ export default function VerifyIdentityPage() {
     const getRejectionNote = (type: string) => {
         const match = verifications.find(v => v.type === type && v.status === 'rejected');
         return match ? match.rejection_note || undefined : undefined;
+    };
+
+    const getButtonLabel = (type: string, defaultLabel: string) => {
+        const status = getVerificationStatus(type);
+        if (isPendingOrSubmitting(type) || status === 'pending') {
+            return 'Submitted (Under Review)';
+        }
+        if (status === 'approved') return 'Verified';
+        if (status === 'rejected') return 'Resubmit';
+        return defaultLabel;
     };
 
     const renderStatusBadge = (status: string) => {
@@ -121,10 +147,10 @@ export default function VerifyIdentityPage() {
                                 <Button
                                     className="w-full max-md:min-h-11"
                                     variant={getVerificationStatus('gov_id') === 'approved' ? 'outline' : 'default'}
-                                    disabled={getVerificationStatus('gov_id') === 'pending' || getVerificationStatus('gov_id') === 'approved'}
+                                    disabled={isPendingOrSubmitting('gov_id') || getVerificationStatus('gov_id') === 'approved'}
                                     onClick={() => setActiveModal('gov_id')}
                                 >
-                                    {getVerificationStatus('gov_id') === 'rejected' ? 'Resubmit' : (getVerificationStatus('gov_id') === 'approved' ? 'Verified' : 'Submit ID')}
+                                    {getButtonLabel('gov_id', 'Submit ID')}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -145,10 +171,10 @@ export default function VerifyIdentityPage() {
                                 <Button
                                     className="w-full max-md:min-h-11"
                                     variant={getVerificationStatus('address') === 'approved' ? 'outline' : 'default'}
-                                    disabled={getVerificationStatus('address') === 'pending' || getVerificationStatus('address') === 'approved'}
+                                    disabled={isPendingOrSubmitting('address') || getVerificationStatus('address') === 'approved'}
                                     onClick={() => setActiveModal('address')}
                                 >
-                                    {getVerificationStatus('address') === 'rejected' ? 'Resubmit' : (getVerificationStatus('address') === 'approved' ? 'Verified' : 'Submit Address')}
+                                    {getButtonLabel('address', 'Submit Address')}
                                 </Button>
                             </CardContent>
                         </Card>
@@ -182,12 +208,14 @@ export default function VerifyIdentityPage() {
                         isOpen={activeModal === 'gov_id'}
                         onClose={() => setActiveModal(null)}
                         onSuccess={fetchData}
+                        onSubmittingChange={(submitting) => handleSubmittingChange('gov_id', submitting)}
                         rejectionNote={getRejectionNote('gov_id')}
                     />
                     <AddressModal
                         isOpen={activeModal === 'address'}
                         onClose={() => setActiveModal(null)}
                         onSuccess={fetchData}
+                        onSubmittingChange={(submitting) => handleSubmittingChange('address', submitting)}
                         rejectionNote={getRejectionNote('address')}
                     />
                     <MobileVerificationModal
