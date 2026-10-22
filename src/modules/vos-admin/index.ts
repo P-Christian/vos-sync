@@ -16,3 +16,5 @@ export {
 } from './company-verification';
 export { CareerAdviceManagementPage } from './career-advice-management';
 export type { CareerArticle, ArticleStatus, ArticleAsset, ArticleFilters } from './career-advice-management';
+export { PlatformCompanyModule } from './platform-company';
+export { ContactMessagesModule } from './contact-messages';
