@@ -1,7 +1,7 @@
 
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Clock } from "lucide-react";
 import { ROLE_GUIDES } from "../config";
 import { ROLE_THEME } from "../theme";

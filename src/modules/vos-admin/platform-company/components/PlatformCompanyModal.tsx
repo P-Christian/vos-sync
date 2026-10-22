@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { PlatformCompany, PlatformCompanyFormData } from "../types/platformCompany.types";
 import {
   Dialog,
@@ -89,7 +89,12 @@ export function PlatformCompanyModal({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("identity");
 
-  useEffect(() => {
+  const [prevCompany, setPrevCompany] = useState<PlatformCompany | null>(company);
+  const [prevIsOpen, setPrevIsOpen] = useState<boolean>(isOpen);
+
+  if (company !== prevCompany || isOpen !== prevIsOpen) {
+    setPrevCompany(company);
+    setPrevIsOpen(isOpen);
     if (company) {
       setFormData({
         slug: company.slug || "",
@@ -140,7 +145,7 @@ export function PlatformCompanyModal({
     }
     setValidationError(null);
     setActiveTab("identity");
-  }, [company, isOpen]);
+  }
 
   const handleChange = (
     field: keyof PlatformCompanyFormData,

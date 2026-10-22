@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,13 +16,13 @@ import {
   Check,
   Building,
   Calendar,
-  User,
+ 
   Shield,
   Trash2,
   Save,
   MessageSquare,
   Clock,
-  Sparkles,
+ 
 } from "lucide-react";
 import { toast } from "sonner";
 import type {
@@ -76,18 +76,18 @@ export function ContactMessageDetailModal({
   onDelete,
   updating = false,
 }: ContactMessageDetailModalProps) {
-  const [internalNote, setInternalNote] = useState("");
+  const [prevMessageId, setPrevMessageId] = useState<number | null>(message?.id ?? null);
+  const [internalNote, setInternalNote] = useState(message?.internal_note || "");
   const [copiedEmail, setCopiedEmail] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState<ContactMessageStatus>("read");
+  const [selectedStatus, setSelectedStatus] = useState<ContactMessageStatus>(message?.status || "read");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  useEffect(() => {
-    if (message) {
-      setInternalNote(message.internal_note || "");
-      setSelectedStatus(message.status);
-      setConfirmDelete(false);
-    }
-  }, [message]);
+  if (message && message.id !== prevMessageId) {
+    setPrevMessageId(message.id);
+    setInternalNote(message.internal_note || "");
+    setSelectedStatus(message.status);
+    setConfirmDelete(false);
+  }
 
   if (!message) return null;
 

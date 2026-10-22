@@ -9,7 +9,7 @@ export type TargetedRole = "employee" | "employer" | "school";
 
 const INITIAL_MISMATCH: MismatchState = {
   isOpen: false,
-  currentRole: "",
+  currentRoleLabel: "",
   targetRoleLabel: "",
   targetRoute: "",
 };
@@ -60,7 +60,7 @@ export function useSmartRoleNavigation() {
 
             setMismatchState({
               isOpen: true,
-              currentRole: currentRoleDisplay,
+              currentRoleLabel: currentRoleDisplay,
               targetRoleLabel: targetDisplay,
               targetRoute,
             });

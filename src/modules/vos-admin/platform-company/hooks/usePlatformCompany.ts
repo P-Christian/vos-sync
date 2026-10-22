@@ -38,8 +38,29 @@ export function usePlatformCompany() {
   }, [clearMessages]);
 
   useEffect(() => {
-    loadCompanies();
-  }, [loadCompanies]);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetchPlatformCompanies();
+        if (!ignore) {
+          setCompanies(res.data ?? []);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          const e = err as Error;
+          setError(e.message || "Failed to load platform companies");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const openCreateModal = useCallback(() => {
     clearMessages();

@@ -76,12 +76,65 @@ export function useContactMessages() {
   }, [filters]);
 
   useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+    let ignore = false;
+    async function load() {
+      try {
+        const query = new URLSearchParams();
+        if (filters.status !== "all") query.set("status", filters.status);
+        if (filters.search.trim()) query.set("q", filters.search.trim());
+        query.set("page", String(filters.page));
+        query.set("pageSize", String(filters.pageSize));
+
+        const res = await fetch(`/api/vos-admin/contact-messages?${query.toString()}`);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Failed to fetch messages (${res.status})`);
+        }
+
+        const data = await res.json();
+        if (!ignore) {
+          startTransition(() => {
+            setMessages(data.items ?? []);
+            setTotal(Number(data.total ?? 0));
+          });
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          const message = err instanceof Error ? err.message : "An error occurred while loading messages";
+          setError(message);
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [filters]);
 
   useEffect(() => {
-    fetchUnreadCount();
-  }, [fetchUnreadCount]);
+    let ignore = false;
+    async function loadUnread() {
+      try {
+        const res = await fetch("/api/vos-admin/contact-messages/unread-count");
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) {
+            setUnreadCount(Number(data.unreadCount ?? 0));
+          }
+        }
+      } catch {
+        // non-blocking
+      }
+    }
+    void loadUnread();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const selectMessage = useCallback(async (id: number | null) => {
     setSelectedId(id);

@@ -21,7 +21,9 @@ export function StickyRoleTabs({ activeRole, onSelectRole }: Props) {
   useEffect(() => {
     const el = document.getElementById(SECTION_IDS.overview);
     if (!el) {
-      setIsVisible(true);
+      queueMicrotask(() => {
+        setIsVisible(true);
+      });
       return;
     }
     const observer = new IntersectionObserver(

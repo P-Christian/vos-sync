@@ -154,17 +154,16 @@ export default function Contact() {
   }, []);
 
   // Prefill name and email when the user is logged in (still editable)
-  React.useEffect(() => {
-    if (session.authenticated && !session.loading) {
-      const user = session as unknown as { name?: string; email?: string };
-      setFormData((prev) => ({
-        ...prev,
-        name: prev.name || user.name || "",
-        email: prev.email || user.email || "",
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session.authenticated, session.loading]);
+  const [syncedSession, setSyncedSession] = React.useState(false);
+  if (!syncedSession && session.authenticated && !session.loading) {
+    setSyncedSession(true);
+    const user = session as unknown as { name?: string; email?: string };
+    setFormData((prev) => ({
+      ...prev,
+      name: prev.name || user.name || "",
+      email: prev.email || user.email || "",
+    }));
+  }
 
   // Update a field and clear its server error as soon as the user edits it
   const updateField =
@@ -249,9 +248,6 @@ export default function Contact() {
       : []),
     { icon: Clock, label: "Support hours", value: "Mon–Fri, 8am–5pm", desc: "Philippine Time (PHT)" },
   ];
-
-  // Literal class names so Tailwind can see them.
-  const cardGridCols = contactCards.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3";
 
   const cardClass =
     "group/card relative overflow-hidden min-w-0 border border-border/80 rounded-2xl p-4 sm:p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 block h-full";

@@ -63,20 +63,20 @@ export default function AboutUs() {
   const missionNarrative =
     company?.company_description ||
     "Traditional hiring is broken — slow processes, opaque requirements, and endless black holes. We built VOS Sync to make hiring transparent, fast, and human again.";
-
-  const stats = React.useMemo(() => {
-    if (Array.isArray(company?.metadata?.stats) && company.metadata.stats.length > 0) {
-      return company.metadata.stats as Array<{ value: string; label: string }>;
-    }
-    return [
-      { value: "100%", label: "Verified Employers" },
-      { value: "Real-Time", label: "Direct Communication" },
-      { value: "0%", label: "Application Fees" },
-      { value: "24/7", label: "Platform Availability" },
-    ];
-  }, [company?.metadata]);
-
-  const teamHighlights = React.useMemo(() => {
+  const stats =
+    Array.isArray(company?.metadata?.stats) &&
+      company.metadata.stats.length > 0
+      ? (company.metadata.stats as Array<{
+        value: string;
+        label: string;
+      }>)
+      : [
+        { value: "100%", label: "Verified Employers" },
+        { value: "Real-Time", label: "Direct Communication" },
+        { value: "0%", label: "Application Fees" },
+        { value: "24/7", label: "Platform Availability" },
+      ];
+  const teamHighlights = (() => {
     if (
       Array.isArray(company?.metadata?.team_highlights) &&
       company.metadata.team_highlights.length > 0
@@ -93,80 +93,75 @@ export default function AboutUs() {
       company?.company_city,
       company?.company_province,
       company?.company_country,
-    ].filter(Boolean).join(", ");
+    ]
+      .filter(Boolean)
+      .join(", ");
 
     return [
       {
         icon: Globe,
         title: "Our Culture",
         desc: company?.company_culture
-          ? company.company_culture.slice(0, 110) + (company.company_culture.length > 110 ? "..." : "")
+          ? company.company_culture.slice(0, 110) +
+          (company.company_culture.length > 110 ? "..." : "")
           : "A collaborative, transparent environment where talent thrives and creates real impact.",
       },
       {
         icon: TrendingUp,
         title: "Our Vision",
         desc: company?.company_vision
-          ? company.company_vision.slice(0, 110) + (company.company_vision.length > 110 ? "..." : "")
+          ? company.company_vision.slice(0, 110) +
+          (company.company_vision.length > 110 ? "..." : "")
           : "Pioneering the future of work through smart role matching and seamless recruitment.",
       },
       {
         icon: Briefcase,
         title: "Platform Benefits",
         desc: company?.company_benefits
-          ? company.company_benefits.slice(0, 110) + (company.company_benefits.length > 110 ? "..." : "")
+          ? company.company_benefits.slice(0, 110) +
+          (company.company_benefits.length > 110 ? "..." : "")
           : "Verified profiles, transparent compensation ranges, and direct communication with employers.",
       },
       {
         icon: Users,
         title: "Headquarters & Reach",
         desc: locationText
-          ? locationText.slice(0, 110) + (locationText.length > 110 ? "..." : "")
+          ? locationText.slice(0, 110) +
+          (locationText.length > 110 ? "..." : "")
           : "Operating from the Philippines, connecting regional talent with leading organizations nationwide.",
       },
     ];
-  }, [
-    company?.metadata,
-    company?.company_culture,
-    company?.company_vision,
-    company?.company_benefits,
-    company?.company_address,
-    company?.company_city,
-    company?.company_province,
-    company?.company_country,
-  ]);
+  })();
+  const missionCheckpoints = (() => {
+    const parsed = company?.company_tags
+      ?.split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
 
-  const missionCheckpoints = React.useMemo(() => {
-    if (company?.company_tags) {
-      const parsed = company.company_tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
-      if (parsed.length > 0) return parsed;
-    }
-    return [
-      "Verified employers and authentic job listings",
-      "AI-assisted talent matching tailored to your skills",
-      "Transparent salary ranges on every listing",
-      "Direct communication with hiring managers",
-    ];
-  }, [company?.company_tags]);
-
-  const valuesList = React.useMemo(() => {
-    if (Array.isArray(company?.metadata?.values) && company.metadata.values.length > 0) {
-      return (company.metadata.values as Array<{
-        icon?: React.ElementType;
-        title: string;
-        desc: string;
-        color?: string;
-      }>).map((v) => ({
-        ...v,
-        icon: v.icon || HeartHandshake,
-      }));
-    }
-    return VALUES;
-  }, [company?.metadata]);
-
+    return parsed?.length
+      ? parsed
+      : [
+        "Verified employers and authentic job listings",
+        "AI-assisted talent matching tailored to your skills",
+        "Transparent salary ranges on every listing",
+        "Direct communication with hiring managers",
+      ];
+  })();
+  const valuesList =
+    Array.isArray(company?.metadata?.values) &&
+      company.metadata.values.length > 0
+      ? (
+        company.metadata.values as Array<{
+          icon?: React.ElementType;
+          title: string;
+          desc: string;
+          color?: string;
+        }>
+      ).map((value) => ({
+        ...value,
+        icon: value.icon || HeartHandshake,
+      }))
+      : VALUES;
 
   return (
     <div className="text-foreground font-sans md:pt-16">
@@ -313,7 +308,7 @@ export default function AboutUs() {
           <div className="bg-white/85 dark:bg-card/75 border border-border/80 rounded-3xl px-6 py-10 md:px-16 md:py-14 text-center relative overflow-hidden backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
             <div className="absolute top-0 right-0 w-72 h-72 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none" />
-            
+
             {session.isJobSeeker ? (
               /* Logged in Job Seeker */
               <div className="relative z-10">
@@ -322,7 +317,7 @@ export default function AboutUs() {
                   Browse verified opportunities and connect directly with top companies.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                 <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href="/vos-sync/freelancer" className="flex items-center gap-2">
                       <UserCheck className="h-4 w-4" />
                       Go to Job Seeker Portal
@@ -336,12 +331,12 @@ export default function AboutUs() {
             ) : session.isEmployer ? (
               /* Logged in Employer */
               <div className="relative z-10">
-                 <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Join us in building the future of work</h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Join us in building the future of work</h2>
                 <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Scale your team with verified professionals and seamless hiring workflows.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                 <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href="/vos-sync/client/dashboard" className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       Go to Client Portal
@@ -355,12 +350,12 @@ export default function AboutUs() {
             ) : session.isAdmin || session.isSchool ? (
               /* Logged in School / Admin */
               <div className="relative z-10">
-                 <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Join us in building the future of work</h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-4">Join us in building the future of work</h2>
                 <p className="text-muted-foreground mb-8 max-w-xl mx-auto text-lg">
                   Access your management tools, student records, and platform controls.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                 <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href={session.dashboard || "/vos-sync/admin"} className="flex items-center gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Go to Dashboard
@@ -379,7 +374,7 @@ export default function AboutUs() {
                   Whether you&apos;re hiring or being hired — VOS Sync is built for you.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                 <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-primary to-sky-600 hover:brightness-110 text-white rounded-full px-8 cursor-pointer shadow-sm hover:shadow-md transition-all h-11 md:h-10">
                     <Link href="/signup">Get Started Free</Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="border-border/80 bg-background/80 hover:bg-muted text-foreground rounded-full px-8 cursor-pointer h-11 md:h-10">

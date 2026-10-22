@@ -37,12 +37,14 @@ export function PlatformCompanyCard({
   onToggleActive,
   disabled = false,
 }: PlatformCompanyCardProps) {
+  const [prevLogo, setPrevLogo] = React.useState(company.company_logo);
   const [imgError, setImgError] = React.useState(false);
   const logoUrl = formatAssetUrl(company.company_logo);
 
-  React.useEffect(() => {
+  if (company.company_logo !== prevLogo) {
+    setPrevLogo(company.company_logo);
     setImgError(false);
-  }, [company.company_logo]);
+  }
 
   const isPrimary = Number(company.is_primary) === 1 || company.is_primary === true;
   const isActive = Number(company.is_active) === 1 || company.is_active === true;

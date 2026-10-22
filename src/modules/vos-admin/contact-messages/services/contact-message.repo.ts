@@ -69,12 +69,12 @@ export async function fetchContactMessagesRepo(
 
   const baseFields = "id,name,email,company,subject,message,user_id,user_role,status,source,assigned_to,internal_note,reviewed_by,reviewed_at,ip_hash,created_at,updated_at,deleted_at";
 
-  // Search: ILIKE on name, email, subject, company
-  let searchFilter = "";
-  if (q && q.trim()) {
-    const safe = encodeURIComponent(q.trim());
-    searchFilter = `&filter[_and][0][deleted_at][_null]=true&filter[_and][1][_or][0][name][_icontains]=${safe}&filter[_and][1][_or][1][email][_icontains]=${safe}&filter[_and][1][_or][2][subject][_icontains]=${safe}&filter[_and][1][_or][3][company][_icontains]=${safe}`;
-  }
+  // // Search: ILIKE on name, email, subject, company
+  // let searchFilter = "";
+  // if (q && q.trim()) {
+  //   const safe = encodeURIComponent(q.trim());
+  //   searchFilter = `&filter[_and][0][deleted_at][_null]=true&filter[_and][1][_or][0][name][_icontains]=${safe}&filter[_and][1][_or][1][email][_icontains]=${safe}&filter[_and][1][_or][2][subject][_icontains]=${safe}&filter[_and][1][_or][3][company][_icontains]=${safe}`;
+  // }
 
   // If search is present, use a simpler filter string to avoid conflicts
   let url: string;

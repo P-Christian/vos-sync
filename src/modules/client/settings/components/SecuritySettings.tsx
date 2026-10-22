@@ -82,8 +82,28 @@ export default function SecuritySettings({
   }, []);
 
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    let ignore = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/client/settings/sessions");
+        if (!res.ok) throw new Error("Failed to load active sessions.");
+        const json = await res.json();
+        if (!ignore) {
+          setSessions(json.sessions || []);
+        }
+      } catch (err: unknown) {
+        console.error(err);
+      } finally {
+        if (!ignore) {
+          setSessionsLoading(false);
+        }
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
