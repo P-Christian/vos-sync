@@ -2429,9 +2429,9 @@ function SignupPageContent() {
               className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', freelancerErrors.terms && 'border-destructive')} />
             <span className={cn('text-sm leading-tight select-none', freelancerErrors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
               Yes, I understand and agree to the{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
-              <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
+              <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
+              <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
               <span className="text-destructive ml-0.5">*</span>
             </span>
           </label>
@@ -2944,9 +2944,9 @@ function SignupPageContent() {
                 className={cn('mt-0.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary text-white', schoolErrors.terms && 'border-destructive')} />
               <span className={cn('text-sm leading-tight select-none', schoolErrors.terms ? 'text-destructive font-medium' : 'text-muted-foreground')}>
                 Yes, I understand and agree to the{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
-                <Link href="#" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
+                <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">VOS Sync Terms of Service</Link>, including the{' '}
+                <Link href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">User Agreement</Link> and{' '}
+                <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Privacy Policy</Link>.
                 <span className="text-destructive ml-0.5">*</span>
               </span>
             </label>

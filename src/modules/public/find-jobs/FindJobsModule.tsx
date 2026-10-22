@@ -12,7 +12,7 @@ import {
   GuestAuthModal,
 } from "./components";
 
-import { PublicJobPosting } from "./types";
+import { PublicJobPosting, PopularPreset } from "./types";
 import { Briefcase, AlertCircle, ArrowLeft, ArrowRight, ChevronDown, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,14 @@ interface FindJobsModuleProps {
   initialJobs?: PublicJobPosting[];
   initialTotal?: number;
   initialTotalPages?: number;
+  initialPopularPresets?: PopularPreset[];
 }
 
 export default function FindJobsModule({
   initialJobs = [],
   initialTotal = 0,
   initialTotalPages = 1,
+  initialPopularPresets = [],
 }: FindJobsModuleProps = {}) {
 
   const router = useRouter();
@@ -42,6 +44,7 @@ export default function FindJobsModule({
   const [appliedLocationQuery, setAppliedLocationQuery] = useState(() => searchParams.get("location") || "");
   const [selectedJobType, setSelectedJobType] = useState("All");
   const [selectedWorkSetup, setSelectedWorkSetup] = useState("All");
+  const [popularPresets, setPopularPresets] = useState<PopularPreset[]>(initialPopularPresets);
   
   const [jobs, setJobs] = useState<PublicJobPosting[]>(initialJobs);
   const [loading, setLoading] = useState(initialJobs.length === 0);
@@ -120,6 +123,7 @@ export default function FindJobsModule({
     if (
       isFirstMountRef.current &&
       initialJobs.length > 0 &&
+      initialPopularPresets.length > 0 &&
       !appliedSearchQuery &&
       !appliedLocationQuery &&
       selectedJobType === "All" &&
@@ -163,6 +167,9 @@ export default function FindJobsModule({
           setJobs(data.data || []);
           setTotalJobs(data.meta?.total || 0);
           setTotalPages(data.meta?.totalPages || 1);
+          if (Array.isArray(data.meta?.popularPresets) && data.meta.popularPresets.length > 0) {
+            setPopularPresets(data.meta.popularPresets);
+          }
         }
       } catch (err: unknown) {
         console.error("fetchJobs error:", err);
@@ -182,7 +189,7 @@ export default function FindJobsModule({
     return () => {
       isMounted = false;
     };
-  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length]);
+  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length, initialPopularPresets.length]);
 
 
   const handlePageChange = (newPage: number) => {
@@ -202,16 +209,47 @@ export default function FindJobsModule({
     setPage(1);
   };
 
+  const handleQuickPresetClick = (preset: PopularPreset) => {
+    setPaginationDirection(0);
+    setIsPaginating(false);
+    setPage(1);
+
+    if (preset.type === "work_setup") {
+      const isAlreadyActive = selectedWorkSetup.toLowerCase() === preset.label.toLowerCase();
+      setSelectedWorkSetup(isAlreadyActive ? "All" : preset.label);
+    } else if (preset.type === "job_type") {
+      const isAlreadyActive = selectedJobType.toLowerCase() === preset.label.toLowerCase();
+      setSelectedJobType(isAlreadyActive ? "All" : preset.label);
+    } else {
+      const isAlreadyActive = appliedSearchQuery.trim().toLowerCase() === preset.label.trim().toLowerCase();
+      if (isAlreadyActive) {
+        setSearchQuery("");
+        setAppliedSearchQuery("");
+      } else {
+        setSearchQuery(preset.label);
+        setAppliedSearchQuery(preset.label);
+      }
+    }
+  };
+
   const handleQuickCategoryClick = (tag: string) => {
     setPaginationDirection(0);
     setIsPaginating(false);
     if (tag === "Remote" || tag === "On-site" || tag === "Hybrid") {
-      setSelectedWorkSetup(tag);
+      const isAlreadyActive = selectedWorkSetup.toLowerCase() === tag.toLowerCase();
+      setSelectedWorkSetup(isAlreadyActive ? "All" : tag);
     } else if (tag === "Full Time" || tag === "Part Time" || tag === "Contract") {
-      setSelectedJobType(tag);
+      const isAlreadyActive = selectedJobType.toLowerCase() === tag.toLowerCase();
+      setSelectedJobType(isAlreadyActive ? "All" : tag);
     } else {
-      setSearchQuery(tag);
-      setAppliedSearchQuery(tag);
+      const isAlreadyActive = appliedSearchQuery.trim().toLowerCase() === tag.trim().toLowerCase();
+      if (isAlreadyActive) {
+        setSearchQuery("");
+        setAppliedSearchQuery("");
+      } else {
+        setSearchQuery(tag);
+        setAppliedSearchQuery(tag);
+      }
     }
     setPage(1);
   };
@@ -263,6 +301,11 @@ export default function FindJobsModule({
         onLocationChange={setLocationQuery}
         onSearchSubmit={handleSearchSubmit}
         totalJobs={totalJobs}
+        popularPresets={popularPresets}
+        selectedJobType={selectedJobType}
+        selectedWorkSetup={selectedWorkSetup}
+        appliedSearchQuery={appliedSearchQuery}
+        onQuickPresetClick={handleQuickPresetClick}
         onQuickCategoryClick={handleQuickCategoryClick}
         isLoading={loading}
       />

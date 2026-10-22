@@ -58,6 +58,7 @@ export function useCompanyProfile(
         setSuccessMessage("Company profile updated successfully.");
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "An error occurred while saving.");
+        throw err;
       } finally {
         setSaving(false);
       }

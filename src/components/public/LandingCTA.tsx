@@ -24,7 +24,7 @@ export function LandingCTA() {
                 Ready to accelerate your career?
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-10">
-                Explore thousands of verified jobs from industry-leading companies and track your applications.
+                Explore verified jobs from actively hiring organizations and track your applications.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="text-sm sm:text-base rounded-full px-8 shadow-sm cursor-pointer">
@@ -52,7 +52,7 @@ export function LandingCTA() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="text-sm sm:text-base rounded-full px-8 shadow-sm cursor-pointer">
-                  <Link href="/vos-sync/client/jobs" className="flex items-center gap-2">
+                  <Link href="/vos-sync/client/dashboard" className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
                     Go to Client Portal
                   </Link>
@@ -69,7 +69,7 @@ export function LandingCTA() {
             /* Logged in Admin / School View */
             <div className="relative z-10">
               <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-foreground">
-                Manage your organization on VosSync
+                Manage your organization on VOS Sync
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-10">
                 Access your organization dashboard to verify records and monitor platform operations.
@@ -93,7 +93,7 @@ export function LandingCTA() {
                 Ready to accelerate your career?
               </h2>
               <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-10">
-                Join thousands of professionals who have found their dream jobs through our platform. Create your free account today.
+                Join ambitious professionals and organizations connecting through verified hiring workflows. Create your free account today.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg" className="text-sm sm:text-base rounded-full px-8 shadow-sm cursor-pointer">

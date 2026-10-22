@@ -36,6 +36,7 @@ import {
 import AIProfileAssistantModal from "./components/AIProfileAssistantModal";
 import { EditableCompanyFields } from "./types";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -145,11 +146,28 @@ export default function CompanyProfileModule({
     fetchProfile();
   }, [fetchProfile, initialCompany, initialError]);
 
+  const [infoErrors, setInfoErrors] = useState<Record<string, string>>({});
+  const [classificationErrors, setClassificationErrors] = useState<Record<string, string>>({});
+
   const handleFieldChange = (
     field: keyof EditableCompanyFields | "custom_industry_name",
     value: string | number | boolean | null | undefined
   ) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
+    if (infoErrors[field]) {
+      setInfoErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+    if (classificationErrors[field]) {
+      setClassificationErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleApplyAISuggestions = async (acceptedFields: Partial<EditableCompanyFields>) => {
@@ -189,39 +207,145 @@ export default function CompanyProfileModule({
         company_tin: company.company_tin ?? "",
       });
     }
+    setInfoErrors({});
     clearMessages();
     setIsEditingInfo(true);
   };
 
   const handleSaveInfo = async () => {
     clearMessages();
-    await updateProfile({
-      company_name: draft.company_name,
-      company_legal_name: draft.company_legal_name,
-      company_email: draft.company_email,
-      company_contact: draft.company_contact,
-      company_website: draft.company_website,
-      company_description: draft.company_description,
-      company_mission: draft.company_mission,
-      company_vision: draft.company_vision,
-      company_culture: draft.company_culture,
-      company_benefits: draft.company_benefits,
-      company_logo: draft.company_logo,
-      company_cover: draft.company_cover,
-      company_facebook: draft.company_facebook,
-      company_linkedin: draft.company_linkedin,
-      company_instagram: draft.company_instagram,
-      company_x: draft.company_x,
-      company_youtube: draft.company_youtube,
-      registration_no: draft.registration_no,
-      company_tin: draft.company_tin,
-    });
-    setIsEditingInfo(false);
+
+    // Client-side validation
+    const errors: Record<string, string> = {};
+
+    const name = (draft.company_name ?? "").trim();
+    if (!name) {
+      errors.company_name = "Company display name is required.";
+    } else if (name.length < 2 || name.length > 100) {
+      errors.company_name = "Display name must be between 2 and 100 characters.";
+    }
+
+    const legalName = (draft.company_legal_name ?? "").trim();
+    if (!legalName) {
+      errors.company_legal_name = "Legal company name is required.";
+    } else if (legalName.length < 2 || legalName.length > 150) {
+      errors.company_legal_name = "Legal name must be between 2 and 150 characters.";
+    }
+
+    const email = (draft.company_email ?? "").trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) {
+      errors.company_email = "Company email is required.";
+    } else if (!emailRegex.test(email) || email.length > 100) {
+      errors.company_email = "Please enter a valid company email address.";
+    }
+
+    const contact = (draft.company_contact ?? "").trim();
+    const phoneRegex = /^(?:\+?\d{1,4}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,9}$/;
+    if (!contact) {
+      errors.company_contact = "Company contact number is required.";
+    } else if (!phoneRegex.test(contact) || contact.length > 50) {
+      errors.company_contact = "Please enter a valid phone number (e.g. 0912-345-6789 or +63 912 345 6789).";
+    }
+
+    const regNo = (draft.registration_no ?? "").trim();
+    if (regNo && (regNo.length < 3 || regNo.length > 50)) {
+      errors.registration_no = "Registration number must be between 3 and 50 characters.";
+    }
+
+    const tin = (draft.company_tin ?? "").trim();
+    const tinRegex = /^\d{3}-?\d{3}-?\d{3}(-?\d{3})?$/;
+    if (tin && (!tinRegex.test(tin) || tin.length > 20)) {
+      errors.company_tin = "TIN must be 9–12 digits (e.g., 000-000-000-000 or 000123456000).";
+    }
+
+    const desc = (draft.company_description ?? "").trim();
+    if (!desc) {
+      errors.company_description = "Company description is required.";
+    } else if (desc.length < 20 || desc.length > 2000) {
+      errors.company_description = "Description must be between 20 and 2,000 characters.";
+    }
+
+    const mission = (draft.company_mission ?? "").trim();
+    if (mission && mission.length > 1000) {
+      errors.company_mission = "Mission statement cannot exceed 1,000 characters.";
+    }
+
+    const vision = (draft.company_vision ?? "").trim();
+    if (vision && vision.length > 1000) {
+      errors.company_vision = "Vision statement cannot exceed 1,000 characters.";
+    }
+
+    const culture = (draft.company_culture ?? "").trim();
+    if (culture && culture.length > 1500) {
+      errors.company_culture = "Culture text cannot exceed 1,500 characters.";
+    }
+
+    const benefits = (draft.company_benefits ?? "").trim();
+    if (benefits && benefits.length > 1500) {
+      errors.company_benefits = "Perks & benefits cannot exceed 1,500 characters.";
+    }
+
+    const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+    const urlFields: Array<{ key: keyof EditableCompanyFields; label: string }> = [
+      { key: "company_website", label: "Company Website" },
+      { key: "company_facebook", label: "Facebook URL" },
+      { key: "company_linkedin", label: "LinkedIn URL" },
+      { key: "company_instagram", label: "Instagram URL" },
+      { key: "company_x", label: "𝕏 (Twitter) URL" },
+      { key: "company_youtube", label: "YouTube URL" },
+    ];
+
+    for (const { key, label } of urlFields) {
+      const val = (draft[key] as string ?? "").trim();
+      if (val && (!urlRegex.test(val) || val.length > 500)) {
+        errors[key] = `Please enter a valid URL for ${label}.`;
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setInfoErrors(errors);
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
+      return;
+    }
+
+    setInfoErrors({});
+    try {
+      await updateProfile({
+        company_name: draft.company_name?.trim(),
+        company_legal_name: draft.company_legal_name?.trim(),
+        company_email: draft.company_email?.trim(),
+        company_contact: draft.company_contact?.trim(),
+        company_website: draft.company_website?.trim() || null,
+        company_description: draft.company_description?.trim(),
+        company_mission: draft.company_mission?.trim() || null,
+        company_vision: draft.company_vision?.trim() || null,
+        company_culture: draft.company_culture?.trim() || null,
+        company_benefits: draft.company_benefits?.trim() || null,
+        company_logo: draft.company_logo || null,
+        company_cover: draft.company_cover || null,
+        company_facebook: draft.company_facebook?.trim() || null,
+        company_linkedin: draft.company_linkedin?.trim() || null,
+        company_instagram: draft.company_instagram?.trim() || null,
+        company_x: draft.company_x?.trim() || null,
+        company_youtube: draft.company_youtube?.trim() || null,
+        registration_no: draft.registration_no?.trim() || null,
+        company_tin: draft.company_tin?.trim() || null,
+      });
+      await fetchProfile();
+      toast.success("Company profile updated successfully.");
+      setIsEditingInfo(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update company profile.";
+      toast.error(msg);
+    }
   };
 
   const handleCancelInfo = () => {
     setIsEditingInfo(false);
     setDraft({});
+    setInfoErrors({});
     clearMessages();
   };
 
@@ -236,12 +360,37 @@ export default function CompanyProfileModule({
         company_tags: company.company_tags ?? "",
       });
     }
+    setClassificationErrors({});
     clearMessages();
     setIsEditingClassification(true);
   };
 
   const handleSaveClassification = async () => {
     clearMessages();
+
+    // Validation
+    const classErrors: Record<string, string> = {};
+    const tags = (draft.company_tags ?? "").trim();
+    if (tags.length > 255) {
+      classErrors.company_tags = "Company tags cannot exceed 255 characters.";
+    }
+
+    if (draft.year_established !== undefined && draft.year_established !== null && (draft.year_established as unknown) !== "") {
+      const year = Number(draft.year_established);
+      const currentYear = new Date().getFullYear();
+      if (isNaN(year) || year < 1800 || year > currentYear + 1) {
+        classErrors.year_established = `Year must be between 1800 and ${currentYear + 1}.`;
+      }
+    }
+
+    if (Object.keys(classErrors).length > 0) {
+      setClassificationErrors(classErrors);
+      const firstErr = Object.values(classErrors)[0];
+      toast.error(firstErr);
+      return;
+    }
+
+    setClassificationErrors({});
     let targetIndustryId: number | string | null | undefined = draft.industry_id;
 
     if (
@@ -268,21 +417,28 @@ export default function CompanyProfileModule({
       targetIndustryId = Number(draft.industry_id);
     }
 
-    await updateProfile({
-      industry_id: targetIndustryId as number | null,
-      organization_type_id: draft.organization_type_id ? Number(draft.organization_type_id) : null,
-      company_size_id: draft.company_size_id ? Number(draft.company_size_id) : null,
-      year_established: draft.year_established ? Number(draft.year_established) : null,
-      company_tags: draft.company_tags,
-    });
+    try {
+      await updateProfile({
+        industry_id: targetIndustryId as number | null,
+        organization_type_id: draft.organization_type_id ? Number(draft.organization_type_id) : null,
+        company_size_id: draft.company_size_id ? Number(draft.company_size_id) : null,
+        year_established: draft.year_established ? Number(draft.year_established) : null,
+        company_tags: tags || null,
+      });
 
-    await fetchProfile();
-    setIsEditingClassification(false);
+      await fetchProfile();
+      toast.success("Company classification updated successfully.");
+      setIsEditingClassification(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update classification.";
+      toast.error(msg);
+    }
   };
 
   const handleCancelClassification = () => {
     setIsEditingClassification(false);
     setDraft({});
+    setClassificationErrors({});
     clearMessages();
   };
 
@@ -303,14 +459,21 @@ export default function CompanyProfileModule({
 
   const handleSaveAddress = async () => {
     clearMessages();
-    await updateProfile({
-      company_province: draft.company_province,
-      company_city: draft.company_city,
-      company_brgy: draft.company_brgy,
-      company_address: draft.company_address,
-      company_zipCode: draft.company_zipCode,
-    });
-    setIsEditingAddress(false);
+    try {
+      await updateProfile({
+        company_province: draft.company_province,
+        company_city: draft.company_city,
+        company_brgy: draft.company_brgy,
+        company_address: draft.company_address,
+        company_zipCode: draft.company_zipCode,
+      });
+      await fetchProfile();
+      toast.success("Company address updated successfully.");
+      setIsEditingAddress(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update company address.";
+      toast.error(msg);
+    }
   };
 
   const handleCancelAddress = () => {
@@ -606,7 +769,7 @@ export default function CompanyProfileModule({
                   </CardTitle>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isOwnerOrAdmin && (
+                  {isOwnerOrAdmin && isEditingInfo && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -637,6 +800,7 @@ export default function CompanyProfileModule({
                       <CompanyBasicInfo
                         data={displayDataInfo}
                         onChange={handleFieldChange}
+                        fieldErrors={infoErrors}
                         readOnly={false}
                       />
                       <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
@@ -698,6 +862,7 @@ export default function CompanyProfileModule({
                       <CompanyClassification
                         data={displayDataClassification}
                         onChange={handleFieldChange}
+                        fieldErrors={classificationErrors}
                         readOnly={false}
                       />
                       <div className="flex justify-end gap-3 pt-6 border-t border-border/60 mt-6">
@@ -867,6 +1032,7 @@ export default function CompanyProfileModule({
               <CardContent className="p-6">
                 <CompanyDocuments
                   companyId={company?.company_id}
+                  verificationStatus={verificationStatus}
                   onDocsChange={(count) => setUploadedDocsCount(count)}
                 />
               </CardContent>

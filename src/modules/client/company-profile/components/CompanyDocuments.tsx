@@ -1,13 +1,31 @@
+ 
 // src/modules/client/company-profile/components/CompanyDocuments.tsx
 "use client";
 
+import Image from "next/image";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2, X, CheckCircle2, Eye, RefreshCw, Lock, Trash2, FileText, Plus } from "lucide-react";
+import {
+  Upload,
+  Loader2,
+  X,
+  CheckCircle2,
+  Eye,
+  RefreshCw,
+  Lock,
+  Trash2,
+  FileText,
+  Plus,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import DocumentPreviewModal, { PreviewableDoc } from "./DocumentPreviewModal";
 
-type DocumentTypeKey = "DTI_SEC_REGISTRATION" | "BUSINESS_PERMIT" | "TIN_DOCUMENT" | "OTHER_DOCUMENT";
-
+type DocumentTypeKey =
+  | "DTI_SEC_REGISTRATION"
+  | "BUSINESS_PERMIT"
+  | "TIN_DOCUMENT"
+  | "OTHER_DOCUMENT";
 
 interface DocSlotConfig {
   type: DocumentTypeKey;
@@ -43,13 +61,17 @@ interface UploadedDoc {
 
 interface CompanyDocumentsProps {
   companyId?: number;
+  verificationStatus?: string;
   onDocsChange?: (count: number) => void;
 }
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "";
   try {
-    const raw = dateStr.endsWith("Z") || dateStr.includes("+") ? dateStr : `${dateStr.replace(" ", "T")}Z`;
+    const raw =
+      dateStr.endsWith("Z") || dateStr.includes("+")
+        ? dateStr
+        : `${dateStr.replace(" ", "T")}Z`;
     const d = new Date(raw);
     if (isNaN(d.getTime())) return dateStr;
     return d.toLocaleDateString("en-US", {
@@ -71,7 +93,11 @@ function formatFileSize(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`;
 }
 
-export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDocumentsProps) {
+export default function CompanyDocuments({
+  companyId,
+  verificationStatus = "DRAFT",
+  onDocsChange,
+}: CompanyDocumentsProps) {
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const otherFileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
@@ -80,6 +106,11 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   const [docs, setDocs] = useState<UploadedDoc[]>([]);
   const [slotError, setSlotError] = useState<Record<string, string>>({});
   const [otherError, setOtherError] = useState<string | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<PreviewableDoc | null>(null);
+
+  // Users can only remove documents if profile has not yet been processed / under review
+  const canRemoveDocs =
+    verificationStatus === "DRAFT" || verificationStatus === "REJECTED";
 
   const ALLOWED_TYPES = [
     "application/pdf",
@@ -92,7 +123,9 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   const fetchDocs = useCallback(async () => {
     if (!companyId) return;
     try {
-      const res = await fetch(`/api/client/company-profile/documents?companyId=${companyId}`);
+      const res = await fetch(
+        `/api/client/company-profile/documents?companyId=${companyId}`
+      );
       if (!res.ok) throw new Error("Failed to load documents.");
       const data: UploadedDoc[] = await res.json();
       setDocs(data);
@@ -102,8 +135,27 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   }, [companyId]);
 
   useEffect(() => {
-    fetchDocs();
-  }, [fetchDocs]);
+    let ignore = false;
+    async function load() {
+      if (!companyId) return;
+      try {
+        const res = await fetch(
+          `/api/client/company-profile/documents?companyId=${companyId}`
+        );
+        if (!res.ok) throw new Error("Failed to load documents.");
+        const data: UploadedDoc[] = await res.json();
+        if (!ignore) {
+          setDocs(data);
+        }
+      } catch (err) {
+        console.error("Error loading verification documents:", err);
+      }
+    }
+    void load();
+    return () => {
+      ignore = true;
+    };
+  }, [companyId]);
 
   useEffect(() => {
     onDocsChange?.(docs.length);
@@ -114,7 +166,10 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
     fileInputRefs.current[docType]?.click();
   };
 
-  const handleFileChange = async (docType: DocumentTypeKey, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    docType: DocumentTypeKey,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const selectedFiles = Array.from(e.target.files ?? []);
     if (selectedFiles.length === 0) return;
     const file = selectedFiles[0];
@@ -122,19 +177,17 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
     setSlotError((prev) => ({ ...prev, [docType]: "" }));
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setSlotError((prev) => ({
-        ...prev,
-        [docType]: `Only PDF, JPG, PNG, or WEBP files are allowed. (${file.name})`,
-      }));
+      const msg = `Only PDF, JPG, PNG, or WEBP files are allowed. (${file.name})`;
+      setSlotError((prev) => ({ ...prev, [docType]: msg }));
+      toast.error(msg);
       e.target.value = "";
       return;
     }
 
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      setSlotError((prev) => ({
-        ...prev,
-        [docType]: `File must be under ${MAX_SIZE_MB}MB. (${file.name})`,
-      }));
+      const msg = `File must be under ${MAX_SIZE_MB}MB. (${file.name})`;
+      setSlotError((prev) => ({ ...prev, [docType]: msg }));
+      toast.error(msg);
       e.target.value = "";
       return;
     }
@@ -156,12 +209,16 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         throw new Error(errJson.error || `Upload failed for ${file.name}`);
       }
 
+      toast.success(`${file.name} uploaded successfully.`);
       await fetchDocs();
     } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error ? err.message : "Upload failed. Please try again.";
       setSlotError((prev) => ({
         ...prev,
-        [docType]: err instanceof Error ? err.message : "Upload failed. Please try again.",
+        [docType]: errMsg,
       }));
+      toast.error(errMsg);
     } finally {
       setUploadingSlot(null);
       e.target.value = "";
@@ -169,7 +226,9 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   };
 
   // Handler for multiple Other Supporting Documents upload
-  const handleOtherFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOtherFilesChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const selectedFiles = Array.from(e.target.files ?? []);
     if (selectedFiles.length === 0) return;
 
@@ -178,12 +237,16 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
     // Validate all files
     for (const file of selectedFiles) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        setOtherError(`Invalid file format in "${file.name}". Only PDF, JPG, PNG, or WEBP files are allowed.`);
+        const msg = `Invalid format in "${file.name}". Only PDF, JPG, PNG, or WEBP files are allowed.`;
+        setOtherError(msg);
+        toast.error(msg);
         e.target.value = "";
         return;
       }
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        setOtherError(`File "${file.name}" exceeds the ${MAX_SIZE_MB}MB size limit.`);
+        const msg = `File "${file.name}" exceeds the ${MAX_SIZE_MB}MB size limit.`;
+        setOtherError(msg);
+        toast.error(msg);
         e.target.value = "";
         return;
       }
@@ -208,9 +271,15 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         }
       }
 
+      toast.success("Supporting documents uploaded successfully.");
       await fetchDocs();
     } catch (err: unknown) {
-      setOtherError(err instanceof Error ? err.message : "Upload failed for one or more files. Please try again.");
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "Upload failed for one or more files. Please try again.";
+      setOtherError(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsUploadingOther(false);
       e.target.value = "";
@@ -218,20 +287,31 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   };
 
   // Handler for deleting an individual document
-  const handleDeleteDoc = async (fileId: string) => {
+  const handleDeleteDoc = async (fileId: string, docName?: string) => {
     setDeletingDocId(fileId);
     setOtherError(null);
     try {
-      const res = await fetch(`/api/client/company-profile/documents?id=${fileId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/client/company-profile/documents?id=${fileId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const resJson = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || "Failed to delete document.");
+        throw new Error(resJson.error || "Failed to remove document.");
       }
+      toast.success(
+        docName
+          ? `"${docName}" removed successfully.`
+          : "Document removed successfully."
+      );
       await fetchDocs();
     } catch (err: unknown) {
-      setOtherError(err instanceof Error ? err.message : "Failed to delete document.");
+      const errMsg =
+        err instanceof Error ? err.message : "Failed to remove document.";
+      toast.error(errMsg);
+      setOtherError(errMsg);
     } finally {
       setDeletingDocId(null);
     }
@@ -244,12 +324,20 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
   return (
     <div className="space-y-6">
       {/* Header Info Banner */}
-      <div className="rounded-lg bg-muted/40 p-3.5 border border-border flex items-start gap-2.5">
+      <div className="rounded-xl bg-muted/40 p-3.5 border border-border flex items-start gap-2.5">
         <Lock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          Upload documents required to verify your company. These documents are{" "}
-          <span className="font-semibold text-foreground">private</span> and will only be accessible to authorized VOS Sync administrators.
-        </p>
+        <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
+          <p>
+            Upload documents required to verify your company. These documents are{" "}
+            <span className="font-semibold text-foreground">private</span> and
+            will only be accessible to authorized VOS Sync administrators.
+          </p>
+          {!canRemoveDocs && (
+            <p className="text-[11px] font-medium text-warning flex items-center gap-1">
+              Document removal is locked because this profile is under review or verified.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Primary Verification Document Slots */}
@@ -257,7 +345,9 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
         {DOCUMENT_SLOTS.map((slot) => {
           const existingDoc = docs.find((d) => d.document_type === slot.type);
           const isUploading = uploadingSlot === slot.type;
+          const isDeleting = deletingDocId === existingDoc?.id;
           const errorMsg = slotError[slot.type];
+          const isPdf = existingDoc?.name.toLowerCase().endsWith(".pdf");
 
           return (
             <div
@@ -275,16 +365,16 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {existingDoc ? (
                     <>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        disabled={isUploading}
+                        disabled={isUploading || isDeleting}
                         onClick={() => triggerFileInput(slot.type)}
-                        className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium"
+                        className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium rounded-lg"
                       >
                         {isUploading ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -298,18 +388,33 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         type="button"
                         variant="ghost"
                         size="sm"
-                        asChild
-                        className="h-8 max-md:min-h-10 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                        onClick={() => setPreviewDoc(existingDoc)}
+                        className="h-8 max-md:min-h-10 text-xs gap-1.5 text-muted-foreground hover:text-foreground rounded-lg"
                       >
-                        <a
-                          href={`/api/client/assets/${existingDoc.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </a>
+                        <Eye className="h-3.5 w-3.5" />
+                        View
                       </Button>
+
+                      {canRemoveDocs && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isDeleting || isUploading}
+                          onClick={() =>
+                            handleDeleteDoc(existingDoc.id, existingDoc.name)
+                          }
+                          className="h-8 max-md:min-h-10 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                          title="Remove document"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Remove
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <Button
@@ -318,7 +423,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                       size="sm"
                       disabled={isUploading}
                       onClick={() => triggerFileInput(slot.type)}
-                      className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10"
+                      className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10 rounded-lg"
                     >
                       {isUploading ? (
                         <>
@@ -336,29 +441,59 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                 </div>
               </div>
 
-              {/* Row 2: Document file status & preview */}
+              {/* Row 2: Document file status & preview thumbnail */}
               {existingDoc ? (
-                <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-lg bg-success/10 border border-success/20 text-foreground text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                    <a
-                      href={`/api/client/assets/${existingDoc.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:underline truncate font-semibold cursor-pointer max-w-[170px] sm:max-w-[220px]"
-                      title={existingDoc.name}
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/40 border border-border/80 text-foreground text-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Thumbnail Preview */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(existingDoc)}
+                      className="relative group/thumb shrink-0 w-11 h-11 rounded-lg overflow-hidden border border-border bg-card flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer"
+                      title="Click to preview document"
                     >
-                      {existingDoc.name}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
-                    <span>{formatFileSize(existingDoc.size)}</span>
-                    {existingDoc.uploaded_at && (
-                      <>
-                        <span>·</span>
-                        <span>Uploaded {formatDate(existingDoc.uploaded_at)}</span>
-                      </>
-                    )}
+                      {isPdf ? (
+                        <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold">
+                          <FileText className="h-4 w-4" />
+                          <span className="text-[9px] tracking-tight font-mono">
+                            PDF
+                          </span>
+                        </div>
+                      ) : (
+                        <Image
+                          src={`/api/client/assets/${existingDoc.id}`}
+                          alt={existingDoc.name}
+                          className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-200"
+                          width={50}
+                          height={50}
+                          />
+                      )}
+                    </button>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDoc(existingDoc)}
+                          className="font-semibold text-foreground hover:underline hover:text-primary truncate block text-left text-xs max-w-[170px] sm:max-w-[260px]"
+                          title={existingDoc.name}
+                        >
+                          {existingDoc.name}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+                        <span>{formatFileSize(existingDoc.size)}</span>
+                        {existingDoc.uploaded_at && (
+                          <>
+                            <span>·</span>
+                            <span>
+                              Uploaded {formatDate(existingDoc.uploaded_at)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -410,7 +545,9 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               Other Supporting Documents
             </h4>
             <p className="text-xs text-muted-foreground">
-              Upload optional supplementary files such as BIR 2303, General Information Sheet (GIS), Secretary&apos;s Certificate, or Special Permits.
+              Upload optional supplementary files such as BIR 2303, General
+              Information Sheet (GIS), Secretary&apos;s Certificate, or Special
+              Permits.
             </p>
           </div>
 
@@ -421,7 +558,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
               size="sm"
               disabled={isUploadingOther}
               onClick={() => otherFileInputRef.current?.click()}
-              className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10 shrink-0"
+              className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10 shrink-0 rounded-lg"
             >
               {isUploadingOther ? (
                 <>
@@ -471,6 +608,7 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
             <AnimatePresence initial={false}>
               {otherDocs.map((doc) => {
                 const isDeleting = deletingDocId === doc.id;
+                const isPdf = doc.name.toLowerCase().endsWith(".pdf");
 
                 return (
                   <motion.div
@@ -479,23 +617,52 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.96 }}
                     transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex items-center justify-between gap-2.5 p-2.5 rounded-lg bg-muted/40 border border-border text-xs"
+                    className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/40 border border-border text-xs"
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex items-center gap-3 min-w-0">
+                      {/* Thumbnail Preview */}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc(doc)}
+                        className="relative group/thumb shrink-0 w-10 h-10 rounded-lg overflow-hidden border border-border bg-card flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer"
+                        title="Click to preview document"
+                      >
+                        {isPdf ? (
+                          <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold">
+                            <FileText className="h-3.5 w-3.5" />
+                            <span className="text-[8px] tracking-tight font-mono">
+                              PDF
+                            </span>
+                          </div>
+                        ) : (
+                          <Image
+                            src={`/api/client/assets/${doc.id}`}
+                            alt={doc.name}
+                            className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-200"
+                            width={50}
+                            height={50}
+
+                          />
+                        )}
+                      </button>
+
                       <div className="min-w-0">
-                        <a
-                          href={`/api/client/assets/${doc.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-semibold text-foreground hover:underline truncate block max-w-[160px] sm:max-w-xs"
-                          title={doc.name}
-                        >
-                          {doc.name}
-                        </a>
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDoc(doc)}
+                            className="font-semibold text-foreground hover:underline hover:text-primary truncate block text-left text-xs max-w-[160px] sm:max-w-xs"
+                            title={doc.name}
+                          >
+                            {doc.name}
+                          </button>
+                        </div>
                         <span className="text-[11px] text-muted-foreground">
                           {formatFileSize(doc.size)}
-                          {doc.uploaded_at ? ` · Uploaded ${formatDate(doc.uploaded_at)}` : ""}
+                          {doc.uploaded_at
+                            ? ` · Uploaded ${formatDate(doc.uploaded_at)}`
+                            : ""}
                         </span>
                       </div>
                     </div>
@@ -505,30 +672,30 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
                         type="button"
                         variant="ghost"
                         size="sm"
-                        asChild
-                        className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => setPreviewDoc(doc)}
+                        className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground rounded-lg"
                       >
-                        <a href={`/api/client/assets/${doc.id}`} target="_blank" rel="noopener noreferrer">
-                          <Eye className="h-3.5 w-3.5" />
-                          View
-                        </a>
+                        <Eye className="h-3.5 w-3.5" />
+                        View
                       </Button>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={isDeleting}
-                        onClick={() => handleDeleteDoc(doc.id)}
-                        className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        {isDeleting ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                        Delete
-                      </Button>
+                      {canRemoveDocs && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isDeleting}
+                          onClick={() => handleDeleteDoc(doc.id, doc.name)}
+                          className="h-7 max-md:min-h-10 px-2 text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -541,6 +708,13 @@ export default function CompanyDocuments({ companyId, onDocsChange }: CompanyDoc
           </div>
         )}
       </div>
+
+      {/* Interactive Document Preview Modal */}
+      <DocumentPreviewModal
+        isOpen={Boolean(previewDoc)}
+        onClose={() => setPreviewDoc(null)}
+        doc={previewDoc}
+      />
     </div>
   );
 }

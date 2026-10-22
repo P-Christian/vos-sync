@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { PublicJobPosting } from "@/modules/public/find-jobs/types";
+import type { PublicJobPosting, PopularPreset } from "@/modules/public/find-jobs/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +39,108 @@ function formatWorkSetup(val: string): string {
   if (norm.includes("hybrid")) return "Hybrid";
   if (norm.includes("site") || norm.includes("office")) return "On-site";
   return val.replace(/[_-]+/g, " ");
+}
+
+const EXCLUDED_WORK_SETUPS = new Set(["on-site", "onsite", "all"]);
+const EXCLUDED_JOB_TYPES = new Set(["full time", "fulltime", "all"]);
+// Work setup or employment type only qualifies if active listings reach a major volume (50+)
+const MIN_METADATA_JOB_THRESHOLD = 50;
+
+function isGenericRoleOrCategory(str: string): boolean {
+  const norm = str.trim().toLowerCase();
+  return (
+    !norm ||
+    norm === "other" ||
+    norm === "unassigned" ||
+    norm === "general" ||
+    norm === "none" ||
+    norm === "n/a" ||
+    norm === "all"
+  );
+}
+
+export function computePopularPresets(rawJobs: Record<string, unknown>[]): PopularPreset[] {
+  if (!Array.isArray(rawJobs) || rawJobs.length === 0) {
+    return [];
+  }
+
+  const setupCounts = new Map<string, number>();
+  const typeCounts = new Map<string, number>();
+  const roleCounts = new Map<string, number>();
+
+  for (const j of rawJobs) {
+    // 1. Work setup (strictly exclude On-site and All)
+    const rawSetup = String(j.work_arrangement || j.work_setup || "").trim();
+    if (rawSetup) {
+      const formatted = formatWorkSetup(rawSetup);
+      if (formatted && !EXCLUDED_WORK_SETUPS.has(formatted.toLowerCase())) {
+        setupCounts.set(formatted, (setupCounts.get(formatted) || 0) + 1);
+      }
+    }
+
+    // 2. Job type (strictly exclude Full Time and All)
+    const rawType = String(j.job_type || "").trim();
+    if (rawType) {
+      const formatted = formatJobType(rawType);
+      if (formatted && !EXCLUDED_JOB_TYPES.has(formatted.toLowerCase())) {
+        typeCounts.set(formatted, (typeCounts.get(formatted) || 0) + 1);
+      }
+    }
+
+    // 3. Category / Role
+    const category = String(j.job_category || "").trim();
+    const title = String(j.job_title || "").trim();
+    if (category && !isGenericRoleOrCategory(category)) {
+      roleCounts.set(category, (roleCounts.get(category) || 0) + 1);
+    } else if (title && !isGenericRoleOrCategory(title)) {
+      roleCounts.set(title, (roleCounts.get(title) || 0) + 1);
+    }
+  }
+
+  const presets: PopularPreset[] = [];
+  const seenLabels = new Set<string>();
+
+  // Work Setup: ONLY included if job count reaches significant volume (>= 50 active listings)
+  const sortedSetups = Array.from(setupCounts.entries()).sort((a, b) => b[1] - a[1]);
+  if (sortedSetups.length > 0 && sortedSetups[0][1] >= MIN_METADATA_JOB_THRESHOLD) {
+    const label = sortedSetups[0][0];
+    presets.push({
+      label,
+      type: "work_setup",
+      count: sortedSetups[0][1],
+    });
+    seenLabels.add(label.toLowerCase());
+  }
+
+  // Employment Type: ONLY included if job count reaches significant volume (>= 50 active listings)
+  const sortedTypes = Array.from(typeCounts.entries()).sort((a, b) => b[1] - a[1]);
+  if (sortedTypes.length > 0 && sortedTypes[0][1] >= MIN_METADATA_JOB_THRESHOLD) {
+    const label = sortedTypes[0][0];
+    if (!seenLabels.has(label.toLowerCase())) {
+      presets.push({
+        label,
+        type: "job_type",
+        count: sortedTypes[0][1],
+      });
+      seenLabels.add(label.toLowerCase());
+    }
+  }
+
+  // Top Roles / Categories (fill up to 5 presets total)
+  const sortedRoles = Array.from(roleCounts.entries()).sort((a, b) => b[1] - a[1]);
+  for (const [role, count] of sortedRoles) {
+    if (presets.length >= 5) break;
+    if (count > 0 && !seenLabels.has(role.toLowerCase())) {
+      presets.push({
+        label: role,
+        type: "keyword",
+        count,
+      });
+      seenLabels.add(role.toLowerCase());
+    }
+  }
+
+  return presets;
 }
 
 /**
@@ -152,6 +254,8 @@ export async function getPublicJobs(options: GetPublicJobsOptions = {}) {
   if (jobId) {
     rawJobs = rawJobs.filter((j) => String(j.job_id || j.id) === jobId);
   }
+
+  const popularPresets = computePopularPresets(rawJobs);
 
   // Fetch company details for master data lookup
   const companyIds = Array.from(new Set(rawJobs.map((j) => Number(j.company_id)).filter(Boolean)));
@@ -268,6 +372,7 @@ export async function getPublicJobs(options: GetPublicJobsOptions = {}) {
       page,
       limit,
       totalPages: Math.ceil(totalCount / limit) || 1,
+      popularPresets,
     },
   };
 }

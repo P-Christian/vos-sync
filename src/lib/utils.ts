@@ -92,7 +92,7 @@ export function formatAssetUrl(pathOrUrl?: string | null): string | null {
   if (
     trimmed.startsWith("/api/assets/") ||
     trimmed.startsWith("/api/client/assets/") ||
-    trimmed.startsWith("/api/freelancer/assets/")
+    trimmed.startsWith("/api/freelancer/assets/") 
   ) {
     return trimmed;
   }
@@ -169,4 +169,26 @@ export function generateUUID(): string {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+/**
+ * Normalizes raw job type database enums (e.g. FULL_TIME, PART_TIME) into human-readable labels.
+ */
+export function formatJobType(type?: string | null): string {
+  if (!type) return "";
+  const normalized = type.trim().toUpperCase();
+  const mapping: Record<string, string> = {
+    FULL_TIME: "Full-Time",
+    PART_TIME: "Part-Time",
+    CONTRACT: "Contract",
+    FREELANCE: "Freelance",
+    INTERNSHIP: "Internship",
+    TEMPORARY: "Temporary",
+    COMMISSION: "Commission",
+  };
+  if (mapping[normalized]) return mapping[normalized];
+  return type
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
