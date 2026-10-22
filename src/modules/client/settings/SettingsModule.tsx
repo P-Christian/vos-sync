@@ -6,14 +6,12 @@ import React, { useEffect, useState } from "react";
 import { useSettings } from "./hooks/useSettings";
 import AccountSettings from "./components/AccountSettings";
 import SecuritySettings from "./components/SecuritySettings";
-import TeamSettings from "./components/TeamSettings";
 import NotificationSettings from "./components/NotificationSettings";
 // import IntegrationSettings from "./components/IntegrationSettings";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   User,
   Shield,
-  Users,
   Bell,
   AlertCircle,
   CheckCircle,
@@ -21,34 +19,33 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-type SettingsTab = "account" | "security" | "team" | "notifications";
+export type SettingsTab = "account" | "security" | "notifications";
 
 const TABS: { id: SettingsTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "account", label: "Account Profile", icon: User },
   { id: "security", label: "Security & Auth", icon: Shield },
-  { id: "team", label: "Team & Roles", icon: Users },
   { id: "notifications", label: "Notifications", icon: Bell },
   // { id: "integrations", label: "Integrations", icon: Blocks },
 ];
 
-export default function SettingsModule() {
+export default function SettingsModule({
+  initialTab = "account",
+}: {
+  initialTab?: SettingsTab;
+}) {
   const {
     user,
-    team,
     loading,
-    teamLoading,
     saving,
     error,
     successMessage,
     loadProfile,
     saveProfile,
     changePassword,
-    loadTeam,
-    modifyTeamRole,
     clearMessages,
   } = useSettings();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
 
   useEffect(() => {
     loadProfile();
@@ -104,7 +101,7 @@ export default function SettingsModule() {
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
         <CardHeader className="border-b gap-0 border-zinc-100 dark:border-zinc-800 px-6 max-md:px-1 !py-0 bg-zinc-50/50 dark:bg-zinc-900/10">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-md:grid max-md:grid-cols-4 max-md:items-stretch max-md:gap-0.5">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-md:grid max-md:grid-cols-3 max-md:items-stretch max-md:gap-0.5">
             {TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -147,15 +144,6 @@ export default function SettingsModule() {
               )}
               {activeTab === "security" && (
                 <SecuritySettings saving={saving} onChangePassword={changePassword} />
-              )}
-              {activeTab === "team" && (
-                <TeamSettings
-                  team={team}
-                  loading={teamLoading}
-                  saving={saving}
-                  onLoadTeam={loadTeam}
-                  onModifyRole={modifyTeamRole}
-                />
               )}
               {activeTab === "notifications" && <NotificationSettings />}
               {/* {activeTab === "integrations" && <IntegrationSettings />} */}
