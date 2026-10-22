@@ -45,6 +45,7 @@ export default function FindJobsModule({
   const [selectedJobType, setSelectedJobType] = useState("All");
   const [selectedWorkSetup, setSelectedWorkSetup] = useState("All");
   const [popularPresets, setPopularPresets] = useState<PopularPreset[]>(initialPopularPresets);
+  const [searchTrigger, setSearchTrigger] = useState(0);
   
   const [jobs, setJobs] = useState<PublicJobPosting[]>(initialJobs);
   const [loading, setLoading] = useState(initialJobs.length === 0);
@@ -122,6 +123,7 @@ export default function FindJobsModule({
     // If initial jobs were provided by the server and default filters apply, skip the initial client fetch
     if (
       isFirstMountRef.current &&
+      searchTrigger === 0 &&
       initialJobs.length > 0 &&
       initialPopularPresets.length > 0 &&
       !appliedSearchQuery &&
@@ -189,7 +191,7 @@ export default function FindJobsModule({
     return () => {
       isMounted = false;
     };
-  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length, initialPopularPresets.length]);
+  }, [appliedSearchQuery, appliedLocationQuery, selectedJobType, selectedWorkSetup, page, isPaginating, initialJobs.length, initialPopularPresets.length, searchTrigger]);
 
 
   const handlePageChange = (newPage: number) => {
@@ -202,11 +204,13 @@ export default function FindJobsModule({
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!searchQuery.trim() && !locationQuery.trim()) return;
     setPaginationDirection(0);
     setIsPaginating(false);
     setAppliedSearchQuery(searchQuery);
     setAppliedLocationQuery(locationQuery);
     setPage(1);
+    setSearchTrigger((prev) => prev + 1);
   };
 
   const handleQuickPresetClick = (preset: PopularPreset) => {

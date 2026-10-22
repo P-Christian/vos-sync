@@ -45,6 +45,8 @@ export function JobHeroBanner({
     }
   };
 
+  const isSearchEmpty = !searchQuery.trim() && !locationQuery.trim();
+
   return (
     <div className="relative overflow-hidden border-b border-border/60 pt-4 pb-16 md:pt-22 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
@@ -62,7 +64,13 @@ export function JobHeroBanner({
 
         {/* Hero Search Bar Box */}
         <form
-          onSubmit={onSearchSubmit}
+          onSubmit={(e) => {
+            if (isSearchEmpty) {
+              e.preventDefault();
+              return;
+            }
+            onSearchSubmit(e);
+          }}
           className="bg-white/90 dark:bg-card/75 border border-border/80 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] p-3 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-3 backdrop-blur-xl"
         >
           {/* Keyword Search Input */}
@@ -94,8 +102,8 @@ export function JobHeroBanner({
             <Button
               type="submit"
               size="lg"
-              disabled={isLoading}
-              className="w-full h-12 text-sm font-bold gap-2 shadow-md hover:shadow-lg transition-all"
+              disabled={isLoading || isSearchEmpty}
+              className="w-full h-12 text-sm font-bold gap-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               {isLoading ? "Searching..." : "Search Jobs"}
