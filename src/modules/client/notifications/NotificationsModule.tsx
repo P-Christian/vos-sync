@@ -7,9 +7,8 @@ import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "framer-motion";
 import {
   AlertCircle,
-  Calendar,
+  Bell,
   CheckCheck,
-  FileText,
   Layers,
   RefreshCw,
   Search,
@@ -23,24 +22,21 @@ import { useNotifications } from "./hooks/useNotifications";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 import NotificationList from "./components/NotificationList";
 import { cn } from "@/lib/utils";
-import { CategoryFilter, matchesCategory } from "./utils/notificationVisuals";
 
-// Notification preferences now live in Settings.
-// Adjust this path to wherever the preferences section is mounted.
-const SETTINGS_HREF = "/vos-sync/client/settings";
+// Notification preferences live in the Settings page — open that tab directly.
+const SETTINGS_HREF = "/vos-sync/client/settings?tab=notifications";
 
-type ViewFilter = "all" | "unread";
+type FilterTab = "ALL" | "UNREAD";
 
-interface CategoryOption {
+interface FilterTabOption {
   label: string;
-  value: CategoryFilter;
+  value: FilterTab;
   icon: React.ElementType;
 }
 
-const CATEGORY_OPTIONS: CategoryOption[] = [
+const FILTER_TABS: FilterTabOption[] = [
   { label: "All", value: "ALL", icon: Layers },
-  { label: "Applications", value: "APPLICATIONS", icon: FileText },
-  { label: "Interviews", value: "INTERVIEWS", icon: Calendar },
+  { label: "Unread", value: "UNREAD", icon: Bell },
 ];
 
 const PILL_SPRING = { type: "spring", stiffness: 500, damping: 36 } as const;
@@ -60,8 +56,7 @@ export default function NotificationsModule() {
 
   const { subscribe } = useRealtime();
 
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("ALL");
-  const [view, setView] = useState<ViewFilter>("all");
+  const [activeTab, setActiveTab] = useState<FilterTab>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Load on mount
@@ -80,33 +75,20 @@ export default function NotificationsModule() {
   }, [subscribe, loadNotifications]);
 
   const handleClearFilters = () => {
-    setSelectedCategory("ALL");
-    setView("all");
+    setActiveTab("ALL");
     setSearchQuery("");
   };
 
-  // Category counts computed from the full list
-  const categoryCounts = useMemo(() => {
-    const counts: Record<CategoryFilter, number> = {
-      ALL: notifications.length,
-      APPLICATIONS: 0,
-      INTERVIEWS: 0,
-    };
-
-    notifications.forEach((n) => {
-      if (matchesCategory(n, "APPLICATIONS")) counts.APPLICATIONS += 1;
-      if (matchesCategory(n, "INTERVIEWS")) counts.INTERVIEWS += 1;
-    });
-
-    return counts;
-  }, [notifications]);
+  const tabCounts: Record<FilterTab, number> = {
+    ALL: notifications.length,
+    UNREAD: unreadCount,
+  };
 
   const filteredNotifications = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
 
     return notifications.filter((n) => {
-      if (view === "unread" && n.is_read) return false;
-      if (!matchesCategory(n, selectedCategory)) return false;
+      if (activeTab === "UNREAD" && n.is_read) return false;
 
       if (q) {
         const matchTitle = n.title?.toLowerCase().includes(q);
@@ -116,9 +98,9 @@ export default function NotificationsModule() {
 
       return true;
     });
-  }, [notifications, view, selectedCategory, searchQuery]);
+  }, [notifications, activeTab, searchQuery]);
 
-  const isFiltered = selectedCategory !== "ALL" || view !== "all" || searchQuery.trim().length > 0;
+  const isFiltered = activeTab !== "ALL" || searchQuery.trim().length > 0;
 
   // Only show the skeleton on the first load, not on every realtime refresh
   const showSkeleton = loading && notifications.length === 0;
@@ -202,95 +184,24 @@ export default function NotificationsModule() {
       <Card className="gap-0 overflow-hidden rounded-xl border bg-card !py-0 shadow-sm">
         <CardContent className="p-0">
           {/* Toolbar */}
-          <div className="space-y-3 border-b border-border bg-card p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* All / Unread segmented control */}
-              <div
-                role="group"
-                aria-label="Notification view"
-                className="inline-flex w-full sm:w-auto rounded-lg bg-muted/60 p-0.5"
-              >
-                {(
-                  [
-                    { value: "all", label: "All", count: notifications.length },
-                    { value: "unread", label: "Unread", count: unreadCount },
-                  ] as const
-                ).map((opt) => {
-                  const active = view === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setView(opt.value)}
-                      className={cn(
-                        "relative flex flex-1 sm:flex-none items-center justify-center rounded-md px-3.5 py-1.5 max-md:min-h-10 text-xs font-medium transition-colors cursor-pointer",
-                        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {/* Sliding highlight that follows the active tab */}
-                      {active && (
-                        <motion.span
-                          layoutId="notifications-view-pill"
-                          transition={PILL_SPRING}
-                          className="absolute inset-0 rounded-md bg-background shadow-sm"
-                        />
-                      )}
-                      <span className="relative z-10 flex items-center gap-1.5">
-                        {opt.label}
-                        <span
-                          className={cn(
-                            "min-w-5 rounded-full px-1.5 text-center text-xs md:text-[10px] font-bold transition-colors",
-                            active && opt.value === "unread" && opt.count > 0
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          )}
-                        >
-                          {opt.count > 99 ? "99+" : opt.count}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Search */}
-              <div className="relative w-full sm:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by candidate, job, or keyword..."
-                  aria-label="Search notifications"
-                  className="h-9 rounded-lg border-border bg-background pl-9 pr-9 md:text-xs max-md:h-10 max-md:text-base"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="Clear search"
-                    className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground max-md:size-10 max-md:right-0"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Category chips */}
-            <div className="scrollbar-none -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
-              {CATEGORY_OPTIONS.map((opt) => {
+          <div className="flex flex-col gap-3 border-b border-border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Single filter tab bar */}
+            <div
+              role="group"
+              aria-label="Filter notifications"
+              className="scrollbar-none -mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-0.5"
+            >
+              {FILTER_TABS.map((opt) => {
                 const Icon = opt.icon;
-                const count = categoryCounts[opt.value];
-                const isSelected = selectedCategory === opt.value;
+                const count = tabCounts[opt.value];
+                const isSelected = activeTab === opt.value;
 
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     aria-pressed={isSelected}
-                    onClick={() => setSelectedCategory(opt.value)}
+                    onClick={() => setActiveTab(opt.value)}
                     className={cn(
                       "relative flex shrink-0 cursor-pointer items-center whitespace-nowrap rounded-full border px-3 py-1.5 max-md:min-h-10 text-xs font-medium transition-colors",
                       isSelected
@@ -298,10 +209,10 @@ export default function NotificationsModule() {
                         : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
-                    {/* Sliding highlight that follows the selected category */}
+                    {/* Sliding highlight that follows the selected tab */}
                     {isSelected && (
                       <motion.span
-                        layoutId="notifications-category-pill"
+                        layoutId="notifications-filter-pill"
                         transition={PILL_SPRING}
                         className="absolute inset-0 rounded-full bg-primary"
                       />
@@ -311,21 +222,48 @@ export default function NotificationsModule() {
                       {opt.label}
                       <span
                         className={cn(
-                          "text-xs md:text-[10px] font-bold transition-colors",
-                          isSelected ? "text-primary-foreground/80" : "text-muted-foreground/70"
+                          "min-w-4 text-center text-xs md:text-[10px] font-bold transition-colors",
+                          isSelected
+                            ? "text-primary-foreground/80"
+                            : count === 0
+                              ? "text-muted-foreground/40"
+                              : "text-muted-foreground/70"
                         )}
                       >
-                        {count}
+                        {count > 99 ? "99+" : count}
                       </span>
                     </span>
                   </button>
                 );
               })}
             </div>
+
+            {/* Search */}
+            <div className="relative w-full shrink-0 lg:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by candidate, job, or keyword..."
+                aria-label="Search notifications"
+                className="h-9 rounded-lg border-border bg-background pl-9 pr-9 md:text-xs max-md:h-10 max-md:text-base"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:text-foreground max-md:size-10 max-md:right-0"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           <NotificationList
-            resetKey={`${view}-${selectedCategory}-${searchQuery.trim()}`}
+            resetKey={`${activeTab}-${searchQuery.trim()}`}
             notifications={filteredNotifications}
             loading={showSkeleton}
             onMarkRead={markRead}
