@@ -118,30 +118,33 @@ export default function DocumentPreviewModal({
     setIsDragging(false);
   }, []);
 
-  useEffect(() => {
-    if (isOpen && doc?.id) {
-      resetView();
-    }
-  }, [isOpen, doc?.id, resetView]);
-
   const isPdf = Boolean(doc?.name.toLowerCase().endsWith(".pdf"));
   const docUrl = doc ? `/api/client/assets/${doc.id}` : "";
+
+  // Reset transforms and PDF state during render when active document changes
+  const currentDocId = isOpen && doc ? doc.id : null;
+  const [prevDocId, setPrevDocId] = useState<string | null>(currentDocId);
+
+  if (currentDocId !== prevDocId) {
+    setPrevDocId(currentDocId);
+    setZoom(1);
+    setRotation(0);
+    setPan({ x: 0, y: 0 });
+    setIsDragging(false);
+    setPdfData(null);
+    setLoadingPdf(Boolean(isOpen && doc && isPdf));
+    setPdfError(null);
+    setPageNumber(1);
+    setNumPages(null);
+  }
 
   // Authenticated fetch for PDF buffer
   useEffect(() => {
     if (!isOpen || !doc || !isPdf) {
-      setPdfData(null);
-      setLoadingPdf(false);
-      setPdfError(null);
-      setPageNumber(1);
-      setNumPages(null);
       return;
     }
 
     let isMounted = true;
-    setLoadingPdf(true);
-    setPdfError(null);
-    setPageNumber(1);
 
     fetch(docUrl, { credentials: "same-origin" })
       .then((res) => {
@@ -167,7 +170,7 @@ export default function DocumentPreviewModal({
     return () => {
       isMounted = false;
     };
-  }, [isOpen, doc?.id, isPdf, docUrl]);
+  }, [isOpen, doc, isPdf, docUrl]);
 
   if (!doc) return null;
 
