@@ -11,6 +11,8 @@ import { SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/component
 import { LandingCTA } from "@/components/public/LandingCTA";
 import { HomeSearchBar } from "@/components/public/HomeSearchBar";
 import { formatAssetUrl, formatJobType } from "@/lib/utils";
+import { getPublicJobs } from "@/app/api/public/find-jobs/route";
+import type { PopularPreset } from "@/modules/public/find-jobs/types";
 
 export const dynamic = "force-dynamic";
 
@@ -176,7 +178,11 @@ async function getFeaturedJobs() {
 // ==========================================
 
 export default async function Page() {
-  const jobs = await getFeaturedJobs();
+  const jobsPromise = getFeaturedJobs();
+  const presetsPromise = getPublicJobs({ limit: 1 }).catch(() => null);
+
+  const [jobs, publicJobsRes] = await Promise.all([jobsPromise, presetsPromise]);
+  const popularPresets: PopularPreset[] = publicJobsRes?.meta?.popularPresets ?? [];
 
   return (
     <div className="relative isolate min-h-screen text-foreground font-sans selection:bg-muted">
@@ -209,15 +215,31 @@ export default async function Page() {
                 <HomeSearchBar />
               </StaggerChild>
 
-              <StaggerChild>
-                <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
-                  <span>Popular searches:</span>
-                  <Link href="/find-jobs?q=Remote" className="hover:text-foreground underline underline-offset-4">Remote</Link>
-                  <Link href="/find-jobs?q=React" className="hover:text-foreground underline underline-offset-4">React</Link>
-                  <Link href="/find-jobs?q=Designer" className="hover:text-foreground underline underline-offset-4">Designer</Link>
-                  <Link href="/find-jobs?q=Marketing" className="hover:text-foreground underline underline-offset-4">Marketing</Link>
-                </div>
-              </StaggerChild>
+              {popularPresets.length > 0 && (
+                <StaggerChild>
+                  <div className="mt-6 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+                    <span>Popular searches:</span>
+                    {popularPresets.map((preset) => {
+                      const href =
+                        preset.type === "work_setup"
+                          ? `/find-jobs?work_setup=${encodeURIComponent(preset.label)}`
+                          : preset.type === "job_type"
+                          ? `/find-jobs?job_type=${encodeURIComponent(preset.label)}`
+                          : `/find-jobs?q=${encodeURIComponent(preset.label)}`;
+
+                      return (
+                        <Link
+                          key={`${preset.type}-${preset.label}`}
+                          href={href}
+                          className="hover:text-foreground underline underline-offset-4 transition-colors"
+                        >
+                          {preset.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </StaggerChild>
+              )}
             </StaggerContainer>
           </div>
         </section>
