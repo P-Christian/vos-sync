@@ -1,9 +1,12 @@
+"use client";
+
 import { Clock, ArrowLeft, Mail, FileText, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SlideUp, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
+import { usePrimaryPlatformCompany } from "@/hooks/usePrimaryPlatformCompany";
 
 const SECTIONS = [
   { id: "acceptance", title: "1. Acceptance of Terms" },
@@ -17,6 +20,12 @@ const SECTIONS = [
 ];
 
 export default function TermsOfService() {
+  const { company } = usePrimaryPlatformCompany();
+  const brandName = company?.company_name || "Vos Sync";
+  const contactEmail = company?.support_email || company?.company_email || "vertextechcorpofficial@gmail.com";
+  const addressParts = [company?.company_city, company?.company_province, company?.company_country].filter(Boolean).join(", ");
+  const legalOffice = `Legal Agreements Team, ${brandName}${addressParts ? `, ${addressParts}` : ", Philippines"}`;
+
   return (
     <div className="bg-background text-foreground font-sans max-md:pt-2 md:pt-16">
       {/* HERO */}
@@ -48,7 +57,7 @@ export default function TermsOfService() {
             </StaggerChild>
             <StaggerChild>
               <p className="text-lg text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                Welcome to Vos Sync. These terms govern your access to and use of our platform, services, websites, and applications. Please read them carefully.
+                Welcome to {brandName}. These terms govern your access to and use of our platform, services, websites, and applications. Please read them carefully.
               </p>
             </StaggerChild>
           </StaggerContainer>
@@ -167,12 +176,14 @@ export default function TermsOfService() {
                 </p>
                 <div className="bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-6 space-y-3">
                   <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-zinc-500" />
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">vertextechcorpofficial@gmail.com</span>
+                    <Mail className="w-5 h-5 text-zinc-500 shrink-0" />
+                    <a href={`mailto:${contactEmail}`} className="text-sm font-medium text-zinc-900 dark:text-zinc-100 hover:text-primary transition-colors">
+                      {contactEmail}
+                    </a>
                   </div>
                   <div className="flex items-center gap-3">
-                    <FileText className="w-5 h-5 text-zinc-500" />
-                    <span className="text-sm text-zinc-500 dark:text-zinc-400">Legal Agreements Team, Vos Sync, Manila, Philippines</span>
+                    <FileText className="w-5 h-5 text-zinc-500 shrink-0" />
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">{legalOffice}</span>
                   </div>
                 </div>
               </div>
