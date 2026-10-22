@@ -381,6 +381,243 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
     }
 
+    // ── Input Validation & Sanitization ─────────────────────────────────
+    // Display Name
+    if ("company_name" in safePayload) {
+      if (
+        typeof safePayload.company_name !== "string" ||
+        safePayload.company_name.trim().length < 2 ||
+        safePayload.company_name.trim().length > 100
+      ) {
+        return NextResponse.json(
+          { error: "Company display name must be between 2 and 100 characters." },
+          { status: 400 }
+        );
+      }
+      safePayload.company_name = safePayload.company_name.trim();
+    }
+
+    // Legal Name
+    if ("company_legal_name" in safePayload) {
+      if (
+        typeof safePayload.company_legal_name !== "string" ||
+        safePayload.company_legal_name.trim().length < 2 ||
+        safePayload.company_legal_name.trim().length > 150
+      ) {
+        return NextResponse.json(
+          { error: "Legal company name must be between 2 and 150 characters." },
+          { status: 400 }
+        );
+      }
+      safePayload.company_legal_name = safePayload.company_legal_name.trim();
+    }
+
+    // Company Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if ("company_email" in safePayload) {
+      if (
+        typeof safePayload.company_email !== "string" ||
+        !emailRegex.test(safePayload.company_email.trim()) ||
+        safePayload.company_email.trim().length > 100
+      ) {
+        return NextResponse.json(
+          { error: "Please enter a valid company email address." },
+          { status: 400 }
+        );
+      }
+      safePayload.company_email = safePayload.company_email.trim();
+    }
+
+    // Company Contact
+    const phoneRegex = /^(?:\+?\d{1,4}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,9}$/;
+    if ("company_contact" in safePayload) {
+      if (
+        typeof safePayload.company_contact !== "string" ||
+        !phoneRegex.test(safePayload.company_contact.trim()) ||
+        safePayload.company_contact.trim().length > 50
+      ) {
+        return NextResponse.json(
+          { error: "Please enter a valid company contact number (e.g. 09123456789 or +63 912 345 6789)." },
+          { status: 400 }
+        );
+      }
+      safePayload.company_contact = safePayload.company_contact.trim();
+    }
+
+    // Registration Number (Unique in DB; convert blank to NULL)
+    if ("registration_no" in safePayload) {
+      if (
+        safePayload.registration_no === null ||
+        safePayload.registration_no === undefined ||
+        (typeof safePayload.registration_no === "string" && safePayload.registration_no.trim() === "")
+      ) {
+        safePayload.registration_no = null;
+      } else if (typeof safePayload.registration_no === "string") {
+        const trimmedReg = safePayload.registration_no.trim();
+        if (trimmedReg.length < 3 || trimmedReg.length > 50) {
+          return NextResponse.json(
+            { error: "Registration Number must be between 3 and 50 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.registration_no = trimmedReg;
+      }
+    }
+
+    // Tax Identification Number (Unique in DB; accept continuous & hyphenated, convert blank to NULL)
+    const tinRegex = /^\d{3}-?\d{3}-?\d{3}(-?\d{3})?$/;
+    if ("company_tin" in safePayload) {
+      if (
+        safePayload.company_tin === null ||
+        safePayload.company_tin === undefined ||
+        (typeof safePayload.company_tin === "string" && safePayload.company_tin.trim() === "")
+      ) {
+        safePayload.company_tin = null;
+      } else if (typeof safePayload.company_tin === "string") {
+        const trimmedTin = safePayload.company_tin.trim();
+        if (!tinRegex.test(trimmedTin) || trimmedTin.length > 20) {
+          return NextResponse.json(
+            { error: "Tax Identification Number (TIN) must be 9–12 digits (e.g., 000-000-000-000 or 000000000)." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_tin = trimmedTin;
+      }
+    }
+
+    // Company Description
+    if ("company_description" in safePayload) {
+      if (
+        typeof safePayload.company_description !== "string" ||
+        safePayload.company_description.trim().length < 20 ||
+        safePayload.company_description.trim().length > 2000
+      ) {
+        return NextResponse.json(
+          { error: "Company description must be between 20 and 2,000 characters." },
+          { status: 400 }
+        );
+      }
+      safePayload.company_description = safePayload.company_description.trim();
+    }
+
+    // Mission & Vision
+    if ("company_mission" in safePayload) {
+      if (typeof safePayload.company_mission === "string") {
+        const trimmed = safePayload.company_mission.trim();
+        if (trimmed.length > 1000) {
+          return NextResponse.json(
+            { error: "Mission statement cannot exceed 1,000 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_mission = trimmed || null;
+      }
+    }
+    if ("company_vision" in safePayload) {
+      if (typeof safePayload.company_vision === "string") {
+        const trimmed = safePayload.company_vision.trim();
+        if (trimmed.length > 1000) {
+          return NextResponse.json(
+            { error: "Vision statement cannot exceed 1,000 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_vision = trimmed || null;
+      }
+    }
+
+    // Culture & Benefits
+    if ("company_culture" in safePayload) {
+      if (typeof safePayload.company_culture === "string") {
+        const trimmed = safePayload.company_culture.trim();
+        if (trimmed.length > 1500) {
+          return NextResponse.json(
+            { error: "Company culture text cannot exceed 1,500 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_culture = trimmed || null;
+      }
+    }
+    if ("company_benefits" in safePayload) {
+      if (typeof safePayload.company_benefits === "string") {
+        const trimmed = safePayload.company_benefits.trim();
+        if (trimmed.length > 1500) {
+          return NextResponse.json(
+            { error: "Perks & benefits text cannot exceed 1,500 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_benefits = trimmed || null;
+      }
+    }
+
+    // Website & Social Links URL validation helper
+    const urlRegex = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+    const urlFields = [
+      "company_website",
+      "company_facebook",
+      "company_linkedin",
+      "company_instagram",
+      "company_x",
+      "company_youtube",
+    ] as const;
+
+    for (const uField of urlFields) {
+      if (uField in safePayload) {
+        if (typeof safePayload[uField] === "string") {
+          const val = (safePayload[uField] as string).trim();
+          if (val === "") {
+            safePayload[uField] = null;
+          } else {
+            if (!urlRegex.test(val) || val.length > 500) {
+              const fieldName = uField.replace("company_", "").replace(/_/g, " ");
+              return NextResponse.json(
+                { error: `Please enter a valid URL for ${fieldName}.` },
+                { status: 400 }
+              );
+            }
+            safePayload[uField] = val;
+          }
+        }
+      }
+    }
+
+    // Company Tags
+    if ("company_tags" in safePayload) {
+      if (typeof safePayload.company_tags === "string") {
+        const trimmedTags = safePayload.company_tags.trim();
+        if (trimmedTags.length > 255) {
+          return NextResponse.json(
+            { error: "Company tags cannot exceed 255 characters." },
+            { status: 400 }
+          );
+        }
+        safePayload.company_tags = trimmedTags || null;
+      }
+    }
+
+    // Year Established
+    if ("year_established" in safePayload && safePayload.year_established !== null && safePayload.year_established !== undefined) {
+      const year = Number(safePayload.year_established);
+      const currentYear = new Date().getFullYear();
+      if (isNaN(year) || year < 1800 || year > currentYear + 1) {
+        return NextResponse.json(
+          { error: `Year established must be between 1800 and ${currentYear + 1}.` },
+          { status: 400 }
+        );
+      }
+      safePayload.year_established = year;
+    }
+
+    // Media fields: normalize empty strings to null
+    if ("company_logo" in safePayload && typeof safePayload.company_logo === "string" && !safePayload.company_logo.trim()) {
+      safePayload.company_logo = null;
+    }
+    if ("company_cover" in safePayload && typeof safePayload.company_cover === "string" && !safePayload.company_cover.trim()) {
+      safePayload.company_cover = null;
+    }
+
     if (
       "company_email" in safePayload &&
       typeof safePayload.company_email === "string" &&
@@ -396,7 +633,7 @@ export async function PATCH(req: NextRequest) {
         if (checkJson.data && checkJson.data.length > 0) {
           return NextResponse.json(
             { error: "This email address is already registered to another company profile." },
-            { status: 400 }
+            { status: 409 }
           );
         }
       }
@@ -422,7 +659,7 @@ export async function PATCH(req: NextRequest) {
     });
 
     const patchText = await patchRes.text();
-    let patchData: unknown = null;
+    let patchData: { errors?: Array<{ message?: string; extensions?: { code?: string } }> } | null = null;
     try {
       patchData = patchText ? JSON.parse(patchText) : null;
     } catch {
@@ -430,16 +667,47 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (!patchRes.ok) {
+      console.error("PATCH /api/client/company-profile Directus error:", patchRes.status, patchText);
+
+      const errLower = patchText.toLowerCase();
+      if (errLower.includes("uk_company_tin") || errLower.includes("company_tin")) {
+        return NextResponse.json(
+          { error: "A company with this Tax Identification Number (TIN) already exists." },
+          { status: 409 }
+        );
+      }
+      if (errLower.includes("uk_company_registration") || errLower.includes("registration_no")) {
+        return NextResponse.json(
+          { error: "A company with this Registration Number already exists." },
+          { status: 409 }
+        );
+      }
+      if (errLower.includes("company_email")) {
+        return NextResponse.json(
+          { error: "This email address is already registered to another company profile." },
+          { status: 409 }
+        );
+      }
+      if (errLower.includes("company_tags") || (errLower.includes("too long") && errLower.includes("tags"))) {
+        return NextResponse.json(
+          { error: "Company tags cannot exceed 255 characters." },
+          { status: 400 }
+        );
+      }
+
+      const clientMessage = patchData?.errors?.[0]?.message || "Failed to update company profile. Please verify your submitted information.";
       return NextResponse.json(
-        { error: "Failed to update company profile." },
-        { status: patchRes.status }
+        { error: clientMessage },
+        { status: patchRes.status >= 500 ? 500 : 400 }
       );
     }
+
+    const updated = await getClientCompanyProfileData(userId);
 
     return NextResponse.json({
       success: true,
       message: "Company profile updated successfully.",
-      company: (patchData as { data?: unknown })?.data ?? null,
+      company: updated.company,
     });
   } catch (err: unknown) {
     console.error("PATCH /api/client/company-profile error:", err);
