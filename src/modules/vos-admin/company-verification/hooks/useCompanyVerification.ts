@@ -22,7 +22,7 @@ export function useCompanyVerification() {
   // Detail Modal & Action Modal state
   const [selectedCompany, setSelectedCompany] = useState<CompanyVerificationRecord | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false);
-  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState<boolean>(false);
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const loadData = useCallback(async () => {
@@ -94,17 +94,17 @@ export function useCompanyVerification() {
     setSelectedCompany(null);
   };
 
-  const openRejectionModal = (company: CompanyVerificationRecord) => {
+  const openRevisionModal = (company: CompanyVerificationRecord) => {
     setSelectedCompany(company);
-    setIsRejectionModalOpen(true);
+    setIsRevisionModalOpen(true);
   };
 
-  const closeRejectionModal = () => {
-    setIsRejectionModalOpen(false);
+  const closeRevisionModal = () => {
+    setIsRevisionModalOpen(false);
   };
 
   const handleDecision = async (
-    action: "approve" | "reject" | "request_correction" | "suspend",
+    action: "approve" | "request_revision" | "suspend",
     rejectionReason?: string,
     internalNotes?: string
   ) => {
@@ -114,30 +114,20 @@ export function useCompanyVerification() {
     const previousRecords = records;
 
     const newStatus: VerificationStatus =
-      action === "approve"
-        ? "VERIFIED"
-        : action === "reject"
-        ? "REJECTED"
-        : action === "request_correction"
-        ? "PENDING_VERIFICATION"
-        : "SUSPENDED";
+      action === "approve" ? "VERIFIED" : action === "request_revision" ? "DRAFT" : "SUSPENDED";
 
     const newVerifStatus =
       action === "approve"
         ? "APPROVED"
-        : action === "reject"
-        ? "REJECTED"
-        : action === "request_correction"
+        : action === "request_revision"
         ? "CORRECTION_REQUIRED"
         : "SUSPENDED";
 
     const actionDescription =
       action === "approve"
         ? "approved and marked verified"
-        : action === "reject"
-        ? "rejected"
-        : action === "request_correction"
-        ? "marked for correction"
+        : action === "request_revision"
+        ? "returned for revision"
         : "suspended";
 
     // 1. Instant 0ms Optimistic State Update
@@ -165,7 +155,7 @@ export function useCompanyVerification() {
     );
 
     // Close modals immediately
-    closeRejectionModal();
+    closeRevisionModal();
     closeDetailModal();
 
     toast.success(`${companyToUpdate.company_name} was ${actionDescription}.`);
@@ -202,12 +192,12 @@ export function useCompanyVerification() {
     setSearchQuery,
     selectedCompany,
     isDetailModalOpen,
-    isRejectionModalOpen,
+    isRevisionModalOpen,
     isSubmitting,
     openDetailModal,
     closeDetailModal,
-    openRejectionModal,
-    closeRejectionModal,
+    openRevisionModal,
+    closeRevisionModal,
     handleDecision,
     refetch: loadData,
   };
