@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardSidebar, type SidebarConfig } from "@/components/shared/layout/DashboardSidebar";
-import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Share2, ShieldAlert, Search, Cpu, Target, TrendingUp, GitFork } from "lucide-react";
+import { LayoutDashboard, Briefcase, FileText, User, CalendarDays, GraduationCap, ClipboardCheck, LogOut, ShieldCheck, Building2, Building, Share2, ShieldAlert, Search, Cpu, Target, TrendingUp, GitFork } from "lucide-react";
 import { useUserProfile } from "@/components/shared/providers/UserProfileProvider";
 
 const data = {
@@ -177,9 +177,11 @@ export function AppSidebar({
             navItems: [
                 { label: "Dashboard", href: "/vos-sync/vos-admin", icon: LayoutDashboard, group: "Overview" },
                 { label: "Request Management", href: "/vos-sync/vos-admin/requests", icon: ClipboardCheck, group: "Management" },
+                { label: "Contact Messages", href: "/vos-sync/vos-admin/contact-messages", icon: MessageSquare },
                 { label: "User Management", href: "/vos-sync/vos-admin/users", icon: Users },
                 { label: "Account Status", href: "/vos-sync/vos-admin/account-status", icon: ShieldAlert },
                 { label: "Career Advice", href: "/vos-sync/vos-admin/career-articles", icon: FileText, group: "Content" },
+                { label: "Platform Company", href: "/vos-sync/vos-admin/platform-company", icon: Building },
                 { label: "Company Verification", href: "/vos-sync/vos-admin/company-verification", icon: Building2, group: "Verification" },
                 { label: "School Verification", href: "/vos-sync/vos-admin/school-verification", icon: GraduationCap },
                 { label: "Role Matching", href: "/vos-sync/vos-admin/job-roles", icon: Target, group: "System" },
