@@ -40,3 +40,9 @@ export interface CategoryPill {
   iconName: string;
   jobCount?: number;
 }
+
+export interface PopularPreset {
+  label: string;
+  type: "work_setup" | "job_type" | "keyword";
+  count: number;
+}
