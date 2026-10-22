@@ -111,6 +111,7 @@ export default function CompanyDocuments({
   // Users can only remove documents if profile has not yet been processed / under review
   const canRemoveDocs =
     verificationStatus === "DRAFT" || verificationStatus === "REJECTED";
+  const isVerified = verificationStatus === "VERIFIED";
 
   const ALLOWED_TYPES = [
     "application/pdf",
@@ -159,7 +160,7 @@ export default function CompanyDocuments({
 
   useEffect(() => {
     onDocsChange?.(docs.length);
-  }, [docs, onDocsChange]);
+  }, [docs.length, onDocsChange]);
 
   const triggerFileInput = (docType: string) => {
     setSlotError((prev) => ({ ...prev, [docType]: "" }));
@@ -368,21 +369,23 @@ export default function CompanyDocuments({
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {existingDoc ? (
                     <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isUploading || isDeleting}
-                        onClick={() => triggerFileInput(slot.type)}
-                        className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium rounded-lg"
-                      >
-                        {isUploading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                        Replace
-                      </Button>
+                      {!isVerified && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isUploading || isDeleting}
+                          onClick={() => triggerFileInput(slot.type)}
+                          className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium rounded-lg"
+                        >
+                          {isUploading ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          Replace
+                        </Button>
+                      )}
 
                       <Button
                         type="button"

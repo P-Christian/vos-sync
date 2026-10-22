@@ -1,7 +1,7 @@
 // src/modules/client/company-profile/CompanyProfileModule.tsx
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useCompanyProfile } from "./hooks/useCompanyProfile";
 import { CompanyProfile, CompanyProfileMeta } from "./types";
 import CompanyStatus from "./components/CompanyStatus";
@@ -91,6 +91,10 @@ export default function CompanyProfileModule({
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [uploadedDocsCount, setUploadedDocsCount] = useState(0);
+
+  const handleDocsChange = useCallback((count: number) => {
+    setUploadedDocsCount((prev) => (prev !== count ? count : prev));
+  }, []);
   const [isEditingClassification, setIsEditingClassification] = useState(false);
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [draft, setDraft] = useState<Partial<EditableCompanyFields & { custom_industry_name?: string }>>({});
@@ -1033,7 +1037,7 @@ export default function CompanyProfileModule({
                 <CompanyDocuments
                   companyId={company?.company_id}
                   verificationStatus={verificationStatus}
-                  onDocsChange={(count) => setUploadedDocsCount(count)}
+                  onDocsChange={handleDocsChange}
                 />
               </CardContent>
             </Card>
