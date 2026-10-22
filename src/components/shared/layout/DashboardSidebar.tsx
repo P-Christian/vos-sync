@@ -171,6 +171,7 @@ export function DashboardSidebar({
     const { switchTheme } = useThemeCurtain();
     const [unreadMessages, setUnreadMessages] = React.useState(0);
     const [unreadNotifications, setUnreadNotifications] = React.useState(0);
+    const [unreadContactMessages, setUnreadContactMessages] = React.useState(0);
     const loggingOut = React.useRef(false);
 
     const currentTheme = theme === "system" ? systemTheme : theme;
@@ -202,6 +203,7 @@ export function DashboardSidebar({
     React.useEffect(() => {
         const hasMessagesItem = config.navItems.some((item) => item.label === "Messages");
         const hasNotificationsItem = config.navItems.some((item) => item.label === "Notifications");
+        const hasContactMessagesItem = config.navItems.some((item) => item.label === "Contact Messages");
 
         let isCircuitBroken = false;
 
@@ -215,6 +217,18 @@ export function DashboardSidebar({
                     }
                 } catch (err) {
                     console.error("Failed to fetch unread message count:", err);
+                }
+            }
+
+            if (hasContactMessagesItem) {
+                try {
+                    const res = await fetch("/api/vos-admin/contact-messages/unread-count");
+                    if (res.ok) {
+                        const data = await res.json();
+                        setUnreadContactMessages(data.unreadCount || 0);
+                    }
+                } catch {
+                    // non-blocking
                 }
             }
 
@@ -379,10 +393,13 @@ export function DashboardSidebar({
                                         const isActive = !!activeHref && normalizePath(item.href) === activeHref;
                                         const isMessages = item.label === "Messages";
                                         const isNotifications = item.label === "Notifications";
+                                        const isContactMessages = item.label === "Contact Messages";
                                         const badgeCount = isMessages
                                             ? unreadMessages
                                             : isNotifications
                                             ? unreadNotifications
+                                            : isContactMessages
+                                            ? unreadContactMessages
                                             : 0;
 
                                         return (

@@ -62,7 +62,7 @@ export function FreelancerPageHeader({
                     <Breadcrumb>
             <BreadcrumbList className="min-w-0 overflow-hidden flex-nowrap">
               <BreadcrumbItem className="hidden xl:block shrink-0">
-                <BreadcrumbLink href="#">Freelancer</BreadcrumbLink>
+                <BreadcrumbLink href="/vos-sync/freelancer/dashboard">Freelancer</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden xl:block shrink-0" />
                             <BreadcrumbItem className="min-w-0 overflow-hidden">

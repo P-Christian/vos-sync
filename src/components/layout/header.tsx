@@ -9,6 +9,7 @@ import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { ThemeSelector } from "@/components/theme/ThemeSelector"
+import { cn } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,15 @@ type AuthUser = {
 }
 
 const PUBLIC_MOBILE_MENU_ID = "public-mobile-navigation"
+
+const NAV_LINKS = [
+  { href: "/find-jobs", label: "Find Jobs" },
+  { href: "/how-it-works", label: "How It Works" },
+  { href: "/companies", label: "Companies" },
+  { href: "/career-advice", label: "Career Advice" },
+  { href: "/about-us", label: "About Us" },
+  { href: "/contact-us", label: "Contact Us" },
+]
 
 export function Header() {
   const pathname = usePathname()
@@ -200,13 +210,37 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-8 font-medium text-sm text-muted-foreground">
-          <Link href="/find-jobs" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Find Jobs</Link>
-          <Link href="/how-it-works" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">How It Works</Link>
-          <Link href="/companies" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Companies</Link>
-          <Link href="/career-advice" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Career Advice</Link>
-          <Link href="/about-us" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">About Us</Link>
-          <Link href="/contact-us" prefetch={true} className="flex min-h-11 items-center hover:text-foreground transition-colors">Contact</Link>
+        <nav className="hidden lg:flex items-center gap-8 font-medium text-sm">
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = pathname === href || (href !== "/" && pathname?.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                prefetch={true}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 items-center transition-colors relative",
+                  isActive
+                    ? "text-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {label}
+                {isActive && (
+                  <motion.span
+                    layoutId="active-header-nav-indicator"
+                    className="absolute bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-gradient-to-r from-primary to-info shadow-xs shadow-primary/30"
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden lg:flex items-center gap-4">
@@ -336,12 +370,36 @@ export function Header() {
           onClick={() => setMobileMenuPath(null)}
           className="lg:hidden absolute top-full left-0 flex max-h-[calc(100dvh-6rem)] w-full flex-col gap-4 overflow-y-auto overscroll-contain border-b border-border bg-background px-4 py-4 shadow-lg"
         >
-          <Link href="/find-jobs" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Find Jobs</Link>
-          <Link href="/how-it-works" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">How It Works</Link>
-          <Link href="/companies" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Companies</Link>
-          <Link href="/career-advice" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Career Advice</Link>
-          <Link href="/about-us" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">About Us</Link>
-          <Link href="/contact-us" prefetch={true} className="flex min-h-11 items-center text-muted-foreground hover:text-foreground font-medium">Contact</Link>
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = pathname === href || (href !== "/" && pathname?.startsWith(href));
+            return (
+              <Link
+                key={href}
+                href={href}
+                prefetch={true}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 items-center font-medium transition-colors px-3 rounded-lg relative",
+                  isActive
+                    ? "text-primary font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="active-mobile-nav-indicator"
+                    className="absolute inset-0 rounded-lg bg-primary/10 -z-10"
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                  />
+                )}
+                {label}
+              </Link>
+            );
+          })}
           <hr className="border-border" />
           {user ? (
             <>
@@ -410,7 +468,7 @@ export function Header() {
             </>
           ) : (
             <>
-              <Button asChild variant="outline" className="min-h-11 w-full justify-center cursor-pointer border-border text-foreground hover:bg-primary  hover:text-primary">
+              <Button asChild variant="outline" className="min-h-11 w-full justify-center cursor-pointer border-border text-foreground hover:bg-primary/10 hover:text-primary">
                 <Link href="/login">Log in</Link>
               </Button>
               <Button asChild className="min-h-11 w-full justify-center cursor-pointer bg-primary text-primary-foreground ">
