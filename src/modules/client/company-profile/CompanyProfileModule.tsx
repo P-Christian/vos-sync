@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useCompanyProfile } from "./hooks/useCompanyProfile";
-import { CompanyProfile, CompanyProfileMeta } from "./types";
+import { CompanyProfile, CompanyProfileMeta, VerificationStatus } from "./types";
 import CompanyStatus from "./components/CompanyStatus";
 import CompanyBasicInfo from "./components/CompanyBasicInfo";
 import CompanyClassification from "./components/CompanyClassification";
@@ -499,6 +499,11 @@ export default function CompanyProfileModule({
   // ── Derived State ─────────────────────────────────────────────────────
   const completionPercent = company?.profile_completion_percent ?? 0;
   const verificationStatus = company?.verification_status;
+  const needsRevision = company?.verification_workflow_status === "CORRECTION_REQUIRED";
+  const isResubmission = needsRevision || verificationStatus === "REJECTED";
+  const displayStatus: VerificationStatus = needsRevision
+    ? "CORRECTION_REQUIRED"
+    : verificationStatus || "DRAFT";
 
   const missingSections = useMemo(() => {
     if (!company) return [];
@@ -531,7 +536,9 @@ export default function CompanyProfileModule({
   const canSubmit =
     completionPercent >= 80 &&
     uploadedDocsCount > 0 &&
-    (verificationStatus === "DRAFT" || verificationStatus === "REJECTED");
+    (verificationStatus === "DRAFT" ||
+      verificationStatus === "REJECTED" ||
+      needsRevision);
 
   const isOwnerOrAdmin =
     meta?.company_user_role === "OWNER" || meta?.company_user_role === "ADMIN";
@@ -1015,7 +1022,7 @@ export default function CompanyProfileModule({
                 </CardHeader>
                 <CardContent className="p-6">
                   <CompanyStatus
-                    status={company.verification_status}
+                    status={displayStatus}
                     remarks={company.rejection_reason || company.verification_remarks}
                     publicRejectionReason={company.public_rejection_reason || company.rejection_reason || company.verification_remarks}
                   />
@@ -1036,7 +1043,7 @@ export default function CompanyProfileModule({
               <CardContent className="p-6">
                 <CompanyDocuments
                   companyId={company?.company_id}
-                  verificationStatus={verificationStatus}
+                  verificationStatus={displayStatus}
                   onDocsChange={handleDocsChange}
                 />
               </CardContent>
@@ -1045,13 +1052,15 @@ export default function CompanyProfileModule({
 
           {/* Submit / Resubmit for Verification */}
           {isOwnerOrAdmin &&
-            (verificationStatus === "DRAFT" || verificationStatus === "REJECTED") && (
+            (verificationStatus === "DRAFT" ||
+              verificationStatus === "REJECTED" ||
+              needsRevision) && (
               <motion.div variants={itemVariants} className="max-md:order-3">
                 <Card className="rounded-2xl border border-primary/10 bg-card/80 backdrop-blur-xl shadow-sm hover:border-primary/20 transition-colors py-0 gap-0 overflow-hidden">
                   <CardHeader className="border-b border-border/60 px-6 py-4 bg-muted/30 flex flex-row items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
                     <CardTitle className="text-sm font-semibold text-foreground uppercase tracking-wider">
-                      {verificationStatus === "REJECTED" ? "Resubmit Profile" : "Submit for Verification"}
+                      {isResubmission ? "Resubmit Profile" : "Submit for Verification"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 space-y-4">
@@ -1064,9 +1073,9 @@ export default function CompanyProfileModule({
                         {" "}before you can submit for verification. Currently at <span className="font-semibold text-foreground">{Math.round(completionPercent)}%</span> with <span className="font-semibold text-foreground">{uploadedDocsCount} documents</span> uploaded.
                       </p>
                     )}
-                    {canSubmit && verificationStatus === "REJECTED" && (
+                    {canSubmit && isResubmission && (
                       <p className="text-sm md:text-xs text-warning leading-relaxed bg-warning/10 p-3 rounded-lg border border-warning/20">
-                        Please review the rejection reason above, make the necessary corrections, then resubmit.
+                        Please review the reviewer feedback above, make the necessary corrections, then resubmit.
                       </p>
                     )}
                     <Button
@@ -1079,7 +1088,7 @@ export default function CompanyProfileModule({
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
                           Submitting...
                         </>
-                      ) : verificationStatus === "REJECTED" ? (
+                      ) : isResubmission ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Resubmit for Verification

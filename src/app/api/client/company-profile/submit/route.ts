@@ -158,6 +158,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 6. Log the submission so the admin review queue reads the newest workflow state
+    //    (a resubmission after "Needs Revision" must supersede the CORRECTION_REQUIRED row).
+    try {
+      await fetch(`${DIRECTUS_BASE}/items/vs_company_verifications`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          company_id: companyId,
+          submitted_by_user_id: userId,
+          verification_type: "INITIAL_REGISTRATION",
+          status: "PENDING_VERIFICATION",
+          submitted_at: now,
+          created_at: now,
+          updated_at: now,
+        }),
+      });
+    } catch (logErr) {
+      console.warn("Could not log company verification submission:", logErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Company profile submitted for verification successfully.",

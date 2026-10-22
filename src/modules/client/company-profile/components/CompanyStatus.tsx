@@ -49,6 +49,18 @@ const STATUS_CONFIG: Record<
     bodyClass: "text-muted-foreground",
     defaultMessage: "Your business account was submitted successfully. Verification officers are reviewing your organization. Job posting and hiring will unlock once verified.",
   },
+  CORRECTION_REQUIRED: {
+    icon: AlertCircle,
+    label: "Needs Revision",
+    badge: "bg-warning/15 text-warning border-warning/30",
+    container: "border-warning/25 bg-warning/[0.06] backdrop-blur-md",
+    iconWrapper: "bg-warning/15 text-warning border-warning/30",
+    title: "Registration Status: NEEDS REVISION",
+    titleClass: "text-foreground",
+    bodyClass: "text-muted-foreground",
+    defaultMessage:
+      "Our review team returned your submission for revision. Update the highlighted documents and profile details, then resubmit — you can resubmit as many times as needed.",
+  },
   VERIFIED: {
     icon: CheckCircle2,
     label: "Verified",
