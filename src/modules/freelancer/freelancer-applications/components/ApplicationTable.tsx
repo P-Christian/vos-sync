@@ -61,6 +61,21 @@ export const ApplicationTable: React.FC<Props> = ({
     setIsCompanyOpen(true);
   };
 
+  // Deep-link: Automatically open assessment dialog if directed from chat CTA
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !applications || applications.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    const appIdStr = params.get("application_id");
+    if (action === "assessment" && appIdStr) {
+      const targetId = Number(appIdStr);
+      const matched = applications.find((a) => a.application_id === targetId);
+      if (matched) {
+        setAssessmentApp(matched);
+      }
+    }
+  }, [applications]);
+
   const columns: ColumnDef<ApplicationItem>[] = [
     {
       accessorKey: "job_title",

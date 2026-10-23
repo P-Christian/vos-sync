@@ -36,6 +36,7 @@ export interface Conversation {
   archived_at: string | null;
   // Enriched server-side
   other_party_name?: string;
+  company_name?: string | null;
   other_party_avatar?: string | null;
   other_party_email?: string | null;
   job_title?: string | null;

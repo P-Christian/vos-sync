@@ -103,6 +103,7 @@ export default function ConversationItem({
     conversation_id,
     other_party_name = "Unknown Employer",
     other_party_avatar,
+    company_name,
     job_title,
     unread_count = 0,
     last_message_preview = "",
@@ -117,6 +118,10 @@ export default function ConversationItem({
     setPrevAvatar(other_party_avatar);
     setImgError(false);
   }
+
+  const subtitle = job_title && company_name
+    ? `${job_title} at ${company_name}`
+    : job_title || company_name;
 
   return (
     <div
@@ -206,11 +211,11 @@ export default function ConversationItem({
           </span>
         </div>
 
-        {job_title && (
+        {subtitle && (
           <div className="flex items-center gap-1 mt-0.5">
             <Briefcase className="h-2.5 w-2.5 text-primary shrink-0" />
             <span className="text-[10px] text-primary truncate font-medium">
-              {job_title}
+              {subtitle}
             </span>
           </div>
         )}

@@ -254,9 +254,12 @@ export async function PATCH(
         }).catch((err) => console.error("[Candidate Stage Notification] Error:", err));
 
         // System message inside conversation if available
+        const fromStageName = result.fromStage?.stage_name ? result.fromStage.stage_name.trim() : null;
         const systemText =
           result.toStage.stage_type === "HIRED"
-            ? "Client hired you."
+            ? "Candidate was hired."
+            : fromStageName
+            ? `Stage updated: ${fromStageName} ➔ ${cleanStageName}`
             : `Application moved to stage: ${cleanStageName}`;
 
         const statusEventType =
@@ -270,6 +273,7 @@ export async function PATCH(
           senderId: userId,
           systemEventType: statusEventType,
           applicationId: applicationId,
+          stageHistoryId: result.stageHistoryId ?? null,
         }).catch((e) => console.error("[Stage System Message] Error:", e));
       }
 

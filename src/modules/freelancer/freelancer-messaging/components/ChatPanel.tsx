@@ -96,6 +96,36 @@ function isSameDayStr(a: string, b: string): boolean {
   );
 }
 
+function minutesBetweenStr(a: string, b: string): number {
+  return Math.abs(parseDate(a).getTime() - parseDate(b).getTime()) / 60_000;
+}
+
+function formatClock(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours % 12 || 12}:${minutes} ${hours >= 12 ? "PM" : "AM"}`;
+}
+
+function getSeparatorLabel(dateStr: string): string {
+  const messageDate = parseDate(dateStr);
+  if (isNaN(messageDate.getTime())) return "";
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mDate = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+  const diffDays = Math.round((today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24));
+  const time = formatClock(messageDate);
+
+  if (diffDays === 0) return `Today, ${time}`;
+  if (diffDays === 1) return `Yesterday, ${time}`;
+
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const base = `${monthNames[messageDate.getMonth()]} ${messageDate.getDate()}`;
+  return messageDate.getFullYear() === now.getFullYear()
+    ? `${base}, ${time}`
+    : `${base}, ${messageDate.getFullYear()}, ${time}`;
+}
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -160,9 +190,14 @@ export default function ChatPanel({
     other_party_name = "Employer",
     other_party_avatar,
     other_party_email,
+    company_name,
     job_title,
     conversation_type,
   } = conversation;
+
+  const subtitle = job_title && company_name
+    ? `${job_title} at ${company_name}`
+    : job_title || company_name;
 
   const [imgError, setImgError] = React.useState(false);
   const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
@@ -274,17 +309,17 @@ export default function ChatPanel({
                 : "Support"}
             </span>
           </div>
-          {(job_title || other_party_email) && (
+          {(subtitle || other_party_email) && (
             <div className="flex items-center gap-2 mt-0.5">
-              {job_title && (
+              {subtitle && (
                 <div className="flex items-center gap-1">
                   <Briefcase className="h-2.5 w-2.5 text-emerald-500" />
                   <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate">
-                    {job_title}
+                    {subtitle}
                   </span>
                 </div>
               )}
-              {other_party_email && !job_title && (
+              {other_party_email && !subtitle && (
                 <span className="text-[10px] text-zinc-400 truncate">
                   {other_party_email}
                 </span>
@@ -335,7 +370,7 @@ export default function ChatPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
-            className="flex flex-col justify-start space-y-2 min-h-full"
+            className="flex flex-col justify-start min-h-full"
           >
             {/* Load Older Messages Trigger */}
             {hasMore && (
@@ -363,13 +398,24 @@ export default function ChatPanel({
             {displayMessages.map((msg, index) => {
               const isOwn = msg.sender_id === currentUserId;
               const prevMsg = displayMessages[index - 1];
+              const nextMsg = displayMessages[index + 1];
               const showDateDivider =
                 !prevMsg ||
-                !isSameDayStr(prevMsg.created_at, msg.created_at);
-              const dateLabel = showDateDivider ? getDateLabel(msg.created_at) : undefined;
-              if (showDateDivider) {
-                console.log(`[ChatPanel] Message #${msg.message_id} created_at="${msg.created_at}" showDateDivider=true dateLabel="${dateLabel}"`);
-              }
+                !isSameDayStr(prevMsg.created_at, msg.created_at) ||
+                minutesBetweenStr(prevMsg.created_at, msg.created_at) >= 30;
+              const dateLabel = showDateDivider ? getSeparatorLabel(msg.created_at) : undefined;
+              const isFirstInGroup =
+                showDateDivider ||
+                !prevMsg ||
+                prevMsg.sender_id !== msg.sender_id ||
+                !isSameDayStr(prevMsg.created_at, msg.created_at) ||
+                minutesBetweenStr(prevMsg.created_at, msg.created_at) >= 30;
+              const isLastInGroup =
+                !nextMsg ||
+                nextMsg.sender_id !== msg.sender_id ||
+                !isSameDayStr(msg.created_at, nextMsg.created_at) ||
+                minutesBetweenStr(msg.created_at, nextMsg.created_at) >= 30;
+
               return (
                 <MessageBubble
                   key={msg.message_id}
@@ -378,6 +424,10 @@ export default function ChatPanel({
                   showDateDivider={showDateDivider}
                   dateLabel={dateLabel}
                   onToggleReaction={onToggleReaction}
+                  otherPartyName={conversation.other_party_name}
+                  otherPartyAvatar={conversation.other_party_avatar}
+                  isFirstInGroup={isFirstInGroup}
+                  isLastInGroup={isLastInGroup}
                 />
               );
             })}

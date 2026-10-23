@@ -34,7 +34,7 @@ import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import Avatar from "./Avatar";
 import { cn } from "@/lib/utils";
-import { formatDayLabel, isSameDay, minutesBetween } from "../utils";
+import { formatDayLabel, formatSeparatorLabel, isSameDay, minutesBetween } from "../utils";
 
 interface Props {
   conversation: Conversation;
@@ -72,7 +72,7 @@ function filterLatestInterviewCards(msgs: Message[]): Message[] {
   );
 }
 
-const GROUP_WINDOW_MIN = 5;
+const GROUP_WINDOW_MIN = 30;
 
 function sameGroup(a?: Message, b?: Message): boolean {
   return (
@@ -567,7 +567,10 @@ export default function ChatPanel({
                 {displayMessages.map((msg, index) => {
                   const prev = displayMessages[index - 1];
                   const next = displayMessages[index + 1];
-                  const showDateDivider = !prev || !isSameDay(prev.created_at, msg.created_at);
+                  const showDateDivider =
+                    !prev ||
+                    !isSameDay(prev.created_at, msg.created_at) ||
+                    minutesBetween(prev.created_at, msg.created_at) >= 30;
                   const startsUnread = msg.message_id === unreadMarkerId;
 
                   return (
@@ -577,7 +580,7 @@ export default function ChatPanel({
                         message={msg}
                         isOwn={msg.sender_id === currentUserId}
                         showDateDivider={showDateDivider}
-                        dateLabel={showDateDivider ? formatDayLabel(msg.created_at) : undefined}
+                        dateLabel={showDateDivider ? formatSeparatorLabel(msg.created_at) : undefined}
                         isFirstInGroup={startsUnread || !sameGroup(prev, msg)}
                         isLastInGroup={!sameGroup(msg, next) || next?.message_id === unreadMarkerId}
                         otherParty={{ name: otherName, avatar: other_party_avatar }}

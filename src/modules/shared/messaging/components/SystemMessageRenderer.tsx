@@ -6,6 +6,7 @@ import React from "react";
 import SystemPill from "./SystemPill";
 import ApplicationCard from "./ApplicationCard";
 import InterviewCard from "./InterviewCard";
+import StageTransitionCard from "./StageTransitionCard";
 import { Message, SystemEventType } from "@/modules/client/messaging/types";
 
 // ── Registry ────────────────────────────────────────────────────────────────
@@ -14,8 +15,8 @@ const SYSTEM_MESSAGE_RENDERERS: Partial<
   Record<SystemEventType, React.ComponentType<{ message: Message }>>
 > = {
   APPLICATION_SUBMITTED:      ApplicationCard,
-  APPLICATION_STATUS_CHANGED: ApplicationCard,
-  HIRED:                      ApplicationCard,
+  APPLICATION_STATUS_CHANGED: StageTransitionCard,
+  HIRED:                      StageTransitionCard,
   INTERVIEW_SCHEDULED:        InterviewCard,
   INTERVIEW_UPDATED:          InterviewCard,
 };

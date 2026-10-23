@@ -164,6 +164,12 @@ function tzAbbr(tz: string): string {
   return abbrs[tz] ?? tz;
 }
 
+function normalizeMeetingLink(link?: string | null): string {
+  if (!link || !link.trim()) return "";
+  const trimmed = link.trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 function getInterviewHeadline(
   status: string,
   isCandidate: boolean,
@@ -303,7 +309,14 @@ export default function InterviewCard({ message }: Props) {
 
   const isOnline = interviewFormat === "ONLINE";
   const displayDate = updatedAt || createdAt || message.created_at;
-  const canJoinMeeting = isOnline && Boolean(meetingLink) && ACTIVE_JOIN_STATUSES.has(statusBadge);
+  const isPast = scheduledAt
+    ? new Date(scheduledAt.replace(" ", "T")).getTime() + durationMinutes * 60_000 < Date.now()
+    : false;
+  const canJoinMeeting =
+    isOnline &&
+    Boolean(meetingLink) &&
+    ACTIVE_JOIN_STATUSES.has(statusBadge) &&
+    !isPast;
 
   return (
     <div className={`w-full sm:w-96 rounded-2xl border shadow-xs overflow-hidden ${statusCfg.accent}`}>
@@ -365,7 +378,7 @@ export default function InterviewCard({ message }: Props) {
         {/* Meeting Link or Physical Location */}
         {canJoinMeeting ? (
           <a
-            href={meetingLink!}
+            href={normalizeMeetingLink(meetingLink)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-xs transition max-md:min-h-11"
