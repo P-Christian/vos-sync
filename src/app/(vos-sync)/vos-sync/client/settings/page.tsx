@@ -3,7 +3,7 @@
 import * as React from "react";
 import { PortalPageHeader } from "@/components/shared/layout/PortalPageHeader";
 import { PageContainer } from "@/components/shared/layout/PageContainer";
-import SettingsModule from "@/modules/client/settings";
+import SettingsModule, { type SettingsTab } from "@/modules/client/settings/SettingsModule";
 import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
@@ -52,16 +52,25 @@ function buildHeaderUser(token: string | null | undefined) {
   };
 }
 
-export default async function ClientSettingsPage() {
+export default async function ClientSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value ?? null;
   const headerUser = buildHeaderUser(token);
+
+  const requestedTab = (await searchParams).tab;
+  const tabValue = Array.isArray(requestedTab) ? requestedTab[0] : requestedTab;
+  const initialTab: SettingsTab =
+    tabValue === "security" || tabValue === "notifications" ? tabValue : "account";
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <PortalPageHeader user={headerUser} />
       <PageContainer>
-        <SettingsModule />
+        <SettingsModule initialTab={initialTab} />
       </PageContainer>
     </div>
   );

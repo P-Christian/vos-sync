@@ -101,6 +101,7 @@ export function useJobs() {
       screening_questions: formData.screening_questions || [],
       status: (formData.status as JobStatus) || "DRAFT",
       applicants_count: 0,
+      active_applicants_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };

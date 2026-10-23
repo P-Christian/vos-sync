@@ -39,6 +39,46 @@ function getDirectusHeaders(): Record<string, string> {
   return h;
 }
 
+/**
+ * vs_company.industry_id / company_size_id / organization_type_id have no
+ * Directus relation registered, so `fields=industry_id.*` returns nothing and
+ * the lookup collections must be joined by hand.
+ */
+async function fetchLookupNames(
+  collection: string,
+  idField: string,
+  nameField: string
+): Promise<Record<string, string>> {
+  const names: Record<string, string> = {};
+  try {
+    const res = await fetch(
+      `${DIRECTUS_BASE}/items/${collection}?fields=${idField},${nameField}&limit=-1`,
+      { headers: getDirectusHeaders(), cache: "no-store" }
+    );
+    if (!res.ok) return names;
+    const json = await res.json();
+    for (const row of (json.data || []) as Record<string, unknown>[]) {
+      const name = String(row[nameField] ?? "").trim();
+      if (name) names[String(row[idField])] = name;
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch ${collection} for name resolution:`, err);
+  }
+  return names;
+}
+
+function resolveLookupName(
+  rawValue: unknown,
+  names: Record<string, string>
+): string | null {
+  if (rawValue === null || rawValue === undefined) return null;
+  const key = String(rawValue).trim();
+  if (!key) return null;
+  if (names[key]) return names[key];
+  // Legacy rows stored the classification as free text instead of a foreign key.
+  return Number.isNaN(Number(key)) ? key : null;
+}
+
 async function getAdminUserFromToken(req: NextRequest): Promise<{ adminId: number } | null> {
   if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
     return { adminId: 1 };
@@ -343,7 +383,7 @@ function resolveAssetUrl(idStr: unknown): string | null {
     const verifMap: Record<number, unknown[]> = {};
     if (companyIds.length > 0) {
       try {
-        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_in]=${companyIds.join(",")}&sort=-created_at&limit=-1`;
+        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_in]=${companyIds.join(",")}&sort=-created_at,-id&limit=-1`;
         const verifRes = await fetch(verifUrl, { headers: getDirectusHeaders(), cache: "no-store" });
         if (verifRes.ok) {
           const verifJson = await verifRes.json();
@@ -390,6 +430,15 @@ function resolveAssetUrl(idStr: unknown): string | null {
     }
 
     /**
+     * Resolve company classification foreign keys to their master-data names
+     */
+    const [industryNames, companySizeNames, organizationTypeNames] = await Promise.all([
+      fetchLookupNames("vs_industry", "industry_id", "industry_name"),
+      fetchLookupNames("vs_company_size", "company_size_id", "company_size_name"),
+      fetchLookupNames("vs_organization_type", "organization_type_id", "organization_type_name"),
+    ]);
+
+    /**
      * Combine records with documents, users, and verifications
      */
     const records = companies.map((c) => {
@@ -415,6 +464,9 @@ function resolveAssetUrl(idStr: unknown): string | null {
         ...c,
         company_logo: logoUrl,
         company_cover: coverUrl,
+        industry_name: resolveLookupName(c.industry_id, industryNames),
+        company_size_name: resolveLookupName(c.company_size_id, companySizeNames),
+        organization_type_name: resolveLookupName(c.organization_type_id, organizationTypeNames),
         documents: docMap[cid] || [],
         users: userMap[cid] || [],
         verifications: companyVerifs,
@@ -463,14 +515,14 @@ export async function POST(req: NextRequest) {
       companyStatus = "VERIFIED";
       verifStatus = "APPROVED";
       isPublic = 1;
-    } else if (action === "reject") {
-      companyStatus = "REJECTED";
-      verifStatus = "REJECTED";
     } else if (action === "suspend") {
       companyStatus = "SUSPENDED";
       verifStatus = "SUSPENDED";
-    } else if (action === "request_correction") {
-      companyStatus = "PENDING_VERIFICATION";
+    } else if (action === "request_revision") {
+      // The applicant-side editing gates unlock off vs_company.verification_status,
+      // so the company returns to DRAFT while the review workflow row carries the
+      // CORRECTION_REQUIRED state that renders as "Needs Revision" in the queue.
+      companyStatus = "DRAFT";
       verifStatus = "CORRECTION_REQUIRED";
     } else if (action === "start_review" || action === "in_review") {
       companyStatus = "PENDING_VERIFICATION";
@@ -580,8 +632,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1c. Automatically reject/suspend associated users and identity verifications when company is rejected or suspended
-    if (action === "reject" || action === "suspend") {
+    // 1c. Automatically suspend associated users and identity verifications when the company is suspended
+    if (action === "suspend") {
       try {
         const [cuRes, compRes] = await Promise.all([
           fetch(`${DIRECTUS_BASE}/items/vs_company_user?filter[company_id][_eq]=${companyId}&fields=user_id`, { headers: getDirectusHeaders(), cache: "no-store" }),
@@ -604,8 +656,6 @@ export async function POST(req: NextRequest) {
           if (creatorId) uids.push(creatorId);
         }
 
-        const targetUserStatus = action === "reject" ? "REJECTED" : "SUSPENDED";
-        const targetIdVerStatus = action === "reject" ? "rejected" : "suspended";
         const uniqueUids = Array.from(new Set(uids.filter((id) => id > 0)));
 
         if (uniqueUids.length > 0) {
@@ -616,7 +666,7 @@ export async function POST(req: NextRequest) {
                   method: "PATCH",
                   headers: getDirectusHeaders(),
                   body: JSON.stringify({
-                    verification_status: targetUserStatus,
+                    verification_status: "SUSPENDED",
                     rejection_reason: rejectionReason || null,
                     updated_at: nowPH,
                   }),
@@ -632,7 +682,7 @@ export async function POST(req: NextRequest) {
                       method: "PATCH",
                       headers: getDirectusHeaders(),
                       body: JSON.stringify({
-                        status: targetIdVerStatus,
+                        status: "suspended",
                         rejection_reason: rejectionReason || null,
                         reviewed_by: adminId,
                         updated_at: nowPH,
@@ -641,7 +691,7 @@ export async function POST(req: NextRequest) {
                   }
                 }
               } catch (uErr) {
-                console.warn(`Failed to auto-update user #${uid} status to ${targetUserStatus}:`, uErr);
+                console.warn(`Failed to auto-suspend user #${uid}:`, uErr);
               }
             })
           );

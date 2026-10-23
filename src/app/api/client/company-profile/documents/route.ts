@@ -155,8 +155,23 @@ export async function DELETE(req: NextRequest) {
     const compJson = (await compRes.json()) as { data?: { verification_status?: string } };
     const verifStatus = String(compJson.data?.verification_status || "").toUpperCase();
 
-    const allowedDeletionStatuses = ["DRAFT", "REJECTED"];
-    if (!allowedDeletionStatuses.includes(verifStatus)) {
+    const editableStatuses = ["DRAFT", "REJECTED"];
+    let canEditDocuments = editableStatuses.includes(verifStatus);
+
+    if (!canEditDocuments) {
+      const verifUrl = `${config.baseUrl}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at,-id&limit=1&fields=status`;
+      const verifRes = await fetch(verifUrl, {
+        headers: getHeaders(config.token),
+        cache: "no-store",
+      });
+      if (verifRes.ok) {
+        const verifJson = (await verifRes.json()) as { data?: Array<{ status?: string }> };
+        const latestWorkflowStatus = String(verifJson.data?.[0]?.status || "").toUpperCase();
+        canEditDocuments = latestWorkflowStatus === "CORRECTION_REQUIRED";
+      }
+    }
+
+    if (!canEditDocuments) {
       return errorResponse(
         "Documents cannot be removed while your profile is under review or has been verified.",
         403

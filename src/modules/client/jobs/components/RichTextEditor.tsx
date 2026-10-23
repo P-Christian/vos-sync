@@ -31,7 +31,7 @@ export function RichTextEditor({
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [customPrompt, setCustomPrompt] = useState("");
   const [customPopoverOpen, setCustomPopoverOpen] = useState(false);
-  const [refineSuccess, setRefineSuccess] = useState(false);
+  const [successAction, setSuccessAction] = useState<string | null>(null);
 
   // Convert legacy markdown **bold** or newlines to HTML for visual editor display
   const formatToHtml = (val: string | null | undefined): string => {
@@ -79,7 +79,7 @@ export function RichTextEditor({
   const handleRefine = async (action: string, customInstruction = "") => {
     setIsRefining(true);
     setActiveAction(action);
-    setRefineSuccess(false);
+    setSuccessAction(null);
 
     try {
       const currentHtml = editorRef.current?.innerHTML || value || "";
@@ -101,8 +101,8 @@ export function RichTextEditor({
           editorRef.current.innerHTML = data.refined_html;
         }
         onChange(data.refined_html);
-        setRefineSuccess(true);
-        setTimeout(() => setRefineSuccess(false), 2500);
+        setSuccessAction(action);
+        setTimeout(() => setSuccessAction(null), 2500);
       }
     } catch (err) {
       console.error("Failed to refine text:", err);
@@ -304,7 +304,7 @@ export function RichTextEditor({
           >
             {isRefining && activeAction === "improve" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
-            ) : refineSuccess && activeAction === "improve" ? (
+            ) : successAction === "improve" ? (
               <Check className="h-3 w-3 mr-1 text-emerald-600" />
             ) : null}
             ✨ Improve
@@ -320,6 +320,8 @@ export function RichTextEditor({
           >
             {isRefining && activeAction === "concise" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : successAction === "concise" ? (
+              <Check className="h-3 w-3 mr-1 text-emerald-600" />
             ) : null}
             ✂ Make Concise
           </Button>
@@ -334,6 +336,8 @@ export function RichTextEditor({
           >
             {isRefining && activeAction === "technical" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : successAction === "technical" ? (
+              <Check className="h-3 w-3 mr-1 text-emerald-600" />
             ) : null}
             ⚙ More Technical
           </Button>
@@ -348,6 +352,8 @@ export function RichTextEditor({
           >
             {isRefining && activeAction === "regenerate" ? (
               <Loader2 className="h-3 w-3 animate-spin mr-1 text-emerald-600" />
+            ) : successAction === "regenerate" ? (
+              <Check className="h-3 w-3 mr-1 text-emerald-600" />
             ) : null}
             🔄 Regenerate
           </Button>
@@ -362,7 +368,14 @@ export function RichTextEditor({
                 disabled={isRefining}
                 className="h-6 px-2 text-xs md:text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-md gap-1 max-md:min-h-10"
               >
-                <Wand2 className="h-3 w-3" /> Custom
+                {isRefining && activeAction === "custom" ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : successAction === "custom" ? (
+                  <Check className="h-3 w-3 text-emerald-600" />
+                ) : (
+                  <Wand2 className="h-3 w-3" />
+                )}
+                Custom
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-3 max-md:w-[calc(100vw-2rem)]" align="end">

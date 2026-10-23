@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Building2, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Building2, Clock, CheckCircle2, XCircle, FileWarning, FileQuestion } from "lucide-react";
 import { CompanyVerificationKPIs } from "../types";
 import { motion, Variants } from "framer-motion";
 
@@ -58,6 +58,16 @@ export const CompanyVerificationKpis: React.FC<CompanyVerificationKpisProps> = (
       borderColor: currentFilter === "PENDING_VERIFICATION" ? "border-amber-500/50" : "border-border/60",
     },
     {
+      id: "NEEDS_REVISION",
+      title: "Needs Revision",
+      value: kpis.needsRevisionCount,
+      icon: FileWarning,
+      color: "text-orange-500",
+      bgColor: "bg-orange-500/10",
+      activeRing: currentFilter === "NEEDS_REVISION" ? "ring-2 ring-orange-500/50 shadow-sm" : "",
+      borderColor: currentFilter === "NEEDS_REVISION" ? "border-orange-500/50" : "border-border/60",
+    },
+    {
       id: "VERIFIED",
       title: "Verified",
       value: kpis.verifiedCount,
@@ -68,14 +78,24 @@ export const CompanyVerificationKpis: React.FC<CompanyVerificationKpisProps> = (
       borderColor: currentFilter === "VERIFIED" ? "border-emerald-500/50" : "border-border/60",
     },
     {
-      id: "REJECTED",
+      id: "REJECTED_OR_SUSPENDED",
       title: "Rejected / Suspended",
       value: kpis.rejectedCount,
       icon: XCircle,
       color: "text-rose-500",
       bgColor: "bg-rose-500/10",
-      activeRing: currentFilter === "REJECTED" ? "ring-2 ring-rose-500/50 shadow-sm" : "",
-      borderColor: currentFilter === "REJECTED" ? "border-rose-500/50" : "border-border/60",
+      activeRing: currentFilter === "REJECTED_OR_SUSPENDED" ? "ring-2 ring-rose-500/50 shadow-sm" : "",
+      borderColor: currentFilter === "REJECTED_OR_SUSPENDED" ? "border-rose-500/50" : "border-border/60",
+    },
+    {
+      id: "DRAFT",
+      title: "Drafts / Incomplete",
+      value: kpis.draftCount,
+      icon: FileQuestion,
+      color: "text-slate-400",
+      bgColor: "bg-slate-400/10",
+      activeRing: currentFilter === "DRAFT" ? "ring-2 ring-slate-400/50 shadow-sm" : "",
+      borderColor: currentFilter === "DRAFT" ? "border-slate-400/50" : "border-border/60",
     },
   ];
 
@@ -84,7 +104,7 @@ export const CompanyVerificationKpis: React.FC<CompanyVerificationKpisProps> = (
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-6"
     >
       {cards.map((card) => {
         const Icon = card.icon;

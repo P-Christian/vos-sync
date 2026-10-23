@@ -108,9 +108,12 @@ export default function CompanyDocuments({
   const [otherError, setOtherError] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<PreviewableDoc | null>(null);
 
-  // Users can only remove documents if profile has not yet been processed / under review
+  // Users can only remove documents if profile has not yet been processed / under review,
+  // or if the reviewer returned the submission for revision.
   const canRemoveDocs =
-    verificationStatus === "DRAFT" || verificationStatus === "REJECTED";
+    verificationStatus === "DRAFT" ||
+    verificationStatus === "REJECTED" ||
+    verificationStatus === "CORRECTION_REQUIRED";
   const isVerified = verificationStatus === "VERIFIED";
 
   const ALLOWED_TYPES = [

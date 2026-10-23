@@ -9,6 +9,12 @@ import {
   CandidateDetail,
 } from "../types";
 import { JobPipelineVersion } from "@/modules/client/pipeline/types";
+import {
+  ApplicantFiltersState,
+  EMPTY_APPLICANT_FILTERS,
+  matchesAdvancedFilters,
+  matchesStageFilter,
+} from "../utils/applicantFilters";
 
 export interface UpdateStatusResult {
   ok: boolean;
@@ -23,6 +29,7 @@ export interface UpdateStatusResult {
 export function useApplicants() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [jobPipeline, setJobPipeline] = useState<JobPipelineVersion | null>(null);
+  const [fetchedAt, setFetchedAt] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,6 +39,10 @@ export function useApplicants() {
   const [filterStatus, setFilterStatus] = useState<ApplicantFilterStatus>("ACTIVE_PIPELINE");
 
   const [search, setSearch] = useState("");
+
+  const [filters, setFilters] = useState<ApplicantFiltersState>(
+    EMPTY_APPLICANT_FILTERS
+  );
 
   const [detail, setDetail] =
     useState<CandidateDetail | null>(null);
@@ -84,6 +95,9 @@ export function useApplicants() {
 
         setApplicants(json.applicants ?? []);
         setJobPipeline(json.pipeline ?? null);
+        // Anchor for the "date applied" windows; refreshed with every fetch so
+        // the filter is pure during render and still tracks the server clock.
+        setFetchedAt(Date.now());
       } catch (err: unknown) {
         setError(
           err instanceof Error
@@ -372,39 +386,14 @@ export function useApplicants() {
       .trim()
       .toLowerCase();
 
+    const now = fetchedAt;
+
     return applicants.filter((applicant) => {
-      let matchesStatus = false;
-
-      const stageType = applicant.stage_type;
-      const isTerminal =
-        stageType === "HIRED" ||
-        stageType === "REJECTED" ||
-        stageType === "WITHDRAWN" ||
-        (!stageType && (applicant.application_status === "HIRED" || applicant.application_status === "REJECTED" || applicant.application_status === "WITHDRAWN"));
-
-      if (filterStatus === "ALL") {
-        matchesStatus = true;
-      } else if (filterStatus === "ACTIVE_PIPELINE") {
-        matchesStatus = !isTerminal;
-      } else if (filterStatus.startsWith("STAGE_")) {
-        const stageId = parseInt(filterStatus.replace("STAGE_", ""), 10);
-        matchesStatus =
-          applicant.current_stage_id === stageId ||
-          Boolean(
-            applicant.stage_name &&
-              jobPipeline?.stages?.find((s) => s.id === stageId)?.stage_name ===
-                applicant.stage_name
-          );
-      } else {
-        matchesStatus =
-          applicant.stage_type === filterStatus ||
-          applicant.application_status === filterStatus ||
-          (filterStatus === "SCREENING" && applicant.application_status === "UNDER_REVIEW") ||
-          (filterStatus === "OFFER" && applicant.application_status === "SHORTLISTED") ||
-          (filterStatus === "INTERVIEW" && applicant.application_status === "INTERVIEWING");
+      if (!matchesStageFilter(applicant, filterStatus, jobPipeline)) {
+        return false;
       }
 
-      if (!matchesStatus) {
+      if (!matchesAdvancedFilters(applicant, filters, now)) {
         return false;
       }
 
@@ -422,7 +411,7 @@ export function useApplicants() {
         skillsText.includes(query)
       );
     });
-  }, [applicants, filterStatus, jobPipeline, search]);
+  }, [applicants, filterStatus, filters, jobPipeline, search, fetchedAt]);
 
   return {
     applicants: filteredApplicants,
@@ -441,6 +430,9 @@ export function useApplicants() {
 
     search,
     setSearch,
+
+    filters,
+    setFilters,
 
     fetchApplicants,
     updateStatus,

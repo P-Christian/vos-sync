@@ -16,12 +16,11 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { CompanyVerificationRecord } from "../types";
 import { AlertCircle } from "lucide-react";
 
-interface RejectionReasonModalProps {
+interface RevisionRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   company: CompanyVerificationRecord | null;
-  mode: "reject" | "request_correction";
-  onConfirm: (action: "reject" | "request_correction", reason: string, internalNotes: string) => Promise<void>;
+  onConfirm: (reason: string, internalNotes: string) => Promise<void>;
   isSubmitting: boolean;
 }
 
@@ -35,11 +34,10 @@ const REASON_PRESETS = [
   "Custom reason (see detailed notes below)",
 ];
 
-export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
+export const RevisionRequestModal: React.FC<RevisionRequestModalProps> = ({
   isOpen,
   onClose,
   company,
-  mode,
   onConfirm,
   isSubmitting,
 }) => {
@@ -48,8 +46,6 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
   const [internalNotes, setInternalNotes] = useState<string>("");
 
   if (!company) return null;
-
-  const isReject = mode === "reject";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +57,7 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
 
     if (!finalPublicReason) return;
 
-    await onConfirm(mode, finalPublicReason, internalNotes);
+    await onConfirm(finalPublicReason, internalNotes);
   };
 
   return (
@@ -69,13 +65,11 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
       <DialogContent className="sm:max-w-xl w-[90vw]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-foreground">
-            <AlertCircle className={`h-5 w-5 ${isReject ? "text-destructive" : "text-amber-500"}`} />
-            {isReject ? "Reject Company Verification" : "Request Correction"}
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+            Request Revision
           </DialogTitle>
           <DialogDescription>
-            {isReject
-              ? `You are rejecting verification for ${company.company_name}. Please provide a clear explanation.`
-              : `Request missing or corrected documents from ${company.company_name}.`}
+            {`Request missing or corrected documents from ${company.company_name}. The company can edit its profile and resubmit as many times as needed.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -143,16 +137,11 @@ export const RejectionReasonModal: React.FC<RejectionReasonModalProps> = ({
             </Button>
             <Button
               type="submit"
-              variant={isReject ? "destructive" : "default"}
               size="sm"
               disabled={isSubmitting || (!selectedPreset && !customReason.trim())}
               className="rounded-lg text-xs shadow-2xs font-semibold"
             >
-              {isSubmitting
-                ? "Submitting..."
-                : isReject
-                ? "Confirm Rejection"
-                : "Send Correction Request"}
+              {isSubmitting ? "Submitting..." : "Send Revision Request"}
             </Button>
           </DialogFooter>
         </form>

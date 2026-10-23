@@ -641,52 +641,13 @@ export async function getClientDashboardData(userId: number): Promise<DashboardD
       description: topJob?.job_title ? `Highest volume in: ${topJob.job_title}` : "Awaiting initial screening",
       count: unreviewedApplicants.length,
       severity: "urgent" as const,
-      actionLabel: "Review Candidates",
+      actionLabel: "Review Applicants",
       actionUrl: "/vos-sync/client/applicants?status=APPLIED",
       dismissible: false,
     });
   }
 
-  if (upcomingInterviewsCount > 0) {
-    actionsRequired.push({
-      id: "interviews_awaiting",
-      type: "interview_pending" as const,
-      title: `${upcomingInterviewsCount} upcoming interview${upcomingInterviewsCount > 1 ? "s" : ""} scheduled`,
-      description: nextInterviewSummary,
-      count: upcomingInterviewsCount,
-      severity: "warning" as const,
-      actionLabel: "View Schedule",
-      actionUrl: "/vos-sync/client/interviews",
-      dismissible: false,
-    });
-  }
-
-  if (activeJobs > 0) {
-    actionsRequired.push({
-      id: "active_jobs_review",
-      type: "job_expiring" as const,
-      title: `${activeJobs} active job posting${activeJobs > 1 ? "s" : ""} running`,
-      description: "Monitor candidate pipelines and application intake",
-      count: activeJobs,
-      severity: "info" as const,
-      actionLabel: "Manage Jobs",
-      actionUrl: "/vos-sync/client/jobs",
-      dismissible: true,
-    });
-  }
-
-  if (isVerified) {
-    actionsRequired.push({
-      id: "profile_verified",
-      type: "profile_verification" as const,
-      title: "Company profile verified",
-      description: "Full talent discovery and direct hiring privileges active",
-      severity: "success" as const,
-      actionLabel: "View Profile",
-      actionUrl: "/vos-sync/client/company-profile",
-      dismissible: true,
-    });
-  } else {
+  if (!isVerified) {
     actionsRequired.push({
       id: "profile_pending",
       type: "profile_verification" as const,
