@@ -30,12 +30,7 @@ export function useTalentSearch() {
 
       try {
         const params = buildTalentSearchParams(
-          activeFilters.keyword,
-          activeFilters.skills,
-          activeFilters.location,
-          activeFilters.experience_level,
-          activeFilters.availability,
-          activeFilters.school_id,
+          activeFilters,
           activePage,
           PAGE_LIMIT,
           activeJobId || undefined

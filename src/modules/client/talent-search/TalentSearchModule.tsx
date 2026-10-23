@@ -290,7 +290,14 @@ export default function TalentSearchModule() {
 
                 {/* Results count */}
                 {hasSearched && !loading && (
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <motion.div
+                    // Re-keyed per query so a filter change re-plays the fade.
+                    key={`${page}-${talents.length}-${total}`}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex items-center justify-between text-sm text-muted-foreground"
+                  >
                     <span>
                       Showing <strong className="text-foreground">{talents.length}</strong> of{" "}
                       <strong className="text-foreground">{total}</strong> profiles
@@ -298,7 +305,7 @@ export default function TalentSearchModule() {
                     {totalPages > 1 && (
                       <span>Page {page} of {totalPages}</span>
                     )}
-                  </div>
+                  </motion.div>
                 )}
 
                 {/* State Transitions: Loading Skeleton, Empty State, Initial State, Results */}

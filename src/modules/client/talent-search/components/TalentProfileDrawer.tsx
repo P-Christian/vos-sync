@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +42,21 @@ interface TalentProfileDrawerProps {
 
 const sectionHeading =
   "mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground md:text-xs";
+
+const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+/** Header and footer rise into place as the sheet finishes sliding. */
+const drawerHeadMotion = {
+  initial: { opacity: 0, y: -10 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3, ease: EASE_OUT },
+};
+
+const drawerFootMotion = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3, delay: 0.16, ease: EASE_OUT },
+};
 
 const tabTrigger =
   "rounded-lg text-sm max-md:px-1.5 max-md:text-xs md:text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40";
@@ -318,7 +334,11 @@ export default function TalentProfileDrawer({
         {!loading && !error && profile && (
           <>
             {/* Header */}
-            <div className="shrink-0 border-b border-border bg-muted/30 px-6 pb-4 pt-6">
+            <motion.div
+              key={`head-${profile.user_id}`}
+              {...drawerHeadMotion}
+              className="shrink-0 border-b border-border bg-muted/30 px-6 pb-4 pt-6"
+            >
               <SheetHeader className="space-y-3 p-0">
                 <div className="flex items-start gap-4 pr-8">
                   {avatarSrc ? (
@@ -357,7 +377,12 @@ export default function TalentProfileDrawer({
                 </div>
 
                 {/* Quick facts */}
-                <div className="flex flex-wrap items-center gap-2">
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.14, ease: EASE_OUT }}
+                  className="flex flex-wrap items-center gap-2"
+                >
                   {matchScore !== null && matchScore !== undefined && (
                     <span className={cn("rounded-full border px-2.5 py-1 text-xs font-bold", scoreClass)}>
                       {matchScore}% match
@@ -395,9 +420,9 @@ export default function TalentProfileDrawer({
                       Saved
                     </Badge>
                   )}
-                </div>
+                </motion.div>
               </SheetHeader>
-            </div>
+            </motion.div>
 
             {/* Tabs */}
             <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
@@ -969,7 +994,10 @@ export default function TalentProfileDrawer({
             </Tabs>
 
             {/* Sticky actions */}
-            <div className="flex shrink-0 items-center gap-3 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-sm">
+            <motion.div
+              {...drawerFootMotion}
+              className="flex shrink-0 items-center gap-3 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-sm"
+            >
               <Button
                 id={`drawer-save-${profile.user_id}`}
                 variant="outline"
@@ -1000,7 +1028,7 @@ export default function TalentProfileDrawer({
                 <Send className="h-4 w-4" />
                 Send invitation
               </Button>
-            </div>
+            </motion.div>
           </>
         )}
       </SheetContent>

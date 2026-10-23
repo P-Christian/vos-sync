@@ -1,4 +1,5 @@
 import { formatAssetUrl } from "@/lib/utils";
+import { TalentFilters } from "../types";
 
 /**
  * Resolves proxied asset URL for image values
@@ -88,26 +89,23 @@ export function getPlatformIcon(platform: string): string {
 }
 
 /**
- * Builds URLSearchParams for talent search
+ * Builds URLSearchParams for talent search. Multi-value filters are sent as
+ * repeated params so values may themselves contain commas.
  */
 export function buildTalentSearchParams(
-  keyword: string,
-  skills: string[],
-  location: string,
-  experienceLevel: string,
-  availability: string,
-  schoolId: string,
+  filters: TalentFilters,
   page: number,
   limit: number,
   jobId?: string
 ): URLSearchParams {
   const params = new URLSearchParams();
-  if (keyword) params.set("keyword", keyword);
-  if (skills.length > 0) params.set("skills", skills.join(","));
-  if (location) params.set("location", location);
-  if (experienceLevel) params.set("experience_level", experienceLevel);
-  if (availability) params.set("availability", availability);
-  if (schoolId) params.set("school_id", schoolId);
+  if (filters.keyword) params.set("keyword", filters.keyword);
+  for (const skill of filters.skills) params.append("skills", skill);
+  for (const location of filters.locations) params.append("location", location);
+  for (const school of filters.schools) {
+    params.append("school_id", school.id !== null ? String(school.id) : school.name);
+  }
+  if (filters.experience_level) params.set("experience_level", filters.experience_level);
   if (jobId) params.set("job_id", jobId);
   params.set("page", String(page));
   params.set("limit", String(limit));

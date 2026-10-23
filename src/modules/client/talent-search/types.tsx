@@ -181,19 +181,37 @@ export interface SavedTalent {
 export interface TalentFilters {
   keyword: string;
   skills: string[];
-  location: string;
+  locations: string[];
   experience_level: ExperienceLevel | "";
-  availability: AvailabilityStatus | "";
-  school_id: string;
+  schools: SchoolFilter[];
+}
+
+/**
+ * A school chosen from the `vs_school` registry keeps its numeric id so the
+ * search can match it exactly; free-typed schools fall back to name matching.
+ * `campus` is display only — `vs_school` repeats one name across several towns.
+ */
+export interface SchoolFilter {
+  id: number | null;
+  name: string;
+  campus?: string | null;
+}
+
+export type FilterSuggestionType = "skills" | "locations" | "schools";
+
+/** One row returned by the filter autocomplete endpoint. */
+export interface FilterSuggestion {
+  value: string;
+  label: string;
+  hint: string | null;
 }
 
 export const EMPTY_FILTERS: TalentFilters = {
   keyword: "",
   skills: [],
-  location: "",
+  locations: [],
   experience_level: "",
-  availability: "",
-  school_id: "",
+  schools: [],
 };
 
 export const EXPERIENCE_LEVEL_LABELS: Record<ExperienceLevel, string> = {
