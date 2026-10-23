@@ -43,6 +43,24 @@ function maskEmail(email?: string | null): string {
   return `${name.slice(0, 2)}***@${domain}`;
 }
 
+/**
+ * Skills, location and school filters arrive as repeated query params so a
+ * single value may itself contain a comma.
+ */
+function getListParam(searchParams: URLSearchParams, name: string): string[] {
+  return searchParams.getAll(name).map((value) => value.trim()).filter(Boolean);
+}
+
+/**
+ * PSGC registers places as "City of Cebu", while profiles free-type "Cebu City".
+ * Matching the bare name too keeps a clicked suggestion from returning nothing.
+ */
+function locationMatchVariants(location: string): string[] {
+  const lowered = location.toLowerCase();
+  const bare = lowered.replace(/^(?:city|municipality|province) of /, "");
+  return bare === lowered ? [lowered] : [lowered, bare];
+}
+
 // ── DB-Backed Taxonomy Types ──────────────────────────────────────────────────
 
 export interface RoleSkillMappingRow {
@@ -236,18 +254,13 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const keyword = (searchParams.get("keyword") || "").trim();
-    const skillsParam = searchParams.get("skills") || "";
-    const location = (searchParams.get("location") || "").trim();
+    const requestedSkills = getListParam(searchParams, "skills");
+    const locations = getListParam(searchParams, "location");
+    const schoolFilters = getListParam(searchParams, "school_id");
     const experienceLevel = searchParams.get("experience_level") || "";
-    const availability = searchParams.get("availability") || "";
-    const schoolId = searchParams.get("school_id") || "";
     const page = Math.max(1, Number(searchParams.get("page") || "1"));
     const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit") || "20")));
     const jobIdForMatch = searchParams.get("job_id") || "";
-
-    const requestedSkills = skillsParam
-      ? skillsParam.split(",").map((s) => s.trim()).filter(Boolean)
-      : [];
 
     // ────────────────────────────────────────────
     // 1. Fetch profiles + DB Taxonomy aliases in parallel
@@ -556,10 +569,9 @@ export async function GET(req: NextRequest) {
       keyword ||
         requestedSkills.length > 0 ||
         jobIdForMatch ||
-        location ||
+        locations.length > 0 ||
         experienceLevel ||
-        schoolId ||
-        availability
+        schoolFilters.length > 0
     );
 
     const searchMode: "browse" | "search" = hasSearchCriteria ? "search" : "browse";
@@ -582,7 +594,9 @@ export async function GET(req: NextRequest) {
       keyword: matchKeyword, // Use Gemini-resolved role keyword for scoring
       requestedSkills: verifiedJobIdForMatch ? jobSkills : effectiveRequestedSkills,
       jobId: verifiedJobIdForMatch ? Number(verifiedJobIdForMatch) : undefined,
-      location,
+      // The engine takes a single location; multi-tag matching happens in the
+      // post-filter below.
+      location: locations[0] ?? "",
       requiredExperience: requiredExpYears,
       taxonomyContext,
     };
@@ -718,7 +732,7 @@ export async function GET(req: NextRequest) {
     console.log(`[talent-search] ✅ Layer 2 scored: ${allTalents.length} candidates after engine scoring`);
 
     // ────────────────────────────────────────────
-    // 5. Explicit sidebar filters (skills, location, experience, availability, school)
+    // 5. Explicit sidebar filters (skills, location, experience, school)
     // NOTE: Keyword-based post-filtering is intentionally removed.
     //       Layer 1 (retrieval) and Layer 2 (scoring) already determine relevance.
     //       A second keyword gate here would reject valid candidates whose title/summary
@@ -735,10 +749,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (location) {
-      filtered = filtered.filter((t) =>
-        t.location.toLowerCase().includes(location.toLowerCase())
-      );
+    if (locations.length > 0) {
+      const variants = locations.map(locationMatchVariants);
+      filtered = filtered.filter((t) => {
+        const talentLocation = t.location.toLowerCase();
+        return variants.some((group) => group.some((v) => talentLocation.includes(v)));
+      });
     }
 
     if (experienceLevel) {
@@ -748,15 +764,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (availability) {
-      filtered = filtered.filter((t) => t.availability_status === availability.toUpperCase());
-    }
-
-    if (schoolId) {
+    if (schoolFilters.length > 0) {
       filtered = filtered.filter((t) =>
         t.education.some((e) =>
-          String(e.school_id) === String(schoolId) ||
-          (e.school_name && matchSchool(schoolId, e.school_name).matched)
+          schoolFilters.some(
+            (school) =>
+              String(e.school_id) === school ||
+              (e.school_name && matchSchool(school, e.school_name).matched)
+          )
         )
       );
     }

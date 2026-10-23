@@ -18,6 +18,12 @@ interface TalentCardProps {
   saving: boolean;
 }
 
+// Matched to the results grid's staggerChildren so a new query lifts the cards in order.
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.16, 1, 0.3, 1] as const } },
+};
+
 export default function TalentCardComponent({ talent, onViewProfile, onToggleSave, saving }: TalentCardProps) {
   const initials = getInitials(talent.name);
   const scoreClass = matchScoreColor(talent.match_score);
@@ -38,6 +44,7 @@ export default function TalentCardComponent({ talent, onViewProfile, onToggleSav
   return (
     <motion.article
       layout="position"
+      variants={cardVariants}
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(

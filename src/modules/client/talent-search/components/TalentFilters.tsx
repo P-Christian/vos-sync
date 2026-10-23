@@ -2,27 +2,37 @@
 
 // src/modules/client/talent-search/components/TalentFilters.tsx
 
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { Filter, ChevronDown, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TalentFilters, ExperienceLevel, AvailabilityStatus, EXPERIENCE_LEVEL_LABELS, AVAILABILITY_LABELS } from "../types";
+import {
+  TalentFilters as TalentFiltersValue,
+  ExperienceLevel,
+  EXPERIENCE_LEVEL_LABELS,
+  FilterSuggestion,
+  SchoolFilter,
+} from "../types";
+import AutocompleteFilterField from "./AutocompleteFilterField";
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 interface TalentFiltersProps {
-  filters: TalentFilters;
-  onFilterChange: <K extends keyof TalentFilters>(key: K, value: TalentFilters[K]) => void;
+  filters: TalentFiltersValue;
+  onFilterChange: <K extends keyof TalentFiltersValue>(key: K, value: TalentFiltersValue[K]) => void;
   onApply: () => void;
 }
 
-const COMMON_SKILLS = [
-  "React", "Next.js", "TypeScript", "JavaScript", "Node.js",
-  "Python", "Java", "SQL", "MySQL", "MongoDB",
-  "Vue", "Angular", "PHP", "Laravel", "Docker",
-  "AWS", "Figma", "Photoshop", "Excel", "AutoCAD",
-];
+interface FilterTag {
+  key: string;
+  label: string;
+}
+
+function schoolTagKey(school: SchoolFilter): string {
+  return school.id !== null ? `id:${school.id}` : `name:${school.name.toLowerCase()}`;
+}
 
 function FilterSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -55,26 +65,85 @@ function FilterSection({ title, defaultOpen = true, children }: { title: string;
   );
 }
 
+function TagChips({ tags, onRemove, removePrefix }: { tags: FilterTag[]; onRemove: (tag: FilterTag) => void; removePrefix: string }) {
+  if (tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <AnimatePresence>
+        {tags.map((tag) => (
+          <motion.span
+            layout
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            key={tag.key}
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20 font-medium shadow-2xs"
+          >
+            <span className="max-w-40 truncate" title={tag.label}>{tag.label}</span>
+            <button
+              type="button"
+              onClick={() => onRemove(tag)}
+              className="hover:text-destructive transition-colors p-0.5"
+              title={`Remove ${removePrefix} ${tag.label}`}
+              aria-label={`Remove ${removePrefix} ${tag.label}`}
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </motion.span>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function TalentFiltersPanel({ filters, onFilterChange, onApply }: TalentFiltersProps) {
-  const [skillInput, setSkillInput] = useState("");
+  // The desktop sidebar and the mobile sheet can both be mounted, so the shared
+  // highlight is scoped to one panel instance.
+  const panelId = useId();
 
-  const addSkill = (skill: string) => {
-    const trimmed = skill.trim();
-    if (!trimmed || filters.skills.includes(trimmed)) return;
+  const addSkill = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || filters.skills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) return;
     onFilterChange("skills", [...filters.skills, trimmed]);
-    setSkillInput("");
   };
 
-  const removeSkill = (skill: string) => {
-    onFilterChange("skills", filters.skills.filter((s) => s !== skill));
+  const addLocation = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || filters.locations.some((l) => l.toLowerCase() === trimmed.toLowerCase())) return;
+    onFilterChange("locations", [...filters.locations, trimmed]);
   };
+
+  const addSchool = (school: SchoolFilter) => {
+    const name = school.name.trim();
+    if (!name) return;
+    const exists = filters.schools.some(
+      (s) => (s.id !== null && school.id !== null ? s.id === school.id : s.name.toLowerCase() === name.toLowerCase())
+    );
+    if (exists) return;
+    onFilterChange("schools", [...filters.schools, { ...school, name }]);
+  };
+
+  /** The registry returns the school id as the suggestion value. */
+  const addSuggestedSchool = (suggestion: FilterSuggestion) => {
+    addSchool({
+      id: /^\d+$/.test(suggestion.value) ? Number(suggestion.value) : null,
+      name: suggestion.label,
+      campus: suggestion.hint,
+    });
+  };
+
+  const skillTags: FilterTag[] = filters.skills.map((skill) => ({ key: skill, label: skill }));
+  const locationTags: FilterTag[] = filters.locations.map((location) => ({ key: location, label: location }));
+  const schoolTags: FilterTag[] = filters.schools.map((school) => ({
+    key: schoolTagKey(school),
+    label: school.campus ? `${school.name} — ${school.campus}` : school.name,
+  }));
 
   const activeCount = [
     filters.skills.length > 0,
-    !!filters.location,
+    filters.locations.length > 0,
     !!filters.experience_level,
-    !!filters.availability,
-    !!filters.school_id,
+    filters.schools.length > 0,
   ].filter(Boolean).length;
 
   return (
@@ -103,10 +172,9 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
             type="button"
             onClick={() => {
               onFilterChange("skills", []);
-              onFilterChange("location", "");
+              onFilterChange("locations", []);
               onFilterChange("experience_level", "");
-              onFilterChange("availability", "");
-              onFilterChange("school_id", "");
+              onFilterChange("schools", []);
             }}
             className="text-xs text-muted-foreground hover:text-destructive transition-colors max-md:min-h-10"
           >
@@ -119,138 +187,88 @@ export default function TalentFiltersPanel({ filters, onFilterChange, onApply }:
         {/* Skills */}
         <FilterSection title="Skills">
           <div className="space-y-2.5">
-            <div className="flex gap-1.5">
-              <Input
-                placeholder="Add skill…"
-                value={skillInput}
-                onChange={(e) => setSkillInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addSkill(skillInput);
-                  }
-                }}
-                className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
-              />
-              <Button
-                size="sm"
-                onClick={() => addSkill(skillInput)}
-                disabled={!skillInput.trim()}
-                className="h-8 max-md:min-h-10 px-3 text-xs rounded-lg shrink-0 shadow-2xs"
-              >
-                Add
-              </Button>
-            </div>
-
-            {/* Added skills */}
-            {filters.skills.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                <AnimatePresence>
-                  {filters.skills.map((skill) => (
-                    <motion.span
-                      layout
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      key={skill}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20 font-medium shadow-2xs"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        className="hover:text-destructive transition-colors p-0.5"
-                        title={`Remove ${skill}`}
-                      >
-                        <X className="h-2.5 w-2.5" />
-                      </button>
-                    </motion.span>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-
-            {/* Quick skill chips */}
-            <div className="flex flex-wrap gap-1 pt-1">
-              {COMMON_SKILLS.filter((s) => !filters.skills.includes(s)).slice(0, 10).map((skill) => (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  key={skill}
-                  type="button"
-                  onClick={() => addSkill(skill)}
-                  className="px-2 py-0.5 rounded-full text-xs border border-border/80 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  + {skill}
-                </motion.button>
-              ))}
-            </div>
+            <AutocompleteFilterField
+              type="skills"
+              placeholder="Search skills…"
+              selected={filters.skills}
+              onPick={(suggestion) => addSkill(suggestion.label)}
+            />
+            <TagChips
+              tags={skillTags}
+              removePrefix="skill"
+              onRemove={(tag) => onFilterChange("skills", filters.skills.filter((s) => s !== tag.key))}
+            />
           </div>
         </FilterSection>
 
         {/* Location */}
         <FilterSection title="Location">
-          <Input
-            placeholder="City or province…"
-            value={filters.location}
-            onChange={(e) => onFilterChange("location", e.target.value)}
-            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
-          />
+          <div className="space-y-2.5">
+            <AutocompleteFilterField
+              type="locations"
+              placeholder="Search city or province…"
+              selected={filters.locations}
+              onPick={(suggestion) => addLocation(suggestion.label)}
+            />
+            <TagChips
+              tags={locationTags}
+              removePrefix="location"
+              onRemove={(tag) => onFilterChange("locations", filters.locations.filter((l) => l !== tag.key))}
+            />
+          </div>
         </FilterSection>
 
         {/* Experience Level */}
         <FilterSection title="Experience Level">
           <div className="space-y-1">
-            {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([level, label]) => (
-              <button
-                key={level}
-                type="button"
-                onClick={() =>
-                  onFilterChange("experience_level", filters.experience_level === level ? "" : level)
-                }
-                className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
-                  filters.experience_level === level
-                    ? "bg-primary/10 text-primary font-semibold border border-primary/20 shadow-2xs"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </FilterSection>
-
-        {/* Availability */}
-        <FilterSection title="Availability">
-          <div className="space-y-1">
-            {(Object.entries(AVAILABILITY_LABELS) as [AvailabilityStatus, string][]).map(([status, label]) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() =>
-                  onFilterChange("availability", filters.availability === status ? "" : status)
-                }
-                className={cn(
-                  "w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors",
-                  filters.availability === status
-                    ? "bg-primary/10 text-primary font-semibold border border-primary/20 shadow-2xs"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                )}
-              >
-                {label}
-              </button>
-            ))}
+            {(Object.entries(EXPERIENCE_LEVEL_LABELS) as [ExperienceLevel, string][]).map(([level, label]) => {
+              const active = filters.experience_level === level;
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  onClick={() => onFilterChange("experience_level", active ? "" : level)}
+                  className={cn(
+                    "relative w-full rounded-lg px-3 py-1.5 text-left text-xs transition-colors",
+                    active
+                      ? "font-semibold text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId={`${panelId}-experience`}
+                      transition={{ duration: 0.24, ease: EASE_OUT }}
+                      className="absolute inset-0 rounded-lg border border-primary/20 bg-primary/10 shadow-2xs"
+                    />
+                  )}
+                  <span className="relative">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </FilterSection>
 
         {/* School */}
         <FilterSection title="School">
-          <Input
-            placeholder="School name or acronym…"
-            value={filters.school_id}
-            onChange={(e) => onFilterChange("school_id", e.target.value)}
-            className="max-md:h-10 max-md:text-base md:h-8 md:text-xs rounded-lg border-border bg-background"
-          />
+          <div className="space-y-2.5">
+            <AutocompleteFilterField
+              type="schools"
+              placeholder="Search school name or city…"
+              selected={filters.schools.map((school) =>
+                school.id !== null ? String(school.id) : school.name
+              )}
+              onPick={addSuggestedSchool}
+              onCreate={(value) => addSchool({ id: null, name: value })}
+            />
+            <TagChips
+              tags={schoolTags}
+              removePrefix="school"
+              onRemove={(tag) =>
+                onFilterChange("schools", filters.schools.filter((s) => schoolTagKey(s) !== tag.key))
+              }
+            />
+          </div>
         </FilterSection>
       </div>
 
