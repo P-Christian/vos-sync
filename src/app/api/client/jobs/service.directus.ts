@@ -204,23 +204,36 @@ async function getJobScreeningQuestions(jobIds: number[]): Promise<Record<number
   return result;
 }
 
-async function getApplicantsCounts(jobIds: number[]): Promise<Record<number, number>> {
-  const result: Record<number, number> = {};
-  jobIds.forEach(id => { result[id] = 0; });
+// Candidates sitting on a terminal stage are done with the job, so they must not
+// inflate the "needs attention" badge. Mirrors the isTerminal rule in ApplicantsModule.
+const TERMINAL_APPLICATION_STATUSES = ["HIRED", "REJECTED", "WITHDRAWN"];
+
+interface ApplicantCounts {
+  total: number;
+  active: number;
+}
+
+async function getApplicantsCounts(jobIds: number[]): Promise<Record<number, ApplicantCounts>> {
+  const result: Record<number, ApplicantCounts> = {};
+  jobIds.forEach(id => { result[id] = { total: 0, active: 0 }; });
   if (jobIds.length === 0) return result;
 
   try {
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id&limit=5000`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_job_application?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,application_status&limit=5000`, {
       headers: getHeaders(),
       cache: "no-store"
     });
     if (!res.ok) return result;
     const json = await res.json();
-    const apps: { job_id: number }[] = json.data || [];
+    const apps: { job_id: number; application_status?: string | null }[] = json.data || [];
     apps.forEach((app) => {
-      if (result[app.job_id] !== undefined) {
-        result[app.job_id]++;
-      }
+      const counts = result[app.job_id];
+      if (!counts) return;
+      counts.total++;
+      const isTerminal = TERMINAL_APPLICATION_STATUSES.includes(
+        String(app.application_status ?? "").toUpperCase()
+      );
+      if (!isTerminal) counts.active++;
     });
   } catch (err) {
     console.error("Error fetching applicants counts:", err);
@@ -237,7 +250,7 @@ function mapToFrontendJob(
   skills: { id: number; skill_name: string; source?: string; confidence_score?: number | null }[],
   benefits: string[],
   screeningQuestions: string[],
-  applicantsCount = 0
+  applicantCounts: ApplicantCounts = { total: 0, active: 0 }
 ): JobPosting {
   const descriptionObj = {
     text: rawJob.job_description || "",
@@ -273,7 +286,8 @@ function mapToFrontendJob(
     salary_negotiable: !!rawJob.salary_negotiable,
     experience_level: rawJob.experience_level as ExperienceLevel | null,
     status: rawJob.status as JobStatus,
-    applicants_count: applicantsCount,
+    applicants_count: applicantCounts.total,
+    active_applicants_count: applicantCounts.active,
     created_at: rawJob.created_at,
     updated_at: rawJob.updated_at,
     // Flat fields fallback
@@ -561,7 +575,7 @@ export async function getJobs(companyId: number, status: string | null): Promise
     skillsMap[j.job_id] || [],
     benefitsMap[j.job_id] || [],
     questionsMap[j.job_id] || [],
-    applicantsCountsMap[j.job_id] || 0
+    applicantsCountsMap[j.job_id] || { total: 0, active: 0 }
   ));
 }
 
@@ -592,7 +606,7 @@ export async function getJob(id: string): Promise<JobPosting> {
     skillsMap[jobId] || [],
     benefitsMap[jobId] || [],
     questionsMap[jobId] || [],
-    applicantsCountsMap[jobId] || 0
+    applicantsCountsMap[jobId] || { total: 0, active: 0 }
   );
 }
 

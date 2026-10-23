@@ -2,10 +2,11 @@
 // src/modules/client/jobs/JobsModule.tsx
 "use client";
 import { JobDetailSheet } from "./components/JobDetailSheet";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useJobs } from "./hooks/useJobs";
 import JobList from "./components/JobList";
+import JobPagination from "./components/JobPagination";
 import JobForm from "./components/JobForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,8 @@ import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import ListSkeleton from "../components/ListSkeleton";
 
-import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS } from "./types";
+import { JobPosting, JobFormData, JobStatus, JobType, WorkArrangement, JOB_TYPE_LABELS, JOB_STATUS_LABELS } from "./types";
+import { countByStatus } from "./components/JobListControls";
 import { AutoCreateJobModal } from "./components/AutoCreateJobModal";
 import { useRoleCategories } from "./hooks/useRoleCategories";
 
@@ -161,6 +163,35 @@ export default function JobsModule() {
       return true;
     });
   }, [jobs, searchQuery, filterCategory, filterJobType, filterWorkArrangement, roleCategories]);
+
+  // Pagination over the filtered result set. The page is keyed to a signature of
+  // the active filters, so any filter change falls back to page 1 during render
+  // instead of needing a reset effect.
+  const filterSignature = `${filterStatus}|${searchQuery.trim()}|${filterCategory}|${filterJobType}|${filterWorkArrangement}`;
+  const [pageState, setPageState] = useState({ signature: "", page: 1 });
+  const [pageSize, setPageSize] = useState(10);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / pageSize));
+  const requestedPage = pageState.signature === filterSignature ? pageState.page : 1;
+  const page = Math.min(requestedPage, totalPages);
+  const paginatedJobs = useMemo(
+    () => filteredJobs.slice((page - 1) * pageSize, (page - 1) * pageSize + pageSize),
+    [filteredJobs, page, pageSize]
+  );
+
+  const changePage = (nextPage: number) => {
+    setPageState({
+      signature: filterSignature,
+      page: Math.min(Math.max(1, nextPage), totalPages),
+    });
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const changePageSize = (nextSize: number) => {
+    setPageSize(nextSize);
+    setPageState({ signature: filterSignature, page: 1 });
+  };
 
   const hasActiveFilters = Boolean(
     searchQuery.trim() ||
@@ -378,8 +409,11 @@ export default function JobsModule() {
     clearMessages();
   };
 
-  const activeCount = jobs.filter((j) => j.status === "ACTIVE").length;
-  const draftCount = jobs.filter((j) => j.status === "DRAFT").length;
+  const statusCounts = countByStatus(jobs);
+  const breakdown = (["ACTIVE", "DRAFT", "CLOSED"] as JobStatus[])
+    .map((s) => `${statusCounts[s]} ${JOB_STATUS_LABELS[s].toLowerCase()}`)
+    .join(" • ");
+  const shownCount = statusCounts[filterStatus];
 
   return (
     <CompanyVerificationGuard moduleName="Job Postings">
@@ -399,7 +433,7 @@ export default function JobsModule() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">Job Postings</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {activeCount} active &bull; {draftCount} draft
+              {filterStatus === "ALL" ? breakdown : `${shownCount} ${JOB_STATUS_LABELS[filterStatus].toLowerCase()} shown`}
             </p>
           </div>
           <div className="flex items-center gap-2.5 w-full sm:w-auto">
@@ -514,7 +548,7 @@ export default function JobsModule() {
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40 text-sm md:text-xs text-muted-foreground">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-foreground">
-                  Showing {filteredJobs.length} {filteredJobs.length === 1 ? "posting" : "postings"}
+                  Found {filteredJobs.length} {filteredJobs.length === 1 ? "posting" : "postings"}
                   {jobs.length !== filteredJobs.length && (
                     <span className="text-muted-foreground font-normal"> (filtered from {jobs.length})</span>
                   )}
@@ -582,15 +616,26 @@ export default function JobsModule() {
               <ListSkeleton rows={4} label="Loading job postings…" />
             ) : (
               <>
-                <JobList
-                  jobs={filteredJobs}
-                  totalJobsCount={jobs.length}
-                  hasActiveFilters={hasActiveFilters}
-                  onResetFilters={handleResetFilters}
-                  onView={handleViewJob}
-                  onEdit={handleEditJob}
-                  onStatusChange={changeJobStatus}
-                />
+                <div ref={listRef}>
+                  <JobList
+                    jobs={paginatedJobs}
+                    totalJobsCount={jobs.length}
+                    hasActiveFilters={hasActiveFilters}
+                    onResetFilters={handleResetFilters}
+                    onView={handleViewJob}
+                    onEdit={handleEditJob}
+                    onStatusChange={changeJobStatus}
+                  />
+                  {filteredJobs.length > 0 && (
+                    <JobPagination
+                      page={page}
+                      pageSize={pageSize}
+                      total={filteredJobs.length}
+                      onPageChange={changePage}
+                      onPageSizeChange={changePageSize}
+                    />
+                  )}
+                </div>
                 <JobDetailSheet
                   job={selectedJob ? (() => {
                     const descData = parseJsonField(selectedJob.job_description);
