@@ -27,7 +27,6 @@ import {
   MessageSquare,
   FileText,
   CheckCircle2,
-  Eye,
   MoreVertical,
   Edit3,
   ClipboardCheck,
@@ -102,6 +101,7 @@ export default function ApplicantCard({
     <Card
       role="button"
       tabIndex={0}
+      title="View candidate profile"
       onClick={() => onViewDetails(applicant)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -313,20 +313,6 @@ export default function ApplicantCard({
                   </Button>
                 )
               ) : null}
-
-              {/* View Candidate Button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewDetails(applicant);
-                }}
-                className="h-8 max-md:min-h-10 px-3 text-xs font-medium rounded-lg gap-1.5 hover:bg-muted text-foreground cursor-pointer"
-              >
-                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                View Candidate
-              </Button>
 
               {/* Message Button */}
               <Link

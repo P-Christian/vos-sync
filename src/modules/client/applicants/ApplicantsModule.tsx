@@ -14,6 +14,8 @@ import {AlertCircle, ArrowLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import ListSkeleton from "../components/ListSkeleton";
 import { Applicant, ApplicationStatus, AssessmentMoveOutcome, STATUS_LABELS } from "./types";
+import { CANONICAL_STAGE_TYPES } from "@/modules/client/pipeline/types";
+import { matchesStageFilter, EMPTY_APPLICANT_FILTERS } from "./utils/applicantFilters";
 import {
   Dialog,
   DialogContent,
@@ -70,6 +72,8 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     setFilterStatus,
     search,
     setSearch,
+    filters,
+    setFilters,
     fetchApplicants,
     updateStatus,
     updateApplicantStage,
@@ -133,65 +137,38 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
     fetchApplicants(undefined, jobId);
   }, [fetchApplicants, jobId]);
 
+  // Every tab count is derived from the same predicate the list filters with,
+  // so the sub-stage badges always sum to the tab they sit under.
   const statusCounts = React.useMemo(() => {
-    const counts: Record<string, number> = {
-      ALL: rawApplicants.length,
-      ACTIVE_PIPELINE: 0,
-      APPLIED: 0,
-      SCREENING: 0,
-      ASSESSMENT: 0,
-      INTERVIEW: 0,
-      OFFER: 0,
-      HIRED: 0,
-      REJECTED: 0,
-      WITHDRAWN: 0,
-      // Legacy status keys for fallback compatibility:
-      UNDER_REVIEW: 0,
-      SHORTLISTED: 0,
-      INTERVIEWING: 0,
-    };
+    const keys: string[] = [
+      "ALL",
+      "ACTIVE_PIPELINE",
+      ...CANONICAL_STAGE_TYPES,
+      ...(jobPipeline?.stages?.map((s) => `STAGE_${s.id}`) ?? []),
+    ];
 
-    for (const a of rawApplicants) {
-      const stageType = a.stage_type;
-      const isTerminal =
-        stageType === "HIRED" ||
-        stageType === "REJECTED" ||
-        stageType === "WITHDRAWN" ||
-        (!stageType && (a.application_status === "HIRED" || a.application_status === "REJECTED" || a.application_status === "WITHDRAWN"));
-
-      if (!isTerminal) {
-        counts.ACTIVE_PIPELINE++;
-      }
-
-      // Canonical mapping
-      if (stageType) {
-        if (stageType in counts) counts[stageType]++;
-      } else {
-        // Fallback for unmigrated legacy status
-        if (a.application_status === "APPLIED") counts.APPLIED++;
-        else if (a.application_status === "UNDER_REVIEW") counts.SCREENING++;
-        else if (a.application_status === "SHORTLISTED") counts.OFFER++;
-        else if (a.application_status === "INTERVIEWING") counts.INTERVIEW++;
-        else if (a.application_status in counts) counts[a.application_status]++;
-      }
-
-      // Keep legacy keys populated if queried
-      if (a.application_status in counts) {
-        counts[a.application_status]++;
-      }
-
-      // Dynamic Job Pipeline Stage count
-      if (a.current_stage_id) {
-        const stageKey = `STAGE_${a.current_stage_id}`;
-        counts[stageKey] = (counts[stageKey] || 0) + 1;
-      }
+    const counts: Record<string, number> = {};
+    for (const key of keys) {
+      counts[key] = rawApplicants.filter((a) =>
+        matchesStageFilter(a, key, jobPipeline)
+      ).length;
     }
     return counts;
-  }, [rawApplicants]);
+  }, [rawApplicants, jobPipeline]);
 
   const needsReviewCount = React.useMemo(
     () => rawApplicants.filter((a) => a.assessment_needs_review).length,
     [rawApplicants]
+  );
+
+  // Identity of the current query. The list resets to page 1 when this changes,
+  // but not when a stage move merely refreshes the rows.
+  const listResetKey = React.useMemo(
+    () =>
+      `${jobIdParam ?? "ALL"}|${filterStatus}|${search.trim().toLowerCase()}|${JSON.stringify(
+        filters
+      )}`,
+    [jobIdParam, filterStatus, search, filters]
   );
 
   useEffect(() => {
@@ -607,6 +584,8 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 onSearchChange={setSearch}
                 status={filterStatus}
                 onStatusChange={setFilterStatus}
+                filters={filters}
+                onFiltersChange={setFilters}
                 counts={statusCounts}
                 pipelineStages={jobPipeline?.stages}
                 resultCount={loading ? undefined : applicants.length}
@@ -619,11 +598,13 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
                 <ApplicantList
                   applicants={applicants}
                   totalCount={rawApplicants.length}
+                  resetKey={listResetKey}
                   error={error}
                   onRetry={() => fetchApplicants(undefined, jobId)}
                   onClearFilters={() => {
                     setSearch("");
                     setFilterStatus("ALL");
+                    setFilters(EMPTY_APPLICANT_FILTERS);
                   }}
                   onUpdateStatus={handleUpdateStatus}
                   onQuickStatusUpdate={handleQuickStatusUpdate}
