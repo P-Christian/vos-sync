@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import Avatar from "./Avatar";
 import Highlight from "./Highlight";
-import { formatFileSize, formatFullDateTime, formatMessageTime } from "../utils";
+import { formatFileSize, formatFullDateTime } from "../utils";
 
 const DocumentViewer = dynamic(
   () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),

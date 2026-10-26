@@ -48,40 +48,7 @@ function parseDate(dateStr: string): Date {
     .map((n) => parseInt(n, 10) || 0);
   return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
 }
-
-function getDateLabel(dateStr: string): string {
-  const messageDate = parseDate(dateStr);
-  if (isNaN(messageDate.getTime())) {
-    console.warn("[getDateLabel] Invalid date for:", dateStr);
-    return "";
-  }
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const mDate = new Date(
-    messageDate.getFullYear(),
-    messageDate.getMonth(),
-    messageDate.getDate()
-  );
-
-  const diffDays = Math.round(
-    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  let label = "";
-  if (diffDays === 0) label = "Today";
-  else if (diffDays === 1) label = "Yesterday";
-  else {
-    label = messageDate.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
-
-  console.log(`[getDateLabel] dateStr="${dateStr}" => diffDays=${diffDays} => label="${label}"`);
-  return label;
-}
+ 
 
 function isSameDayStr(a: string, b: string): boolean {
   if (!a || !b) return false;

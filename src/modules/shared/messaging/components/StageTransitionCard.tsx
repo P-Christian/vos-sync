@@ -3,7 +3,7 @@
 // src/modules/shared/messaging/components/StageTransitionCard.tsx
 
 import React, { useEffect, useState } from "react";
-import { ArrowRight, CalendarDays, GitCommitHorizontal, Loader2, Calendar, ClipboardCheck } from "lucide-react";
+import { ArrowRight, CalendarDays, GitCommitHorizontal, Loader2, ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Message, StageTransitionCardData } from "@/modules/client/messaging/types";
@@ -117,14 +117,7 @@ export default function StageTransitionCard({ message }: Props) {
     toStageType === "ASSESSMENT" ||
     toStageName.toLowerCase().includes("assessment");
 
-  const isInterviewActiveAndUpcoming = Boolean(
-    data?.has_scheduled_interview &&
-      (!data?.interview_status ||
-        ["SCHEDULED", "CONFIRMED", "RESCHEDULED"].includes(data.interview_status.toUpperCase())) &&
-      (!data?.scheduled_at ||
-        new Date(data.scheduled_at.replace(" ", "T")).getTime() + (data.duration_minutes ?? 60) * 60_000 >= Date.now())
-  );
-
+ 
   const targetAppId = data?.application_id || message.system_message?.application_id || null;
 
   return (

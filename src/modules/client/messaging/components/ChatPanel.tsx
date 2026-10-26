@@ -33,7 +33,7 @@ import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import Avatar from "./Avatar";
 import { cn } from "@/lib/utils";
-import { formatDayLabel, formatSeparatorLabel, isSameDay, minutesBetween } from "../utils";
+import {  formatSeparatorLabel, isSameDay, minutesBetween } from "../utils";
 
 interface Props {
   conversation: Conversation;
