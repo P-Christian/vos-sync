@@ -5,8 +5,13 @@ import { cookies } from "next/headers";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "")
+  .split("#")[0]
+  .trim()
+  .replace(/\/$/, "");
+const DIRECTUS_TOKEN = (process.env.DIRECTUS_STATIC_TOKEN || "")
+  .split("#")[0]
+  .trim();
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_jwt_secret_change_me");
 
 function getHeaders(): Record<string, string> {
@@ -49,6 +54,31 @@ async function getAdminUserFromToken(req: NextRequest): Promise<{ adminId: numbe
   }
 }
 
+function normalizePlatformCompany(raw: Record<string, unknown> | null) {
+  if (!raw) return null;
+  const meta =
+    typeof raw.metadata === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw.metadata as string);
+          } catch {
+            return {};
+          }
+        })()
+      : (raw.metadata as Record<string, unknown> | null) || {};
+
+  return {
+    ...raw,
+    metadata: meta,
+    platform_name: (raw.platform_name as string) || (meta.platform_name as string) || (raw.company_name as string) || "VOS Sync",
+    platform_icon: (raw.platform_icon as string) || (meta.platform_icon as string) || "Briefcase",
+    support_hours_days: (raw.support_hours_days as string) || (meta.support_hours_days as string) || "Mon–Fri",
+    support_hours_time: (raw.support_hours_time as string) || (meta.support_hours_time as string) || "8am–5pm",
+    support_hours_timezone: (raw.support_hours_timezone as string) || (meta.support_hours_timezone as string) || "Philippine Time (PHT)",
+    values: Array.isArray(meta.values) ? meta.values.slice(0, 4) : [],
+  };
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -70,7 +100,37 @@ export async function GET(
     }
 
     const json = await res.json();
-    return NextResponse.json({ data: json.data });
+    const normalized = normalizePlatformCompany(json.data);
+    if (normalized) {
+      try {
+        const valRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${id}&sort=display_order&limit=4`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (valRes.ok) {
+          const valJson = await valRes.json();
+          if (Array.isArray(valJson.data) && valJson.data.length > 0) {
+            normalized.values = valJson.data.map((v: Record<string, unknown>) => ({
+              id: v.id,
+              company_id: v.company_id,
+              title: v.title,
+              description: v.description,
+              desc: v.description,
+              icon_name: v.icon_name,
+              icon: v.icon_name,
+              color: v.color,
+              display_order: v.display_order,
+              is_active: Number(v.is_active) === 1 || v.is_active === true,
+              created_at: v.created_at,
+              updated_at: v.updated_at,
+            }));
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch vs_platform_company_value:", e);
+      }
+    }
+    return NextResponse.json({ data: normalized });
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
@@ -119,11 +179,82 @@ export async function PATCH(
     }
 
     const now = getPHDateTimeString();
+    const existingMetadata =
+      typeof body.metadata === "string"
+        ? (() => {
+            try {
+              return JSON.parse(body.metadata);
+            } catch {
+              return {};
+            }
+          })()
+        : (body.metadata as Record<string, unknown> | null) || {};
+
+    const updatedMetadata = {
+      ...existingMetadata,
+      ...(body.platform_name !== undefined ? { platform_name: body.platform_name } : {}),
+      ...(body.platform_icon !== undefined ? { platform_icon: body.platform_icon } : {}),
+      ...(body.support_hours_days !== undefined ? { support_hours_days: body.support_hours_days } : {}),
+      ...(body.support_hours_time !== undefined ? { support_hours_time: body.support_hours_time } : {}),
+      ...(body.support_hours_timezone !== undefined ? { support_hours_timezone: body.support_hours_timezone } : {}),
+      ...(body.values !== undefined ? { values: Array.isArray(body.values) ? body.values.slice(0, 4) : [] } : {}),
+    };
+
+    const ALLOWED_FIELDS = [
+      "slug",
+      "company_code",
+      "company_name",
+      "platform_name",
+      "company_legal_name",
+      "company_tagline",
+      "year_established",
+      "organization_type_id",
+      "industry_id",
+      "company_size_id",
+      "company_address",
+      "company_brgy",
+      "company_city",
+      "company_province",
+      "company_country",
+      "company_zipCode",
+      "map_embed_url",
+      "registration_no",
+      "company_tin",
+      "company_contact",
+      "company_email",
+      "support_email",
+      "support_hours_days",
+      "support_hours_time",
+      "support_hours_timezone",
+      "company_website",
+      "company_logo",
+      "platform_icon",
+      "company_cover",
+      "company_facebook",
+      "company_linkedin",
+      "company_instagram",
+      "company_x",
+      "company_youtube",
+      "company_short_description",
+      "company_description",
+      "company_mission",
+      "company_vision",
+      "company_culture",
+      "company_benefits",
+      "company_tags",
+    ];
+
     const updatePayload: Record<string, unknown> = {
-      ...body,
+      metadata: updatedMetadata,
       updated_at: now,
       updated_by_user_id: auth?.adminId ?? 1,
     };
+
+    for (const field of ALLOWED_FIELDS) {
+      if (body[field] !== undefined) {
+        updatePayload[field] = body[field];
+      }
+    }
 
     if (isPrimary !== undefined) {
       updatePayload.is_primary = isPrimary;
@@ -150,7 +281,100 @@ export async function PATCH(
     }
 
     const updatedJson = await updateRes.json();
-    return NextResponse.json({ data: updatedJson.data });
+    const normalized = normalizePlatformCompany(updatedJson.data);
+
+    // Synchronize vs_platform_company_value table
+    if (Array.isArray(body.values)) {
+      const submittedValues = (body.values as Array<Record<string, unknown>>).slice(0, 4);
+      try {
+        const existingValuesRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${id}&fields=id`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        const existingIds = new Set<number>();
+        if (existingValuesRes.ok) {
+          const evJson = await existingValuesRes.json();
+          if (Array.isArray(evJson.data)) {
+            evJson.data.forEach((r: { id: number }) => existingIds.add(Number(r.id)));
+          }
+        }
+
+        const retainedIds = new Set<number>();
+        const savedValues: Array<Record<string, unknown>> = [];
+
+        for (let idx = 0; idx < submittedValues.length; idx++) {
+          const val = submittedValues[idx];
+          const valPayload = {
+            company_id: Number(id),
+            title: String(val.title || ""),
+            description: String(val.description || val.desc || ""),
+            icon_name: String(val.icon_name || val.icon || "HeartHandshake"),
+            color: String(val.color || "bg-blue-500/10 text-blue-500"),
+            display_order: typeof val.display_order === "number" ? val.display_order : idx + 1,
+            is_active: val.is_active === false || Number(val.is_active) === 0 ? 0 : 1,
+            updated_at: now,
+          };
+
+          const rawId = val.id ? Number(val.id) : null;
+          if (rawId && existingIds.has(rawId)) {
+            retainedIds.add(rawId);
+            const patchValRes = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company_value/${rawId}`, {
+              method: "PATCH",
+              headers: getHeaders(),
+              body: JSON.stringify(valPayload),
+            });
+            if (patchValRes.ok) {
+              const pvJson = await patchValRes.json();
+              savedValues.push(pvJson.data);
+            }
+          } else {
+            const createValRes = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company_value`, {
+              method: "POST",
+              headers: getHeaders(),
+              body: JSON.stringify({ ...valPayload, created_at: now }),
+            });
+            if (createValRes.ok) {
+              const createdValJson = await createValRes.json();
+              if (createdValJson.data?.id) {
+                retainedIds.add(Number(createdValJson.data.id));
+                savedValues.push(createdValJson.data);
+              }
+            }
+          }
+        }
+
+        // Delete records no longer in submitted values
+        for (const existingId of existingIds) {
+          if (!retainedIds.has(existingId)) {
+            await fetch(`${DIRECTUS_BASE}/items/vs_platform_company_value/${existingId}`, {
+              method: "DELETE",
+              headers: getHeaders(),
+            });
+          }
+        }
+
+        if (normalized && savedValues.length > 0) {
+          normalized.values = savedValues.map((v: Record<string, unknown>) => ({
+            id: v.id,
+            company_id: v.company_id,
+            title: v.title,
+            description: v.description,
+            desc: v.description,
+            icon_name: v.icon_name,
+            icon: v.icon_name,
+            color: v.color,
+            display_order: v.display_order,
+            is_active: Number(v.is_active) === 1 || v.is_active === true,
+            created_at: v.created_at,
+            updated_at: v.updated_at,
+          }));
+        }
+      } catch (err) {
+        console.error("Error syncing vs_platform_company_value:", err);
+      }
+    }
+
+    return NextResponse.json({ data: normalized });
   } catch (error: unknown) {
     const err = error as Error;
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });

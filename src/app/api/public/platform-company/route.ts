@@ -3,13 +3,73 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "")
+  .split("#")[0]
+  .trim()
+  .replace(/\/$/, "");
+const DIRECTUS_TOKEN = (process.env.DIRECTUS_STATIC_TOKEN || "")
+  .split("#")[0]
+  .trim();
 
 function getHeaders(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+function normalizePlatformCompany(raw: Record<string, unknown> | null) {
+  if (!raw) return null;
+  const meta =
+    typeof raw.metadata === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw.metadata as string);
+          } catch {
+            return {};
+          }
+        })()
+      : (raw.metadata as Record<string, unknown> | null) || {};
+
+  return {
+    ...raw,
+    metadata: meta,
+    platform_name: (raw.platform_name as string) || (meta.platform_name as string) || (raw.company_name as string) || "VOS Sync",
+    platform_icon: (raw.platform_icon as string) || (meta.platform_icon as string) || "Briefcase",
+    support_hours_days: (raw.support_hours_days as string) || (meta.support_hours_days as string) || "Mon–Fri",
+    support_hours_time: (raw.support_hours_time as string) || (meta.support_hours_time as string) || "8am–5pm",
+    support_hours_timezone: (raw.support_hours_timezone as string) || (meta.support_hours_timezone as string) || "Philippine Time (PHT)",
+    values: Array.isArray(meta.values) ? meta.values.slice(0, 4) : [],
+  };
+}
+
+async function fetchCompanyValues(companyId: number): Promise<unknown[] | null> {
+  try {
+    const valRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${companyId}&filter[is_active][_eq]=1&sort=display_order&limit=4`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (!valRes.ok) return null;
+    const valJson = await valRes.json();
+    if (Array.isArray(valJson.data) && valJson.data.length > 0) {
+      return valJson.data.map((v: Record<string, unknown>) => ({
+        id: v.id,
+        company_id: v.company_id,
+        title: v.title,
+        description: v.description,
+        desc: v.description,
+        icon_name: v.icon_name,
+        icon: v.icon_name,
+        color: v.color,
+        display_order: v.display_order,
+        is_active: true,
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+      }));
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET() {
@@ -30,7 +90,15 @@ export async function GET() {
     if (primaryRes.ok) {
       const primaryJson = await primaryRes.json();
       if (primaryJson.data && primaryJson.data.length > 0) {
-        return NextResponse.json({ data: primaryJson.data[0] });
+        const rawComp = primaryJson.data[0];
+        const normalized = normalizePlatformCompany(rawComp);
+        if (normalized && rawComp.company_id) {
+          const dbValues = await fetchCompanyValues(Number(rawComp.company_id));
+          if (dbValues && dbValues.length > 0) {
+            normalized.values = dbValues;
+          }
+        }
+        return NextResponse.json({ data: normalized });
       }
     }
 
@@ -46,7 +114,15 @@ export async function GET() {
     if (fallbackRes.ok) {
       const fallbackJson = await fallbackRes.json();
       if (fallbackJson.data && fallbackJson.data.length > 0) {
-        return NextResponse.json({ data: fallbackJson.data[0] });
+        const rawComp = fallbackJson.data[0];
+        const normalized = normalizePlatformCompany(rawComp);
+        if (normalized && rawComp.company_id) {
+          const dbValues = await fetchCompanyValues(Number(rawComp.company_id));
+          if (dbValues && dbValues.length > 0) {
+            normalized.values = dbValues;
+          }
+        }
+        return NextResponse.json({ data: normalized });
       }
     }
 

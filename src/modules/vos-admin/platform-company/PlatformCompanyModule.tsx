@@ -1,21 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { usePlatformCompany } from "./hooks/usePlatformCompany";
-import { PlatformCompanyCard } from "./components/PlatformCompanyCard";
-import { PlatformCompanyModal } from "./components/PlatformCompanyModal";
+import { SinglePlatformCompanyEditor } from "./components/SinglePlatformCompanyEditor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import {
   Building2,
-  Plus,
   RefreshCw,
-  Search,
-  Star,
   CheckCircle2,
   AlertCircle,
-  Building,
+  Sparkles,
 } from "lucide-react";
 
 export function PlatformCompanyModule() {
@@ -25,39 +21,12 @@ export function PlatformCompanyModule() {
     saving,
     error,
     successMessage,
-    isModalOpen,
-    editingCompany,
     loadCompanies,
-    openCreateModal,
-    openEditModal,
-    closeModal,
     saveCompany,
-    handleSetPrimary,
-    handleToggleActive,
   } = usePlatformCompany();
 
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredCompanies = useMemo(() => {
-    if (!searchQuery.trim()) return companies;
-    const query = searchQuery.toLowerCase();
-    return companies.filter(
-      (c) =>
-        c.company_name?.toLowerCase().includes(query) ||
-        c.company_legal_name?.toLowerCase().includes(query) ||
-        c.company_code?.toLowerCase().includes(query) ||
-        c.slug?.toLowerCase().includes(query) ||
-        c.company_city?.toLowerCase().includes(query)
-    );
-  }, [companies, searchQuery]);
-
-  const activeCount = useMemo(
-    () => companies.filter((c) => Number(c.is_active) === 1 || c.is_active === true).length,
-    [companies]
-  );
-
   const primaryCompany = useMemo(
-    () => companies.find((c) => Number(c.is_primary) === 1 || c.is_primary === true),
+    () => companies.find((c) => Number(c.is_primary) === 1 || c.is_primary === true) || companies[0],
     [companies]
   );
 
@@ -81,9 +50,14 @@ export function PlatformCompanyModule() {
             <Building2 className="h-7 w-7 text-white" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Platform Company</h1>
-            <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-xl">
-              Manage internal operating entities and brand profiles powering landing pages, About Us, and public contact sections.
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Platform Company Profile</h1>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <Sparkles className="h-3 w-3" /> Single Entity
+              </span>
+            </div>
+            <p className="text-xs sm:text-sm text-zinc-300 max-w-xl">
+              Internal operating profile powering brand identity, customer support hours, values, and marketing copy across VOS Sync public pages.
             </p>
           </div>
         </div>
@@ -93,57 +67,16 @@ export function PlatformCompanyModule() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={loadCompanies}
-            disabled={loading}
+            onClick={async () => {
+              await loadCompanies();
+              toast.info("Refreshed platform company profile.");
+            }}
+            disabled={loading || saving}
             className="rounded-full bg-white/10 hover:bg-white/20 border-white/20 text-white text-xs h-10 px-4"
           >
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            onClick={openCreateModal}
-            className="rounded-full bg-gradient-to-r from-primary to-info text-primary-foreground shadow-lg shadow-primary/30 text-xs h-10 px-5 font-semibold hover:brightness-110"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add Company
-          </Button>
-        </div>
-      </div>
-
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 rounded-2xl border border-primary/10 bg-card/70 backdrop-blur-xl flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Total Entities</p>
-            <p className="text-2xl font-bold text-foreground mt-0.5">{companies.length}</p>
-          </div>
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-            <Building className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-primary/10 bg-card/70 backdrop-blur-xl flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Active Profiles</p>
-            <p className="text-2xl font-bold text-foreground mt-0.5">{activeCount}</p>
-          </div>
-          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500">
-            <CheckCircle2 className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl border border-primary/10 bg-card/70 backdrop-blur-xl flex items-center justify-between shadow-sm">
-          <div className="min-w-0 pr-2">
-            <p className="text-xs text-muted-foreground font-medium">Primary Entity</p>
-            <p className="text-sm font-bold text-foreground truncate mt-1">
-              {primaryCompany ? primaryCompany.company_name : "None designated"}
-            </p>
-          </div>
-          <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 shrink-0">
-            <Star className="h-5 w-5 fill-amber-500/30" />
-          </div>
         </div>
       </div>
 
@@ -161,89 +94,49 @@ export function PlatformCompanyModule() {
         </div>
       )}
 
-      {/* Search Filter Toolbar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Filter by name, code, slug, or city..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-10 rounded-full border-primary/15 bg-card/80 backdrop-blur-md text-xs focus-visible:ring-primary/20"
-        />
-      </div>
-
-      {/* Content Area */}
+      {/* Editor Content */}
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5" role="status" aria-busy="true">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="p-6 rounded-2xl border border-primary/10 bg-card/70 space-y-4 shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-12 w-12 rounded-xl" />
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                </div>
-              </div>
-              <Skeleton className="h-14 w-full rounded-xl" />
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
+        <div className="p-6 rounded-3xl border border-primary/10 bg-card/70 space-y-6" role="status" aria-busy="true">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-14 w-14 rounded-2xl" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-4 w-1/2" />
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-10 rounded-xl" />
+            ))}
+          </div>
+          <div className="space-y-4 pt-4">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+          </div>
         </div>
-      ) : filteredCompanies.length === 0 ? (
-        <div className="p-12 rounded-2xl border border-dashed border-primary/20 bg-card/40 backdrop-blur-md text-center space-y-3">
+      ) : primaryCompany ? (
+        <SinglePlatformCompanyEditor
+          company={primaryCompany}
+          onSave={async (data) => {
+            await saveCompany(data);
+          }}
+          saving={saving}
+        />
+      ) : (
+        <div className="p-12 rounded-3xl border border-dashed border-primary/20 bg-card/40 backdrop-blur-md text-center space-y-3">
           <div className="mx-auto h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
             <Building2 className="h-6 w-6" />
           </div>
-          <h3 className="font-semibold text-base text-foreground">
-            {searchQuery ? "No companies match your filter" : "No platform companies yet"}
-          </h3>
+          <h3 className="font-semibold text-base text-foreground">No platform company record found</h3>
           <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            {searchQuery
-              ? "Try adjusting your search keywords."
-              : "Create your first internal operating company profile to power landing pages and about sections."}
+            Directus could not find any platform company record. Please refresh or verify the Directus connection.
           </p>
-          {!searchQuery && (
-            <Button
-              type="button"
-              size="sm"
-              onClick={openCreateModal}
-              className="rounded-full text-xs h-9 bg-primary text-primary-foreground font-semibold"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Add Platform Company
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {filteredCompanies.map((company) => (
-            <PlatformCompanyCard
-              key={company.company_id}
-              company={company}
-              onEdit={openEditModal}
-              onSetPrimary={handleSetPrimary}
-              onToggleActive={handleToggleActive}
-              disabled={saving}
-            />
-          ))}
         </div>
       )}
-
-      {/* Modal Editor */}
-      <PlatformCompanyModal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        onSave={saveCompany}
-        company={editingCompany}
-        saving={saving}
-      />
     </div>
   );
 }
+
 export default PlatformCompanyModule;
+
