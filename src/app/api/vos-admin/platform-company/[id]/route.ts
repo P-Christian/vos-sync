@@ -79,6 +79,42 @@ function normalizePlatformCompany(raw: Record<string, unknown> | null) {
   };
 }
 
+async function resolveCompanyId(candidateId?: number | null): Promise<number | null> {
+  if (candidateId && !isNaN(candidateId)) {
+    try {
+      const checkRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_platform_company/${candidateId}?fields=company_id`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (checkRes.ok) {
+        const checkJson = await checkRes.json();
+        if (checkJson.data?.company_id) {
+          return Number(checkJson.data.company_id);
+        }
+      }
+    } catch {
+      // Fall through to query first available record
+    }
+  }
+
+  try {
+    const findRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_platform_company?sort[]=-is_primary&sort[]=display_order&sort[]=company_id&limit=1&fields=company_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+    if (findRes.ok) {
+      const findJson = await findRes.json();
+      if (findJson.data && findJson.data.length > 0 && findJson.data[0]?.company_id) {
+        return Number(findJson.data[0].company_id);
+      }
+    }
+  } catch (err) {
+    console.error("Error discovering platform company record:", err);
+  }
+
+  return null;
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -90,7 +126,12 @@ export async function GET(
     }
 
     const { id } = await params;
-    const res = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company/${id}`, {
+    const resolvedId = await resolveCompanyId(Number(id));
+    if (!resolvedId) {
+      return NextResponse.json({ error: "Platform company not found" }, { status: 404 });
+    }
+
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company/${resolvedId}`, {
       headers: getHeaders(),
       cache: "no-store",
     });
@@ -104,7 +145,7 @@ export async function GET(
     if (normalized) {
       try {
         const valRes = await fetch(
-          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${id}&sort=display_order&limit=4`,
+          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${resolvedId}&sort=display_order&limit=4`,
           { headers: getHeaders(), cache: "no-store" }
         );
         if (valRes.ok) {
@@ -148,6 +189,10 @@ export async function PATCH(
     }
 
     const { id } = await params;
+    const resolvedId = await resolveCompanyId(Number(id));
+    if (!resolvedId) {
+      return NextResponse.json({ error: "Platform company not found" }, { status: 404 });
+    }
     const body = await req.json();
 
     const isPrimary =
@@ -167,7 +212,7 @@ export async function PATCH(
         const existingData = await existingRes.json();
         const primaryItems: Array<{ company_id: number }> = existingData.data || [];
         for (const item of primaryItems) {
-          if (String(item.company_id) !== String(id)) {
+          if (String(item.company_id) !== String(resolvedId)) {
             await fetch(`${DIRECTUS_BASE}/items/vs_platform_company/${item.company_id}`, {
               method: "PATCH",
               headers: getHeaders(),
@@ -266,7 +311,7 @@ export async function PATCH(
       updatePayload.display_order = Number(body.display_order) || 0;
     }
 
-    const updateRes = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company/${id}`, {
+    const updateRes = await fetch(`${DIRECTUS_BASE}/items/vs_platform_company/${resolvedId}`, {
       method: "PATCH",
       headers: getHeaders(),
       body: JSON.stringify(updatePayload),
@@ -288,7 +333,7 @@ export async function PATCH(
       const submittedValues = (body.values as Array<Record<string, unknown>>).slice(0, 4);
       try {
         const existingValuesRes = await fetch(
-          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${id}&fields=id`,
+          `${DIRECTUS_BASE}/items/vs_platform_company_value?filter[company_id][_eq]=${resolvedId}&fields=id`,
           { headers: getHeaders(), cache: "no-store" }
         );
         const existingIds = new Set<number>();
@@ -305,7 +350,7 @@ export async function PATCH(
         for (let idx = 0; idx < submittedValues.length; idx++) {
           const val = submittedValues[idx];
           const valPayload = {
-            company_id: Number(id),
+            company_id: Number(resolvedId),
             title: String(val.title || ""),
             description: String(val.description || val.desc || ""),
             icon_name: String(val.icon_name || val.icon || "HeartHandshake"),

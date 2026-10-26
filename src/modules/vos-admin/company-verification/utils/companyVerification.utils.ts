@@ -153,18 +153,83 @@ export function getStatusBadgeVariant(status: VerificationStatus | string): {
   return formatDualStatusLabel(status);
 }
 
-const DOCUMENT_TYPE_LABELS: Record<string, string> = {
-  DTI_SEC_REGISTRATION: "DTI / SEC Registration",
-  BUSINESS_PERMIT: "Business Permit",
-  TIN_DOCUMENT: "TIN Document",
-  OTHER_DOCUMENT: "Other Document",
-  OTHER: "Other Document",
-};
-
+/**
+ * Standard 4 company verification document categories:
+ * - "DTI / SEC Registration"
+ * - "Business Permit"
+ * - "TIN Document"
+ * - "Other Supporting Documents"
+ */
 export function formatDocumentTypeLabel(documentType?: string | null): string {
   const key = (documentType || "").toUpperCase().trim();
-  if (!key) return "Document";
-  return DOCUMENT_TYPE_LABELS[key] || key.replace(/_/g, " ");
+  if (!key) return "Other Supporting Documents";
+
+  if (
+    key === "DTI_SEC_REGISTRATION" ||
+    key === "DTI_REGISTRATION" ||
+    key === "SEC_REGISTRATION" ||
+    key === "CDA_REGISTRATION" ||
+    key.includes("DTI") ||
+    key.includes("SEC") ||
+    key.includes("CDA")
+  ) {
+    return "DTI / SEC Registration";
+  }
+
+  if (
+    key === "BUSINESS_PERMIT" ||
+    key === "MAYORS_PERMIT" ||
+    key.includes("PERMIT")
+  ) {
+    return "Business Permit";
+  }
+
+  if (
+    key === "TIN_DOCUMENT" ||
+    key === "BIR_2303" ||
+    key.includes("TIN") ||
+    key.includes("BIR")
+  ) {
+    return "TIN Document";
+  }
+
+  return "Other Supporting Documents";
+}
+
+export function getDocumentCategoryBadgeStyle(category: string): string {
+  switch (category) {
+    case "DTI / SEC Registration":
+      return "bg-primary/10 text-primary border-primary/25";
+    case "Business Permit":
+      return "bg-info/10 text-info border-info/25";
+    case "TIN Document":
+      return "bg-warning/10 text-warning border-warning/25";
+    case "Other Supporting Documents":
+    default:
+      return "bg-muted/70 text-muted-foreground border-border";
+  }
+}
+
+/**
+ * Priority rank for sorting verification documents:
+ * 1. DTI / SEC Registration
+ * 2. Business Permit
+ * 3. TIN Document
+ * 4. Other Supporting Documents
+ */
+export function getDocumentCategoryPriority(documentType?: string | null): number {
+  const label = formatDocumentTypeLabel(documentType);
+  switch (label) {
+    case "DTI / SEC Registration":
+      return 1;
+    case "Business Permit":
+      return 2;
+    case "TIN Document":
+      return 3;
+    case "Other Supporting Documents":
+    default:
+      return 4;
+  }
 }
 
 export function formatDate(dateString?: string | null): string {

@@ -112,9 +112,18 @@ export function useCompanyProfile(
       }
       if (json.company) {
         setCompany((prev) =>
-          prev ? { ...prev, ...(json.company as Partial<CompanyProfile>) } : null
+          prev
+            ? {
+                ...prev,
+                ...(json.company as Partial<CompanyProfile>),
+                verification_workflow_status: "PENDING_VERIFICATION",
+                rejection_reason: null,
+                public_rejection_reason: null,
+              }
+            : null
         );
       }
+      await fetchProfile();
       setSuccessMessage("Company profile submitted for verification successfully.");
     } catch (err: unknown) {
       setError(
@@ -124,7 +133,7 @@ export function useCompanyProfile(
     } finally {
       setSubmitting(false);
     }
-  }, []);
+  }, [fetchProfile]);
 
   return {
     company,

@@ -19,6 +19,11 @@ function getHeaders(): Record<string, string> {
   return h;
 }
 
+function getPHISOTimestamp(): string {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
 // ─────────────────────────────────────────────
 // POST — Submit company profile for verification
 // ─────────────────────────────────────────────
@@ -151,11 +156,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Patch company record: set status to PENDING_VERIFICATION + submitted_at
-    const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+    // 4b. Verify required verification documents in vs_company_document
+    try {
+      const docCheckUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&limit=1&fields=company_document_id`;
+      const docCheckRes = await fetch(docCheckUrl, { headers: getHeaders(), cache: "no-store" });
+      if (docCheckRes.ok) {
+        const docCheckJson = await docCheckRes.json();
+        const uploadedDocs = docCheckJson.data || [];
+        if (uploadedDocs.length === 0) {
+          return NextResponse.json(
+            { error: "Please upload required verification documents before submitting your profile." },
+            { status: 422 }
+          );
+        }
+      }
+    } catch (docErr) {
+      console.warn("Could not check vs_company_document records:", docErr);
+    }
+
+    // 5. Patch company record: set status to PENDING_VERIFICATION + submitted_at, reset rejection_reason
+    const nowPH = getPHISOTimestamp();
     const patchPayload = {
       verification_status: "PENDING_VERIFICATION",
-      submitted_at: now,
+      submitted_at: nowPH,
+      rejection_reason: null,
     };
 
     const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}`, {
@@ -182,7 +206,7 @@ export async function POST(req: NextRequest) {
     // 6. Log the submission so the admin review queue reads the newest workflow state
     //    (a resubmission after "Needs Revision" must supersede the CORRECTION_REQUIRED row).
     try {
-      await fetch(`${DIRECTUS_BASE}/items/vs_company_verifications`, {
+      const verifInsertRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_verifications`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({
@@ -190,19 +214,28 @@ export async function POST(req: NextRequest) {
           submitted_by_user_id: userId,
           verification_type: "INITIAL_REGISTRATION",
           status: "PENDING_VERIFICATION",
-          submitted_at: now,
-          created_at: now,
-          updated_at: now,
+          submitted_at: nowPH,
+          public_rejection_reason: null,
         }),
       });
+      if (!verifInsertRes.ok) {
+        console.warn("Could not log company verification submission:", await verifInsertRes.text());
+      }
     } catch (logErr) {
       console.warn("Could not log company verification submission:", logErr);
     }
 
+    const patchedCompany = ((patchData as { data?: Record<string, unknown> })?.data ?? {}) as Record<string, unknown>;
     return NextResponse.json({
       success: true,
       message: "Company profile submitted for verification successfully.",
-      company: (patchData as { data?: unknown })?.data ?? null,
+      company: {
+        ...patchedCompany,
+        verification_status: "PENDING_VERIFICATION",
+        verification_workflow_status: "PENDING_VERIFICATION",
+        rejection_reason: null,
+        public_rejection_reason: null,
+      },
     });
   } catch (err: unknown) {
     console.error("POST /api/client/company-profile/submit error:", err);

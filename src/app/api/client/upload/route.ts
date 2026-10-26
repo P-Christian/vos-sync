@@ -16,13 +16,40 @@ export const dynamic = "force-dynamic";
 
 const DOCUMENT_TYPES = new Map(
   [
+    "DTI_REGISTRATION",
+    "SEC_REGISTRATION",
+    "CDA_REGISTRATION",
     "DTI_SEC_REGISTRATION",
-    "BUSINESS_PERMIT",
+    "BIR_2303",
     "TIN_DOCUMENT",
+    "MAYORS_PERMIT",
+    "BUSINESS_PERMIT",
+    "AUTH_REP_ID",
+    "GOV_ID",
+    "REPRESENTATIVE_ID",
+    "ARTICLES_OF_INCORPORATION",
+    "SECRETARY_CERTIFICATE",
+    "BOARD_RESOLUTION",
+    "GIS",
     "OTHER_DOCUMENT",
+    "OTHER",
     "VERIFICATION DOCUMENTS",
   ].map((value) => [value, value]),
 );
+
+const EQUIVALENT_TYPE_MAP: Record<string, string[]> = {
+  DTI_REGISTRATION: ["DTI_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  SEC_REGISTRATION: ["SEC_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  CDA_REGISTRATION: ["CDA_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  DTI_SEC_REGISTRATION: ["DTI_REGISTRATION", "SEC_REGISTRATION", "CDA_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  BIR_2303: ["BIR_2303", "TIN_DOCUMENT"],
+  TIN_DOCUMENT: ["BIR_2303", "TIN_DOCUMENT"],
+  MAYORS_PERMIT: ["MAYORS_PERMIT", "BUSINESS_PERMIT"],
+  BUSINESS_PERMIT: ["MAYORS_PERMIT", "BUSINESS_PERMIT"],
+  AUTH_REP_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+  GOV_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+  REPRESENTATIVE_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+};
 
 interface DirectusCompanyLink {
   company_id?: string | number | { company_id?: string | number } | null;
@@ -117,9 +144,10 @@ async function cleanupPreviousDocument(
   documentType: string,
   replacementFileId: string,
 ): Promise<void> {
+  const typesToClean = EQUIVALENT_TYPE_MAP[documentType] || [documentType];
   const params = new URLSearchParams({
     "filter[company_id][_eq]": String(companyId),
-    "filter[document_type][_eq]": documentType,
+    "filter[document_type][_in]": typesToClean.join(","),
     fields: "company_document_id,directus_file_id",
     limit: "100",
   });

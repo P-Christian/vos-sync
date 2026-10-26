@@ -1,9 +1,9 @@
- 
+
 // src/modules/client/company-profile/components/CompanyDocuments.tsx
 "use client";
 
 import Image from "next/image";
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Upload,
@@ -21,35 +21,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import DocumentPreviewModal, { PreviewableDoc } from "./DocumentPreviewModal";
 
-type DocumentTypeKey =
-  | "DTI_SEC_REGISTRATION"
-  | "BUSINESS_PERMIT"
-  | "TIN_DOCUMENT"
-  | "OTHER_DOCUMENT";
-
 interface DocSlotConfig {
-  type: DocumentTypeKey;
+  type: string;
+  matchedTypes: string[];
   title: string;
   description: string;
 }
-
-const DOCUMENT_SLOTS: DocSlotConfig[] = [
-  {
-    type: "DTI_SEC_REGISTRATION",
-    title: "DTI / SEC Registration",
-    description: "Proof of company registration",
-  },
-  {
-    type: "BUSINESS_PERMIT",
-    title: "Business Permit",
-    description: "Proof of business operation",
-  },
-  {
-    type: "TIN_DOCUMENT",
-    title: "TIN Document",
-    description: "Tax identification document",
-  },
-];
 
 interface UploadedDoc {
   id: string;
@@ -62,6 +39,9 @@ interface UploadedDoc {
 interface CompanyDocumentsProps {
   companyId?: number;
   verificationStatus?: string;
+  organizationTypeId?: number | null;
+  registrationNo?: string | null;
+  companyTin?: string | null;
   onDocsChange?: (count: number) => void;
 }
 
@@ -108,6 +88,7 @@ export default function CompanyDocuments({
   const [otherError, setOtherError] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<PreviewableDoc | null>(null);
 
+
   type CompanyVerificationStatus =
     | "DRAFT"
     | "PENDING_VERIFICATION"
@@ -152,15 +133,12 @@ export default function CompanyDocuments({
 
   const canRemoveDocs = canEditDocs;
 
-  const isVerified = currentStatus === "VERIFIED";
-
   const ALLOWED_TYPES = [
     "application/pdf",
     "image/jpeg",
     "image/png",
-    "image/webp",
   ];
-  const MAX_SIZE_MB = 10;
+  const MAX_SIZE_MB = 25;
 
   const fetchDocs = useCallback(async () => {
     if (!companyId) return;
@@ -209,7 +187,7 @@ export default function CompanyDocuments({
   };
 
   const handleFileChange = async (
-    docType: DocumentTypeKey,
+    docType: string,
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const selectedFiles = Array.from(e.target.files ?? []);
@@ -219,7 +197,7 @@ export default function CompanyDocuments({
     setSlotError((prev) => ({ ...prev, [docType]: "" }));
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      const msg = `Only PDF, JPG, PNG, or WEBP files are allowed. (${file.name})`;
+      const msg = `Only PDF, JPG, JPEG, or PNG files are allowed. (${file.name})`;
       setSlotError((prev) => ({ ...prev, [docType]: msg }));
       toast.error(msg);
       e.target.value = "";
@@ -279,7 +257,7 @@ export default function CompanyDocuments({
     // Validate all files
     for (const file of selectedFiles) {
       if (!ALLOWED_TYPES.includes(file.type)) {
-        const msg = `Invalid format in "${file.name}". Only PDF, JPG, PNG, or WEBP files are allowed.`;
+        const msg = `Invalid format in "${file.name}". Only PDF, JPG, JPEG, or PNG files are allowed.`;
         setOtherError(msg);
         toast.error(msg);
         e.target.value = "";
@@ -359,9 +337,53 @@ export default function CompanyDocuments({
     }
   };
 
-  const otherDocs = docs.filter(
-    (d) => d.document_type === "OTHER_DOCUMENT" || d.document_type === "OTHER"
+  const documentSlots: DocSlotConfig[] = useMemo(
+    () => [
+      {
+        type: "DTI_SEC_REGISTRATION",
+        matchedTypes: [
+          "DTI_SEC_REGISTRATION",
+          "DTI_REGISTRATION",
+          "SEC_REGISTRATION",
+          "CDA_REGISTRATION",
+        ],
+        title: "DTI / SEC Registration",
+        description: "Proof of company registration",
+      },
+      {
+        type: "BUSINESS_PERMIT",
+        matchedTypes: ["BUSINESS_PERMIT", "MAYORS_PERMIT"],
+        title: "Business Permit",
+        description: "Proof of business operation",
+      },
+      {
+        type: "TIN_DOCUMENT",
+        matchedTypes: ["TIN_DOCUMENT", "BIR_2303"],
+        title: "TIN Document",
+        description: "Tax identification document",
+      },
+    ],
+    []
   );
+
+  const findDocForSlot = useCallback(
+    (slot: DocSlotConfig) => {
+      return docs.find((d) =>
+        slot.matchedTypes.includes((d.document_type || "").toUpperCase())
+      );
+    },
+    [docs]
+  );
+
+  const primaryDocIds = useMemo(() => {
+    return new Set(
+      documentSlots.map((slot) => findDocForSlot(slot)?.id).filter(Boolean)
+    );
+  }, [documentSlots, findDocForSlot]);
+
+  const otherDocs = useMemo(() => {
+    return docs.filter((d) => !primaryDocIds.has(d.id));
+  }, [docs, primaryDocIds]);
 
   return (
     <div className="space-y-6">
@@ -412,8 +434,8 @@ export default function CompanyDocuments({
 
       {/* Primary Verification Document Slots */}
       <div className="space-y-3">
-        {DOCUMENT_SLOTS.map((slot) => {
-          const existingDoc = docs.find((d) => d.document_type === slot.type);
+        {documentSlots.map((slot) => {
+          const existingDoc = findDocForSlot(slot);
           const isUploading = uploadingSlot === slot.type;
           const isDeleting = deletingDocId === existingDoc?.id;
           const errorMsg = slotError[slot.type];
@@ -422,147 +444,104 @@ export default function CompanyDocuments({
           return (
             <div
               key={slot.type}
-              className="border border-border rounded-xl p-4 bg-card hover:border-border/80 transition-colors space-y-3"
+              className={`min-w-0 space-y-3 rounded-xl border bg-card p-4 transition-colors ${
+                errorMsg
+                  ? "border-destructive ring-1 ring-destructive/30 shadow-xs shadow-destructive/10"
+                  : "border-border hover:border-border/80"
+              }`}
             >
-              {/* Row 1: Document title, description, and action buttons */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-0.5 min-w-0">
-                  <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              {/* Document title and upload action */}
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <h4 className="text-sm font-semibold text-foreground">
                     {slot.title}
                   </h4>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
                     {slot.description}
                   </p>
                 </div>
-
-                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                  {existingDoc ? (
-                    <>
-                      {canEditDocs && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={isUploading || isDeleting}
-                          onClick={() => triggerFileInput(slot.type)}
-                          className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium rounded-lg"
-                        >
-                          {isUploading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
-                          )}
-                          Replace
-                        </Button>
-                      )}
-
+                {!existingDoc && (
+                  <div className="shrink-0">
+                    {canEditDocs ? (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        onClick={() => setPreviewDoc(existingDoc)}
-                        className="h-8 max-md:min-h-10 text-xs gap-1.5 text-muted-foreground hover:text-foreground rounded-lg"
+                        disabled={isUploading}
+                        onClick={() => triggerFileInput(slot.type)}
+                        className="h-9 w-full gap-1.5 rounded-lg border-primary/30 text-xs font-medium text-primary hover:bg-primary/10 sm:w-auto"
                       >
-                        <Eye className="h-3.5 w-3.5" />
-                        View
-                      </Button>
-
-                      {canRemoveDocs && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={isDeleting || isUploading}
-                          onClick={() =>
-                            handleDeleteDoc(existingDoc.id, existingDoc.name)
-                          }
-                          className="h-8 max-md:min-h-10 text-xs gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                          title="Remove document"
-                        >
-                          {isDeleting ? (
+                        {isUploading ? (
+                          <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                          Remove
-                        </Button>
-                      )}
-                    </>
-                  ) : canEditDocs ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isUploading}
-                      onClick={() => triggerFileInput(slot.type)}
-                      className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10 rounded-lg"
-                    >
-                      {isUploading ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-3.5 w-3.5" />
-                          Upload
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      Upload locked
-                    </span>
-                  )}
-                </div>
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-3.5 w-3.5" />
+                            Upload
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        Upload locked
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Row 2: Document file status & preview thumbnail */}
+              {/* Existing document */}
               {existingDoc ? (
-                <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-muted/40 border border-border/80 text-foreground text-xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Thumbnail Preview */}
+                <div className="min-w-0 space-y-3 rounded-xl border border-border/80 bg-muted/40 p-3">
+                  {/* File information */}
+                  <div className="flex min-w-0 items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setPreviewDoc(existingDoc)}
-                      className="relative group/thumb shrink-0 w-11 h-11 rounded-lg overflow-hidden border border-border bg-card flex items-center justify-center hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer"
+                      className="group/thumb relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card transition-all hover:ring-2 hover:ring-primary/40"
                       title="Click to preview document"
+                      aria-label={`Preview ${existingDoc.name}`}
                     >
                       {isPdf ? (
-                        <div className="flex flex-col items-center justify-center w-full h-full bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold">
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-rose-500/10 font-bold text-rose-600 dark:text-rose-400">
                           <FileText className="h-4 w-4" />
-                          <span className="text-[9px] tracking-tight font-mono">
+                          <span className="font-mono text-[9px] tracking-tight">
                             PDF
                           </span>
                         </div>
                       ) : (
                         <Image
-                          src={`/api/client/assets/${existingDoc.id}`}
+                          src={`/api/assets/${existingDoc.id}?width=240`}
                           alt={existingDoc.name}
-                          className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-200"
-                          width={50}
-                          height={50}
-                          />
+                          className="h-full w-full object-cover transition-transform duration-200 group-hover/thumb:scale-110"
+                          width={48}
+                          height={48}
+                          unoptimized
+                        />
                       )}
                     </button>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
                         <button
                           type="button"
                           onClick={() => setPreviewDoc(existingDoc)}
-                          className="font-semibold text-foreground hover:underline hover:text-primary truncate block text-left text-xs max-w-[170px] sm:max-w-[260px]"
+                          className="min-w-0 truncate text-left text-xs font-semibold text-foreground hover:text-primary hover:underline"
                           title={existingDoc.name}
                         >
                           {existingDoc.name}
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+
+                      <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-foreground">
                         <span>{formatFileSize(existingDoc.size)}</span>
+
                         {existingDoc.uploaded_at && (
                           <>
-                            <span>·</span>
+                            <span aria-hidden="true">·</span>
                             <span>
                               Uploaded {formatDate(existingDoc.uploaded_at)}
                             </span>
@@ -571,15 +550,68 @@ export default function CompanyDocuments({
                       </div>
                     </div>
                   </div>
+
+                  {/* Document actions */}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPreviewDoc(existingDoc)}
+                      className="h-9 flex-1 gap-1.5 rounded-lg text-xs sm:flex-none"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      View
+                    </Button>
+
+                    {canEditDocs && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isUploading || isDeleting}
+                        onClick={() => triggerFileInput(slot.type)}
+                        className="h-9 flex-1 gap-1.5 rounded-lg text-xs sm:flex-none"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        )}
+                        Replace
+                      </Button>
+                    )}
+
+                    {canRemoveDocs && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isDeleting || isUploading}
+                        onClick={() =>
+                          handleDeleteDoc(existingDoc.id, existingDoc.name)
+                        }
+                        className="h-9 flex-1 gap-1.5 rounded-lg text-xs text-destructive hover:bg-destructive/10 hover:text-destructive sm:flex-none"
+                        title="Remove document"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border bg-muted/20 text-xs text-muted-foreground">
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                <div className="flex min-w-0 items-center gap-2 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-3 text-xs text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                   <span>No document uploaded yet</span>
                 </div>
               )}
 
-              {/* Slot Error Message */}
+              {/* Slot error */}
               <AnimatePresence>
                 {errorMsg && (
                   <motion.p
@@ -587,10 +619,10 @@ export default function CompanyDocuments({
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.18 }}
-                    className="text-xs text-destructive flex items-center gap-1.5 mt-1 overflow-hidden"
+                    className="mt-1 flex items-start gap-1.5 overflow-hidden text-xs text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 font-medium"
                   >
-                    <X className="h-3.5 w-3.5 shrink-0" />
-                    {errorMsg}
+                    <X className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span className="break-words">{errorMsg}</span>
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -601,18 +633,25 @@ export default function CompanyDocuments({
                   fileInputRefs.current[slot.type] = el;
                 }}
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                 className="hidden"
                 onChange={(e) => handleFileChange(slot.type, e)}
                 disabled={!canEditDocs || isUploading}
               />
             </div>
           );
+
         })}
       </div>
 
       {/* Other Supporting Documents (Multi-Upload Section) */}
-      <div className="border border-border rounded-xl p-4 bg-card space-y-3">
+      <div
+        className={`rounded-xl border p-4 bg-card space-y-3 transition-colors ${
+          otherError
+            ? "border-destructive ring-1 ring-destructive/30 shadow-xs shadow-destructive/10"
+            : "border-border"
+        }`}
+      >
         {/* Row 1: Header - Title/Desc and Action */}
         <div className="flex items-center justify-between gap-3">
           <div className="space-y-0.5 min-w-0">
@@ -654,7 +693,7 @@ export default function CompanyDocuments({
               ref={otherFileInputRef}
               type="file"
               multiple
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
               className="hidden"
               onChange={handleOtherFilesChange}
               disabled={!canEditDocs || isUploadingOther}
@@ -682,7 +721,7 @@ export default function CompanyDocuments({
         {otherDocs.length > 0 ? (
           <div className="space-y-2 pt-1 border-t border-border">
             <AnimatePresence initial={false}>
-              {otherDocs.map((doc) => {
+              {otherDocs.map((doc: UploadedDoc) => {
                 const isDeleting = deletingDocId === doc.id;
                 const isPdf = doc.name.toLowerCase().endsWith(".pdf");
 
@@ -712,12 +751,12 @@ export default function CompanyDocuments({
                           </div>
                         ) : (
                           <Image
-                            src={`/api/client/assets/${doc.id}`}
+                            src={`/api/assets/${doc.id}?width=240`}
                             alt={doc.name}
                             className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-200"
                             width={50}
                             height={50}
-
+                            unoptimized
                           />
                         )}
                       </button>

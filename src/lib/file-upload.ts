@@ -9,9 +9,9 @@ export interface FileUploadPolicy {
 
 export const CLIENT_DOCUMENT_UPLOAD_POLICY: FileUploadPolicy = {
   label: "company document",
-  maxBytes: 10 * 1024 * 1024,
-  mimeTypes: ["application/pdf", "image/jpeg", "image/png", "image/webp"],
-  extensions: ["pdf", "jpg", "jpeg", "png", "webp"],
+  maxBytes: 25 * 1024 * 1024,
+  mimeTypes: ["application/pdf", "image/jpeg", "image/png"],
+  extensions: ["pdf", "jpg", "jpeg", "png"],
 };
 
 export const CLIENT_IMAGE_UPLOAD_POLICY: FileUploadPolicy = {
