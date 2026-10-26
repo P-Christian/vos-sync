@@ -16,7 +16,6 @@ import React, {
 import {
   RefreshCw,
   Briefcase,
-  AlertCircle,
   ArrowLeft,
   ArrowDown,
   ChevronUp,
@@ -621,24 +620,6 @@ export default function ChatPanel({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Error */}
-      {error && (
-        <div
-          role="alert"
-          className="flex shrink-0 items-center gap-2 border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
-        >
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="shrink-0 rounded px-2 py-1 font-semibold underline underline-offset-2 hover:bg-rose-100 max-md:min-h-10 dark:hover:bg-rose-900/30"
-          >
-            Try again
-          </button>
-        </div>
-      )}
 
       {/* Input: per-conversation drafts via draftKey */}
       <MessageInput

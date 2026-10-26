@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useCallback } from "react";
 import {
   RefreshCw,
   Briefcase,
-  AlertCircle,
   Loader2,
   ArrowLeft,
   ChevronUp,
@@ -452,13 +451,6 @@ export default function ChatPanel({
         )}
       </AnimatePresence>
 
-      {/* Error */}
-      {error && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 border-t border-rose-100 dark:border-rose-900/30 text-sm md:text-xs text-rose-600 dark:text-rose-400 shrink-0">
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          {error}
-        </div>
-      )}
 
       {/* Input */}
       <MessageInput
