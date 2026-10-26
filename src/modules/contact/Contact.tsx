@@ -240,13 +240,27 @@ export default function Contact() {
   const toTelHref = (value: string) => `tel:${value.replace(/[^\d+]/g, "")}`;
 
   // Business hours live ONLY in the Support Hours card (single source of truth).
+  const supportDays =
+    company?.support_hours_days ||
+    ((company?.metadata as Record<string, unknown> | null)?.support_hours_days as string) ||
+    "Mon–Fri";
+  const supportTime =
+    company?.support_hours_time ||
+    ((company?.metadata as Record<string, unknown> | null)?.support_hours_time as string) ||
+    "8am–5pm";
+  const supportTimezone =
+    company?.support_hours_timezone ||
+    ((company?.metadata as Record<string, unknown> | null)?.support_hours_timezone as string) ||
+    "Philippine Time (PHT)";
+  const supportHoursValue = `${supportDays}, ${supportTime}`;
+
   const contactCards: ContactCard[] = [
     { icon: MapPin, label: "Office", value: officeAddress, desc: officeRegion, href: mapUrl },
     { icon: Mail, label: "Email us", value: email, desc: "We reply within 24 hours.", href: `mailto:${email}` },
     ...(mobile
       ? [{ icon: Smartphone, label: "Mobile", value: formatPhone(mobile), desc: "Mobile hotline", href: toTelHref(mobile) }]
       : []),
-    { icon: Clock, label: "Support hours", value: "Mon–Fri, 8am–5pm", desc: "Philippine Time (PHT)" },
+    { icon: Clock, label: "Support hours", value: supportHoursValue, desc: supportTimezone },
   ];
 
   const cardClass =

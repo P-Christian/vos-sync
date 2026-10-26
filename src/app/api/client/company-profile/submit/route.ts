@@ -5,7 +5,9 @@ import { authenticateRequest, isClientSession } from "@/lib/authenticated-sessio
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_BASE = (
+  process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+).replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
 function getHeaders(): Record<string, string> {
@@ -53,14 +55,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (link.company_user_role !== "OWNER" && link.company_user_role !== "ADMIN") {
+    const role = String(link.company_user_role || "").toUpperCase();
+    if (role !== "OWNER" && role !== "ADMIN") {
       return NextResponse.json(
         { error: "You do not have permission to submit this company profile." },
         { status: 403 }
       );
     }
 
-    const companyId = link.company_id;
+    const companyId =
+      typeof link.company_id === "object" && link.company_id !== null
+        ? link.company_id.company_id
+        : link.company_id;
 
     // 2. Fetch current company data to validate required fields
     const companyUrl = `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=*`;
@@ -80,20 +86,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Company record not found." }, { status: 404 });
     }
 
-    // 3. Block re-submission if already Pending or Verified
+    // 3. Block re-submission if already Pending or Verified (unless revision/corrections requested)
     if (
       company.verification_status === "PENDING_VERIFICATION" ||
       company.verification_status === "VERIFIED"
     ) {
-      return NextResponse.json(
-        {
-          error:
-            company.verification_status === "VERIFIED"
-              ? "This company profile is already verified."
-              : "This profile is already pending verification.",
-        },
-        { status: 400 }
-      );
+      let isCorrectionRequired = false;
+      try {
+        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at,-id&limit=1&fields=status`;
+        const verifRes = await fetch(verifUrl, { headers: getHeaders(), cache: "no-store" });
+        if (verifRes.ok) {
+          const verifJson = await verifRes.json();
+          const latestStatus = String(verifJson.data?.[0]?.status || "").toUpperCase();
+          isCorrectionRequired = latestStatus === "CORRECTION_REQUIRED";
+        }
+      } catch (e) {
+        console.warn("Could not check latest verification status:", e);
+      }
+
+      if (!isCorrectionRequired) {
+        return NextResponse.json(
+          {
+            error:
+              company.verification_status === "VERIFIED"
+                ? "This company profile is already verified."
+                : "This profile is already pending verification.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 4. Validate required fields before allowing submission

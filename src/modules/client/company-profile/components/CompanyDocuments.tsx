@@ -108,13 +108,51 @@ export default function CompanyDocuments({
   const [otherError, setOtherError] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<PreviewableDoc | null>(null);
 
-  // Users can only remove documents if profile has not yet been processed / under review,
-  // or if the reviewer returned the submission for revision.
-  const canRemoveDocs =
-    verificationStatus === "DRAFT" ||
-    verificationStatus === "REJECTED" ||
-    verificationStatus === "CORRECTION_REQUIRED";
-  const isVerified = verificationStatus === "VERIFIED";
+  type CompanyVerificationStatus =
+    | "DRAFT"
+    | "PENDING_VERIFICATION"
+    | "IN_REVIEW"
+    | "CORRECTION_REQUIRED"
+    | "VERIFIED"
+    | "APPROVED"
+    | "REJECTED"
+    | "INACTIVE"
+    | "SUSPENDED";
+
+  const normalizedStatus = (
+    verificationStatus: string,
+  ): CompanyVerificationStatus => {
+    const status = verificationStatus.trim().toUpperCase();
+
+    switch (status) {
+      case "APPROVED":
+        return "VERIFIED";
+
+      case "PENDING_VERIFICATION":
+      case "IN_REVIEW":
+      case "CORRECTION_REQUIRED":
+      case "DRAFT":
+      case "VERIFIED":
+      case "REJECTED":
+      case "INACTIVE":
+      case "SUSPENDED":
+        return status;
+
+      default:
+        return "DRAFT";
+    }
+  };
+
+  const currentStatus = normalizedStatus(verificationStatus);
+
+  const canEditDocs =
+    currentStatus === "DRAFT" ||
+    currentStatus === "REJECTED" ||
+    currentStatus === "CORRECTION_REQUIRED";
+
+  const canRemoveDocs = canEditDocs;
+
+  const isVerified = currentStatus === "VERIFIED";
 
   const ALLOWED_TYPES = [
     "application/pdf",
@@ -330,17 +368,45 @@ export default function CompanyDocuments({
       {/* Header Info Banner */}
       <div className="rounded-xl bg-muted/40 p-3.5 border border-border flex items-start gap-2.5">
         <Lock className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+
         <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
           <p>
             Upload documents required to verify your company. These documents are{" "}
             <span className="font-semibold text-foreground">private</span> and
             will only be accessible to authorized VOS Sync administrators.
           </p>
-          {!canRemoveDocs && (
-            <p className="text-[11px] font-medium text-warning flex items-center gap-1">
-              Document removal is locked because this profile is under review or verified.
-            </p>
-          )}
+
+          <p className="text-[11px] font-medium">
+            {canEditDocs ? (
+              <>
+                {currentStatus === "DRAFT" &&
+                  "Your company profile is still a draft. You can upload, replace, or remove documents before submitting it for verification."}
+
+                {currentStatus === "REJECTED" &&
+                  "Your previous verification was rejected. You can update your documents and prepare your profile for resubmission."}
+
+                {currentStatus === "CORRECTION_REQUIRED" &&
+                  "The reviewer has requested corrections. Update your documents as needed before resubmitting your profile."}
+              </>
+            ) : (
+              <>
+                {currentStatus === "PENDING_VERIFICATION" &&
+                  "Your profile has been submitted for verification. Document changes are locked while awaiting review."}
+
+                {currentStatus === "IN_REVIEW" &&
+                  "Your company is currently under review. Document uploads, replacements, and removals are temporarily locked."}
+
+                {currentStatus === "VERIFIED" &&
+                  "Your company has been verified. Verification documents are locked to preserve the approved records."}
+
+                {currentStatus === "SUSPENDED" &&
+                  "Your company verification is suspended. Document changes are locked pending administrative resolution."}
+
+                {currentStatus === "INACTIVE" &&
+                  "Your company profile is inactive. Document changes are locked until the profile is reactivated."}
+              </>
+            )}
+          </p>
         </div>
       </div>
 
@@ -372,7 +438,7 @@ export default function CompanyDocuments({
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {existingDoc ? (
                     <>
-                      {!isVerified && (
+                      {canEditDocs && (
                         <Button
                           type="button"
                           variant="outline"
@@ -422,7 +488,7 @@ export default function CompanyDocuments({
                         </Button>
                       )}
                     </>
-                  ) : (
+                  ) : canEditDocs ? (
                     <Button
                       type="button"
                       variant="outline"
@@ -443,6 +509,10 @@ export default function CompanyDocuments({
                         </>
                       )}
                     </Button>
+                  ) : (
+                    <span className="text-[11px] text-muted-foreground">
+                      Upload locked
+                    </span>
                   )}
                 </div>
               </div>
@@ -534,7 +604,7 @@ export default function CompanyDocuments({
                 accept=".pdf,.jpg,.jpeg,.png,.webp"
                 className="hidden"
                 onChange={(e) => handleFileChange(slot.type, e)}
-                disabled={isUploading}
+                disabled={!canEditDocs || isUploading}
               />
             </div>
           );
@@ -562,7 +632,7 @@ export default function CompanyDocuments({
               type="button"
               variant="outline"
               size="sm"
-              disabled={isUploadingOther}
+              disabled={!canEditDocs || isUploadingOther}
               onClick={() => otherFileInputRef.current?.click()}
               className="h-8 max-md:min-h-10 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10 shrink-0 rounded-lg"
             >
@@ -587,7 +657,7 @@ export default function CompanyDocuments({
               accept=".pdf,.jpg,.jpeg,.png,.webp"
               className="hidden"
               onChange={handleOtherFilesChange}
-              disabled={isUploadingOther}
+              disabled={!canEditDocs || isUploadingOther}
             />
           </div>
         </div>

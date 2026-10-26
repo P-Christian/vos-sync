@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Briefcase, Facebook, Linkedin, Instagram, Twitter, Youtube } from "lucide-react";
 import { SlideUp } from "@/components/shared/MotionContainer";
 import { usePrimaryPlatformCompany } from "@/hooks/usePrimaryPlatformCompany";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { formatAssetUrl } from "@/lib/utils";
 
 export function Footer() {
   const { company } = usePrimaryPlatformCompany();
@@ -57,10 +59,26 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 lg:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-white dark:text-zinc-900" />
+              <div className="w-8 h-8 bg-zinc-900 dark:bg-zinc-100 rounded-lg flex items-center justify-center overflow-hidden p-1.5">
+                {company?.platform_icon &&
+                (company.platform_icon.startsWith("/") ||
+                  company.platform_icon.startsWith("http") ||
+                  /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(company.platform_icon)) ? (
+                  <Image
+                    src={formatAssetUrl(company.platform_icon) || company.platform_icon}
+                    alt={company?.platform_name || "VOS Sync"}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 object-contain"
+                    unoptimized
+                  />
+                ) : (
+                  <Briefcase className="w-5 h-5 text-white dark:text-zinc-900" />
+                )}
               </div>
-              <span className="text-xl font-bold tracking-tight text-foreground">VOS Sync</span>
+              <span className="text-xl font-bold tracking-tight text-foreground">
+                {company?.platform_name || "VOS Sync"}
+              </span>
             </div>
             <p className="text-muted-foreground max-w-sm mb-6 text-sm leading-relaxed">
               {brandDescription}
