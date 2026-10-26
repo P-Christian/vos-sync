@@ -33,8 +33,6 @@ export default function HiredCard({ message }: Props) {
 
   useEffect(() => {
     if (initialData?.job_title) {
-      setData(initialData);
-      setLoading(false);
       return;
     }
 

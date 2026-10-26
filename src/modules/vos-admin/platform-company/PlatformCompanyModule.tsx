@@ -119,7 +119,7 @@ export function PlatformCompanyModule() {
         <SinglePlatformCompanyEditor
           company={primaryCompany}
           onSave={async (data) => {
-            await saveCompany(data);
+            await saveCompany(data, primaryCompany.company_id);
           }}
           saving={saving}
         />

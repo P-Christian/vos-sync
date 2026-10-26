@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { PlatformCompany, PlatformCompanyFormData } from "../types/platformCompany.types";
 import {
   fetchPlatformCompanies,
-  createPlatformCompany,
   updatePlatformCompany,
   setPrimaryPlatformCompany,
 } from "../services/platformCompany.service";
@@ -89,18 +88,11 @@ export function usePlatformCompany() {
       setSaving(true);
       clearMessages();
       try {
-        const idToUpdate = targetCompanyId ?? editingCompany?.company_id ?? formData.company_id;
-        if (idToUpdate || companies.length > 0) {
-          await updatePlatformCompany(formData, idToUpdate);
-          const msg = `Updated "${formData.company_name}" successfully.`;
-          setSuccessMessage(msg);
-          toast.success(msg);
-        } else {
-          await createPlatformCompany(formData);
-          const msg = `Created "${formData.company_name}" successfully.`;
-          setSuccessMessage(msg);
-          toast.success(msg);
-        }
+        const idToUpdate = targetCompanyId ?? formData.company_id ?? editingCompany?.company_id ?? companies[0]?.company_id;
+        await updatePlatformCompany(formData, idToUpdate);
+        const msg = `Updated "${formData.company_name}" successfully.`;
+        setSuccessMessage(msg);
+        toast.success(msg);
         setIsModalOpen(false);
         setEditingCompany(null);
         await loadCompanies();
@@ -114,7 +106,7 @@ export function usePlatformCompany() {
         setSaving(false);
       }
     },
-    [editingCompany, clearMessages, loadCompanies]
+    [editingCompany, companies, clearMessages, loadCompanies]
   );
 
   const handleSetPrimary = useCallback(

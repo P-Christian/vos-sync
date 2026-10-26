@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { formatAssetUrl } from "@/lib/utils";
 import {
@@ -17,7 +17,6 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   Building2,
-  MapPin,
   FileText,
   Share2,
   Settings,
@@ -39,9 +38,7 @@ import {
   Briefcase,
   Target,
   UploadCloud,
-  ImageIcon,
   RotateCcw,
-  X,
 } from "lucide-react";
 
 interface SinglePlatformCompanyEditorProps {
@@ -228,7 +225,9 @@ export function SinglePlatformCompanyEditor({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("identity");
 
-  useEffect(() => {
+  const [prevCompany, setPrevCompany] = useState<PlatformCompany>(company);
+  if (company !== prevCompany) {
+    setPrevCompany(company);
     setFormData((prev) => ({
       ...prev,
       slug: company.slug || prev.slug,
@@ -287,7 +286,7 @@ export function SinglePlatformCompanyEditor({
     }));
     setValuesList(extractInitialValues(company));
     setMetadataJsonText(company.metadata ? JSON.stringify(company.metadata, null, 2) : "");
-  }, [company]);
+  }
 
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [uploadingBrandIcon, setUploadingBrandIcon] = useState<boolean>(false);
@@ -493,6 +492,7 @@ export function SinglePlatformCompanyEditor({
 
     const payload: PlatformCompanyFormData = {
       ...formData,
+      company_id: company.company_id,
       values: finalValues,
       metadata: parsedMetadata,
       is_primary: 1,

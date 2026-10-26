@@ -131,7 +131,6 @@ export default function ChatPanel({
   hasMore,
   sending,
   uploading,
-  error,
   unreadAtOpen = 0,
   isArchived = false,
   onSend,

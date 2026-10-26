@@ -75,54 +75,6 @@ function parseDate(dateStr: string): Date {
   return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
 }
 
-function formatTime(dateStr: string): string {
-  if (!dateStr) return "";
-  const messageDate = parseDate(dateStr);
-  if (isNaN(messageDate.getTime())) return "";
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const mDate = new Date(
-    messageDate.getFullYear(),
-    messageDate.getMonth(),
-    messageDate.getDate()
-  );
-
-  const diffDays = Math.round(
-    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
-  const rawHour = messageDate.getHours();
-  const minute = messageDate.getMinutes();
-  const period = rawHour >= 12 ? "PM" : "AM";
-  const hour = rawHour % 12 || 12;
-  const timeFormatted = `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
-
-  // If today: only show time
-  if (diffDays === 0) {
-    return timeFormatted;
-  }
-
-  // If yesterday: "Yesterday, 4:17 PM"
-  if (diffDays === 1) {
-    return `Yesterday, ${timeFormatted}`;
-  }
-
-  // If previous date: "Aug 14, 4:17 PM"
-  const monthNames = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  const monthStr = monthNames[messageDate.getMonth()] ?? "";
-  const day = messageDate.getDate();
-
-  if (messageDate.getFullYear() === now.getFullYear()) {
-    return `${monthStr} ${day}, ${timeFormatted}`;
-  }
-
-  return `${monthStr} ${day}, ${messageDate.getFullYear()}, ${timeFormatted}`;
-}
-
 function formatFullDateTime(dateStr: string): string {
   const messageDate = parseDate(dateStr);
   if (isNaN(messageDate.getTime())) return "";

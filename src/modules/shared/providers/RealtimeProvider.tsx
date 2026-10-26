@@ -205,7 +205,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     } catch (err) {
       console.error("💥 [Realtime Stream] Exception initializing EventSource:", err);
-      setIsConnected(false);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => setIsConnected(false));
+      }
     }
   }, [handleIncomingStreamPayload]);
 
@@ -219,7 +221,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      setIsConnected(true);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => setIsConnected(true));
+      }
 
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = setInterval(() => {

@@ -56,11 +56,10 @@ export default function StageTransitionCard({ message }: Props) {
   const initialData = (message.system_card_data as StageTransitionCardData) ?? null;
   const [data, setData] = useState<StageTransitionCardData | null>(initialData);
   const [loading, setLoading] = useState(!initialData?.to_stage_name);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (initialData?.to_stage_name && initialData?.has_scheduled_interview !== undefined) {
-      setData(initialData);
-      setLoading(false);
       return;
     }
 
@@ -106,7 +105,6 @@ export default function StageTransitionCard({ message }: Props) {
     return <SystemPill text={message.message_content} />;
   }
 
-  const pathname = usePathname();
   const isFreelancer = pathname?.includes("/freelancer") || data?.viewer_role === "FREELANCER";
 
   const fromStyle = (fromStageType && STAGE_TYPE_STYLES[fromStageType]) || "bg-primary/10 text-primary border-primary/20";
