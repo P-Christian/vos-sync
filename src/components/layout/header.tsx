@@ -9,7 +9,8 @@ import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { ThemeSelector } from "@/components/theme/ThemeSelector"
-import { cn } from "@/lib/utils"
+import { cn, formatAssetUrl } from "@/lib/utils"
+import { usePrimaryPlatformCompany } from "@/hooks/usePrimaryPlatformCompany"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +39,7 @@ const NAV_LINKS = [
 
 export function Header() {
   const pathname = usePathname()
+  const { company } = usePrimaryPlatformCompany()
   const [isScrolled, setIsScrolled] = React.useState(false)
   const [mobileMenuPath, setMobileMenuPath] = React.useState<string | null>(null)
   const [user, setUser] = React.useState<AuthUser | null>(null)
@@ -203,10 +205,26 @@ export function Header() {
           href="/"
           className="group flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-md shadow-indigo-600/30 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
-            <Briefcase className="h-5 w-5 text-white" aria-hidden="true" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 shadow-md shadow-indigo-600/30 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105 overflow-hidden p-1.5">
+            {company?.platform_icon &&
+            (company.platform_icon.startsWith("/") ||
+              company.platform_icon.startsWith("http") ||
+              /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(company.platform_icon)) ? (
+              <Image
+                src={formatAssetUrl(company.platform_icon) || company.platform_icon}
+                alt={company?.platform_name || "VOS Sync"}
+                width={24}
+                height={24}
+                className="h-6 w-6 object-contain"
+                unoptimized
+              />
+            ) : (
+              <Briefcase className="h-5 w-5 text-white" aria-hidden="true" />
+            )}
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">VOS Sync</span>
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            {company?.platform_name || "VOS Sync"}
+          </span>
         </Link>
 
         {/* Desktop Nav */}

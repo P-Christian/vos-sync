@@ -25,6 +25,7 @@ export interface CreateSystemMessageParams {
   systemEventType?: string;
   applicationId?: number | null;
   interviewId?: number | null;
+  stageHistoryId?: number | null;
 }
 
 /**
@@ -41,6 +42,7 @@ export async function createSystemMessage({
   systemEventType,
   applicationId,
   interviewId,
+  stageHistoryId,
 }: CreateSystemMessageParams): Promise<void> {
   
   if (!DIRECTUS_BASE) return;
@@ -121,6 +123,7 @@ export async function createSystemMessage({
             event_type: systemEventType,
             application_id: applicationId ?? null,
             interview_id: interviewId ?? null,
+            stage_history_id: stageHistoryId ?? null,
           }),
         }).catch((e) => console.error("Error inserting vs_system_message:", e));
       }

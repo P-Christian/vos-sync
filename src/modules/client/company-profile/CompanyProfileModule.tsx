@@ -11,6 +11,7 @@ import CompanyAddress from "./components/CompanyAddress";
 import CompanyCompletionBar from "./components/CompanyCompletionBar";
 import CompanyPreviewModal from "./components/CompanyPreviewModal";
 import CompanyDocuments from "./components/CompanyDocuments";
+import { SubmitVerificationModal } from "./components/SubmitVerificationModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -100,6 +101,7 @@ export default function CompanyProfileModule({
   const [draft, setDraft] = useState<Partial<EditableCompanyFields & { custom_industry_name?: string }>>({});
   const [showPreview, setShowPreview] = useState(false);
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [activeProfileSection, setActiveProfileSection] = useState(0);
 
   const mobileSectionClass = (index: number) =>
@@ -487,12 +489,20 @@ export default function CompanyProfileModule({
   };
 
   // ── Submit / Resubmit Handler ─────────────────────────────────────────
-  const handleSubmitForVerification = async () => {
+  const handleConfirmSubmitForVerification = async () => {
     clearMessages();
     try {
       await submitForVerification();
-    } catch {
-      // error is already set in hook
+      setIsSubmitModalOpen(false);
+      toast.success(
+        isResubmission
+          ? "Company profile resubmitted for verification successfully."
+          : "Company profile submitted for verification successfully."
+      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : "Failed to submit company profile.";
+      toast.error(msg);
     }
   };
 
@@ -1044,6 +1054,9 @@ export default function CompanyProfileModule({
                 <CompanyDocuments
                   companyId={company?.company_id}
                   verificationStatus={displayStatus}
+                  organizationTypeId={company?.organization_type_id}
+                  registrationNo={company?.registration_no}
+                  companyTin={company?.company_tin}
                   onDocsChange={handleDocsChange}
                 />
               </CardContent>
@@ -1079,7 +1092,7 @@ export default function CompanyProfileModule({
                       </p>
                     )}
                     <Button
-                      onClick={handleSubmitForVerification}
+                      onClick={() => setIsSubmitModalOpen(true)}
                       disabled={!canSubmit || submitting}
                       className="w-full h-10 max-md:min-h-10 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-info hover:brightness-110 text-primary-foreground border-0 shadow-sm disabled:opacity-50 transition-transform active:scale-[0.98]"
                     >
@@ -1193,6 +1206,18 @@ export default function CompanyProfileModule({
           onApplySuggestions={handleApplyAISuggestions}
         />
       )}
+
+      {/* Submit / Resubmit Confirmation Modal */}
+      <SubmitVerificationModal
+        isOpen={isSubmitModalOpen}
+        onClose={() => setIsSubmitModalOpen(false)}
+        onConfirm={handleConfirmSubmitForVerification}
+        isSubmitting={submitting}
+        isResubmission={isResubmission}
+        companyName={company?.company_name}
+        completionPercent={completionPercent}
+        uploadedDocsCount={uploadedDocsCount}
+      />
     </motion.div>
   );
 }

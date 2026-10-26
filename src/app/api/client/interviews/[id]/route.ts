@@ -135,8 +135,10 @@ export async function PATCH(
       if (payload?.scheduled_at) updateData.scheduled_at = payload.scheduled_at;
       if (payload?.duration_minutes) updateData.duration_minutes = payload.duration_minutes;
       if (payload?.timezone) updateData.timezone = payload.timezone;
-      if (payload?.interview_format) updateData.interview_format = payload.interview_format;
-      if (payload?.meeting_link !== undefined) updateData.meeting_link = payload.meeting_link;
+      if (payload?.meeting_link !== undefined) {
+        const raw = payload.meeting_link ? String(payload.meeting_link).trim() : null;
+        updateData.meeting_link = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`) : null;
+      }
       if (payload?.meeting_location !== undefined) updateData.meeting_location = payload.meeting_location;
       if (payload?.interview_notes !== undefined) updateData.interview_notes = payload.interview_notes;
       if (payload?.cancel_reason !== undefined) updateData.cancel_reason = payload.cancel_reason;

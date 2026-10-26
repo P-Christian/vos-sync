@@ -206,9 +206,18 @@ export async function GET(req: NextRequest) {
         freelancer
           ? `${freelancer.user_fname ?? ""} ${freelancer.user_lname ?? ""}`.trim()
           : "Unknown";
+      const otherPartyFirstName =
+        (typeof freelancer?.user_fname === "string"
+          ? freelancer.user_fname.trim()
+          : "") ||
+        otherPartyName.split(" ")[0] ||
+        "Freelancer";
 
       let lastMessagePreview = "";
       if (lastMsg) {
+        const isOwn = (lastMsg.sender_id as number) === userId;
+        const senderPrefix = isOwn ? "You" : otherPartyFirstName;
+
         if (lastMsg.message_type === "SYSTEM") {
           const rawContent = (lastMsg.message_content as string) ?? "";
           const lower = rawContent.toLowerCase();
@@ -228,12 +237,13 @@ export async function GET(req: NextRequest) {
         } else if (lastMsg.message_type === "TEXT") {
           const rawContent = (lastMsg.message_content as string) ?? "";
           const content = safeDecryptMessage(rawContent) ?? "";
+          const fullText = `${senderPrefix}: ${content}`;
           lastMessagePreview =
-            content.length > 60 ? content.slice(0, 60) + "…" : content;
+            fullText.length > 60 ? fullText.slice(0, 60) + "…" : fullText;
         } else if (lastMsg.message_type === "IMAGE") {
-          lastMessagePreview = "📷 Image";
+          lastMessagePreview = `${senderPrefix}: 📷 Image`;
         } else if (lastMsg.message_type === "FILE") {
-          lastMessagePreview = "📎 File";
+          lastMessagePreview = `${senderPrefix}: 📎 File`;
         }
       }
 

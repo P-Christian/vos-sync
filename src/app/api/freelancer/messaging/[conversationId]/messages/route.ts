@@ -157,7 +157,7 @@ export async function GET(
 
     if (systemMsgIds.length > 0) {
       const smRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_system_message?filter[message_id][_in]=${systemMsgIds.join(",")}&fields=system_message_id,message_id,event_type,application_id,interview_id&limit=200`,
+        `${DIRECTUS_BASE}/items/vs_system_message?filter[message_id][_in]=${systemMsgIds.join(",")}&fields=system_message_id,message_id,event_type,application_id,interview_id,stage_history_id&limit=200`,
         { headers: getHeaders(), cache: "no-store" }
       );
       if (smRes.ok) {
@@ -167,11 +167,12 @@ export async function GET(
           systemMsgMap[sm.message_id as number] = sm;
         }
 
-        // Collect application_ids and interview_ids
+        // Collect application_ids, interview_ids, and stage_history_ids
         const appIds = Array.from(new Set(smList.map((s) => s.application_id).filter(Boolean))) as number[];
         const ivIds = Array.from(new Set(smList.map((s) => s.interview_id).filter(Boolean))) as number[];
+        const shIds = Array.from(new Set(smList.map((s) => s.stage_history_id).filter(Boolean))) as number[];
 
-        const [appsRes, ivsRes] = await Promise.all([
+        const [appsRes, ivsRes, shRes, jaRes] = await Promise.all([
           appIds.length > 0
             ? fetch(`${DIRECTUS_BASE}/items/vs_job_application?filter[application_id][_in]=${appIds.join(",")}&fields=*`, { headers: getHeaders(), cache: "no-store" })
                 .then((r) => r.json())
@@ -182,10 +183,51 @@ export async function GET(
                 .then((r) => r.json())
                 .then((j) => j.data ?? [])
             : Promise.resolve([]),
+          shIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_application_stage_history?filter[id][_in]=${shIds.join(",")}&fields=*`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
+          appIds.length > 0
+            ? fetch(`${DIRECTUS_BASE}/items/vs_interview_application?filter[application_id][_in]=${appIds.join(",")}&fields=application_id,interview_id`, { headers: getHeaders(), cache: "no-store" })
+                .then((r) => r.json())
+                .then((j) => j.data ?? [])
+            : Promise.resolve([]),
         ]);
 
         const appMap = new Map<number, Record<string, unknown>>(appsRes.map((a: Record<string, unknown>) => [a.application_id as number, a]));
         const ivMap = new Map<number, Record<string, unknown>>(ivsRes.map((i: Record<string, unknown>) => [i.interview_id as number, i]));
+        const shMap = new Map<number, Record<string, unknown>>(shRes.map((s: Record<string, unknown>) => [s.id as number, s]));
+
+        const extraIvIds = Array.from(
+          new Set(
+            jaRes
+              .map((j: { interview_id: number }) => j.interview_id)
+              .filter((id: number) => Boolean(id) && !ivMap.has(id))
+          )
+        ) as number[];
+
+        if (extraIvIds.length > 0) {
+          try {
+            const extraIvs = await fetch(
+              `${DIRECTUS_BASE}/items/vs_interview?filter[interview_id][_in]=${extraIvIds.join(",")}&filter[interview_status][_in]=SCHEDULED,CONFIRMED,RESCHEDULED&fields=*`,
+              { headers: getHeaders(), cache: "no-store" }
+            )
+              .then((r) => r.json())
+              .then((j) => j.data ?? []);
+            for (const ei of extraIvs) {
+              ivMap.set(ei.interview_id as number, ei);
+            }
+          } catch {}
+        }
+
+        const appIvIdsMap = new Map<number, number[]>();
+        for (const ja of jaRes) {
+          const aId = ja.application_id as number;
+          const iId = ja.interview_id as number;
+          if (!appIvIdsMap.has(aId)) appIvIdsMap.set(aId, []);
+          appIvIdsMap.get(aId)!.push(iId);
+        }
 
         // Collect user_ids and job_ids for application and interview cards
         const userIds = Array.from(
@@ -215,7 +257,75 @@ export async function GET(
         for (const sm of smList) {
           const mid = sm.message_id as number;
           const et = sm.event_type as string;
-          if (et === "APPLICATION_SUBMITTED" || et === "APPLICATION_STATUS_CHANGED" || et === "HIRED") {
+
+          if (et === "APPLICATION_STATUS_CHANGED" || et === "HIRED") {
+            const sh = sm.stage_history_id ? shMap.get(sm.stage_history_id as number) : null;
+            const meta = typeof sh?.metadata === "string" ? JSON.parse(sh.metadata as string) : (sh?.metadata as Record<string, unknown> | null);
+            const msgObj = messages.find((m) => (m.message_id as number) === mid);
+            let fromStageName = (meta?.from_stage_name as string) ?? null;
+            let toStageName = (meta?.to_stage_name as string) ?? null;
+            const fromStageType = (meta?.from_stage_type as string) ?? null;
+            let toStageType = (meta?.to_stage_type as string) ?? (et === "HIRED" ? "HIRED" : null);
+
+            // Fallback parse from message_content if stage history metadata not available
+            if (!toStageName && msgObj?.message_content) {
+              const contentStr = msgObj.message_content as string;
+              const arrowMatch = contentStr.match(
+                /(?:Stage updated:\s*)?(?:From\s+)?["']?([^"'\n➔\->]+)["']?\s*(?:➔|->)\s*["']?([^"'\n]+)["']?/i
+              );
+              if (arrowMatch) {
+                fromStageName = arrowMatch[1]?.trim() ?? null;
+                toStageName = arrowMatch[2]?.trim() ?? null;
+              } else {
+                const moveMatch = contentStr.match(/(?:Application moved to stage:\s*|Moved to\s+)(.+)/i);
+                if (moveMatch) {
+                  toStageName = moveMatch[1]?.trim() ?? null;
+                } else if (et === "HIRED") {
+                  toStageName = "Hired";
+                  toStageType = "HIRED";
+                }
+              }
+            }
+
+            const app = appMap.get(sm.application_id as number);
+            const j = app ? jobMap.get(app.job_id as number) : null;
+            const u = app ? userMap.get(app.user_id as number) : null;
+
+            const targetAppId = (sm.application_id as number) ?? (app?.application_id as number) ?? 0;
+            const linkedIvIds = appIvIdsMap.get(targetAppId) ?? [];
+            const nowTime = Date.now();
+            const activeIv = linkedIvIds
+              .map((id) => ivMap.get(id))
+              .find((iv) => {
+                if (!iv) return false;
+                const status = String(iv.interview_status ?? "").toUpperCase();
+                if (!["SCHEDULED", "CONFIRMED", "RESCHEDULED"].includes(status)) return false;
+                if (!iv.scheduled_at) return false;
+                const end = new Date(String(iv.scheduled_at).replace(" ", "T")).getTime() + (Number(iv.duration_minutes) || 60) * 60_000;
+                return end >= nowTime;
+              });
+
+            cardDataMap[mid] = {
+              event_type: et,
+              viewer_role: "FREELANCER",
+              application_id: targetAppId,
+              stage_history_id: (sm.stage_history_id as number) ?? null,
+              from_stage_name: fromStageName,
+              to_stage_name: toStageName || (et === "HIRED" ? "Hired" : "Updated Stage"),
+              from_stage_type: fromStageType,
+              to_stage_type: toStageType,
+              job_title: (j?.job_title as string) ?? (convJob?.job_title as string) ?? "Position",
+              applicant_name: u ? `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() : "Candidate",
+              candidate_name: u ? `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() : "Candidate",
+              has_assessment_tasks: toStageType === "ASSESSMENT" || (toStageName?.toLowerCase().includes("assessment") ?? false),
+              has_scheduled_interview: Boolean(activeIv),
+              interview_id: (activeIv?.interview_id as number) ?? null,
+              scheduled_at: (activeIv?.scheduled_at as string) ?? null,
+              duration_minutes: (activeIv?.duration_minutes as number) ?? 60,
+              interview_status: (activeIv?.interview_status as string) ?? null,
+              created_at: (sh?.created_at as string) ?? (msgObj?.created_at as string) ?? null,
+            };
+          } else if (et === "APPLICATION_SUBMITTED") {
             const app = appMap.get(sm.application_id as number);
             if (app) {
               const u = userMap.get(app.user_id as number);
@@ -291,8 +401,8 @@ export async function GET(
                   avatar: null,
                 },
                 job: {
-                  job_id: (conv.job_id as number) ?? null,
-                  title: (convJob?.job_title as string) ?? "Position",
+                  job_id: (conv.job_id as number) ?? (Array.from(jobMap.keys())[0] ?? null),
+                  title: (convJob?.job_title as string) ?? (Array.from(jobMap.values())[0]?.job_title as string) ?? "Position",
                 },
 
                 // Flat fallbacks
@@ -306,7 +416,7 @@ export async function GET(
                 interview_status: iv.interview_status ?? null,
                 created_at: (iv.created_at ?? null) as string | null,
                 updated_at: (iv.updated_at ?? null) as string | null,
-                job_title: (convJob?.job_title as string) ?? "Position",
+                job_title: (convJob?.job_title as string) ?? (Array.from(jobMap.values())[0]?.job_title as string) ?? "Position",
               };
             }
           }
@@ -447,9 +557,9 @@ export async function GET(
         } else if (eventType === "APPLICATION_SUBMITTED") {
           content = `You applied for ${jobTitle}`;
         } else if (eventType === "APPLICATION_STATUS_CHANGED") {
-          const status = (cardData?.application_status as string) || "";
-          content = status
-            ? `Your application for ${jobTitle} was updated to ${status}`
+          const stageName = (cardData?.to_stage_name as string) || (cardData?.application_status as string) || "";
+          content = stageName
+            ? `Your application for ${jobTitle} was moved to ${stageName}`
             : `Your application for ${jobTitle} was updated`;
         } else if (eventType === "INTERVIEW_SCHEDULED") {
           content = `Interview scheduled for ${jobTitle}`;

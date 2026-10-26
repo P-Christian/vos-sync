@@ -16,7 +16,6 @@ import React, {
 import {
   RefreshCw,
   Briefcase,
-  AlertCircle,
   ArrowLeft,
   ArrowDown,
   ChevronUp,
@@ -34,7 +33,7 @@ import MessageBubble from "./MessageBubble";
 import MessageInput from "./MessageInput";
 import Avatar from "./Avatar";
 import { cn } from "@/lib/utils";
-import { formatDayLabel, isSameDay, minutesBetween } from "../utils";
+import {  formatSeparatorLabel, isSameDay, minutesBetween } from "../utils";
 
 interface Props {
   conversation: Conversation;
@@ -72,7 +71,7 @@ function filterLatestInterviewCards(msgs: Message[]): Message[] {
   );
 }
 
-const GROUP_WINDOW_MIN = 5;
+const GROUP_WINDOW_MIN = 30;
 
 function sameGroup(a?: Message, b?: Message): boolean {
   return (
@@ -132,7 +131,6 @@ export default function ChatPanel({
   hasMore,
   sending,
   uploading,
-  error,
   unreadAtOpen = 0,
   isArchived = false,
   onSend,
@@ -567,7 +565,10 @@ export default function ChatPanel({
                 {displayMessages.map((msg, index) => {
                   const prev = displayMessages[index - 1];
                   const next = displayMessages[index + 1];
-                  const showDateDivider = !prev || !isSameDay(prev.created_at, msg.created_at);
+                  const showDateDivider =
+                    !prev ||
+                    !isSameDay(prev.created_at, msg.created_at) ||
+                    minutesBetween(prev.created_at, msg.created_at) >= 30;
                   const startsUnread = msg.message_id === unreadMarkerId;
 
                   return (
@@ -577,7 +578,7 @@ export default function ChatPanel({
                         message={msg}
                         isOwn={msg.sender_id === currentUserId}
                         showDateDivider={showDateDivider}
-                        dateLabel={showDateDivider ? formatDayLabel(msg.created_at) : undefined}
+                        dateLabel={showDateDivider ? formatSeparatorLabel(msg.created_at) : undefined}
                         isFirstInGroup={startsUnread || !sameGroup(prev, msg)}
                         isLastInGroup={!sameGroup(msg, next) || next?.message_id === unreadMarkerId}
                         otherParty={{ name: otherName, avatar: other_party_avatar }}
@@ -618,24 +619,6 @@ export default function ChatPanel({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Error */}
-      {error && (
-        <div
-          role="alert"
-          className="flex shrink-0 items-center gap-2 border-t border-rose-100 bg-rose-50 px-4 py-2 text-xs text-rose-600 dark:border-rose-900/30 dark:bg-rose-950/20 dark:text-rose-400"
-        >
-          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          <span className="flex-1">{error}</span>
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="shrink-0 rounded px-2 py-1 font-semibold underline underline-offset-2 hover:bg-rose-100 max-md:min-h-10 dark:hover:bg-rose-900/30"
-          >
-            Try again
-          </button>
-        </div>
-      )}
 
       {/* Input: per-conversation drafts via draftKey */}
       <MessageInput

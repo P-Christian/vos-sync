@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { formatAssetUrl } from "@/lib/utils";
+import { formatAssetUrl, cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -45,18 +45,21 @@ import { DocumentViewerModal, AdminDocumentPreview } from "./DocumentViewerModal
 import {
   formatDate,
   formatDocumentTypeLabel,
+  getDocumentCategoryBadgeStyle,
+  getDocumentCategoryPriority,
   getCompanyStatusBucket,
 } from "../utils/companyVerification.utils";
 
 const THUMBNAIL_EXT = /\.(png|jpe?g|gif|webp|bmp|avif|svg)$/i;
 
-const DocumentThumbnail: React.FC<{ fileId: string; fileName: string }> = ({
+const DocumentThumbnail: React.FC<{ fileId: string; fileName?: string }> = ({
   fileId,
-  fileName,
+  fileName = "",
 }) => {
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
-  const ext = fileName.split(".").pop()?.toUpperCase() || "FILE";
-  const showThumbnail = THUMBNAIL_EXT.test(fileName) && !thumbnailFailed;
+  const safeName = fileName || "";
+  const ext = safeName.split(".").pop()?.toUpperCase() || "FILE";
+  const showThumbnail = THUMBNAIL_EXT.test(safeName) && !thumbnailFailed;
 
   if (!showThumbnail) {
     return (
@@ -115,6 +118,17 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
 
   if (!company) return null;
 
+  const sortedDocuments = (company.documents || []).slice().sort((a, b) => {
+    const priorityA = getDocumentCategoryPriority(a.document_type);
+    const priorityB = getDocumentCategoryPriority(b.document_type);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    const dateA = a.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
+    const dateB = b.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
+    return dateB - dateA;
+  });
+
   const primaryOwner = company.users?.find((u) => u.is_primary_contact || u.company_user_role === "OWNER");
   const verifications = company.verifications || [];
 
@@ -125,8 +139,8 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
     statusBucket === "VERIFIED"
       ? `Already verified${company.verified_at ? ` on ${formatDate(company.verified_at)}` : ""} — no further approval needed.`
       : statusBucket === "DRAFT"
-      ? "This profile has not been submitted for verification yet."
-      : null;
+        ? "This profile has not been submitted for verification yet."
+        : null;
 
   const addressParts = [
     company.company_address,
@@ -564,13 +578,13 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
 
               {/* TAB 2: DOCUMENTS */}
               <TabsContent value="documents" className="space-y-3 text-xs outline-none">
-                {!company.documents || company.documents.length === 0 ? (
+                {sortedDocuments.length === 0 ? (
                   <div className="border border-dashed rounded-xl p-8 text-center text-muted-foreground">
                     No company verification documents attached to this submission.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    {company.documents.map((doc) => {
+                    {sortedDocuments.map((doc) => {
                       const documentTypeLabel = formatDocumentTypeLabel(doc.document_type);
                       return (
                         <div
@@ -596,13 +610,32 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                           </button>
 
                           <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
-                            <div className="min-w-0 space-y-1">
-                              <Badge variant="secondary" className="text-[10px] font-semibold">
-                                {documentTypeLabel}
-                              </Badge>
-                              <p className="text-[11px] text-muted-foreground">
-                                Uploaded {formatDate(doc.uploaded_at)}
+                            <div className="min-w-0 space-y-1.5">
+                              {/* Primary text: File Name */}
+                              <p
+                                className="font-semibold text-foreground text-xs sm:text-sm truncate leading-snug"
+                                title={doc.document_name || "Verification Document"}
+                              >
+                                {doc.document_name || "Verification Document"}
                               </p>
+
+                              {/* Subtext badge: Document Category & Upload Date */}
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                                    getDocumentCategoryBadgeStyle(documentTypeLabel)
+                                  )}
+                                >
+                                  {documentTypeLabel}
+                                </Badge>
+                              </div>
+                              <div>                                
+                                <span className="text-[11px] text-muted-foreground">
+                                Uploaded {formatDate(doc.uploaded_at)}
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-2 justify-end">
                               <Button
@@ -929,9 +962,8 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
                 width={800}
                 height={600}
                 unoptimized
-                className={`object-contain rounded-xl shadow-md border bg-background ${
-                  currentImg.type === "logo" ? "max-h-[320px] max-w-[320px]" : "max-h-[60vh] max-w-full"
-                }`}
+                className={`object-contain rounded-xl shadow-md border bg-background ${currentImg.type === "logo" ? "max-h-[320px] max-w-[320px]" : "max-h-[60vh] max-w-full"
+                  }`}
               />
             )}
           </div>

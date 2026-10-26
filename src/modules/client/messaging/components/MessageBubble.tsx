@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import Avatar from "./Avatar";
 import Highlight from "./Highlight";
-import { formatFileSize, formatFullDateTime, formatMessageTime } from "../utils";
+import { formatFileSize, formatFullDateTime } from "../utils";
 
 const DocumentViewer = dynamic(
   () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),
@@ -282,23 +282,27 @@ export default function MessageBubble({
       <div
         ref={rowRef}
         className={cn(
-          "group relative flex items-start gap-2",
+          "group relative flex flex-col",
           hasReactions && "mb-3",
-          isOwn ? "justify-end" : "justify-start"
+          isOwn ? "items-end" : "items-start"
         )}
       >
-        {/* Avatar slot (other party only; shown on first message of a group) */}
-        {!isOwn && (
-          <div className="w-7 shrink-0">
-            {isFirstInGroup && otherParty && (
-              <Avatar name={otherParty.name} src={otherParty.avatar} size={28} className="ring-0" />
-            )}
-          </div>
-        )}
+        <div
+          className={cn(
+            "relative flex items-end gap-2 max-w-full",
+            isOwn ? "justify-end" : "justify-start"
+          )}
+        >
+          {/* Avatar slot (other party only; shown on last message of a group) */}
+          {!isOwn && (
+            <div className="w-7 shrink-0">
+              {isLastInGroup && otherParty && (
+                <Avatar name={otherParty.name} src={otherParty.avatar} size={28} className="ring-0" />
+              )}
+            </div>
+          )}
 
-        {isOwn && actions}
-
-        {/* Bubble column */}
+          {/* Bubble column */}
         <div
           className={cn(
             "relative flex max-w-[85%] flex-col gap-1 sm:max-w-[70%]",
@@ -309,6 +313,13 @@ export default function MessageBubble({
           onPointerUp={cancelPress}
           onPointerCancel={cancelPress}
         >
+          {/* Sender name for left chat bubble (only on first message in group) */}
+          {!isOwn && isFirstInGroup && otherParty?.name && (
+            <span className="select-none px-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+              {otherParty.name}
+            </span>
+          )}
+
           {/* Reaction picker */}
           <AnimatePresence>
             {showPicker && (
@@ -369,17 +380,48 @@ export default function MessageBubble({
             )}
           </AnimatePresence>
 
-          {/* Content */}
-          <div
+          {/* Message row with action buttons */}
+          <div className="flex items-center gap-1.5">
+            {isOwn && actions}
+
+            {/* Content */}
+            <div
             className={cn(
               "relative flex flex-col gap-1",
               isOwn ? "items-end" : "items-start",
               isActiveMatch && "rounded-2xl ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-zinc-950"
             )}
           >
+            {/* Hover date & time tooltip (solid non-transparent, z-50, 400ms delay, arrow indicator) */}
+            {!showPicker && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute z-50 flex items-center gap-1.5 whitespace-nowrap select-none",
+                  "rounded-md px-2.5 py-1 text-[11px] font-medium shadow-md transition-opacity duration-150 delay-0",
+                  "opacity-0 group-hover:opacity-100 group-hover:delay-[400ms]",
+                  hasReactions ? "top-full mt-4" : "top-full mt-1.5",
+                  isOwn
+                    ? "right-0 justify-end bg-indigo-950 text-indigo-100 border border-indigo-700/80 dark:bg-indigo-950 dark:text-indigo-100 dark:border-indigo-600/70"
+                    : "left-0 justify-start bg-white text-zinc-800 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700"
+                )}
+              >
+                {/* Upward arrow indicator pointing to the bubble */}
+                <span
+                  className={cn(
+                    "absolute -top-1 h-2 w-2 rotate-45",
+                    isOwn
+                      ? "right-3.5 bg-indigo-950 border-l border-t border-indigo-700/80 dark:bg-indigo-950 dark:border-indigo-600/70"
+                      : "left-3.5 bg-white border-l border-t border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
+                  )}
+                />
+                {isOwn && <Check className="relative z-10 h-3 w-3 shrink-0 text-indigo-400" />}
+                <span className="relative z-10">{formatFullDateTime(created_at)}</span>
+                {is_edited && <span className="relative z-10 opacity-75 italic">(edited)</span>}
+              </div>
+            )}
+
             {message_content && (
               <div
-                title={formatFullDateTime(created_at)}
                 className={cn(
                   "cursor-default select-text whitespace-pre-wrap break-words px-3.5 py-2 text-sm leading-relaxed shadow-xs max-md:select-none",
                   radius,
@@ -537,25 +579,11 @@ export default function MessageBubble({
             </AnimatePresence>
           </div>
 
-          {/* Timestamp: once per group */}
-          {isLastInGroup && (
-            <div
-              className={cn(
-                "flex items-center gap-1.5 px-1",
-                hasReactions ? "mt-2.5" : "mt-0",
-                isOwn ? "flex-row-reverse" : "flex-row"
-              )}
-            >
-              <span className="text-xs text-zinc-400 dark:text-zinc-500">{formatMessageTime(created_at)}</span>
-              {is_edited && <span className="text-xs italic text-zinc-400">edited</span>}
-              {/* Single check = sent. Swap for CheckCheck once the API exposes read receipts. */}
-              {isOwn && <Check className="h-3 w-3 shrink-0 text-indigo-400" aria-label="Sent" />}
-            </div>
-          )}
+          {!isOwn && actions}
+          </div>
         </div>
-
-        {!isOwn && actions}
       </div>
+    </div>
 
       {/* Document preview */}
       <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>

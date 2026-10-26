@@ -7,6 +7,12 @@ import { Search, MessageSquare, RefreshCw, Archive } from "lucide-react";
 import { Conversation } from "../types";
 import ConversationItem from "./ConversationItem";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 interface Props {
   conversations: Conversation[];
@@ -51,54 +57,72 @@ export default function ConversationList({
   });
 
   return (
-    <div className="flex flex-col h-full border-r border-zinc-200 dark:border-zinc-800">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-              Messages
-            </span>
-            <span
-              className={cn(
-                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
-                totalUnread > 0
-                  ? "scale-100 opacity-100 max-w-[60px]"
-                  : "scale-0 opacity-0 max-w-0 px-0 min-w-0 overflow-hidden border-0"
-              )}
-            >
-              <span
-                key={totalUnread}
-                className="inline-block animate-in zoom-in-50 fade-in duration-200 origin-center"
-              >
-                {totalUnread}
+    <TooltipProvider delayDuration={200}>
+      <div className="flex flex-col h-full border-r border-zinc-200 dark:border-zinc-800">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                Messages
               </span>
-            </span>
+              <span
+                className={cn(
+                  "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
+                  totalUnread > 0
+                    ? "scale-100 opacity-100 max-w-[60px]"
+                    : "scale-0 opacity-0 max-w-0 px-0 min-w-0 overflow-hidden border-0"
+                )}
+              >
+                <span
+                  key={totalUnread}
+                  className="inline-block animate-in zoom-in-50 fade-in duration-200 origin-center"
+                >
+                  {totalUnread}
+                </span>
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onToggleArchived}
+                    aria-label={showArchived ? "Hide archived messages" : "Show archived messages"}
+                    className={cn(
+                      "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 max-md:size-11 max-md:grid max-md:place-items-center",
+                      showArchived &&
+                        "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {showArchived ? "Hide archived" : "Show archived"}
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onRefresh}
+                    disabled={loading}
+                    aria-label="Refresh conversations"
+                    className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
+                  >
+                    <RefreshCw
+                      className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  Refresh
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={onToggleArchived}
-              title={showArchived ? "Hide archived" : "Show archived"}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 max-md:size-11 max-md:grid max-md:place-items-center",
-                showArchived &&
-                  "bg-primary/10 text-primary"
-              )}
-            >
-              <Archive className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={onRefresh}
-              disabled={loading}
-              title="Refresh"
-              className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
-            >
-              <RefreshCw
-                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-              />
-            </button>
-          </div>
-        </div>
 
         {/* Search */}
         <div className="relative">
@@ -191,5 +215,6 @@ export default function ConversationList({
         )}
       </div>
     </div>
+  </TooltipProvider>
   );
 }

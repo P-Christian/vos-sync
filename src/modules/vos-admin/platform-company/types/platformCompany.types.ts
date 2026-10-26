@@ -1,9 +1,31 @@
+export interface PlatformCompanyValue {
+  id?: number | string;
+  company_id?: number;
+  title: string;
+  description: string;
+  desc?: string;
+  icon_name?: string;
+  icon?: string;
+  icon_url?: string | null;
+  color?: string;
+  display_order?: number;
+  is_active?: boolean | number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PlatformCompany {
   company_id: number;
   slug: string;
   company_code: string;
   company_name: string;
   company_legal_name: string;
+  platform_name?: string | null;
+  platform_icon?: string | null;
+  support_hours_days?: string | null;
+  support_hours_time?: string | null;
+  support_hours_timezone?: string | null;
+  values?: PlatformCompanyValue[];
   company_tagline?: string | null;
   year_established?: number | null;
   organization_type_id?: number | null;
@@ -49,4 +71,6 @@ export interface PlatformCompany {
 export type PlatformCompanyFormData = Omit<
   PlatformCompany,
   "company_id" | "created_at" | "updated_at" | "created_by_user_id" | "updated_by_user_id"
->;
+> & {
+  company_id?: number;
+};

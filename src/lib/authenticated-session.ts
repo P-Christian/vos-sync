@@ -42,7 +42,15 @@ export function getAccessTokenFromRequest(
   }
 
   const cookieToken = request.cookies?.get("vos_sync_access_token")?.value;
-  return cookieToken?.trim() || null;
+  if (cookieToken?.trim()) return cookieToken.trim();
+
+  const cookieHeader = request.headers.get("cookie");
+  if (cookieHeader) {
+    const match = cookieHeader.match(/(?:^|;\s*)vos_sync_access_token=([^;]+)/);
+    if (match?.[1]?.trim()) return decodeURIComponent(match[1].trim());
+  }
+
+  return null;
 }
 
 /**

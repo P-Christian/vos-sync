@@ -449,6 +449,12 @@ export async function POST(req: NextRequest) {
     }
 
     const nowPH = getPHTimeString();
+    const rawMeetingLink = body.meeting_link?.trim();
+    const cleanMeetingLink = rawMeetingLink
+      ? /^https?:\/\//i.test(rawMeetingLink)
+        ? rawMeetingLink
+        : `https://${rawMeetingLink}`
+      : null;
 
     // 1. Insert schedule into vs_interview
     const interviewPayload = {
@@ -458,7 +464,7 @@ export async function POST(req: NextRequest) {
       duration_minutes: Number(body.duration_minutes) || 60,
       timezone: body.timezone || "Asia/Manila",
       interview_format: body.interview_format,
-      meeting_link: body.meeting_link?.trim() || null,
+      meeting_link: cleanMeetingLink,
       meeting_location: body.meeting_location?.trim() || null,
       interview_notes: body.interview_notes?.trim() || null,
       interview_status: "SCHEDULED",
@@ -618,7 +624,7 @@ export async function POST(req: NextRequest) {
                     timezone: body.timezone || "Asia/Manila",
                     durationMinutes: Number(body.duration_minutes) || 60,
                     interviewFormat: body.interview_format,
-                    meetingLink: body.meeting_link?.trim() || null,
+                    meetingLink: cleanMeetingLink,
                     meetingLocation: body.meeting_location?.trim() || null,
                     candidateNotes: body.candidate_notes?.trim() || null,
                   }).catch((e) => console.error("Error sending scheduled email:", e));
@@ -628,7 +634,7 @@ export async function POST(req: NextRequest) {
                   clientId: userId,
                   freelancerId: candidateUserId,
                   jobId: appData.job_id ?? null,
-                  text: `Interview scheduled for ${scheduledAt}.`,
+                  text: `Interview scheduled for ${formatInterviewDateTime(scheduledAt)}.`,
                   senderId: userId,
                   systemEventType: "INTERVIEW_SCHEDULED",
                   interviewId: newInterviewId,

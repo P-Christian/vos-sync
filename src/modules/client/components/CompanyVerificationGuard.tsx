@@ -31,9 +31,13 @@ export default function CompanyVerificationGuard({
       const res = await fetch("/api/client/company-profile", { cache: "no-store" });
       if (res.ok) {
         const json = await res.json();
-        const status = json.company?.verification_status
+        // A company with a non-null verified_at is always treated as VERIFIED,
+        // regardless of the verification_status string (handles stale status edge cases).
+        const hasVerifiedAt = Boolean(json.company?.verified_at);
+        const rawStatus = json.company?.verification_status
           ? String(json.company.verification_status).toUpperCase()
           : "DRAFT";
+        const status = hasVerifiedAt ? "VERIFIED" : rawStatus;
         setVerificationStatus(status);
         try {
           sessionStorage.setItem(STORAGE_KEY, status);

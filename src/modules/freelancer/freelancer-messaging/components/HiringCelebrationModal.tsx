@@ -221,7 +221,7 @@ export default function HiringCelebrationModal({
                   </div>
                   <div className="min-w-0">
                     <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-                      Target Position
+                      Position
                     </span>
                     <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">
                       {celebration.job_title}

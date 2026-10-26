@@ -3,46 +3,18 @@
 import React from "react";
 import {
   Briefcase, Globe, Users, TrendingUp,
-  HeartHandshake, Shield, Zap, Star,
+  HeartHandshake, Shield, ShieldCheck, Zap, Star, Award, Target, Sparkles,
   ArrowRight, CheckCircle2, UserCheck, Building2, LayoutDashboard
 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SlideUp, HoverScale, StaggerContainer, StaggerChild } from "@/components/shared/MotionContainer";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { usePrimaryPlatformCompany } from "@/hooks/usePrimaryPlatformCompany";
-
-// ==========================================
-// CORE VALUES
-// ==========================================
-
-const VALUES = [
-  {
-    icon: HeartHandshake,
-    title: "People First",
-    desc: "We put job seekers and employers at the center of every product decision we make.",
-    color: "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400",
-  },
-  {
-    icon: Shield,
-    title: "Trust & Safety",
-    desc: "Every listing is verified. We work hard to keep our platform free from scams and bad actors.",
-    color: "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400",
-  },
-  {
-    icon: Zap,
-    title: "Speed Matters",
-    desc: "Hiring moves fast. Our platform is designed to match candidates and companies in days, not months.",
-    color: "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400",
-  },
-  {
-    icon: Star,
-    title: "Quality over Quantity",
-    desc: "We curate opportunities so that every listing on our platform is worth your time.",
-    color: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400",
-  },
-];
+import Image from "next/image";
+import { formatAssetUrl } from "@/lib/utils";
 
 // ==========================================
 // COMPONENT
@@ -50,7 +22,7 @@ const VALUES = [
 
 export default function AboutUs() {
   const session = useAuthSession();
-  const { company } = usePrimaryPlatformCompany();
+  const { company, loading } = usePrimaryPlatformCompany();
 
   const heroTagline = company?.company_tagline;
   const heroDescription =
@@ -101,34 +73,30 @@ export default function AboutUs() {
       {
         icon: Globe,
         title: "Our Culture",
-        desc: company?.company_culture
-          ? company.company_culture.slice(0, 110) +
-          (company.company_culture.length > 110 ? "..." : "")
-          : "A collaborative, transparent environment where talent thrives and creates real impact.",
+        desc:
+          company?.company_culture ||
+          "A collaborative, transparent environment where talent thrives and creates real impact.",
       },
       {
         icon: TrendingUp,
         title: "Our Vision",
-        desc: company?.company_vision
-          ? company.company_vision.slice(0, 110) +
-          (company.company_vision.length > 110 ? "..." : "")
-          : "Pioneering the future of work through smart role matching and seamless recruitment.",
+        desc:
+          company?.company_vision ||
+          "Pioneering the future of work through smart role matching and seamless recruitment.",
       },
       {
         icon: Briefcase,
         title: "Platform Benefits",
-        desc: company?.company_benefits
-          ? company.company_benefits.slice(0, 110) +
-          (company.company_benefits.length > 110 ? "..." : "")
-          : "Verified profiles, transparent compensation ranges, and direct communication with employers.",
+        desc:
+          company?.company_benefits ||
+          "Verified profiles, transparent compensation ranges, and direct communication with employers.",
       },
       {
         icon: Users,
         title: "Headquarters & Reach",
-        desc: locationText
-          ? locationText.slice(0, 110) +
-          (locationText.length > 110 ? "..." : "")
-          : "Operating from the Philippines, connecting regional talent with leading organizations nationwide.",
+        desc:
+          locationText ||
+          "Operating from the Philippines, connecting regional talent with leading organizations nationwide.",
       },
     ];
   })();
@@ -147,21 +115,81 @@ export default function AboutUs() {
         "Direct communication with hiring managers",
       ];
   })();
-  const valuesList =
-    Array.isArray(company?.metadata?.values) &&
-      company.metadata.values.length > 0
-      ? (
-        company.metadata.values as Array<{
-          icon?: React.ElementType;
-          title: string;
-          desc: string;
-          color?: string;
-        }>
-      ).map((value) => ({
-        ...value,
-        icon: value.icon || HeartHandshake,
-      }))
-      : VALUES;
+
+  const ICON_MAP: Record<string, React.ElementType> = {
+    Users,
+    Shield,
+    ShieldCheck,
+    Zap,
+    Award,
+    HeartHandshake,
+    Star,
+    Globe,
+    Target,
+    Sparkles,
+    Briefcase,
+    Building2,
+  };
+
+  const resolveValueIcon = (icon: unknown): React.ElementType => {
+    if (typeof icon === "string" && ICON_MAP[icon]) {
+      return ICON_MAP[icon];
+    }
+    if (typeof icon === "function") {
+      return icon as React.ElementType;
+    }
+    return HeartHandshake;
+  };
+
+  const valuesList = (() => {
+    const rawValues =
+      (company as unknown as { values?: unknown[] })?.values ||
+      (company?.metadata as unknown as { values?: unknown[] })?.values;
+
+    if (Array.isArray(rawValues) && rawValues.length > 0) {
+      return rawValues
+        .filter((val: unknown) => {
+          if (!val || typeof val !== "object") return false;
+          const v = val as { is_active?: unknown };
+          return v.is_active !== false && v.is_active !== 0;
+        })
+        .sort((a: unknown, b: unknown) => {
+          const aOrder = (a as { display_order?: number })?.display_order ?? 0;
+          const bOrder = (b as { display_order?: number })?.display_order ?? 0;
+          return aOrder - bOrder;
+        })
+        .slice(0, 4)
+        .map((value: unknown) => {
+          const v = value as {
+            icon?: unknown;
+            icon_name?: string;
+            title?: string;
+            desc?: string;
+            description?: string;
+            color?: string;
+          };
+          const rawIcon = (v.icon_name || v.icon) as string | undefined;
+          const isImg =
+            typeof rawIcon === "string" &&
+            (rawIcon.startsWith("http://") ||
+              rawIcon.startsWith("https://") ||
+              rawIcon.startsWith("/api/assets/") ||
+              rawIcon.startsWith("/") ||
+              rawIcon.startsWith("data:") ||
+              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(rawIcon));
+
+          return {
+            title: v.title || "Core Value",
+            desc: v.description || v.desc || "",
+            color: v.color || "bg-primary/10 text-primary",
+            icon: resolveValueIcon(rawIcon),
+            icon_url: isImg ? (formatAssetUrl(rawIcon) || rawIcon) : null,
+          };
+        });
+    }
+
+    return [];
+  })();
 
   return (
     <div className="text-foreground font-sans md:pt-16">
@@ -215,7 +243,7 @@ export default function AboutUs() {
       {/* MISSION & VISION */}
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-stretch">
             <SlideUp>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Mission</p>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-6 leading-tight">
@@ -234,18 +262,18 @@ export default function AboutUs() {
               </div>
             </SlideUp>
 
-            <SlideUp delay={0.2}>
-              <div className="grid grid-cols-2 gap-4">
+            <SlideUp delay={0.2} className="h-full">
+              <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full">
                 {teamHighlights.map((th) => {
                   const Icon = th.icon || Globe;
                   return (
                     <div
                       key={th.title}
-                      className="border border-border/80 rounded-2xl p-4 sm:p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300"
+                      className="border border-border/80 rounded-2xl p-4 sm:p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_10px_30px_rgba(37,99,235,0.12)] hover:border-primary/40 transition-all duration-300 h-full flex flex-col"
                     >
                       <Icon className="w-6 h-6 text-primary mb-3" />
                       <h3 className="text-sm font-bold text-foreground mb-1">{th.title}</h3>
-                      <p className="text-sm md:text-xs text-muted-foreground leading-relaxed">{th.desc}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed break-words">{th.desc}</p>
                     </div>
                   );
                 })}
@@ -255,51 +283,83 @@ export default function AboutUs() {
         </div>
       </section>
 
-      {/* CORE VALUES */}
-      <section className="py-16 md:py-24 ">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
-            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Values</p>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">What guides our work</h2>
+      {/* CORE VALUES (DYNAMIC DATABASE VALUES) */}
+      {loading ? (
+        <section className="py-16 md:py-24" role="status" aria-busy="true">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16 space-y-2">
+              <Skeleton className="h-4 w-24 mx-auto rounded-full" />
+              <Skeleton className="h-8 w-64 mx-auto rounded-xl" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="border border-border/80 rounded-2xl p-6 bg-card/70 space-y-3">
+                  <Skeleton className="h-12 w-12 rounded-xl mb-4" />
+                  <Skeleton className="h-5 w-3/4 rounded-lg" />
+                  <Skeleton className="h-4 w-full rounded-md" />
+                  <Skeleton className="h-4 w-5/6 rounded-md" />
+                </div>
+              ))}
+            </div>
           </div>
+        </section>
+      ) : valuesList.length > 0 ? (
+        <section className="py-16 md:py-24">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center max-w-2xl mx-auto mb-10 md:mb-16">
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3">Our Values</p>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">What guides our work</h2>
+            </div>
 
-          <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {valuesList.map((val) => {
-              const IconComp = (val.icon || HeartHandshake) as React.ElementType;
-              return (
-                <StaggerChild key={val.title}>
-                  <HoverScale className="h-full">
-                    <div
-                      onPointerMove={(e) => {
-                        const r = e.currentTarget.getBoundingClientRect();
-                        e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
-                        e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
-                      }}
-                      className="group/card relative overflow-hidden border border-border/80 rounded-2xl p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_35px_rgba(37,99,235,0.14)] hover:border-primary/40 transition-all duration-300 h-full flex flex-col justify-between"
-                    >
+            <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {valuesList.map((val) => {
+                const IconComp = (val.icon || HeartHandshake) as React.ElementType;
+                return (
+                  <StaggerChild key={val.title}>
+                    <HoverScale className="h-full">
                       <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
-                        style={{
-                          background:
-                            "radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), hsl(var(--info) / 0.12), transparent 60%)",
+                        onPointerMove={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+                          e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
                         }}
-                      />
-                      <div className="relative z-10">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${val.color || "bg-primary/10 text-primary"}`}>
-                          <IconComp className="w-6 h-6" />
+                        className="group/card relative overflow-hidden border border-border/80 rounded-2xl p-6 bg-white/85 dark:bg-card/75 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_12px_35px_rgba(37,99,235,0.14)] hover:border-primary/40 transition-all duration-300 h-full flex flex-col justify-between"
+                      >
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100"
+                          style={{
+                            background:
+                              "radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), hsl(var(--info) / 0.12), transparent 60%)",
+                          }}
+                        />
+                        <div className="relative z-10">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 overflow-hidden p-1.5 ${val.color || "bg-primary/10 text-primary"}`}>
+                            {val.icon_url ? (
+                              <Image
+                                src={val.icon_url}
+                                alt={val.title}
+                                width={28}
+                                height={28}
+                                className="w-7 h-7 object-contain"
+                                unoptimized
+                              />
+                            ) : (
+                              <IconComp className="w-6 h-6" />
+                            )}
+                          </div>
+                          <h3 className="text-base font-bold text-foreground mb-2 group-hover/card:text-primary transition-colors">{val.title}</h3>
+                          <p className="text-base md:text-sm text-muted-foreground leading-relaxed">{val.desc}</p>
                         </div>
-                        <h3 className="text-base font-bold text-foreground mb-2 group-hover/card:text-primary transition-colors">{val.title}</h3>
-                        <p className="text-base md:text-sm text-muted-foreground leading-relaxed">{val.desc}</p>
                       </div>
-                    </div>
-                  </HoverScale>
-                </StaggerChild>
-              );
-            })}
-          </StaggerContainer>
-        </div>
-      </section>
+                    </HoverScale>
+                  </StaggerChild>
+                );
+              })}
+            </StaggerContainer>
+          </div>
+        </section>
+      ) : null}
 
 
       {/* DYNAMIC CTA STRIP */}

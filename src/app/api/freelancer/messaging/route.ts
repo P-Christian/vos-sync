@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
       )
     );
 
-    const [usersData, jobsData] = await Promise.all([
+    const [usersData, jobsData, companyUsersData] = await Promise.all([
       clientIds.length > 0
         ? fetch(
             `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${clientIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,profile_image_url&limit=${clientIds.length}`,
@@ -111,7 +111,15 @@ export async function GET(req: NextRequest) {
         : Promise.resolve([]),
       jobIds.length > 0
         ? fetch(
-            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,company_id,company_id.company_logo&limit=${jobIds.length}`,
+            `${DIRECTUS_BASE}/items/vs_job_posting?filter[job_id][_in]=${jobIds.join(",")}&fields=job_id,job_title,company_id&limit=${jobIds.length}`,
+            { headers: getHeaders(), cache: "no-store" }
+          )
+            .then((r) => r.json())
+            .then((j) => j.data ?? [])
+        : Promise.resolve([]),
+      clientIds.length > 0
+        ? fetch(
+            `${DIRECTUS_BASE}/items/vs_company_user?filter[user_id][_in]=${clientIds.join(",")}&fields=user_id,company_id&limit=${clientIds.length * 2}`,
             { headers: getHeaders(), cache: "no-store" }
           )
             .then((r) => r.json())
@@ -126,6 +134,26 @@ export async function GET(req: NextRequest) {
       jobsData.map((j: Record<string, unknown>) => [j.job_id as number, j])
     );
 
+    const clientCompanyMap = new Map<number, number>(
+      (companyUsersData as Record<string, unknown>[]).map((cu) => [
+        cu.user_id as number,
+        cu.company_id as number,
+      ])
+    );
+
+    const rawCompanyIds: number[] = [];
+    for (const j of jobsData as Record<string, unknown>[]) {
+      const cId =
+        typeof j.company_id === "object"
+          ? (j.company_id as { company_id?: number })?.company_id
+          : j.company_id;
+      if (typeof cId === "number") rawCompanyIds.push(cId);
+    }
+    for (const cu of companyUsersData as Record<string, unknown>[]) {
+      if (typeof cu.company_id === "number") rawCompanyIds.push(cu.company_id);
+    }
+    const uniqueCompanyIds = Array.from(new Set(rawCompanyIds));
+
     const conversationIds = conversations.map(
       (c: Record<string, unknown>) => c.conversation_id as number
     );
@@ -133,22 +161,47 @@ export async function GET(req: NextRequest) {
     const lastMessagesMap = new Map<number, Record<string, unknown>>();
     const unreadMap = new Map<number, number>();
 
-    if (conversationIds.length > 0) {
-      const [lastMsgRes, unreadRes] = await Promise.all([
-        fetch(
-          `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&sort[]=-created_at&limit=200&fields=message_id,conversation_id,message_type,message_content,sender_id,created_at`,
-          { headers: getHeaders(), cache: "no-store" }
-        )
-          .then((r) => r.json())
-          .then((j) => j.data ?? []),
-        fetch(
-          `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&fields=message_id,conversation_id,sender_id&limit=1000`,
-          { headers: getHeaders(), cache: "no-store" }
-        )
-          .then((r) => r.json())
-          .then((j) => j.data ?? []),
-      ]);
+    const [companiesData, lastMsgRes, unreadRes] = await Promise.all([
+      uniqueCompanyIds.length > 0
+        ? fetch(
+            `${DIRECTUS_BASE}/items/vs_company?filter[company_id][_in]=${uniqueCompanyIds.join(",")}&fields=company_id,company_name,company_logo&limit=${uniqueCompanyIds.length}`,
+            { headers: getHeaders(), cache: "no-store" }
+          )
+            .then((r) => r.json())
+            .then((j) => j.data ?? [])
+        : Promise.resolve([]),
+      conversationIds.length > 0
+        ? fetch(
+            `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&sort[]=-created_at&limit=200&fields=message_id,conversation_id,message_type,message_content,sender_id,created_at`,
+            { headers: getHeaders(), cache: "no-store" }
+          )
+            .then((r) => r.json())
+            .then((j) => j.data ?? [])
+        : Promise.resolve([]),
+      conversationIds.length > 0
+        ? fetch(
+            `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_in]=${conversationIds.join(",")}&filter[is_deleted][_eq]=false&fields=message_id,conversation_id,sender_id&limit=1000`,
+            { headers: getHeaders(), cache: "no-store" }
+          )
+            .then((r) => r.json())
+            .then((j) => j.data ?? [])
+        : Promise.resolve([]),
+    ]);
 
+    const companyMap = new Map<
+      number,
+      { company_name: string; company_logo: string | null }
+    >(
+      (companiesData as Record<string, unknown>[]).map((c) => [
+        c.company_id as number,
+        {
+          company_name: (c.company_name as string) || "Unknown Company",
+          company_logo: (c.company_logo as string) || null,
+        },
+      ])
+    );
+
+    if (conversationIds.length > 0) {
       for (const msg of lastMsgRes as Record<string, unknown>[]) {
         const cid = msg.conversation_id as number;
         if (!lastMessagesMap.has(cid)) {
@@ -192,12 +245,28 @@ export async function GET(req: NextRequest) {
       const job = jobMap.get(conv.job_id as number);
       const lastMsg = lastMessagesMap.get(cid);
 
-      const otherPartyName = client
+      // Resolve company via job.company_id first, then fallback to vs_company_user
+      const jobCompanyId =
+        typeof job?.company_id === "object"
+          ? (job.company_id as { company_id?: number })?.company_id
+          : typeof job?.company_id === "number"
+          ? job.company_id
+          : undefined;
+      const clientCompanyId = clientCompanyMap.get(conv.client_id as number);
+      const resolvedCompanyId = jobCompanyId ?? clientCompanyId;
+      const company = resolvedCompanyId ? companyMap.get(resolvedCompanyId) : undefined;
+
+      const clientFullName = client
         ? `${client.user_fname ?? ""} ${client.user_lname ?? ""}`.trim()
-        : "Unknown Employer";
+        : "";
+      const otherPartyName = clientFullName || company?.company_name || "Unknown Employer";
+      const otherPartyPrefix = client?.user_fname || company?.company_name || otherPartyName.split(" ")[0] || "Employer";
 
       let lastMessagePreview = "";
       if (lastMsg) {
+        const isOwn = (lastMsg.sender_id as number) === userId;
+        const senderPrefix = isOwn ? "You" : otherPartyPrefix;
+
         if (lastMsg.message_type === "SYSTEM") {
           const rawContent = (lastMsg.message_content as string) ?? "";
           const lower = rawContent.toLowerCase();
@@ -217,24 +286,25 @@ export async function GET(req: NextRequest) {
         } else if (lastMsg.message_type === "TEXT") {
           const rawContent = (lastMsg.message_content as string) ?? "";
           const content = safeDecryptMessage(rawContent) ?? "";
+          const fullText = `${senderPrefix}: ${content}`;
           lastMessagePreview =
-            content.length > 60 ? content.slice(0, 60) + "…" : content;
+            fullText.length > 60 ? fullText.slice(0, 60) + "…" : fullText;
         } else if (lastMsg.message_type === "IMAGE") {
-          lastMessagePreview = "📷 Image";
+          lastMessagePreview = `${senderPrefix}: 📷 Image`;
         } else if (lastMsg.message_type === "FILE") {
-          lastMessagePreview = "📎 File";
+          lastMessagePreview = `${senderPrefix}: 📎 File`;
         }
       }
 
       const avatarRaw =
         (client?.profile_image_url as string) ||
-        ((job?.company_id as Record<string, unknown> | undefined)?.company_logo as string) ||
-        (job?.company_logo as string) ||
+        (company?.company_logo as string) ||
         null;
 
       return {
         ...conv,
         other_party_name: otherPartyName,
+        company_name: company?.company_name ?? null,
         other_party_avatar: formatAvatarUrl(avatarRaw),
         other_party_email: (client?.user_email as string) ?? null,
         job_title: (job?.job_title as string) ?? null,

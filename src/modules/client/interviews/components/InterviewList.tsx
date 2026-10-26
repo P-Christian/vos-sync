@@ -192,7 +192,11 @@ function InterviewRow({
                 Awaiting feedback
               </Badge>
             ) : (
-              <InterviewStatusBadge status={item.interview_status} />
+              <InterviewStatusBadge
+                status={item.interview_status}
+                scheduledAt={item.scheduled_at}
+                durationMinutes={item.duration_minutes}
+              />
             )}
             {relative && (
               <Badge variant="outline" className="text-[10px] font-semibold px-2 py-0 rounded-full text-zinc-500">

@@ -16,13 +16,40 @@ export const dynamic = "force-dynamic";
 
 const DOCUMENT_TYPES = new Map(
   [
+    "DTI_REGISTRATION",
+    "SEC_REGISTRATION",
+    "CDA_REGISTRATION",
     "DTI_SEC_REGISTRATION",
-    "BUSINESS_PERMIT",
+    "BIR_2303",
     "TIN_DOCUMENT",
+    "MAYORS_PERMIT",
+    "BUSINESS_PERMIT",
+    "AUTH_REP_ID",
+    "GOV_ID",
+    "REPRESENTATIVE_ID",
+    "ARTICLES_OF_INCORPORATION",
+    "SECRETARY_CERTIFICATE",
+    "BOARD_RESOLUTION",
+    "GIS",
     "OTHER_DOCUMENT",
+    "OTHER",
     "VERIFICATION DOCUMENTS",
   ].map((value) => [value, value]),
 );
+
+const EQUIVALENT_TYPE_MAP: Record<string, string[]> = {
+  DTI_REGISTRATION: ["DTI_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  SEC_REGISTRATION: ["SEC_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  CDA_REGISTRATION: ["CDA_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  DTI_SEC_REGISTRATION: ["DTI_REGISTRATION", "SEC_REGISTRATION", "CDA_REGISTRATION", "DTI_SEC_REGISTRATION"],
+  BIR_2303: ["BIR_2303", "TIN_DOCUMENT"],
+  TIN_DOCUMENT: ["BIR_2303", "TIN_DOCUMENT"],
+  MAYORS_PERMIT: ["MAYORS_PERMIT", "BUSINESS_PERMIT"],
+  BUSINESS_PERMIT: ["MAYORS_PERMIT", "BUSINESS_PERMIT"],
+  AUTH_REP_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+  GOV_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+  REPRESENTATIVE_ID: ["AUTH_REP_ID", "GOV_ID", "REPRESENTATIVE_ID"],
+};
 
 interface DirectusCompanyLink {
   company_id?: string | number | { company_id?: string | number } | null;
@@ -117,9 +144,10 @@ async function cleanupPreviousDocument(
   documentType: string,
   replacementFileId: string,
 ): Promise<void> {
+  const typesToClean = EQUIVALENT_TYPE_MAP[documentType] || [documentType];
   const params = new URLSearchParams({
     "filter[company_id][_eq]": String(companyId),
-    "filter[document_type][_eq]": documentType,
+    "filter[document_type][_in]": typesToClean.join(","),
     fields: "company_document_id,directus_file_id",
     limit: "100",
   });
@@ -186,6 +214,36 @@ export async function POST(req: NextRequest) {
     if (documentType) {
       companyId = await resolveClientCompany(config.baseUrl, config.token, session.userId);
       if (companyId === null) return errorResponse("No company is associated with this account.", 403);
+
+      // Verify that company documents can be edited (DRAFT, REJECTED, or CORRECTION_REQUIRED)
+      const compUrl = `${config.baseUrl}/items/vs_company/${companyId}?fields=verification_status`;
+      const compRes = await fetch(compUrl, { headers: getHeaders(config.token), cache: "no-store" });
+      if (!compRes.ok) return errorResponse("Failed to verify company status.", 502);
+      const compJson = (await compRes.json()) as { data?: { verification_status?: string } };
+      const verifStatus = String(compJson.data?.verification_status || "").toUpperCase();
+
+      const editableStatuses = ["DRAFT", "REJECTED"];
+      let canEditDocuments = editableStatuses.includes(verifStatus);
+
+      if (!canEditDocuments) {
+        const verifUrl = `${config.baseUrl}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at,-id&limit=1&fields=status`;
+        const verifRes = await fetch(verifUrl, {
+          headers: getHeaders(config.token),
+          cache: "no-store",
+        });
+        if (verifRes.ok) {
+          const verifJson = (await verifRes.json()) as { data?: Array<{ status?: string }> };
+          const latestWorkflowStatus = String(verifJson.data?.[0]?.status || "").toUpperCase();
+          canEditDocuments = latestWorkflowStatus === "CORRECTION_REQUIRED";
+        }
+      }
+
+      if (!canEditDocuments) {
+        return errorResponse(
+          "Documents cannot be uploaded while your profile is under review or has been verified.",
+          403,
+        );
+      }
 
       const folder = await resolveProtectedClientFolder(config.baseUrl, config.token);
       if (!folder) {

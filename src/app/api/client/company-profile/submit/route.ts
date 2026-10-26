@@ -5,7 +5,9 @@ import { authenticateRequest, isClientSession } from "@/lib/authenticated-sessio
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
+const DIRECTUS_BASE = (
+  process.env.DIRECTUS_URL || process.env.NEXT_PUBLIC_API_BASE_URL || ""
+).replace(/\/$/, "");
 const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
 
 function getHeaders(): Record<string, string> {
@@ -15,6 +17,11 @@ function getHeaders(): Record<string, string> {
   };
   if (DIRECTUS_TOKEN) h["Authorization"] = `Bearer ${DIRECTUS_TOKEN}`;
   return h;
+}
+
+function getPHISOTimestamp(): string {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
 // ─────────────────────────────────────────────
@@ -53,14 +60,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (link.company_user_role !== "OWNER" && link.company_user_role !== "ADMIN") {
+    const role = String(link.company_user_role || "").toUpperCase();
+    if (role !== "OWNER" && role !== "ADMIN") {
       return NextResponse.json(
         { error: "You do not have permission to submit this company profile." },
         { status: 403 }
       );
     }
 
-    const companyId = link.company_id;
+    const companyId =
+      typeof link.company_id === "object" && link.company_id !== null
+        ? link.company_id.company_id
+        : link.company_id;
 
     // 2. Fetch current company data to validate required fields
     const companyUrl = `${DIRECTUS_BASE}/items/vs_company/${companyId}?fields=*`;
@@ -80,20 +91,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Company record not found." }, { status: 404 });
     }
 
-    // 3. Block re-submission if already Pending or Verified
+    // 3. Block re-submission if already Pending or Verified (unless revision/corrections requested)
     if (
       company.verification_status === "PENDING_VERIFICATION" ||
       company.verification_status === "VERIFIED"
     ) {
-      return NextResponse.json(
-        {
-          error:
-            company.verification_status === "VERIFIED"
-              ? "This company profile is already verified."
-              : "This profile is already pending verification.",
-        },
-        { status: 400 }
-      );
+      let isCorrectionRequired = false;
+      try {
+        const verifUrl = `${DIRECTUS_BASE}/items/vs_company_verifications?filter[company_id][_eq]=${companyId}&sort=-created_at,-id&limit=1&fields=status`;
+        const verifRes = await fetch(verifUrl, { headers: getHeaders(), cache: "no-store" });
+        if (verifRes.ok) {
+          const verifJson = await verifRes.json();
+          const latestStatus = String(verifJson.data?.[0]?.status || "").toUpperCase();
+          isCorrectionRequired = latestStatus === "CORRECTION_REQUIRED";
+        }
+      } catch (e) {
+        console.warn("Could not check latest verification status:", e);
+      }
+
+      if (!isCorrectionRequired) {
+        return NextResponse.json(
+          {
+            error:
+              company.verification_status === "VERIFIED"
+                ? "This company profile is already verified."
+                : "This profile is already pending verification.",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // 4. Validate required fields before allowing submission
@@ -130,11 +156,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 5. Patch company record: set status to PENDING_VERIFICATION + submitted_at
-    const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+    // 4b. Verify required verification documents in vs_company_document
+    try {
+      const docCheckUrl = `${DIRECTUS_BASE}/items/vs_company_document?filter[company_id][_eq]=${companyId}&limit=1&fields=company_document_id`;
+      const docCheckRes = await fetch(docCheckUrl, { headers: getHeaders(), cache: "no-store" });
+      if (docCheckRes.ok) {
+        const docCheckJson = await docCheckRes.json();
+        const uploadedDocs = docCheckJson.data || [];
+        if (uploadedDocs.length === 0) {
+          return NextResponse.json(
+            { error: "Please upload required verification documents before submitting your profile." },
+            { status: 422 }
+          );
+        }
+      }
+    } catch (docErr) {
+      console.warn("Could not check vs_company_document records:", docErr);
+    }
+
+    // 5. Patch company record: set status to PENDING_VERIFICATION + submitted_at, reset rejection_reason
+    const nowPH = getPHISOTimestamp();
     const patchPayload = {
       verification_status: "PENDING_VERIFICATION",
-      submitted_at: now,
+      submitted_at: nowPH,
+      rejection_reason: null,
     };
 
     const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_company/${companyId}`, {
@@ -161,7 +206,7 @@ export async function POST(req: NextRequest) {
     // 6. Log the submission so the admin review queue reads the newest workflow state
     //    (a resubmission after "Needs Revision" must supersede the CORRECTION_REQUIRED row).
     try {
-      await fetch(`${DIRECTUS_BASE}/items/vs_company_verifications`, {
+      const verifInsertRes = await fetch(`${DIRECTUS_BASE}/items/vs_company_verifications`, {
         method: "POST",
         headers: getHeaders(),
         body: JSON.stringify({
@@ -169,19 +214,28 @@ export async function POST(req: NextRequest) {
           submitted_by_user_id: userId,
           verification_type: "INITIAL_REGISTRATION",
           status: "PENDING_VERIFICATION",
-          submitted_at: now,
-          created_at: now,
-          updated_at: now,
+          submitted_at: nowPH,
+          public_rejection_reason: null,
         }),
       });
+      if (!verifInsertRes.ok) {
+        console.warn("Could not log company verification submission:", await verifInsertRes.text());
+      }
     } catch (logErr) {
       console.warn("Could not log company verification submission:", logErr);
     }
 
+    const patchedCompany = ((patchData as { data?: Record<string, unknown> })?.data ?? {}) as Record<string, unknown>;
     return NextResponse.json({
       success: true,
       message: "Company profile submitted for verification successfully.",
-      company: (patchData as { data?: unknown })?.data ?? null,
+      company: {
+        ...patchedCompany,
+        verification_status: "PENDING_VERIFICATION",
+        verification_workflow_status: "PENDING_VERIFICATION",
+        rejection_reason: null,
+        public_rejection_reason: null,
+      },
     });
   } catch (err: unknown) {
     console.error("POST /api/client/company-profile/submit error:", err);

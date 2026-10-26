@@ -5,8 +5,13 @@ import { cookies } from "next/headers";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-const DIRECTUS_TOKEN = process.env.DIRECTUS_STATIC_TOKEN;
+const DIRECTUS_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "")
+  .split("#")[0]
+  .trim()
+  .replace(/\/$/, "");
+const DIRECTUS_TOKEN = (process.env.DIRECTUS_STATIC_TOKEN || "")
+  .split("#")[0]
+  .trim();
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "default_jwt_secret_change_me");
 
 function getHeaders(): Record<string, string> {

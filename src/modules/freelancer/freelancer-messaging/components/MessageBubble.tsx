@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import Avatar from "@/modules/client/messaging/components/Avatar";
 
 const DocumentViewer = dynamic(
   () => import("@/components/DocumentViewer").then((mod) => mod.DocumentViewer),
@@ -28,6 +29,10 @@ interface Props {
   showDateDivider?: boolean;
   dateLabel?: string;
   onToggleReaction?: (messageId: number, reaction: string) => void;
+  otherPartyName?: string;
+  otherPartyAvatar?: string | null;
+  isFirstInGroup?: boolean;
+  isLastInGroup?: boolean;
 }
 
 // ─── AnimatedEmoji — single-responsibility, reused in picker + badge pill ────
@@ -70,52 +75,19 @@ function parseDate(dateStr: string): Date {
   return new Date(year, (month || 1) - 1, day || 1, hour, minute, second);
 }
 
-function formatTime(dateStr: string): string {
-  if (!dateStr) return "";
+function formatFullDateTime(dateStr: string): string {
   const messageDate = parseDate(dateStr);
   if (isNaN(messageDate.getTime())) return "";
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const mDate = new Date(
-    messageDate.getFullYear(),
-    messageDate.getMonth(),
-    messageDate.getDate()
-  );
-
-  const diffDays = Math.round(
-    (today.getTime() - mDate.getTime()) / (1000 * 60 * 60 * 24)
-  );
-
   const rawHour = messageDate.getHours();
   const minute = messageDate.getMinutes();
   const period = rawHour >= 12 ? "PM" : "AM";
   const hour = rawHour % 12 || 12;
   const timeFormatted = `${hour}:${minute.toString().padStart(2, "0")} ${period}`;
-
-  // If today: only show time
-  if (diffDays === 0) {
-    return timeFormatted;
-  }
-
-  // If yesterday: "Yesterday, 4:17 PM"
-  if (diffDays === 1) {
-    return `Yesterday, ${timeFormatted}`;
-  }
-
-  // If previous date: "Aug 14, 4:17 PM"
   const monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
-  const monthStr = monthNames[messageDate.getMonth()] ?? "";
-  const day = messageDate.getDate();
-
-  if (messageDate.getFullYear() === now.getFullYear()) {
-    return `${monthStr} ${day}, ${timeFormatted}`;
-  }
-
-  return `${monthStr} ${day}, ${messageDate.getFullYear()}, ${timeFormatted}`;
+  return `${monthNames[messageDate.getMonth()]} ${messageDate.getDate()}, ${messageDate.getFullYear()}, ${timeFormatted}`;
 }
 
 function formatFileSize(bytes: number | null | undefined): string {
@@ -149,6 +121,10 @@ export default function MessageBubble({
   showDateDivider,
   dateLabel,
   onToggleReaction,
+  otherPartyName,
+  otherPartyAvatar,
+  isFirstInGroup,
+  isLastInGroup,
 }: Props) {
   const { message_type, message_content, created_at, attachments, is_edited, reactions } =
     message;
@@ -255,41 +231,55 @@ export default function MessageBubble({
 
   // ─── Regular message ──────────────────────────────────────────────────────
 
+  const reactionTrigger = (
+    <div
+      className={cn(
+        "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center self-center z-10 shrink-0 max-md:opacity-100",
+        showPicker && "opacity-100"
+      )}
+    >
+      <button
+        type="button"
+        title="Add reaction"
+        aria-label="Add reaction"
+        onClick={() => setShowPicker((prev) => !prev)}
+        className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
+      >
+        <Smile className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="relative select-none"
+      className={cn("relative select-none", isFirstInGroup && !showDateDivider ? "mt-3" : "mt-0.5")}
     >
       {showDateDivider && dateLabel && <DateDivider label={dateLabel} />}
 
       <div
         className={cn(
-          "group relative flex items-end gap-2",
-          hasReactions ? "mb-3.5" : "mb-1.5",
-          isOwn ? "justify-end" : "justify-start"
+          "group relative flex flex-col",
+          hasReactions ? "mb-3.5" : "mb-0",
+          isOwn ? "items-end" : "items-start"
         )}
       >
-        {/* ── Reaction trigger button (left for own messages) ── */}
-        {isOwn && (
-          <div
-            className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0 max-md:opacity-100",
-              showPicker && "opacity-100"
-            )}
-          >
-            <button
-              type="button"
-              title="Add reaction"
-              aria-label="Add reaction"
-              onClick={() => setShowPicker((prev) => !prev)}
-              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
-            >
-              <Smile className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
+        <div
+          className={cn(
+            "relative flex items-end gap-2 max-w-full",
+            isOwn ? "justify-end" : "justify-start"
+          )}
+        >
+          {/* Avatar slot (other party only; shown on last message of a group) */}
+          {!isOwn && (
+            <div className="w-7 shrink-0">
+              {isLastInGroup && otherPartyName ? (
+                <Avatar name={otherPartyName} src={otherPartyAvatar} size={28} className="ring-0" />
+              ) : null}
+            </div>
+          )}
 
         {/* ── Bubble column ─────────────────────────────────────────────── */}
         <div
@@ -303,6 +293,13 @@ export default function MessageBubble({
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerCancel}
         >
+          {/* Sender name for left chat bubble (only on first message in group) */}
+          {!isOwn && isFirstInGroup && otherPartyName && (
+            <span className="select-none px-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+              {otherPartyName}
+            </span>
+          )}
+
           {/* ── Floating Reaction Picker ────────────────────────────────── */}
           <AnimatePresence>
             {showPicker && (
@@ -353,8 +350,40 @@ export default function MessageBubble({
             )}
           </AnimatePresence>
 
-          {/* ── Content area ────────────────────────────────────────────── */}
-          <div className="relative group/content">
+          {/* ── Message Row with Reaction Button ── */}
+          <div className="flex items-center gap-1.5">
+            {isOwn && reactionTrigger}
+
+            {/* ── Content area ────────────────────────────────────────────── */}
+            <div className="relative group/content">
+            {/* Hover date & time tooltip (solid non-transparent, z-50, 400ms delay, arrow indicator) */}
+            {!showPicker && (
+              <div
+                className={cn(
+                  "pointer-events-none absolute z-50 flex items-center gap-1.5 whitespace-nowrap select-none",
+                  "rounded-md px-2.5 py-1 text-[11px] font-medium shadow-md transition-opacity duration-150 delay-0",
+                  "opacity-0 group-hover:opacity-100 group-hover:delay-[400ms]",
+                  hasReactions ? "top-full mt-4" : "top-full mt-1.5",
+                  isOwn
+                    ? "right-0 justify-end bg-emerald-950 text-emerald-100 border border-emerald-700/80 dark:bg-emerald-950 dark:text-emerald-100 dark:border-emerald-600/70"
+                    : "left-0 justify-start bg-white text-zinc-800 border border-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:border-zinc-700"
+                )}
+              >
+                {/* Upward arrow indicator pointing to the bubble */}
+                <span
+                  className={cn(
+                    "absolute -top-1 h-2 w-2 rotate-45",
+                    isOwn
+                      ? "right-3.5 bg-emerald-950 border-l border-t border-emerald-700/80 dark:bg-emerald-950 dark:border-emerald-600/70"
+                      : "left-3.5 bg-white border-l border-t border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
+                  )}
+                />
+                {isOwn && <CheckCheck className="relative z-10 h-3 w-3 shrink-0 text-emerald-400" />}
+                <span className="relative z-10">{formatFullDateTime(created_at)}</span>
+                {is_edited && <span className="relative z-10 opacity-75 italic">(edited)</span>}
+              </div>
+            )}
+
             {/* Text bubble */}
             {message_content && (
               <div
@@ -506,42 +535,11 @@ export default function MessageBubble({
             </AnimatePresence>
           </div>
 
-          {/* ── Timestamp ─────────────────────────────────────────────── */}
-          <div
-            className={cn(
-              "flex items-center gap-1.5 px-1",
-              hasReactions ? "mt-2.5" : "mt-0",
-              isOwn ? "flex-row-reverse" : "flex-row"
-            )}
-          >
-            <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-              {formatTime(created_at)}
-            </span>
-            {is_edited && <span className="text-[10px] text-zinc-400 italic">edited</span>}
-            {isOwn && <CheckCheck className="h-3 w-3 text-emerald-400 shrink-0" />}
+          {!isOwn && reactionTrigger}
           </div>
         </div>
-
-        {/* ── Reaction trigger button (right for other messages) ── */}
-        {!isOwn && (
-          <div
-            className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center mb-4 z-10 shrink-0 max-md:opacity-100",
-              showPicker && "opacity-100"
-            )}
-          >
-            <button
-              type="button"
-              title="Add reaction"
-              aria-label="Add reaction"
-              onClick={() => setShowPicker((prev) => !prev)}
-              className="p-1.5 rounded-full bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:scale-110 transition active:scale-95 cursor-pointer max-md:size-11 max-md:grid max-md:place-items-center"
-            >
-              <Smile className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
       </div>
+    </div>
 
       {/* ── Document Preview Modal ─────────────────────────────────────── */}
       <Dialog open={!!previewDoc} onOpenChange={(o) => !o && setPreviewDoc(null)}>

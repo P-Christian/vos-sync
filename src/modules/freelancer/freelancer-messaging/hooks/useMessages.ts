@@ -11,6 +11,7 @@ import {
   toggleReaction,
 } from "../providers/MessagingProvider";
 import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
+import { toast } from "sonner";
 
 function parseLocalDateMs(dateStr: string): number {
   if (!dateStr) return 0;
@@ -42,6 +43,8 @@ export function useMessages() {
       if (event === "create" && data && data.length > 0) {
         data.forEach((item) => {
           const rawMsg = item as unknown as Message;
+          if (!rawMsg.attachments) rawMsg.attachments = [];
+          if (!rawMsg.reactions) rawMsg.reactions = [];
           const currentConvId = activeConversationIdRef.current;
           if (!currentConvId || Number(rawMsg.conversation_id) === currentConvId) {
             setMessages((prev) => {
@@ -50,6 +53,24 @@ export function useMessages() {
             });
           }
         });
+
+        // Background-refresh to populate attachments, reactions, or system card metadata
+        const activeId = activeConversationIdRef.current;
+        if (activeId) {
+          fetchMessages(activeId, { limit: 50, offset: 0 })
+            .then((result) => {
+              const latestMessages = result.messages;
+              if (latestMessages && latestMessages.length > 0) {
+                setMessages((prev) => {
+                  const map = new Map<number, Message>();
+                  for (const m of prev) map.set(m.message_id, m);
+                  for (const m of latestMessages) map.set(m.message_id, m);
+                  return sortChronologically(Array.from(map.values()));
+                });
+              }
+            })
+            .catch(() => {});
+        }
       } else {
         // Polling tick or generic update event — fetch latest messages for active conversation
         const activeId = activeConversationIdRef.current;
@@ -88,15 +109,16 @@ export function useMessages() {
     setHasMore(true);
     try {
       const result = await fetchMessages(conversationId, { limit: 50, offset: 0 });
+      setError("");
       setMessages(sortChronologically(result.messages));
       if (result.celebration) {
         setCelebration(result.celebration);
       }
       setHasMore(result.messages.length >= 50);
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load messages."
-      );
+      const msg = err instanceof Error ? err.message : "Failed to load messages.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -122,9 +144,9 @@ export function useMessages() {
         setHasMore(olderData.length >= 50);
       }
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load older messages."
-      );
+      const msg = err instanceof Error ? err.message : "Failed to load older messages.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoadingOlder(false);
     }
@@ -135,12 +157,13 @@ export function useMessages() {
       setError("");
       try {
         const result = await fetchMessages(conversationId, { limit: 50, offset: 0 });
+        setError("");
         setMessages(sortChronologically(result.messages));
         setHasMore(result.messages.length >= 50);
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to refresh messages."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to refresh messages.";
+        setError(msg);
+        toast.error(msg);
       }
     },
     []
@@ -158,9 +181,9 @@ export function useMessages() {
         setMessages((prev) => sortChronologically([...prev, newMsg]));
         return true;
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to send message."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to send message.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSending(false);
@@ -176,9 +199,9 @@ export function useMessages() {
       const result = await uploadFile(file);
       return result;
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to upload file."
-      );
+      const msg = err instanceof Error ? err.message : "Failed to upload file.";
+      setError(msg);
+      toast.error(msg);
       return null;
     } finally {
       setUploading(false);
@@ -272,13 +295,28 @@ export function useMessages() {
             })
             .catch(() => {});
         }
-        setError(
-          err instanceof Error ? err.message : "Failed to update reaction."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to update reaction.";
+        setError(msg);
+        toast.error(msg);
       }
     },
     []
   );
+
+  // Listen for programmatic celebration triggers (e.g. from HiredCard)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleTrigger = (e: Event) => {
+      const customEvent = e as CustomEvent<CelebrationEvent>;
+      if (customEvent.detail) {
+        setCelebration(customEvent.detail);
+      }
+    };
+    window.addEventListener("vos:trigger-celebration", handleTrigger);
+    return () => {
+      window.removeEventListener("vos:trigger-celebration", handleTrigger);
+    };
+  }, []);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -291,10 +329,15 @@ export function useMessages() {
     setCelebration(null);
   }, []);
 
+  const triggerCelebration = useCallback((event: CelebrationEvent) => {
+    setCelebration(event);
+  }, []);
+
   return {
     messages,
     celebration,
     dismissCelebration,
+    triggerCelebration,
     loading,
     loadingOlder,
     hasMore,

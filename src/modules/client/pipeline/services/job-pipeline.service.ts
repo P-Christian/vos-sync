@@ -1060,6 +1060,7 @@ export interface TransitionStageResult {
   application?: Record<string, unknown>;
   fromStage?: JobPipelineStage;
   toStage?: JobPipelineStage;
+  stageHistoryId?: number | null;
 }
 
 async function hasStageTasks(stageId: number): Promise<boolean> {
@@ -1326,25 +1327,34 @@ export async function transitionApplicationStage({
 
     // 9. Write audit record into vs_application_stage_history
     const reason = notes || changeReason || `Moved from "${fromStage.stage_name}" to "${toStage.stage_name}"`;
-    await fetch(`${DIRECTUS_BASE}/items/vs_application_stage_history`, {
-      method: "POST",
-      headers: getHeaders(),
-      body: JSON.stringify({
-        application_id: applicationId,
-        from_stage_id: fromStage.id,
-        to_stage_id: toStage.id,
-        changed_by: changedByUserId ?? null,
-        change_reason: reason,
-        metadata: {
-          from_stage_name: fromStage.stage_name,
-          to_stage_name: toStage.stage_name,
-          from_stage_type: fromStage.stage_type,
-          to_stage_type: toStage.stage_type,
-          job_pipeline_id: pipeline.id,
-        },
-        created_at: nowPH,
-      }),
-    });
+    let stageHistoryId: number | null = null;
+    try {
+      const stageHistoryRes = await fetch(`${DIRECTUS_BASE}/items/vs_application_stage_history`, {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify({
+          application_id: applicationId,
+          from_stage_id: fromStage.id,
+          to_stage_id: toStage.id,
+          changed_by: changedByUserId ?? null,
+          change_reason: reason,
+          metadata: {
+            from_stage_name: fromStage.stage_name,
+            to_stage_name: toStage.stage_name,
+            from_stage_type: fromStage.stage_type,
+            to_stage_type: toStage.stage_type,
+            job_pipeline_id: pipeline.id,
+          },
+          created_at: nowPH,
+        }),
+      });
+      if (stageHistoryRes.ok) {
+        const shJson = await stageHistoryRes.json();
+        stageHistoryId = shJson.data?.id ? Number(shJson.data.id) : null;
+      }
+    } catch (e) {
+      console.error("[job-pipeline.service] vs_application_stage_history insert error:", e);
+    }
 
     // 10. Arrival notification: the history row above is the stage-entry
     // timestamp, so the deadline derives from the same nowPH instant.
@@ -1375,6 +1385,7 @@ export async function transitionApplicationStage({
       application: updatedAppJson.data ?? { ...appData, ...patchPayload },
       fromStage,
       toStage,
+      stageHistoryId,
     };
   } catch (err) {
     console.error("[job-pipeline.service] transitionApplicationStage error:", err);

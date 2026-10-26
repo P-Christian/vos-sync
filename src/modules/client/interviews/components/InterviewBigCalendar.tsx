@@ -751,6 +751,8 @@ export default function InterviewBigCalendar({
                               </span>
                               <InterviewStatusBadge
                                 status={item.interview_status}
+                                scheduledAt={item.scheduled_at}
+                                durationMinutes={item.duration_minutes}
                               />
                             </div>
                             <div className="text-zinc-500 flex items-center gap-1.5">
@@ -909,7 +911,11 @@ export default function InterviewBigCalendar({
                               ({item.duration_minutes || 60}m · {item.interview_format.toLowerCase()})
                             </span>
                           </div>
-                          <InterviewStatusBadge status={item.interview_status} />
+                          <InterviewStatusBadge
+                            status={item.interview_status}
+                            scheduledAt={item.scheduled_at}
+                            durationMinutes={item.duration_minutes}
+                          />
                         </div>
 
                         <div className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -1072,7 +1078,11 @@ export default function InterviewBigCalendar({
                     <h3 className="font-bold text-base text-zinc-900 dark:text-white">
                       Interview Details & Q&A
                     </h3>
-                    <InterviewStatusBadge status={selectedInterview.interview_status} />
+                    <InterviewStatusBadge
+                      status={selectedInterview.interview_status}
+                      scheduledAt={selectedInterview.scheduled_at}
+                      durationMinutes={selectedInterview.duration_minutes}
+                    />
                   </div>
                   <p className="text-sm md:text-xs text-zinc-500">
                     {format(parseISO(selectedInterview.scheduled_at), "EEEE, MMMM d, yyyy")}

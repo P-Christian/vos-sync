@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { PlatformCompany, PlatformCompanyFormData } from "../types/platformCompany.types";
 import {
   fetchPlatformCompanies,
-  createPlatformCompany,
   updatePlatformCompany,
   setPrimaryPlatformCompany,
 } from "../services/platformCompany.service";
@@ -32,6 +32,7 @@ export function usePlatformCompany() {
     } catch (err: unknown) {
       const e = err as Error;
       setError(e.message || "Failed to load platform companies");
+      toast.error(e.message || "Failed to load platform companies");
     } finally {
       setLoading(false);
     }
@@ -83,29 +84,29 @@ export function usePlatformCompany() {
   }, []);
 
   const saveCompany = useCallback(
-    async (formData: PlatformCompanyFormData) => {
+    async (formData: PlatformCompanyFormData, targetCompanyId?: number) => {
       setSaving(true);
       clearMessages();
       try {
-        if (editingCompany) {
-          await updatePlatformCompany(editingCompany.company_id, formData);
-          setSuccessMessage(`Updated "${formData.company_name}" successfully.`);
-        } else {
-          await createPlatformCompany(formData);
-          setSuccessMessage(`Created "${formData.company_name}" successfully.`);
-        }
+        const idToUpdate = targetCompanyId ?? formData.company_id ?? editingCompany?.company_id ?? companies[0]?.company_id;
+        await updatePlatformCompany(formData, idToUpdate);
+        const msg = `Updated "${formData.company_name}" successfully.`;
+        setSuccessMessage(msg);
+        toast.success(msg);
         setIsModalOpen(false);
         setEditingCompany(null);
         await loadCompanies();
       } catch (err: unknown) {
         const e = err as Error;
-        setError(e.message || "Failed to save platform company details");
+        const msg = e.message || "Failed to save platform company details";
+        setError(msg);
+        toast.error(msg);
         throw err;
       } finally {
         setSaving(false);
       }
     },
-    [editingCompany, clearMessages, loadCompanies]
+    [editingCompany, companies, clearMessages, loadCompanies]
   );
 
   const handleSetPrimary = useCallback(
@@ -113,11 +114,15 @@ export function usePlatformCompany() {
       clearMessages();
       try {
         await setPrimaryPlatformCompany(company.company_id);
-        setSuccessMessage(`Set "${company.company_name}" as the primary company.`);
+        const msg = `Set "${company.company_name}" as the primary company.`;
+        setSuccessMessage(msg);
+        toast.success(msg);
         await loadCompanies();
       } catch (err: unknown) {
         const e = err as Error;
-        setError(e.message || "Failed to update primary company status");
+        const msg = e.message || "Failed to update primary company status";
+        setError(msg);
+        toast.error(msg);
       }
     },
     [clearMessages, loadCompanies]
@@ -130,13 +135,15 @@ export function usePlatformCompany() {
       const nextActive = !currentActive;
       try {
         await updatePlatformCompany(company.company_id, { is_active: nextActive ? 1 : 0 });
-        setSuccessMessage(
-          `Company "${company.company_name}" is now ${nextActive ? "Active" : "Archived"}.`
-        );
+        const msg = `Company "${company.company_name}" is now ${nextActive ? "Active" : "Archived"}.`;
+        setSuccessMessage(msg);
+        toast.success(msg);
         await loadCompanies();
       } catch (err: unknown) {
         const e = err as Error;
-        setError(e.message || "Failed to update active status");
+        const msg = e.message || "Failed to update active status";
+        setError(msg);
+        toast.error(msg);
       }
     },
     [clearMessages, loadCompanies]

@@ -31,13 +31,25 @@ export async function createPlatformCompany(
 }
 
 export async function updatePlatformCompany(
-  companyId: number,
-  payload: Partial<PlatformCompanyFormData>
+  param1: number | Partial<PlatformCompanyFormData>,
+  param2?: Partial<PlatformCompanyFormData> | number
 ): Promise<{ data: PlatformCompany }> {
-  const res = await fetch(`${BASE_URL}/${companyId}`, {
+  let payload: Partial<PlatformCompanyFormData>;
+  let companyId: number | undefined;
+
+  if (typeof param1 === "number") {
+    companyId = param1;
+    payload = (param2 as Partial<PlatformCompanyFormData>) || {};
+  } else {
+    payload = param1 || {};
+    companyId = typeof param2 === "number" ? param2 : undefined;
+  }
+
+  // Directly PATCH /api/vos-admin/platform-company (singleton entity endpoint)
+  const res = await fetch(BASE_URL, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, ...(companyId ? { company_id: companyId } : {}) }),
   });
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}));

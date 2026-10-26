@@ -119,7 +119,7 @@ export default function DocumentPreviewModal({
   }, []);
 
   const isPdf = Boolean(doc?.name.toLowerCase().endsWith(".pdf"));
-  const docUrl = doc ? `/api/client/assets/${doc.id}` : "";
+  const docUrl = doc ? `/api/assets/${doc.id}` : "";
 
   // Reset transforms and PDF state during render when active document changes
   const currentDocId = isOpen && doc ? doc.id : null;

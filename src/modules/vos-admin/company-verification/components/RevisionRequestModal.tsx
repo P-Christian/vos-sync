@@ -50,10 +50,14 @@ export const RevisionRequestModal: React.FC<RevisionRequestModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const finalPublicReason =
-      selectedPreset && !selectedPreset.startsWith("Select") && selectedPreset !== "Custom reason (see detailed notes below)"
-        ? `${selectedPreset}. ${customReason}`.trim()
-        : customReason.trim();
+    const hasPreset =
+      selectedPreset &&
+      !selectedPreset.startsWith("Select") &&
+      selectedPreset !== "Custom reason (see detailed notes below)";
+
+    const finalPublicReason = hasPreset
+      ? (customReason.trim() ? `${selectedPreset}\n\n${customReason.trim()}` : selectedPreset)
+      : customReason.trim();
 
     if (!finalPublicReason) return;
 
