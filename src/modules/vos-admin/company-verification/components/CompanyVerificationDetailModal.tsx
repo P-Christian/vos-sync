@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { formatAssetUrl, cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -116,21 +116,18 @@ export const CompanyVerificationDetailModal: React.FC<CompanyVerificationDetailM
 
   const currentImg = previewImage || lastImage;
 
-  const sortedDocuments = useMemo(() => {
-    if (!company?.documents || company.documents.length === 0) return [];
-    return [...company.documents].sort((a, b) => {
-      const priorityA = getDocumentCategoryPriority(a.document_type);
-      const priorityB = getDocumentCategoryPriority(b.document_type);
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-      const dateA = a.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
-      const dateB = b.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
-      return dateB - dateA;
-    });
-  }, [company?.documents]);
-
   if (!company) return null;
+
+  const sortedDocuments = (company.documents || []).slice().sort((a, b) => {
+    const priorityA = getDocumentCategoryPriority(a.document_type);
+    const priorityB = getDocumentCategoryPriority(b.document_type);
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    const dateA = a.uploaded_at ? new Date(a.uploaded_at).getTime() : 0;
+    const dateB = b.uploaded_at ? new Date(b.uploaded_at).getTime() : 0;
+    return dateB - dateA;
+  });
 
   const primaryOwner = company.users?.find((u) => u.is_primary_contact || u.company_user_role === "OWNER");
   const verifications = company.verifications || [];
