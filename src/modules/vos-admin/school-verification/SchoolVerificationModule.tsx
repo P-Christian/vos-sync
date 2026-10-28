@@ -27,7 +27,6 @@ export function SchoolVerificationModule() {
   const {
     records,
     loading,
-    error,
     kpiData,
     statusFilter,
     setStatusFilter,
@@ -116,12 +115,6 @@ export function SchoolVerificationModule() {
       </div>
 
       {/* Error alert banner */}
-      {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium mb-4">
-          {error}
-        </div>
-      )}
-
       {/* KPI Stat Cards */}
       <SchoolVerificationKpis
         kpis={kpiData}

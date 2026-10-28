@@ -12,6 +12,7 @@ import {
   Briefcase,
   Users,
   Calendar,
+  ArrowRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -97,7 +98,15 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
                 )}
               </div>
             </div>
-            <span className="text-[11px] text-muted-foreground dark:text-[#8A94AD]">High priority queue</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/vos-sync/client/notifications")}
+              className="text-sm md:text-xs font-semibold text-primary hover:text-primary/90 h-8 max-md:min-h-10 px-2.5 flex items-center gap-1 group"
+            >
+              Notification Center
+              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </Button>
           </CardHeader>
 
           <CardContent className="p-4 md:p-5">
@@ -216,18 +225,7 @@ export default function ActionRequiredCard({ initialActions = [] }: ActionRequir
             )}
           </CardContent>
         </div>
-
-        <div className="p-4 bg-muted/20 border-t border-[#E6EAF2]/80 dark:border-[#1E2942] flex items-center justify-between">
-          <span className="text-sm md:text-xs text-muted-foreground dark:text-[#8A94AD]">Prioritized hiring tasks</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push("/vos-sync/client/notifications")}
-            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
-          >
-            Notification Center
-          </Button>
-        </div>
+ 
       </Card>
     </motion.div>
   );

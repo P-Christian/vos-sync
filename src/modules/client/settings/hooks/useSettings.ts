@@ -21,19 +21,15 @@ export function useSettings() {
   const [teamLoading, setTeamLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [error, setError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
   const loadProfile = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const data = await fetchUserProfile();
       setUser(data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "An error occurred.";
-      setError(msg);
-      toast.error(msg);
+      toast.error(
+        err instanceof Error ? err.message : "An error occurred."
+      );
     } finally {
       setLoading(false);
     }
@@ -41,18 +37,15 @@ export function useSettings() {
 
   const saveProfile = useCallback(async (data: Partial<UserProfile>) => {
     setSaving(true);
-    setError("");
-    setSuccessMessage("");
     try {
       const updated = await updateUserProfile(data);
       setUser(updated);
-      setSuccessMessage("Profile updated successfully.");
       toast.success("Profile updated successfully.");
       return true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to save profile.";
-      setError(msg);
-      toast.error(msg);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to save profile."
+      );
       return false;
     } finally {
       setSaving(false);
@@ -61,20 +54,18 @@ export function useSettings() {
 
   const changePassword = useCallback(async (payload: SecurityPayload) => {
     setSaving(true);
-    setError("");
-    setSuccessMessage("");
     try {
       await updateUserPassword(payload);
-      const msg = payload.revoke_other_sessions
-        ? "Password changed. All other device sessions were signed out."
-        : "Password changed successfully.";
-      setSuccessMessage(msg);
-      toast.success(msg);
+      toast.success(
+        payload.revoke_other_sessions
+          ? "Password changed. All other device sessions were signed out."
+          : "Password changed successfully."
+      );
       return true;
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to change password.";
-      setError(msg);
-      toast.error(msg);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to change password."
+      );
       return false;
     } finally {
       setSaving(false);
@@ -83,14 +74,13 @@ export function useSettings() {
 
   const loadTeam = useCallback(async () => {
     setTeamLoading(true);
-    setError("");
     try {
       const members = await fetchTeamMembers();
       setTeam(members);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load team members.";
-      setError(msg);
-      toast.error(msg);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load team members."
+      );
     } finally {
       setTeamLoading(false);
     }
@@ -103,8 +93,6 @@ export function useSettings() {
       status?: "ACTIVE" | "INACTIVE"
     ) => {
       setSaving(true);
-      setError("");
-      setSuccessMessage("");
       try {
         await updateTeamMemberRole(companyUserId, role, status);
         setTeam((prev) =>
@@ -114,13 +102,12 @@ export function useSettings() {
               : m
           )
         );
-        setSuccessMessage("Team member role updated successfully.");
         toast.success("Team member role updated successfully.");
         return true;
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to update team role.";
-        setError(msg);
-        toast.error(msg);
+        toast.error(
+          err instanceof Error ? err.message : "Failed to update team role."
+        );
         return false;
       } finally {
         setSaving(false);
@@ -137,18 +124,10 @@ export function useSettings() {
     teamLoading,
     saving,
 
-    error,
-    successMessage,
-
     loadProfile,
     saveProfile,
     changePassword,
     loadTeam,
     modifyTeamRole,
-
-    clearMessages: () => {
-      setError("");
-      setSuccessMessage("");
-    },
   };
 }

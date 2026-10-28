@@ -26,7 +26,6 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
     applications,
     summary,
     loading,
-    error,
     fetchApplications,
     filterStatus,
     setFilterStatus,
@@ -49,7 +48,6 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
   const {
     bookmarks,
     loading: bookmarksLoading,
-    error: bookmarksError,
     fetchBookmarks,
     removeBookmark,
   } = useFreelancerBookmarks();
@@ -154,12 +152,6 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
             </div>
           </div>
 
-          {error && (
-            <div className="flex items-center gap-3 p-4 mb-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-              {error}
-            </div>
-          )}
-
           {loading ? (
             <div className="flex items-center justify-center py-16 gap-3 bg-card rounded-xl border shadow-sm mb-8">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -195,12 +187,6 @@ const FreelancerApplicationsPage: React.FC<FreelancerApplicationsPageProps> = ({
               />
             </div>
           </div>
-
-          {bookmarksError && (
-            <div className="flex items-center gap-3 p-4 mb-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-              {bookmarksError}
-            </div>
-          )}
 
           {bookmarksLoading ? (
             <div className="flex items-center justify-center py-16 gap-3 bg-card rounded-xl border shadow-sm mb-8">

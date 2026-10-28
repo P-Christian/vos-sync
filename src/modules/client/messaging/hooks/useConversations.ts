@@ -3,6 +3,7 @@
 // src/modules/client/messaging/hooks/useConversations.ts
 
 import { useCallback, useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Conversation, CreateConversationPayload } from "../types";
 import {
   fetchConversations,
@@ -14,7 +15,6 @@ import { useRealtime } from "@/modules/shared/providers/RealtimeProvider";
 export function useConversations(activeConversationId?: number | null) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const { subscribe } = useRealtime();
 
@@ -64,14 +64,13 @@ export function useConversations(activeConversationId?: number | null) {
       if (!opts?.silent) {
         setLoading(true);
       }
-      setError("");
       try {
         const data = await fetchConversations({ archived: opts?.archived });
         setConversations(normalizeConversations(data));
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load conversations."
-        );
+        const msg =
+          err instanceof Error ? err.message : "Failed to load conversations.";
+        if (!opts?.silent) toast.error(msg);
       } finally {
         if (!opts?.silent) {
           setLoading(false);
@@ -87,7 +86,6 @@ export function useConversations(activeConversationId?: number | null) {
     async (
       payload: CreateConversationPayload
     ): Promise<Conversation | null> => {
-      setError("");
       try {
         const { conversation } = await createConversation(payload);
         // Add to list if not already present
@@ -106,11 +104,9 @@ export function useConversations(activeConversationId?: number | null) {
         });
         return conversation;
       } catch (err: unknown) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to open conversation."
-        );
+        const msg =
+          err instanceof Error ? err.message : "Failed to open conversation.";
+        toast.error(msg);
         return null;
       }
     },
@@ -121,7 +117,6 @@ export function useConversations(activeConversationId?: number | null) {
 
   const archive = useCallback(
     async (conversationId: number, doArchive: boolean): Promise<boolean> => {
-      setError("");
       try {
         await archiveConversation(conversationId, doArchive);
         setConversations((prev) =>
@@ -129,11 +124,11 @@ export function useConversations(activeConversationId?: number | null) {
         );
         return true;
       } catch (err: unknown) {
-        setError(
+        const msg =
           err instanceof Error
             ? err.message
-            : "Failed to archive conversation."
-        );
+            : "Failed to archive conversation.";
+        toast.error(msg);
         return false;
       }
     },
@@ -174,12 +169,10 @@ export function useConversations(activeConversationId?: number | null) {
   return {
     conversations,
     loading,
-    error,
     loadConversations,
     openOrCreateConversation,
     clearUnreadCount,
     updateConversationPreview,
     archive,
-    clearError: () => setError(""),
   };
 }

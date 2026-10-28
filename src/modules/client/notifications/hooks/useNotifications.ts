@@ -3,7 +3,8 @@
 
 // src/modules/client/notifications/hooks/useNotifications.ts
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Notification, NotificationPreference } from "../types";
 import {
   fetchNotifications,
@@ -21,22 +22,24 @@ export function useNotifications() {
   const [prefsLoading, setPrefsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [error, setError] = useState("");
   const [prefsError, setPrefsError] = useState("");
+
+  // Lets the retry action on a failed-load toast call the latest loader.
+  const reloadRef = useRef<() => void>(() => {});
 
   // ─── Fetch notifications ──────────────────────────────────────────────
 
   const loadNotifications = useCallback(
     async (opts?: { unread_only?: boolean }) => {
       setLoading(true);
-      setError("");
 
       try {
         const data = await fetchNotifications(opts);
         setNotifications(data);
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load notifications."
+        toast.error(
+          err instanceof Error ? err.message : "Failed to load notifications.",
+          { action: { label: "Retry", onClick: () => reloadRef.current() } }
         );
       } finally {
         setLoading(false);
@@ -44,6 +47,12 @@ export function useNotifications() {
     },
     []
   );
+
+  useEffect(() => {
+    reloadRef.current = () => {
+      void loadNotifications();
+    };
+  }, [loadNotifications]);
 
   useEffect(() => {
     loadNotifications();
@@ -62,7 +71,7 @@ export function useNotifications() {
     try {
       await markNotificationRead(notificationId);
     } catch (err: unknown) {
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to mark as read."
       );
     }
@@ -74,12 +83,11 @@ export function useNotifications() {
     // 1. Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setSaving(true);
-    setError("");
 
     try {
       await markAllNotificationsRead();
     } catch (err: unknown) {
-      setError(
+      toast.error(
         err instanceof Error ? err.message : "Failed to mark all as read."
       );
     } finally {
@@ -155,7 +163,6 @@ export function useNotifications() {
     prefsLoading,
     saving,
 
-    error,
     prefsError,
 
     unreadCount,
@@ -167,7 +174,6 @@ export function useNotifications() {
     loadPreferences,
     savePreferences,
 
-    clearError: () => setError(""),
     clearPrefsError: () => setPrefsError(""),
   };
 }

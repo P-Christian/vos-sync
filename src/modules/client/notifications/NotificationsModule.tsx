@@ -6,11 +6,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MotionConfig, motion } from "framer-motion";
 import {
-  AlertCircle,
   Bell,
   CheckCheck,
   Layers,
-  RefreshCw,
   Search,
   Settings2,
   X,
@@ -47,7 +45,6 @@ export default function NotificationsModule() {
     notifications,
     loading,
     saving,
-    error,
     unreadCount,
     loadNotifications,
     markRead,
@@ -159,26 +156,6 @@ export default function NotificationsModule() {
           </Button>
         </div>
       </div>
-
-      {/* ── Error Banner ──────────────────────────────────────────────── */}
-      {error && (
-        <div
-          role="alert"
-          className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive"
-        >
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span className="min-w-0 flex-1">{error}</span>
-          <Button
-            onClick={() => loadNotifications()}
-            variant="ghost"
-            size="sm"
-            className="h-8 max-md:min-h-10 shrink-0 cursor-pointer text-xs font-medium text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-            Retry
-          </Button>
-        </div>
-      )}
 
       {/* ── Feed Card ─────────────────────────────────────────────────── */}
       <Card className="gap-0 overflow-hidden rounded-xl border bg-card !py-0 shadow-sm">

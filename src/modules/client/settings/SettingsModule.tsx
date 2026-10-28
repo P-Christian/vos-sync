@@ -38,7 +38,6 @@ export default function SettingsModule({
     loadProfile,
     saveProfile,
     changePassword,
-    clearMessages,
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
@@ -46,11 +45,6 @@ export default function SettingsModule({
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
-
-  const handleTabChange = (tab: SettingsTab) => {
-    clearMessages();
-    setActiveTab(tab);
-  };
 
   return (
     <div className="space-y-4 md:space-y-6 client-page-transition">
@@ -92,7 +86,7 @@ export default function SettingsModule({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={cn(
                     "relative flex items-center gap-2 px-4 py-3.5 text-sm font-medium transition-colors whitespace-nowrap max-md:flex-col max-md:justify-center max-md:gap-1 max-md:px-1 max-md:py-3 max-md:text-xs max-md:tracking-tight max-md:text-center max-md:leading-tight max-md:whitespace-normal max-md:break-words",
                     isActive

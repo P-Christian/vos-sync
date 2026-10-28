@@ -18,7 +18,6 @@ export function CompanyVerificationModule() {
   const {
     records,
     loading,
-    error,
     kpiData,
     statusFilter,
     setStatusFilter,
@@ -84,12 +83,6 @@ export function CompanyVerificationModule() {
       </div>
 
       {/* Error alert banner */}
-      {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium mb-4">
-          {error}
-        </div>
-      )}
-
       {/* KPI Stat Cards */}
       <CompanyVerificationKpis
         kpis={kpiData}
