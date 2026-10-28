@@ -13,7 +13,6 @@ export function useCompanyVerification() {
 
   const [records, setRecords] = useState<CompanyVerificationRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -27,13 +26,13 @@ export function useCompanyVerification() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await fetchCompanyVerifications();
       setRecords(data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to load company verifications";
-      setError(msg);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load company verifications"
+      );
     } finally {
       setLoading(false);
     }
@@ -47,7 +46,6 @@ export function useCompanyVerification() {
         const data = await fetchCompanyVerifications();
         if (isMounted) {
           setRecords(data);
-          setError(null);
           setLoading(false);
 
           if (targetCompanyId) {
@@ -60,7 +58,11 @@ export function useCompanyVerification() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(err instanceof Error ? err.message : "Failed to load company verifications");
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Failed to load company verifications"
+          );
           setLoading(false);
         }
       }
@@ -184,7 +186,6 @@ export function useCompanyVerification() {
     records: filteredRecords,
     allRecords: records,
     loading,
-    error,
     kpiData,
     statusFilter,
     setStatusFilter,

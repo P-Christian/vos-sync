@@ -10,7 +10,7 @@ import { AuditTable } from './AuditTable';
 import { AuditDetailModal } from './AuditDetailModal';
 import { AuditSettingsModal } from './AuditSettingsModal';
 import { Card } from '@/components/ui/card';
-import { ShieldCheck, AlertCircle } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { motion, Variants } from 'framer-motion';
 
 const containerVariants: Variants = {
@@ -47,7 +47,7 @@ const DEFAULT_FILTERS: AuditFiltersType = {
 };
 
 export function AuditTrailPage() {
-  const { records, total, kpis, config, loading, error, fetchAuditLogs, fetchAuditConfig, saveAuditConfig, exportCSV } = useAuditTrail();
+  const { records, total, kpis, config, loading, fetchAuditLogs, fetchAuditConfig, saveAuditConfig, exportCSV } = useAuditTrail();
   const [filters, setFilters] = useState<AuditFiltersType>(DEFAULT_FILTERS);
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -123,14 +123,6 @@ export function AuditTrailPage() {
             onOpenSettings={() => setSettingsOpen(true)}
             isExporting={isExporting}
           />
-
-          {/* Error Alert */}
-          {error && (
-            <div className="mb-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
 
           {/* Audit Table */}
           <AuditTable

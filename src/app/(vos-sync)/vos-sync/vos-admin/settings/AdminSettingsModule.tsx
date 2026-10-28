@@ -30,7 +30,6 @@ export default function AdminSettingsModule() {
     loadProfile,
     saveProfile,
     changePassword,
-    clearMessages,
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
@@ -40,7 +39,6 @@ export default function AdminSettingsModule() {
   }, [loadProfile]);
 
   const handleTabChange = (tab: SettingsTab) => {
-    clearMessages();
     setActiveTab(tab);
   };
 

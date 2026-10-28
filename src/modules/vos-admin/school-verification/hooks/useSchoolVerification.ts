@@ -21,8 +21,6 @@ export function useSchoolVerification() {
 
   const [allRecords, setAllRecords] = useState<SchoolVerificationRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -33,13 +31,13 @@ export function useSchoolVerification() {
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const data = await fetchSchoolVerifications();
       setAllRecords(data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to load school verifications";
-      setError(msg);
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load school verifications"
+      );
       setAllRecords([]);
     } finally {
       setLoading(false);
@@ -50,7 +48,6 @@ export function useSchoolVerification() {
     let isMounted = true;
     const fetchRecords = async () => {
       setLoading(true);
-      setError(null);
       try {
         const data = await fetchSchoolVerifications();
         if (isMounted) {
@@ -66,8 +63,11 @@ export function useSchoolVerification() {
         }
       } catch (err: unknown) {
         if (isMounted) {
-          const msg = err instanceof Error ? err.message : "Failed to load school verifications";
-          setError(msg);
+          toast.error(
+            err instanceof Error
+              ? err.message
+              : "Failed to load school verifications"
+          );
           setAllRecords([]);
         }
       } finally {
@@ -180,7 +180,6 @@ export function useSchoolVerification() {
     records: filteredRecords,
     allRecords,
     loading,
-    error,
     kpiData,
     statusFilter,
     setStatusFilter,

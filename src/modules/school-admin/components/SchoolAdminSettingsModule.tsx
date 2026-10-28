@@ -26,7 +26,6 @@ export function SchoolAdminSettingsModule() {
     loadProfile,
     saveProfile,
     changePassword,
-    clearMessages,
   } = useSettings();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
@@ -36,7 +35,6 @@ export function SchoolAdminSettingsModule() {
   }, [loadProfile]);
 
   const handleTabChange = (tab: SettingsTab) => {
-    clearMessages();
     setActiveTab(tab);
   };
 

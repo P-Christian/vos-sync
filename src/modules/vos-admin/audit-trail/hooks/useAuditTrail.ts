@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { AuditRecord, AuditFilters, AuditKPIData, AuditCategoryConfig, DEFAULT_AUDIT_CONFIG } from '../types/audit.types';
 
@@ -16,11 +17,9 @@ export function useAuditTrail() {
   });
   const [config, setConfig] = useState<AuditCategoryConfig>(DEFAULT_AUDIT_CONFIG);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchAuditLogs = useCallback(async (filters: AuditFilters) => {
     setLoading(true);
-    setError(null);
     try {
       const params = new URLSearchParams();
       params.append('page', String(filters.page));
@@ -47,7 +46,7 @@ export function useAuditTrail() {
         setKpis(json.kpis);
       }
     } catch (err: unknown) {
-      setError((err as Error).message);
+      toast.error((err as Error).message);
       setRecords([]);
       setTotal(0);
     } finally {
@@ -68,7 +67,6 @@ export function useAuditTrail() {
   }, []);
 
   const saveAuditConfig = useCallback(async (newConfig: AuditCategoryConfig): Promise<boolean> => {
-    setError(null);
     try {
       const res = await fetch('/api/vos-admin/audit-trail/config', {
         method: 'POST',
@@ -83,7 +81,7 @@ export function useAuditTrail() {
       }
       return true;
     } catch (err: unknown) {
-      setError((err as Error).message);
+      toast.error((err as Error).message);
       return false;
     }
   }, []);
@@ -139,7 +137,9 @@ export function useAuditTrail() {
       XLSX.writeFile(workbook, fileName);
 
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred during export.');
+      toast.error(
+        err instanceof Error ? err.message : 'An error occurred during export.'
+      );
     }
   }, []);
 
@@ -149,7 +149,6 @@ export function useAuditTrail() {
     kpis,
     config,
     loading,
-    error,
     fetchAuditLogs,
     fetchAuditConfig,
     saveAuditConfig,

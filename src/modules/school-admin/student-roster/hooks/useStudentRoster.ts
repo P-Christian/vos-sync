@@ -5,6 +5,7 @@ import { VsSchoolStudent } from '../types/student-roster.types';
 import { CreateStudentInput, UpdateRosterAcademicsInput } from '../types/student-roster.schema';
 import { VsSchoolCourse } from '@/modules/school-admin/types/school-admin.types';
 import { generateSchoolYearOptions } from '../utils/school-year.utils';
+import { toast } from 'sonner';
 
 interface UseStudentRosterOptions {
   isAlumni?: boolean;
@@ -15,7 +16,6 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
   const [courses, setCourses] = useState<VsSchoolCourse[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('all');
@@ -29,7 +29,6 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
   // Fetch student roster
   const fetchStudents = useCallback(async () => {
     setIsLoading(true);
-    setError(null);
 
     try {
       const params = new URLSearchParams();
@@ -57,8 +56,9 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
         setAccumulatedYears((prev) => Array.from(new Set([...prev, ...fetchedYears])));
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Error loading roster';
-      setError(msg);
+      toast.error(
+        err instanceof Error ? err.message : 'Error loading roster'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +68,6 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
     let isMounted = true;
     const load = async () => {
       setIsLoading(true);
-      setError(null);
 
       try {
         const params = new URLSearchParams();
@@ -99,8 +98,9 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
         }
       } catch (err: unknown) {
         if (isMounted) {
-          const msg = err instanceof Error ? err.message : 'Error loading roster';
-          setError(msg);
+          toast.error(
+            err instanceof Error ? err.message : 'Error loading roster'
+          );
         }
       } finally {
         if (isMounted) {
@@ -214,7 +214,6 @@ export function useStudentRoster({ isAlumni = false }: UseStudentRosterOptions =
     courses,
     totalCount,
     isLoading,
-    error,
     selectedSchoolYear,
     setSelectedSchoolYear,
     selectedCourseId,

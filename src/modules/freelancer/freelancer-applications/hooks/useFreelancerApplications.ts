@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import {
   ApplicationAssessmentInfo,
   ApplicationItem,
@@ -102,14 +103,12 @@ export function useFreelancerApplications() {
     Record<number, ApplicationAssessmentSummary>
   >({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [dateFilter, setDateFilter] = useState<DateRangeFilterValue>({ preset: "ALL" });
   const [search, setSearch] = useState("");
 
   const fetchApplications = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const res = await fetch("/api/freelancer/applications");
       const json = await res.json();
@@ -121,7 +120,7 @@ export function useFreelancerApplications() {
         candidates.length > 0 ? await fetchAssessmentSummaries(candidates) : {},
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      toast.error(err instanceof Error ? err.message : "An error occurred.");
     } finally {
       setLoading(false);
     }
@@ -231,7 +230,6 @@ export function useFreelancerApplications() {
     allApplications,
     summary,
     loading,
-    error,
     filterStatus,
     setFilterStatus,
     dateFilter,

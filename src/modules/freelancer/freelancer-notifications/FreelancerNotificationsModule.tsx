@@ -6,7 +6,6 @@ import React, { useEffect, useState } from "react";
 import {
   Bell,
   CheckCheck,
-  AlertCircle,
   Filter,
   RefreshCw,
 } from "lucide-react";
@@ -30,7 +29,6 @@ export default function FreelancerNotificationsModule() {
     notifications,
     unreadCount,
     isLoading,
-    error,
     markAsRead,
     toggleStar,
     markAllAsRead,
@@ -57,8 +55,6 @@ export default function FreelancerNotificationsModule() {
       : filter === "STARRED"
       ? notifications.filter((n) => n.is_starred)
       : notifications;
-
-  const displayError = error;
 
   return (
     <div className="space-y-6 freelancer-page-transition">
@@ -94,14 +90,6 @@ export default function FreelancerNotificationsModule() {
           </div>
         </div>
       </div>
-
-      {/* Error Message */}
-      {displayError && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {displayError}
-        </div>
-      )}
 
       {/* Notifications Card */}
       <Card className="shadow-sm border bg-card rounded-xl py-0 gap-0 overflow-hidden">
