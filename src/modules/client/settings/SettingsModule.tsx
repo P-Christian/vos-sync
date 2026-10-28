@@ -58,23 +58,17 @@ export default function SettingsModule({
         }
       `}</style>
 
-      {/* Header */}
-      {/* <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-br from-indigo-950 via-zinc-900 to-neutral-950 dark:from-black dark:via-zinc-950 dark:to-zinc-900 text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 h-40 w-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-            <Settings2 className="h-7 w-7" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Employer Settings</h1>
-            <p className="text-sm text-zinc-300 mt-1">
-              Manage account preferences, password security, team roles, and platform integrations.
-            </p>
-          </div>
+      {/* ── Page Header & Breadcrumb ─────────────────────────────────── */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+            Client Settings
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage your account preferences, password security, and notification preferences.
+          </p>
         </div>
-      </div> */}
-
-
+      </div>
 
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">
