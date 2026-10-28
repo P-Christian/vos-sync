@@ -43,10 +43,18 @@ export default function ConversationList({
 }: Props) {
   const [filterTab, setFilterTab] = React.useState<"ALL" | "UNREAD">("ALL");
 
-  const totalUnread = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
+  const totalUnread = conversations.filter(
+    (c) => (c.unread_count ?? 0) > 0 && c.conversation_id !== activeConversationId
+  ).length;
 
   const filtered = conversations.filter((c) => {
-    if (filterTab === "UNREAD" && (c.unread_count ?? 0) === 0) return false;
+    if (
+      filterTab === "UNREAD" &&
+      (c.unread_count ?? 0) === 0 &&
+      c.conversation_id !== activeConversationId
+    ) {
+      return false;
+    }
     const q = searchQuery.toLowerCase();
     if (!q) return true;
     return (
@@ -58,17 +66,17 @@ export default function ConversationList({
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="flex flex-col h-full border-r border-zinc-200 dark:border-zinc-800">
+      <div className="flex flex-col h-full border-r border-border/60 bg-card">
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="px-4 pt-4 pb-3 border-b border-border/60">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+              <span className="text-sm font-semibold text-foreground">
                 Messages
               </span>
               <span
                 className={cn(
-                  "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
+                  "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-full bg-destructive/15 text-destructive text-[10px] font-bold transition-all duration-300 ease-out origin-center pointer-events-none",
                   totalUnread > 0
                     ? "scale-100 opacity-100 max-w-[60px]"
                     : "scale-0 opacity-0 max-w-0 px-0 min-w-0 overflow-hidden border-0"
@@ -90,7 +98,7 @@ export default function ConversationList({
                     onClick={onToggleArchived}
                     aria-label={showArchived ? "Hide archived messages" : "Show archived messages"}
                     className={cn(
-                      "p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 max-md:size-11 max-md:grid max-md:place-items-center",
+                      "p-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted max-md:size-11 max-md:grid max-md:place-items-center",
                       showArchived &&
                         "bg-primary/10 text-primary"
                     )}
@@ -110,7 +118,7 @@ export default function ConversationList({
                     onClick={onRefresh}
                     disabled={loading}
                     aria-label="Refresh conversations"
-                    className="p-1.5 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
+                    className="p-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 max-md:size-11 max-md:grid max-md:place-items-center"
                   >
                     <RefreshCw
                       className={cn("h-3.5 w-3.5", loading && "animate-spin")}
@@ -126,26 +134,26 @@ export default function ConversationList({
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => onSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl text-base md:text-xs bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/50 transition max-md:min-h-11"
+            className="w-full pl-9 pr-3 py-2 rounded-xl text-base md:text-xs bg-muted/50 border border-border/60 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition max-md:min-h-11"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-zinc-100 dark:border-zinc-800 px-4 py-2 gap-2 bg-zinc-50/50 dark:bg-zinc-900/10 shrink-0">
+      <div className="flex border-b border-border/60 px-4 py-2 gap-2 bg-muted/20 shrink-0">
         <button
           onClick={() => setFilterTab("ALL")}
           className={cn(
             "px-3 py-1.5 rounded-lg text-sm md:text-xs font-medium transition-colors max-md:min-h-11",
             filterTab === "ALL"
-              ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200"
-              : "text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              ? "bg-muted text-foreground"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           )}
         >
           All
@@ -155,15 +163,15 @@ export default function ConversationList({
           className={cn(
             "px-3 py-1.5 rounded-lg text-sm md:text-xs font-medium transition-colors flex items-center gap-1.5 max-md:min-h-11",
             filterTab === "UNREAD"
-              ? "bg-rose-500 text-white"
-              : "text-zinc-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-600 dark:hover:text-rose-400"
+              ? "bg-primary text-primary-foreground font-semibold"
+              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           )}
         >
           Unread
           {totalUnread > 0 && (
             <span className={cn(
               "h-4 min-w-4 px-1 flex items-center justify-center rounded-full text-[9px] font-bold",
-              filterTab === "UNREAD" ? "bg-white text-rose-600" : "bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400"
+              filterTab === "UNREAD" ? "bg-primary-foreground text-primary" : "bg-destructive/15 text-destructive"
             )}>
               {totalUnread}
             </span>
@@ -177,24 +185,24 @@ export default function ConversationList({
           <div className="flex flex-col gap-3 p-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="h-10 w-10 rounded-full bg-zinc-200 dark:bg-zinc-700 shrink-0" />
+                <div className="h-10 w-10 rounded-full bg-muted shrink-0" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 w-3/4 rounded bg-zinc-200 dark:bg-zinc-700" />
-                  <div className="h-2 w-full rounded bg-zinc-100 dark:bg-zinc-800" />
+                  <div className="h-3 w-3/4 rounded bg-muted" />
+                  <div className="h-2 w-full rounded bg-muted/60" />
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 py-16 px-6 text-center">
-            <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800">
-              <MessageSquare className="h-7 w-7 text-zinc-400" />
+            <div className="p-4 rounded-2xl bg-muted/60">
+              <MessageSquare className="h-7 w-7 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm font-medium text-foreground">
                 {searchQuery ? "No results found" : showArchived ? "No archived messages" : "No messages yet"}
               </p>
-              <p className="text-sm md:text-xs text-zinc-400 mt-1">
+              <p className="text-sm md:text-xs text-muted-foreground mt-1">
                 {searchQuery
                   ? "Try a different search term"
                   : "When employers message you about your applications, they will appear here."}

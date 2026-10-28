@@ -28,6 +28,12 @@ export default function MessagingModule({
   initialFreelancerId,
   initialJobId,
 }: Props) {
+  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [unreadAtOpen, setUnreadAtOpen] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+
   const {
     conversations,
     loading: convsLoading,
@@ -35,9 +41,10 @@ export default function MessagingModule({
     loadConversations,
     openOrCreateConversation,
     clearUnreadCount,
+    updateConversationPreview,
     archive,
     clearError: clearConvsError,
-  } = useConversations();
+  } = useConversations(activeConversation?.conversation_id ?? null);
 
   const {
     messages,
@@ -51,16 +58,11 @@ export default function MessagingModule({
     loadOlderMessages,
     refreshMessages,
     send,
+    retry,
     upload,
     toggleReaction,
     clearMessages,
-  } = useMessages();
-
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
-  const [unreadAtOpen, setUnreadAtOpen] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [mobileShowChat, setMobileShowChat] = useState(false);
+  } = useMessages(currentUserId);
   const [toast, setToast] = useState<{ text: string; onUndo?: () => void } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -166,7 +168,7 @@ export default function MessagingModule({
   );
 
   const handleSend = useCallback(
-    async (content: string, files: File[]): Promise<boolean> => {
+    async (content: string, files: File[], replyToMessageId?: number): Promise<boolean> => {
       if (!activeConversation) return false;
 
       let attachments: {
@@ -197,17 +199,24 @@ export default function MessagingModule({
             : "FILE"
           : "TEXT";
 
-      const ok = await send(activeConversation.conversation_id, {
+      // Optimistic: update the sidebar preview instantly without any fetch or skeleton
+      const now = new Date().toISOString();
+      const rawText =
+        content.trim() ||
+        (attachments[0]?.mime_type?.startsWith("image/") ? "📷 Image" : "📎 File");
+      const preview = `You: ${rawText}`;
+      updateConversationPreview(activeConversation.conversation_id, preview, now);
+
+      await send(activeConversation.conversation_id, {
         message_content: content || undefined,
         message_type: messageType,
         attachments: attachments.length > 0 ? attachments : undefined,
+        reply_to_message_id: replyToMessageId,
       });
 
-      // Update the list preview silently (no skeleton flash)
-      loadConversations({ archived: showArchived, silent: true });
-      return ok;
+      return true;
     },
-    [activeConversation, upload, send, loadConversations, showArchived]
+    [activeConversation, upload, send, updateConversationPreview]
   );
 
   const handleToggleArchived = useCallback(() => {
@@ -281,7 +290,7 @@ export default function MessagingModule({
 
         {/* Main chat layout */}
         <div className="relative h-[calc(100dvh-96px)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm sm:h-[calc(100dvh-104px)] max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex h-full">
+          <div className="flex h-full w-full min-w-0 overflow-hidden">
             {/* Conversation list: hidden on mobile while a chat is open */}
             <div
               className={cn(
@@ -312,7 +321,7 @@ export default function MessagingModule({
               )}
             >
               {activeConversation ? (
-                <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+                <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden">
                   <ChatPanel
                     key={activeConversation.conversation_id}
                     conversation={activeConversation}
@@ -337,6 +346,7 @@ export default function MessagingModule({
                     }
                     onBack={handleCloseConversation}
                     onToggleReaction={toggleReaction}
+                    onRetry={retry}
                   />
                 </div>
               ) : (

@@ -3,8 +3,26 @@
 // src/modules/shared/providers/RealtimeProvider.tsx
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+
+function isAuthRoute(path: string | null): boolean {
+  if (!path) return false;
+  return (
+    path === "/login" ||
+    path.startsWith("/login/") ||
+    path === "/signup" ||
+    path.startsWith("/signup/") ||
+    path === "/forgot-password" ||
+    path.startsWith("/forgot-password/") ||
+    path === "/student-register" ||
+    path.startsWith("/student-register/") ||
+    path === "/school-register" ||
+    path.startsWith("/school-register/") ||
+    path.startsWith("/auth/")
+  );
+}
 
 export type RealtimeEventType = "create" | "update" | "delete" | "init";
 
@@ -59,12 +77,20 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Ensure Service Worker is registered automatically across the entire app
   usePushNotifications();
 
+  const pathname = usePathname();
+
   const [mode, setModeState] = useState<RealtimeMode>(DEFAULT_REALTIME_MODE);
   const [isConnected, setIsConnected] = useState(false);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const subscribersRef = useRef<Map<string, Set<RealtimeCallback>>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const offlineDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const offlineProbeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wasOfflineRef = useRef(false);
+  // Tracks the authenticated user's ID received from the SSE connected frame
+  const sessionUserIdRef = useRef<string | null>(null);
 
   const setMode = useCallback((newMode: RealtimeMode) => {
     setModeState(newMode);
@@ -136,18 +162,51 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
 
           if (collection === "vs_message" || collection === "vs_messages") {
-            const senderName = String(rec.sender_name || "New Message");
-            const messageText = String(
-              rec.message_content || rec.message_text || "Sent you a message"
-            );
+            // Don't notify the sender about their own message
+            const senderId = rec.sender_id;
+            if (
+              sessionUserIdRef.current !== null &&
+              String(senderId) === sessionUserIdRef.current
+            ) {
+              return;
+            }
+
+            // Don't trigger user message notification for SYSTEM events
+            if (rec.message_type === "SYSTEM") {
+              return;
+            }
+
+            const senderName = rec.sender_name
+              ? String(rec.sender_name).trim()
+              : "";
 
             if (
               typeof window !== "undefined" &&
               !window.location.pathname.includes("/messaging")
             ) {
-              toast(senderName, { description: messageText });
+              if (senderName) {
+                toast(`${senderName} sent a message`);
+              } else if (senderId != null) {
+                // Fallback check who sent the message if sender_name wasn't in event payload
+                fetch(`/api/shared/users/lookup?id=${senderId}`)
+                  .then((res) => res.json())
+                  .then((data) => {
+                    const resolvedName = data?.name ? String(data.name).trim() : "";
+                    toast(
+                      resolvedName
+                        ? `${resolvedName} sent a message`
+                        : "You received a new message"
+                    );
+                  })
+                  .catch(() => {
+                    toast("You received a new message");
+                  });
+              } else {
+                toast("You received a new message");
+              }
             }
           }
+
 
           if (collection === "vs_interview" || collection === "vs_interview_schedule") {
             const title = String(
@@ -172,8 +231,75 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [notifySubscribers]
   );
 
+  const connectStreamRef = useRef<() => void>(() => {});
+
+  const resetHeartbeatWatchdog = useCallback(() => {
+    if (heartbeatTimeoutRef.current) {
+      clearTimeout(heartbeatTimeoutRef.current);
+      heartbeatTimeoutRef.current = null;
+    }
+    // If the browser knows it's offline, mark disconnected immediately
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setIsConnected(false);
+      return;
+    }
+    // 30-second watchdog (backend pings every 20s + 10s grace period)
+    heartbeatTimeoutRef.current = setTimeout(() => {
+      console.warn("⚠️ [Realtime Stream] Heartbeat missed (30s). Connection stalled. Reconnecting...");
+      setIsConnected(false);
+      wasOfflineRef.current = true;
+      toast.warning("Connection stalled. Reconnecting…", {
+        duration: 4000,
+      });
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      connectStreamRef.current();
+    }, 30000);
+  }, []);
+
+  const stopOfflineProbe = useCallback(() => {
+    if (offlineProbeIntervalRef.current) {
+      clearInterval(offlineProbeIntervalRef.current);
+      offlineProbeIntervalRef.current = null;
+    }
+  }, []);
+
+  const startOfflineProbe = useCallback(() => {
+    if (offlineProbeIntervalRef.current) return;
+    offlineProbeIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch("/api/health", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(2000),
+        });
+        if (res.ok) {
+          console.log("🟢 [Realtime] Active probe confirmed connection restored!");
+          stopOfflineProbe();
+          if (wasOfflineRef.current) {
+            toast.success("Back online. Connection restored.", {
+              duration: 3000,
+            });
+            wasOfflineRef.current = false;
+          }
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+            eventSourceRef.current = null;
+          }
+          connectStreamRef.current();
+        }
+      } catch {
+        // Still offline, probe continues
+      }
+    }, 2000);
+  }, [stopOfflineProbe]);
+
   const connectStream = useCallback(() => {
     if (typeof window === "undefined") return;
+    if (isAuthRoute(pathname)) {
+      return;
+    }
     if (eventSourceRef.current) return;
 
     try {
@@ -183,14 +309,61 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       es.onopen = () => {
         setIsConnected(true);
+        resetHeartbeatWatchdog();
+        stopOfflineProbe();
+        if (offlineDebounceRef.current) {
+          clearTimeout(offlineDebounceRef.current);
+          offlineDebounceRef.current = null;
+        }
+        if (wasOfflineRef.current) {
+          toast.success("Back online. Connection restored.", {
+            duration: 3000,
+          });
+          wasOfflineRef.current = false;
+        }
         console.log("🟢 [Realtime Stream] Connected successfully over HTTPS.");
       };
 
-      es.addEventListener("connected", () => {
+      es.addEventListener("connected", (event: MessageEvent) => {
         setIsConnected(true);
+        resetHeartbeatWatchdog();
+        stopOfflineProbe();
+        if (offlineDebounceRef.current) {
+          clearTimeout(offlineDebounceRef.current);
+          offlineDebounceRef.current = null;
+        }
+        // Capture the authenticated userId so we can suppress self-notifications
+        try {
+          const data = JSON.parse(event.data) as { userId?: string | number };
+          if (data.userId != null) {
+            sessionUserIdRef.current = String(data.userId);
+          }
+        } catch {
+          // non-critical, ignore parse errors
+        }
+
+        // If the user was offline, display a success toast and dismiss any offline alert
+        if (wasOfflineRef.current) {
+          toast.success("Back online. Connection restored.", {
+            duration: 3000,
+          });
+          wasOfflineRef.current = false;
+        }
+
+        // Notify active subscribers to re-sync missing messages/events after blackout
+        const activeCollections = Array.from(subscribersRef.current.keys());
+        activeCollections.forEach((col) => {
+          notifySubscribers(col, "init", []);
+        });
+      });
+
+      // Listen for explicit server ping events to reset heartbeat watchdog
+      es.addEventListener("ping", () => {
+        resetHeartbeatWatchdog();
       });
 
       es.onmessage = (event) => {
+        resetHeartbeatWatchdog();
         try {
           const payload = JSON.parse(event.data) as RealtimeMessage;
           handleIncomingStreamPayload(payload);
@@ -201,7 +374,40 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       es.onerror = (err) => {
         console.warn("🟡 [Realtime Stream] SSE stream connection notice (auto-reconnecting):", err);
-        // EventSource automatically retries connections
+        setIsConnected(false);
+        if (heartbeatTimeoutRef.current) {
+          clearTimeout(heartbeatTimeoutRef.current);
+          heartbeatTimeoutRef.current = null;
+        }
+
+        // If disconnected for >1.5s and not yet flagged, verify network before triggering offline toast
+        if (!offlineDebounceRef.current && !wasOfflineRef.current) {
+          offlineDebounceRef.current = setTimeout(async () => {
+            offlineDebounceRef.current = null;
+            if (eventSourceRef.current?.readyState !== EventSource.OPEN) {
+              // Quick probe to verify if device is truly offline vs unauthenticated / stream restart
+              try {
+                const res = await fetch("/api/health", {
+                  cache: "no-store",
+                  signal: AbortSignal.timeout(2000),
+                });
+                if (res.ok) {
+                  // Device IS online! Failure was 401 unauthenticated or temporary reconnect.
+                  // Do NOT show "You are offline"!
+                  return;
+                }
+              } catch {
+                // Fetch failed (network error / offline) -> genuinely offline!
+              }
+
+              wasOfflineRef.current = true;
+              toast.error("You are offline. Please check your internet connection.", {
+                duration: 5000,
+              });
+              startOfflineProbe();
+            }
+          }, 1500);
+        }
       };
     } catch (err) {
       console.error("💥 [Realtime Stream] Exception initializing EventSource:", err);
@@ -209,10 +415,22 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         window.requestAnimationFrame(() => setIsConnected(false));
       }
     }
-  }, [handleIncomingStreamPayload]);
+  }, [pathname, handleIncomingStreamPayload, notifySubscribers, resetHeartbeatWatchdog, startOfflineProbe, stopOfflineProbe]);
 
-  // Handle Mode Switching (Stream vs Polling)
+  connectStreamRef.current = connectStream;
+
+  // Handle Mode Switching (Stream vs Polling) & Route Transitions
   useEffect(() => {
+    if (isAuthRoute(pathname)) {
+      if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setIsConnected(false);
+      return;
+    }
+
     if (mode === "stream") {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
       connectStream();
@@ -236,12 +454,110 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     return () => {
       if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+        heartbeatTimeoutRef.current = null;
+      }
+      if (offlineDebounceRef.current) {
+        clearTimeout(offlineDebounceRef.current);
+        offlineDebounceRef.current = null;
+      }
+      stopOfflineProbe();
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
     };
-  }, [mode, connectStream, notifySubscribers]);
+  }, [mode, pathname, connectStream, notifySubscribers, stopOfflineProbe]);
+
+  const reconnect = useCallback(() => {
+    if (heartbeatTimeoutRef.current) {
+      clearTimeout(heartbeatTimeoutRef.current);
+      heartbeatTimeoutRef.current = null;
+    }
+    if (mode === "stream") {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      connectStream();
+    }
+  }, [mode, connectStream]);
+
+  // Network online/offline & tab visibility immediate reconnection listeners
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleOnline = () => {
+      console.log("🌐 [Realtime] Device came back online! Reconnecting stream immediately...");
+      setIsConnected(false);
+      stopOfflineProbe();
+      if (offlineDebounceRef.current) {
+        clearTimeout(offlineDebounceRef.current);
+        offlineDebounceRef.current = null;
+      }
+      if (wasOfflineRef.current) {
+        toast.success("Back online. Connection restored.", {
+          duration: 3000,
+        });
+        wasOfflineRef.current = false;
+      }
+      reconnect();
+    };
+
+    const handleOffline = () => {
+      console.warn("🔌 [Realtime] Device went offline.");
+      setIsConnected(false);
+      wasOfflineRef.current = true;
+      if (offlineDebounceRef.current) {
+        clearTimeout(offlineDebounceRef.current);
+        offlineDebounceRef.current = null;
+      }
+      toast.error("You are offline. Please check your internet connection.", {
+        duration: 5000,
+      });
+      startOfflineProbe();
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+        heartbeatTimeoutRef.current = null;
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        console.log("👁️ [Realtime] Tab visible. Checking stream health...");
+        if (
+          !eventSourceRef.current ||
+          eventSourceRef.current.readyState === EventSource.CLOSED
+        ) {
+          handleOnline();
+        }
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+        heartbeatTimeoutRef.current = null;
+      }
+      if (offlineDebounceRef.current) {
+        clearTimeout(offlineDebounceRef.current);
+        offlineDebounceRef.current = null;
+      }
+      stopOfflineProbe();
+    };
+  }, [reconnect, startOfflineProbe, stopOfflineProbe]);
 
   const subscribe = useCallback(
     (collection: string, callback: RealtimeCallback) => {
@@ -264,16 +580,6 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const sendCustom = useCallback((payload: Record<string, unknown>) => {
     console.log("[Realtime Stream] sendCustom called:", payload);
   }, []);
-
-  const reconnect = useCallback(() => {
-    if (mode === "stream") {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
-      connectStream();
-    }
-  }, [mode, connectStream]);
 
   return (
     <RealtimeContext.Provider

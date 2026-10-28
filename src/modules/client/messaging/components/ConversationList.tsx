@@ -63,7 +63,9 @@ export default function ConversationList({
     [conversations, filter, q, activeConversationId]
   );
 
-  const unreadConversations = conversations.filter((c) => (c.unread_count ?? 0) > 0).length;
+  const unreadConversations = conversations.filter(
+    (c) => (c.unread_count ?? 0) > 0 && c.conversation_id !== activeConversationId
+  ).length;
 
   const emptyTitle = searchQuery
     ? "No matches"

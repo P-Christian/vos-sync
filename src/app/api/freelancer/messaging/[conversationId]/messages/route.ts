@@ -75,7 +75,7 @@ export async function GET(
     const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
     const msgsRes = await fetch(
-      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&filter[is_deleted][_eq]=false&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted`,
+      `${DIRECTUS_BASE}/items/vs_message?filter[conversation_id][_eq]=${conversationId}&sort[]=-created_at&limit=${limit}&offset=${offset}&fields=message_id,conversation_id,sender_id,message_type,message_content,is_edited,edited_at,created_at,is_deleted,reply_to_message_id,is_pinned,pinned_at,pinned_by`,
       { headers: getHeaders(), cache: "no-store" }
     );
 
@@ -138,7 +138,7 @@ export async function GET(
             read_at: nowISO,
           }));
 
-          fetch(`${DIRECTUS_BASE}/items/vs_message_read`, {
+          await fetch(`${DIRECTUS_BASE}/items/vs_message_read`, {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify(readPayloads),
@@ -543,8 +543,92 @@ export async function GET(
       }
     }
 
+    // Batch-fetch reply-to quoted messages
+    const replyIds = Array.from(
+      new Set(
+        messages
+          .map((m) => m.reply_to_message_id as number | undefined)
+          .filter((id): id is number => typeof id === "number" && id > 0)
+      )
+    );
+    const replyMap = new Map<
+      number,
+      { message_id: number; sender_id: number; sender_name: string; message_content: string; message_type: string }
+    >();
+
+    if (replyIds.length > 0) {
+      try {
+        const replyRes = await fetch(
+          `${DIRECTUS_BASE}/items/vs_message?filter[message_id][_in]=${replyIds.join(
+            ","
+          )}&fields=message_id,sender_id,message_type,message_content`,
+          { headers: getHeaders(), cache: "no-store" }
+        );
+        if (replyRes.ok) {
+          const replyJson = await replyRes.json();
+          const replyItems = (replyJson.data ?? []) as Record<string, unknown>[];
+          const senderIds = Array.from(new Set(replyItems.map((r) => r.sender_id as number).filter(Boolean)));
+          const userNamesMap = new Map<number, string>();
+          if (senderIds.length > 0) {
+            try {
+              const uRes = await fetch(
+                `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${senderIds.join(",")}&fields=user_id,user_fname,user_lname`,
+                { headers: getHeaders(), cache: "no-store" }
+              );
+              if (uRes.ok) {
+                const uData = (await uRes.json()).data ?? [];
+                for (const u of uData) {
+                  const name = `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim();
+                  if (name) userNamesMap.set(u.user_id, name);
+                }
+              }
+            } catch {}
+          }
+
+          for (const rm of replyItems) {
+            const dec = safeDecryptMessage(rm.message_content as string | null);
+            const sId = rm.sender_id as number;
+            const resolvedName = userNamesMap.get(sId);
+            const sName =
+              sId === userId
+                ? "You"
+                : (resolvedName || conv.company_name || conv.client_name || "Client");
+            replyMap.set(rm.message_id as number, {
+              message_id: rm.message_id as number,
+              sender_id: sId,
+              sender_name: sName,
+              message_content: dec ? (dec.length > 120 ? dec.slice(0, 120) + "..." : dec) : "",
+              message_type: (rm.message_type as string) || "TEXT",
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching reply quoted messages in freelancer route:", err);
+      }
+    }
+
+    // Fetch pinned message IDs for this user
+    const userPinnedSet = new Set<number>();
+    try {
+      const pinRes = await fetch(
+        `${DIRECTUS_BASE}/items/vs_message_pin?filter[user_id][_eq]=${userId}&filter[conversation_id][_eq]=${conversationId}&fields=message_id&limit=100`,
+        { headers: getHeaders(), cache: "no-store" }
+      );
+      if (pinRes.ok) {
+        const pinData = (await pinRes.json()).data ?? [];
+        for (const p of pinData) {
+          userPinnedSet.add(Number(p.message_id));
+        }
+      }
+    } catch {
+      /* fallback */
+    }
+
     const enriched = messages.map((msg) => {
       let content = safeDecryptMessage(msg.message_content as string | null | undefined);
+      if (msg.is_deleted) {
+        content = null;
+      }
       const cardData = cardDataMap[msg.message_id as number];
       const sm = systemMsgMap[msg.message_id as number];
 
@@ -568,6 +652,10 @@ export async function GET(
         }
       }
 
+      const isPinnedForUser = userPinnedSet.size > 0
+        ? userPinnedSet.has(msg.message_id as number)
+        : Boolean(msg.is_pinned && Number(msg.pinned_by) === userId);
+
       return {
         ...msg,
         message_content: content,
@@ -575,6 +663,10 @@ export async function GET(
         system_message: sm ?? null,
         system_card_data: cardData ?? null,
         reactions: reactionsMap.get(msg.message_id as number) ?? [],
+        reply_to: msg.reply_to_message_id ? replyMap.get(msg.reply_to_message_id as number) ?? null : null,
+        is_pinned: isPinnedForUser,
+        pinned_at: isPinnedForUser ? ((msg.pinned_at as string) ?? null) : null,
+        pinned_by: isPinnedForUser ? ((msg.pinned_by as number) ?? userId) : null,
       };
     }).reverse();
 
@@ -671,18 +763,23 @@ export async function POST(
       ? encryptMessage(body.message_content)
       : body.message_content ?? null;
 
+    const messageInsertBody: Record<string, unknown> = {
+      conversation_id: Number(conversationId),
+      sender_id: userId,
+      message_type: body.message_type ?? "TEXT",
+      message_content: contentToStore,
+      created_at: nowPH,
+      is_edited: false,
+      is_deleted: false,
+    };
+    if (body.reply_to_message_id) {
+      messageInsertBody.reply_to_message_id = Number(body.reply_to_message_id);
+    }
+
     const msgRes = await fetch(`${DIRECTUS_BASE}/items/vs_message`, {
       method: "POST",
       headers: getHeaders(),
-      body: JSON.stringify({
-        conversation_id: Number(conversationId),
-        sender_id: userId,
-        message_type: body.message_type ?? "TEXT",
-        message_content: contentToStore,
-        created_at: nowPH,
-        is_edited: false,
-        is_deleted: false,
-      }),
+      body: JSON.stringify(messageInsertBody),
     });
 
     const msgJson = await msgRes.json();
@@ -738,6 +835,10 @@ export async function POST(
           ...newMessage,
           message_content: safeDecryptMessage(newMessage?.message_content),
           attachments,
+          reply_to_message_id: body.reply_to_message_id ? Number(body.reply_to_message_id) : null,
+          is_pinned: false,
+          pinned_at: null,
+          pinned_by: null,
         },
       },
       { status: 201 }

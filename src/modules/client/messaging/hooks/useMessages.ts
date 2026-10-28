@@ -25,15 +25,29 @@ function sortChronologically(list: Message[]): Message[] {
   return [...list].sort((a, b) => parseLocalDateMs(a.created_at) - parseLocalDateMs(b.created_at));
 }
 
-export function useMessages() {
+function getLocalTimestamp(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
+export function useMessages(currentUserId: number = 0) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [sending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const activeConversationIdRef = useRef<number | null>(null);
+  const pendingPayloadsRef = useRef<
+    Map<number, { conversationId: number; payload: SendMessagePayload }>
+  >(new Map());
 
   const { subscribe } = useRealtime();
 
@@ -169,29 +183,129 @@ export function useMessages() {
     []
   );
 
-  // ─── Send message ──────────────────────────────────────────────────────
+  // ─── Send message with up to 5 retries ────────────────────────────────
+  const executeSendWithRetry = useCallback(
+    async (
+      tempId: number,
+      conversationId: number,
+      payload: SendMessagePayload
+    ): Promise<boolean> => {
+      setError("");
+
+      const MAX_RETRIES = 5;
+      let attempts = 0;
+      let successMsg: Message | null = null;
+      let lastError: unknown = null;
+
+      while (attempts <= MAX_RETRIES) {
+        try {
+          successMsg = await sendMessage(conversationId, payload);
+          break;
+        } catch (err) {
+          lastError = err;
+          attempts++;
+          if (attempts <= MAX_RETRIES) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        }
+      }
+
+      if (successMsg) {
+        const finalMsg = successMsg;
+        pendingPayloadsRef.current.delete(tempId);
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.message_id === tempId);
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = { ...finalMsg, delivery_status: "sent" };
+            return sortChronologically(next);
+          }
+          if (prev.some((m) => m.message_id === finalMsg.message_id)) return prev;
+          return sortChronologically([...prev, { ...finalMsg, delivery_status: "sent" }]);
+        });
+
+        // Hide "sent" status after 2 seconds
+        setTimeout(() => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.message_id === finalMsg.message_id && m.delivery_status === "sent"
+                ? { ...m, delivery_status: undefined }
+                : m
+            )
+          );
+        }, 2000);
+
+        return true;
+      } else {
+        // All 5 retries failed
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.message_id === tempId
+              ? { ...m, delivery_status: "failed" }
+              : m
+          )
+        );
+        const msg = lastError instanceof Error ? lastError.message : "Failed to send message.";
+        setError(msg);
+        toast.error("Failed to send message after 5 retries.");
+        return false;
+      }
+    },
+    []
+  );
 
   const send = useCallback(
     async (
       conversationId: number,
       payload: SendMessagePayload
     ): Promise<boolean> => {
-      setSending(true);
-      setError("");
-      try {
-        const newMsg = await sendMessage(conversationId, payload);
-        setMessages((prev) => sortChronologically([...prev, newMsg]));
-        return true;
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Failed to send message.";
-        setError(msg);
-        toast.error(msg);
-        return false;
-      } finally {
-        setSending(false);
-      }
+      const tempId = -Date.now();
+      const optimisticMsg: Message = {
+        message_id: tempId,
+        conversation_id: conversationId,
+        sender_id: currentUserId,
+        message_type: payload.message_type ?? "TEXT",
+        message_content: payload.message_content ?? null,
+        is_edited: false,
+        edited_at: null,
+        created_at: getLocalTimestamp(),
+        is_deleted: false,
+        attachments: (payload.attachments ?? []).map((att, i) => ({
+          attachment_id: -i - 1,
+          message_id: tempId,
+          file_name: att.file_name,
+          file_path: att.file_path,
+          file_size: att.file_size ?? null,
+          mime_type: att.mime_type ?? null,
+          created_at: getLocalTimestamp(),
+        })),
+        delivery_status: "sending",
+      };
+
+      pendingPayloadsRef.current.set(tempId, { conversationId, payload });
+      setMessages((prev) => sortChronologically([...prev, optimisticMsg]));
+
+      // Execute retry loop in background
+      void executeSendWithRetry(tempId, conversationId, payload);
+      return true;
     },
-    []
+    [currentUserId, executeSendWithRetry]
+  );
+
+  const retry = useCallback(
+    async (messageId: number): Promise<boolean> => {
+      const entry = pendingPayloadsRef.current.get(messageId);
+      if (!entry) return false;
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.message_id === messageId ? { ...m, delivery_status: "sending" } : m
+        )
+      );
+
+      return executeSendWithRetry(messageId, entry.conversationId, entry.payload);
+    },
+    [executeSendWithRetry]
   );
 
   // ─── Upload file ───────────────────────────────────────────────────────
@@ -329,6 +443,7 @@ export function useMessages() {
     loadOlderMessages,
     refreshMessages,
     send,
+    retry,
     upload,
     toggleReaction: toggleMessageReaction,
     clearMessages,

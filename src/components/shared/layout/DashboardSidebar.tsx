@@ -16,6 +16,7 @@ import {
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import { useThemeCurtain } from "@/components/theme/useThemeCurtain";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import {
@@ -215,8 +216,12 @@ export function DashboardSidebar({
                         const data = await res.json();
                         setUnreadMessages(data.unreadCount || 0);
                     }
-                } catch (err) {
-                    console.error("Failed to fetch unread message count:", err);
+                } catch {
+                    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+                    toast.error("Something went wrong", {
+                        id: "sidebar-fetch-error",
+                        duration: 3000,
+                    });
                 }
             }
 
@@ -228,7 +233,11 @@ export function DashboardSidebar({
                         setUnreadContactMessages(data.unreadCount || 0);
                     }
                 } catch {
-                    // non-blocking
+                    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+                    toast.error("Something went wrong", {
+                        id: "sidebar-fetch-error",
+                        duration: 3000,
+                    });
                 }
             }
 
@@ -255,7 +264,11 @@ export function DashboardSidebar({
                             setUnreadNotifications(data.unreadCount ?? data.notifications?.length ?? 0);
                         }
                     } catch {
-                        // Silently ignore if endpoint unavailable or network error
+                        if (typeof navigator !== "undefined" && !navigator.onLine) return;
+                        toast.error("Something went wrong", {
+                            id: "sidebar-fetch-error",
+                            duration: 3000,
+                        });
                     }
                 }
             }
