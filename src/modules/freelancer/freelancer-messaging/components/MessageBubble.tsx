@@ -398,14 +398,12 @@ export default function MessageBubble({
   const [showPicker, setShowPicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   // Tracks which emoji this user just clicked — cleared after 350 ms
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
 
   const holdTimerRef = useRef<NodeJS.Timeout | null>(null);
   const animTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -417,7 +415,6 @@ export default function MessageBubble({
     return () => {
       if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
       if (animTimerRef.current) clearTimeout(animTimerRef.current);
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
     };
   }, []);
 
@@ -454,12 +451,7 @@ export default function MessageBubble({
 
   const handleCopy = useCallback(async () => {
     if (!message_content) return;
-    const success = await copyToClipboard(message_content);
-    if (success) {
-      setCopied(true);
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    }
+    await copyToClipboard(message_content);
     setShowMoreMenu(false);
   }, [message_content]);
 

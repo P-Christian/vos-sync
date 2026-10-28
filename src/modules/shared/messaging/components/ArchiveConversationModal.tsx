@@ -2,7 +2,7 @@
 
 // src/modules/shared/messaging/components/ArchiveConversationModal.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Archive, ArchiveRestore, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,11 +24,7 @@ export default function ArchiveConversationModal({
   conversationName,
   loading = false,
 }: ArchiveConversationModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   useEffect(() => {
     if (!isOpen) return;

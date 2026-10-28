@@ -2,7 +2,7 @@
 
 // src/modules/shared/messaging/components/PinnedMessagesModal.tsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Pin, X, ArrowUpRight, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,11 +40,7 @@ export default function PinnedMessagesModal({
   onJumpToMessage,
   onTogglePin,
 }: PinnedMessagesModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   useEffect(() => {
     if (!isOpen) return;

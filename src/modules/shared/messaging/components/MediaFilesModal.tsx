@@ -2,7 +2,7 @@
 
 // src/modules/shared/messaging/components/MediaFilesModal.tsx
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -44,14 +44,10 @@ export default function MediaFilesModal({
   allAttachments,
   onJumpToMessage,
 }: MediaFilesModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const [activeTab, setActiveTab] = useState<"all" | "images" | "docs">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [previewItem, setPreviewItem] = useState<{ url: string; title: string } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -17,7 +17,7 @@ import {
   ArchiveRestore,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+ 
 import PinnedMessagesModal from "./PinnedMessagesModal";
 import MediaFilesModal from "./MediaFilesModal";
 import ArchiveConversationModal from "./ArchiveConversationModal";
@@ -75,7 +75,7 @@ export default function ConversationDetailsSidebar({
 
   userRole,
 }: ConversationDetailsSidebarProps) {
-  const [isMuted, setIsMuted] = useState(false);
+ 
   const [chatInfoOpen, setChatInfoOpen] = useState(true);
   const [showPinnedList, setShowPinnedList] = useState(false);
   const [mediaOpen, setMediaOpen] = useState(false);

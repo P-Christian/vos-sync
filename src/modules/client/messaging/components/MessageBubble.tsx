@@ -387,16 +387,13 @@ export default function MessageBubble({
   const [showPicker, setShowPicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
   const [showSent, setShowSent] = useState(false);
 
   const pressRef = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
   const animTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rowRef = useRef<HTMLDivElement>(null);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const myReaction = reactions?.find((r) => r.reacted_by_me)?.reaction;
   const hasReactions = !!(reactions && reactions.length > 0);
@@ -412,7 +409,6 @@ export default function MessageBubble({
     return () => {
       cancelPress();
       if (animTimerRef.current) clearTimeout(animTimerRef.current);
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
       if (sentTimerRef.current) clearTimeout(sentTimerRef.current);
     };
   }, [cancelPress]);
@@ -465,12 +461,7 @@ export default function MessageBubble({
 
   const handleCopy = useCallback(async () => {
     if (!message_content) return;
-    const success = await copyToClipboard(message_content);
-    if (success) {
-      setCopied(true);
-      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    }
+    await copyToClipboard(message_content);
     setShowPicker(false);
   }, [message_content]);
 

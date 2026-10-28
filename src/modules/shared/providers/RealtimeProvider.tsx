@@ -417,7 +417,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [pathname, handleIncomingStreamPayload, notifySubscribers, resetHeartbeatWatchdog, startOfflineProbe, stopOfflineProbe]);
 
-  connectStreamRef.current = connectStream;
+  useEffect(() => {
+    connectStreamRef.current = connectStream;
+  }, [connectStream]);
 
   // Handle Mode Switching (Stream vs Polling) & Route Transitions
   useEffect(() => {
@@ -427,7 +429,9 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
-      setIsConnected(false);
+      if (typeof window !== "undefined") {
+        window.requestAnimationFrame(() => setIsConnected(false));
+      }
       return;
     }
 

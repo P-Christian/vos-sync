@@ -24,13 +24,16 @@ export function useConversations(activeConversationId?: number | null) {
   useEffect(() => {
     activeConversationIdRef.current = activeConversationId ?? null;
     if (activeConversationId) {
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.conversation_id === activeConversationId
-            ? { ...c, unread_count: 0 }
-            : c
-        )
-      );
+      const raf = requestAnimationFrame(() => {
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.conversation_id === activeConversationId
+              ? { ...c, unread_count: 0 }
+              : c
+          )
+        );
+      });
+      return () => cancelAnimationFrame(raf);
     }
   }, [activeConversationId]);
 
