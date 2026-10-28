@@ -26,7 +26,6 @@ export const StudentRosterPage: React.FC = () => {
     students,
     courses,
     isLoading,
-    error,
     selectedSchoolYear,
     setSelectedSchoolYear,
     selectedCourseId,

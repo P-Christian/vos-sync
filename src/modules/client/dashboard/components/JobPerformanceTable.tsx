@@ -155,14 +155,7 @@ export default function JobPerformanceTable({ jobs }: JobPerformanceTableProps) 
 
         <div className="p-4 bg-muted/20 border-t border-border/60 flex items-center justify-between">
           <span className="text-sm md:text-xs text-muted-foreground">Showing top 10 postings</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleNavigateAll}
-            className="text-sm md:text-xs font-semibold h-8 max-md:min-h-10 rounded-lg"
-          >
-            View All Jobs
-          </Button>
+ 
         </div>
       </Card>
     </motion.div>
