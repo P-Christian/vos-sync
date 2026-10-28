@@ -3,7 +3,7 @@
 // src/modules/freelancer/freelancer-messaging/FreelancerMessagingModule.tsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { AlertCircle } from "lucide-react";
+
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -18,15 +18,20 @@ interface Props {
 }
 
 export default function FreelancerMessagingModule({ currentUserId }: Props) {
+  const [activeConversation, setActiveConversation] =
+    useState<Conversation | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+
   const {
     conversations,
     loading: convsLoading,
-    error: convsError,
     loadConversations,
     clearUnreadCount,
+    updateConversationPreview,
     archive,
-    clearError: clearConvsError,
-  } = useConversations();
+  } = useConversations(activeConversation?.conversation_id ?? null);
 
   const {
     messages,
@@ -42,16 +47,11 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
     loadOlderMessages,
     refreshMessages,
     send,
+    retry,
     upload,
     toggleReaction,
     clearMessages,
-  } = useMessages();
-
-  const [activeConversation, setActiveConversation] =
-    useState<Conversation | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showArchived, setShowArchived] = useState(false);
-  const [mobileShowChat, setMobileShowChat] = useState(false);
+  } = useMessages(currentUserId);
 
   useEffect(() => {
     loadConversations({ archived: showArchived });
@@ -99,7 +99,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
   }, [clearMessages]);
 
   const handleSend = useCallback(
-    async (content: string, files: File[]): Promise<boolean> => {
+    async (content: string, files: File[], replyToMessageId?: number): Promise<boolean> => {
       if (!activeConversation) return false;
 
       let attachments: {
@@ -129,18 +129,24 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
             : "FILE"
           : "TEXT";
 
-      const ok = await send(activeConversation.conversation_id, {
+      // Optimistic: update the sidebar preview instantly without any fetch or skeleton
+      const now = new Date().toISOString();
+      const rawText =
+        content.trim() ||
+        (attachments[0]?.mime_type?.startsWith("image/") ? "📷 Image" : "📎 File");
+      const preview = `You: ${rawText}`;
+      updateConversationPreview(activeConversation.conversation_id, preview, now);
+
+      await send(activeConversation.conversation_id, {
         message_content: content || undefined,
         message_type: messageType,
         attachments: attachments.length > 0 ? attachments : undefined,
+        reply_to_message_id: replyToMessageId,
       });
 
-      if (ok) {
-        loadConversations({ archived: showArchived });
-      }
-      return ok;
+      return true;
     },
-    [activeConversation, upload, send, loadConversations, showArchived]
+    [activeConversation, upload, send, updateConversationPreview]
   );
 
   const handleToggleArchived = useCallback(() => {
@@ -161,20 +167,11 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
         }
       `}</style>
 
-      {/* Error */}
-      {convsError && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {convsError}
-          <button onClick={clearConvsError} className="ml-auto text-xs underline">
-            Dismiss
-          </button>
-        </div>
-      )}
+
 
       {/* Main Layout */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:zinc-900 overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
-        <div className="flex h-[calc(100dvh-170px)] min-h-[550px] max-md:flex-1 max-md:min-h-0 max-md:min-w-0">
+      <div className="rounded-2xl border border-border/80 bg-card text-card-foreground overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">
+        <div className="flex h-[calc(100dvh-170px)] min-h-[550px] w-full min-w-0 overflow-hidden max-md:flex-1 max-md:min-h-0 max-md:min-w-0">
           <div
             className={cn(
               "w-full sm:w-80 lg:w-96 shrink-0 flex flex-col",
@@ -203,7 +200,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
             )}
           >
             {activeConversation ? (
-              <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+              <div className="w-full h-full min-w-0 flex flex-col min-h-0 overflow-hidden">
                 <ChatPanel
                   conversation={activeConversation}
                   messages={messages}
@@ -214,11 +211,19 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
                   sending={sending}
                   uploading={uploading}
                   error={msgsError}
+                  isArchived={!!activeConversation.archived_by_freelancer}
+                  onArchive={() =>
+                    handleArchive(
+                      activeConversation.conversation_id,
+                      !activeConversation.archived_by_freelancer
+                    )
+                  }
                   onSend={handleSend}
                   onRefresh={handleRefreshMessages}
                   onLoadOlder={() => loadOlderMessages(activeConversation.conversation_id)}
                   onBack={handleCloseConversation}
                   onToggleReaction={toggleReaction}
+                  onRetry={retry}
                 />
               </div>
             ) : (

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { JobPosting, JobFormData, JobStatus, JobType, ExperienceLevel } from "../types";
 
 const EMPTY_FORM: JobFormData = {
@@ -54,7 +55,9 @@ export function useJobs() {
 
       setJobs(json.jobs ?? []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "Failed to load jobs.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -126,11 +129,14 @@ export function useJobs() {
       }
 
       setSuccessMessage("Job posting created successfully.");
+      toast.success("Job posting created successfully.");
       return true;
     } catch (err: unknown) {
       // Rollback on network failure
       setJobs((prev) => prev.filter((j) => j.job_id !== tempId));
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "Failed to create job.";
+      setError(msg);
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -198,11 +204,14 @@ export function useJobs() {
         }
 
         setSuccessMessage("Job posting updated successfully.");
+        toast.success("Job posting updated successfully.");
         return true;
       } catch (err: unknown) {
         // Rollback on network failure
         setJobs(previousJobs);
-        setError(err instanceof Error ? err.message : "An error occurred.");
+        const msg = err instanceof Error ? err.message : "Failed to update job.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -244,10 +253,13 @@ export function useJobs() {
             prev.map((job) => (job.job_id === jobId ? { ...job, ...json.job } : job))
           );
         }
+        toast.success(`Job status updated to ${newStatus}.`);
       } catch (err: unknown) {
         // Rollback on network failure
         setJobs(previousJobs);
-        setError(err instanceof Error ? err.message : "Failed to update job status.");
+        const msg = err instanceof Error ? err.message : "Failed to update job status.";
+        setError(msg);
+        toast.error(msg);
         throw err;
       }
     },

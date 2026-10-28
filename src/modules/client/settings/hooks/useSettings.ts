@@ -3,6 +3,7 @@
 // src/modules/client/settings/hooks/useSettings.ts
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { UserProfile, SecurityPayload, TeamMember } from "../types";
 import {
   fetchUserProfile,
@@ -30,7 +31,9 @@ export function useSettings() {
       const data = await fetchUserProfile();
       setUser(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "An error occurred.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -44,9 +47,12 @@ export function useSettings() {
       const updated = await updateUserProfile(data);
       setUser(updated);
       setSuccessMessage("Profile updated successfully.");
+      toast.success("Profile updated successfully.");
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to save profile.");
+      const msg = err instanceof Error ? err.message : "Failed to save profile.";
+      setError(msg);
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -59,10 +65,16 @@ export function useSettings() {
     setSuccessMessage("");
     try {
       await updateUserPassword(payload);
-      setSuccessMessage("Password changed successfully.");
+      const msg = payload.revoke_other_sessions
+        ? "Password changed. All other device sessions were signed out."
+        : "Password changed successfully.";
+      setSuccessMessage(msg);
+      toast.success(msg);
       return true;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to change password.");
+      const msg = err instanceof Error ? err.message : "Failed to change password.";
+      setError(msg);
+      toast.error(msg);
       return false;
     } finally {
       setSaving(false);
@@ -76,7 +88,9 @@ export function useSettings() {
       const members = await fetchTeamMembers();
       setTeam(members);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load team members.");
+      const msg = err instanceof Error ? err.message : "Failed to load team members.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setTeamLoading(false);
     }
@@ -101,9 +115,12 @@ export function useSettings() {
           )
         );
         setSuccessMessage("Team member role updated successfully.");
+        toast.success("Team member role updated successfully.");
         return true;
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to update team role.");
+        const msg = err instanceof Error ? err.message : "Failed to update team role.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);

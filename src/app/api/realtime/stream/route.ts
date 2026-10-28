@@ -2,8 +2,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/authenticated-session";
-import { directusWsRelay, ensureDirectusRelayStarted, RelayEventPayload } from "@/lib/realtime/directus-ws-relay";
-import { safeDecryptMessage } from "@/lib/message-encryption";
+import { directusWsRelay, ensureDirectusRelayStarted, RelayEventPayload, resolveSenderName } from "@/lib/realtime/directus-ws-relay";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,14 +34,14 @@ export async function GET(req: NextRequest) {
         // 2. 20-second heartbeat to prevent proxy/tunnel idle drops (Tailscale, Nginx)
         heartbeatInterval = setInterval(() => {
           try {
-            controller.enqueue(encoder.encode(": ping\n\n"));
+            controller.enqueue(encoder.encode(": ping\nevent: ping\ndata: {}\n\n"));
           } catch {
             if (heartbeatInterval) clearInterval(heartbeatInterval);
           }
         }, 20000);
 
         // 3. Listen to real-time events from the Directus relay
-        cleanupListener = directusWsRelay.onEvent((payload: RelayEventPayload) => {
+        cleanupListener = directusWsRelay.onEvent(async (payload: RelayEventPayload) => {
           try {
             // User-scoped filtering for private notifications
             let filteredData = payload.data;
@@ -59,15 +58,32 @@ export async function GET(req: NextRequest) {
               if (filteredData.length === 0) return;
             }
 
-            // Immediately decrypt vs_message message_content so clients never see ciphertext
+            // Participant-scoped filtering and sender_name guarantee for messages
             if (payload.collection === "vs_message") {
-              filteredData = filteredData.map((rec) => {
-                const copy = { ...rec };
-                if (typeof copy.message_content === "string") {
-                  copy.message_content = safeDecryptMessage(copy.message_content) ?? copy.message_content;
-                }
-                return copy;
+              // Guarantee sender_name is resolved on every message record before streaming
+              await Promise.all(
+                payload.data.map(async (rec) => {
+                  if (!rec.sender_name && rec.sender_id != null) {
+                    const name = await resolveSenderName(Number(rec.sender_id));
+                    if (name) {
+                      rec.sender_name = name;
+                    }
+                  }
+                })
+              );
+
+              filteredData = payload.data.filter((rec) => {
+                const clientId = rec.client_id;
+                const freelancerId = rec.freelancer_id;
+                // If participant IDs are present, enforce the check.
+                // If absent (e.g. reaction update without participant data), allow through.
+                if (clientId == null && freelancerId == null) return true;
+                return (
+                  String(clientId) === String(session.userId) ||
+                  String(freelancerId) === String(session.userId)
+                );
               });
+              if (filteredData.length === 0) return;
             }
 
             const ssePayload = {

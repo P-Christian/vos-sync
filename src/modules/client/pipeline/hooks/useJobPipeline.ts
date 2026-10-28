@@ -3,6 +3,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   CanonicalStageType,
   JobPipelineVersion,
@@ -35,7 +36,9 @@ export function useJobPipeline(jobId?: number | null) {
       }
       setPipeline(json.pipeline ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error fetching job pipeline.");
+      const msg = err instanceof Error ? err.message : "Error fetching job pipeline.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -64,13 +67,16 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to reset to company default.");
         }
         setSuccess("Hiring pipeline reset to company default snapshot.");
+        toast.success("Hiring pipeline reset to company default snapshot.");
         if (json.pipeline) {
           setPipeline(json.pipeline);
         }
         await fetchPipeline();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to reset pipeline.");
+        const msg = err instanceof Error ? err.message : "Failed to reset pipeline.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -101,10 +107,13 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to add stage.");
         }
         setSuccess(`Stage "${data.stage_name}" added successfully.`);
+        toast.success(`Stage "${data.stage_name}" added successfully.`);
         await fetchPipeline();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to add stage.");
+        const msg = err instanceof Error ? err.message : "Failed to add stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -138,10 +147,13 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to update stage.");
         }
         setSuccess("Stage updated successfully.");
+        toast.success("Stage updated successfully.");
         await fetchPipeline();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update stage.");
+        const msg = err instanceof Error ? err.message : "Failed to update stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -176,11 +188,14 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to delete stage.");
         }
         setSuccess("Stage removed successfully.");
+        toast.success("Stage removed successfully.");
         return true;
       } catch (err) {
         // Rollback on failure
         setPipeline(originalPipeline);
-        setError(err instanceof Error ? err.message : "Failed to delete stage.");
+        const msg = err instanceof Error ? err.message : "Failed to delete stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },
@@ -207,10 +222,13 @@ export function useJobPipeline(jobId?: number | null) {
           throw new Error(json.error || "Failed to update transitions.");
         }
         setSuccess("Transition routes updated.");
+        toast.success("Transition routes updated.");
         await fetchPipeline();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update transitions.");
+        const msg = err instanceof Error ? err.message : "Failed to update transitions.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -270,7 +288,9 @@ export function useJobPipeline(jobId?: number | null) {
       } catch (err) {
         // Rollback on failure
         setPipeline(originalPipeline);
-        setError(err instanceof Error ? err.message : "Failed to reorder stages.");
+        const msg = err instanceof Error ? err.message : "Failed to reorder stages.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },

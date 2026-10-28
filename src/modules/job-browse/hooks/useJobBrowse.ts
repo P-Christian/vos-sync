@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { toast } from "sonner";
 import { PublicJobPosting, JobType, WorkArrangement, ExperienceLevel, DatePostedFilter } from "../types";
 
 export const PAGE_SIZE = 15;
@@ -98,7 +99,9 @@ export function useJobBrowse() {
       setFilteredCount(filterCount);
     } catch (err: unknown) {
       console.error("[JobBrowse] ❌ Fetch Error:", err);
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "Failed to load jobs.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

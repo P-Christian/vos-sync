@@ -3,6 +3,7 @@
 // src/modules/client/talent-search/hooks/useTalentSearch.ts
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { TalentCard, TalentFilters, EMPTY_FILTERS } from "../types";
 import { buildTalentSearchParams } from "../utils/talentUtils";
 
@@ -47,7 +48,9 @@ export function useTalentSearch() {
         setTotal(json.total ?? 0);
         setHasSearched(true);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An error occurred.");
+        const msg = err instanceof Error ? err.message : "Failed to load talent.";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }

@@ -13,8 +13,6 @@ import {
   User,
   Shield,
   Bell,
-  AlertCircle,
-  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -37,8 +35,6 @@ export default function SettingsModule({
     user,
     loading,
     saving,
-    error,
-    successMessage,
     loadProfile,
     saveProfile,
     changePassword,
@@ -84,19 +80,7 @@ export default function SettingsModule({
         </div>
       </div> */}
 
-      {/* Feedback Messages */}
-      {error && (
-        <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          {successMessage}
-        </div>
-      )}
+
 
       {/* Tabs & Module Body */}
       <Card className="shadow-sm border bg-card rounded-xl !py-0 gap-0 overflow-hidden">

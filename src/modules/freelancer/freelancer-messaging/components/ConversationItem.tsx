@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import ArchiveConversationModal from "@/modules/shared/messaging/components/ArchiveConversationModal";
 
 interface Props {
   conversation: Conversation;
@@ -166,13 +167,14 @@ export default function ConversationItem({
 
   const [imgError, setImgError] = React.useState(false);
   const [prevAvatar, setPrevAvatar] = React.useState(other_party_avatar);
+  const [showArchiveConfirm, setShowArchiveConfirm] = React.useState(false);
 
   if (other_party_avatar !== prevAvatar) {
     setPrevAvatar(other_party_avatar);
     setImgError(false);
   }
 
-  const isUnread = unread_count > 0;
+  const isUnread = unread_count > 0 && !isActive;
   const hasJobTitle = Boolean(job_title && job_title.trim());
 
   // Line 1: Job title first. If no job title, fall back to company_name or other_party_name
@@ -200,10 +202,10 @@ export default function ConversationItem({
         }
       }}
       className={cn(
-        "@container group relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-zinc-100 dark:border-zinc-800/60",
+        "@container group relative flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-border/50",
         isActive
-          ? "bg-primary/[0.08] dark:bg-primary/15"
-          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+          ? "bg-primary/[0.08]"
+          : "hover:bg-accent/40"
       )}
     >
       {/* Active Accent Bar */}
@@ -233,7 +235,7 @@ export default function ConversationItem({
               "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-primary/10 dark:ring-primary/20",
               isActive
                 ? "bg-primary text-primary-foreground"
-                : "bg-gradient-to-br from-primary/80 to-info text-white"
+                : "bg-gradient-to-br from-primary/80 to-info text-primary-foreground"
             )}
           >
             {getInitials(secondaryText || other_party_name)}
@@ -301,10 +303,10 @@ export default function ConversationItem({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onArchive(conversation_id, !archived_by_freelancer);
+              setShowArchiveConfirm(true);
             }}
             aria-label={archived_by_freelancer ? "Unarchive conversation" : "Archive conversation"}
-            className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center h-7 w-7 rounded-lg bg-card/90 dark:bg-zinc-800 border border-primary/10 shadow-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all max-md:flex max-md:min-h-11 max-md:min-w-11"
+            className="absolute right-3 top-3 hidden group-hover:flex items-center justify-center h-7 w-7 rounded-lg bg-card border border-border/60 shadow-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all max-md:flex max-md:min-h-11 max-md:min-w-11"
           >
             {archived_by_freelancer ? (
               <ArchiveRestore className="h-3.5 w-3.5" />
@@ -317,6 +319,17 @@ export default function ConversationItem({
           {archived_by_freelancer ? "Unarchive" : "Archive"}
         </TooltipContent>
       </Tooltip>
+
+      <ArchiveConversationModal
+        isOpen={showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(false)}
+        onConfirm={() => {
+          setShowArchiveConfirm(false);
+          onArchive(conversation_id, !archived_by_freelancer);
+        }}
+        isArchived={Boolean(archived_by_freelancer)}
+        conversationName={primaryTitle || secondaryText}
+      />
     </div>
   );
 }
