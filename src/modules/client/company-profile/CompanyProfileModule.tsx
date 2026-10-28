@@ -80,7 +80,6 @@ export default function CompanyProfileModule({
     saving,
     submitting,
     error,
-    successMessage,
     fetchProfile,
     updateProfile,
     createProfile,
@@ -747,33 +746,7 @@ export default function CompanyProfileModule({
       animate="show"
       className="space-y-4 md:space-y-6"
     >
-      {/* Success / Error Messages */}
-      <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm overflow-hidden"
-          >
-            <CheckCircle className="h-4 w-4 shrink-0" />
-            {successMessage}
-          </motion.div>
-        )}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, height: 0 }}
-            animate={{ opacity: 1, y: 0, height: "auto" }}
-            exit={{ opacity: 0, y: -8, height: 0 }}
-            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm overflow-hidden"
-          >
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* Cards Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

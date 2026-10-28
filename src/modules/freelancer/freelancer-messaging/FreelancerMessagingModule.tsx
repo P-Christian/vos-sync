@@ -3,7 +3,7 @@
 // src/modules/freelancer/freelancer-messaging/FreelancerMessagingModule.tsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { AlertCircle } from "lucide-react";
+
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -27,12 +27,10 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
   const {
     conversations,
     loading: convsLoading,
-    error: convsError,
     loadConversations,
     clearUnreadCount,
     updateConversationPreview,
     archive,
-    clearError: clearConvsError,
   } = useConversations(activeConversation?.conversation_id ?? null);
 
   const {
@@ -169,16 +167,7 @@ export default function FreelancerMessagingModule({ currentUserId }: Props) {
         }
       `}</style>
 
-      {/* Error */}
-      {convsError && (
-        <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {convsError}
-          <button onClick={clearConvsError} className="ml-auto text-xs underline">
-            Dismiss
-          </button>
-        </div>
-      )}
+
 
       {/* Main Layout */}
       <div className="rounded-2xl border border-border/80 bg-card text-card-foreground overflow-hidden shadow-sm max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col">

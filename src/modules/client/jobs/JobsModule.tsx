@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { AlertCircle, CheckCircle, Plus, Search, X, RotateCcw, Sparkles } from "lucide-react";
+import { Plus, Search, X, RotateCcw, Sparkles } from "lucide-react";
 import CompanyVerificationGuard from "../components/CompanyVerificationGuard";
 import ListSkeleton from "../components/ListSkeleton";
 
@@ -65,8 +65,6 @@ export default function JobsModule() {
     jobs,
     loading,
     saving,
-    error,
-    successMessage,
     filterStatus,
     setFilterStatus,
     fetchJobs,
@@ -455,19 +453,7 @@ export default function JobsModule() {
           </div>
         </div>
 
-        {/* Messages */}
-        {successMessage && (
-          <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
-            <CheckCircle className="h-4 w-4 shrink-0" />
-            {successMessage}
-          </div>
-        )}
-        {error && (
-          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+
 
         {/* Filter & Job List */}
         <Card className="shadow-sm border border-border/80 bg-card rounded-xl py-0 gap-0 overflow-hidden">
@@ -694,12 +680,6 @@ export default function JobsModule() {
               </DialogDescription>
             </DialogHeader>
 
-            {error && (
-              <div className="flex items-center gap-2 p-3 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-lg text-rose-700 dark:text-rose-300 text-sm md:text-xs">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                {error}
-              </div>
-            )}
             <JobForm
               data={formData}
               onChange={handleFieldChange}

@@ -9,8 +9,6 @@ import { toast } from "sonner";
 import {
   Building2,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
   Sparkles,
 } from "lucide-react";
 
@@ -19,8 +17,6 @@ export function PlatformCompanyModule() {
     companies,
     loading,
     saving,
-    error,
-    successMessage,
     loadCompanies,
     saveCompany,
   } = usePlatformCompany();
@@ -80,19 +76,7 @@ export function PlatformCompanyModule() {
         </div>
       </div>
 
-      {/* Feedback Alerts */}
-      {error && (
-        <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-xs">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
+
 
       {/* Editor Content */}
       {loading ? (

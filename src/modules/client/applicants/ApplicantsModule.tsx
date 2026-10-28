@@ -559,13 +559,7 @@ export function ApplicantsModuleInner({ initialApplicationId }: ApplicantsModule
           </div>
         </div>
 
-        {/* Error Banner */}
-        {error && !drawerOpen && rawApplicants.length > 0 && (
-          <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+
 
         {/* Main Content Area */}
         {showBestMatches && selectedJob ? (

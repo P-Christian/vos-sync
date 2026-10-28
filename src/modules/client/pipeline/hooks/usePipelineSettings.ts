@@ -3,6 +3,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
   CanonicalStageType,
   CompanyPipeline,
@@ -44,7 +45,9 @@ export function usePipelineSettings() {
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error fetching pipelines.");
+      const msg = err instanceof Error ? err.message : "Error fetching pipelines.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -73,14 +76,18 @@ export function usePipelineSettings() {
           throw new Error(json.error || "Failed to create pipeline.");
         }
 
-        setSuccess(`Pipeline "${name}" created successfully.`);
+        const msg = `Pipeline "${name}" created successfully.`;
+        setSuccess(msg);
+        toast.success(msg);
         await fetchPipelines();
         if (json.pipeline?.id) {
           setSelectedPipelineId(json.pipeline.id);
         }
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to create pipeline.");
+        const msg = err instanceof Error ? err.message : "Failed to create pipeline.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -111,11 +118,15 @@ export function usePipelineSettings() {
           throw new Error(json.error || "Failed to add stage.");
         }
 
-        setSuccess(`Stage "${data.stage_name}" added.`);
+        const msg = `Stage "${data.stage_name}" added.`;
+        setSuccess(msg);
+        toast.success(msg);
         await fetchPipelines();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to add stage.");
+        const msg = err instanceof Error ? err.message : "Failed to add stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -148,10 +159,13 @@ export function usePipelineSettings() {
         }
 
         setSuccess("Stage updated successfully.");
+        toast.success("Stage updated successfully.");
         await fetchPipelines();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update stage.");
+        const msg = err instanceof Error ? err.message : "Failed to update stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -201,12 +215,15 @@ export function usePipelineSettings() {
         }
 
         setSuccess("Stage removed successfully.");
+        toast.success("Stage removed successfully.");
         await fetchPipelines();
         return true;
       } catch (err) {
         // Rollback on failure
         setPipelines(originalPipelines);
-        setError(err instanceof Error ? err.message : "Failed to delete stage.");
+        const msg = err instanceof Error ? err.message : "Failed to delete stage.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },
@@ -237,10 +254,13 @@ export function usePipelineSettings() {
         }
 
         setSuccess("Stage transitions updated.");
+        toast.success("Stage transitions updated.");
         await fetchPipelines();
         return true;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to update transitions.");
+        const msg = err instanceof Error ? err.message : "Failed to update transitions.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);
@@ -311,7 +331,9 @@ export function usePipelineSettings() {
       } catch (err) {
         // Rollback on failure
         setPipelines(originalPipelines);
-        setError(err instanceof Error ? err.message : "Failed to reorder stages.");
+        const msg = err instanceof Error ? err.message : "Failed to reorder stages.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },
@@ -366,7 +388,9 @@ export function usePipelineSettings() {
       } catch (err) {
         // Rollback on failure
         setPipelines(originalPipelines);
-        setError(err instanceof Error ? err.message : "Failed to reorder stages.");
+        const msg = err instanceof Error ? err.message : "Failed to reorder stages.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },
@@ -389,13 +413,15 @@ export function usePipelineSettings() {
           throw new Error(json.error || "Failed to set default template.");
         }
 
-        setSuccess("Template marked as company default successfully.");
+        const msg = "Template marked as company default successfully.";
+        setSuccess(msg);
+        toast.success(msg);
         await fetchPipelines();
         return true;
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to set default template."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to set default template.";
+        setError(msg);
+        toast.error(msg);
         return false;
       } finally {
         setSaving(false);

@@ -3,6 +3,7 @@
 // src/modules/freelancer/freelancer-messaging/hooks/useConversations.ts
 
 import { useCallback, useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { Conversation } from "../types";
 import {
   fetchConversations,
@@ -61,9 +62,9 @@ export function useConversations(activeConversationId?: number | null) {
         const data = await fetchConversations(opts);
         setConversations(normalizeConversations(data));
       } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load conversations."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to load conversations.";
+        setError(msg);
+        if (!opts?.silent) toast.error(msg);
       } finally {
         if (!opts?.silent) setLoading(false);
       }
@@ -81,11 +82,11 @@ export function useConversations(activeConversationId?: number | null) {
         );
         return true;
       } catch (err: unknown) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to archive conversation."
-        );
+        const msg = err instanceof Error
+          ? err.message
+          : "Failed to archive conversation.";
+        setError(msg);
+        toast.error(msg);
         return false;
       }
     },

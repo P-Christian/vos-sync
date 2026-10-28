@@ -53,8 +53,6 @@ export default function JobPipelineSection({
     pipeline,
     loading,
     saving,
-    error,
-    success,
     clearMessages,
     resetToCompanyDefault,
     addStage,
@@ -393,19 +391,6 @@ export default function JobPipelineSection({
         )}
       </div>
 
-      {/* Messages */}
-      {error && (
-        <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-xs">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400 text-xs">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          <span>{success}</span>
-        </div>
-      )}
 
       {/* Immutability Notice if Locked */}
       {isLocked && (

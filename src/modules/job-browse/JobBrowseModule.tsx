@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Search, AlertCircle, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Briefcase, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useJobBrowse } from "./hooks/useJobBrowse";
@@ -25,7 +25,6 @@ export default function JobBrowseModule() {
     totalPages,
     pageSize,
     loading,
-    error,
     appliedJobIds,
     search,
     setSearch,
@@ -121,13 +120,7 @@ export default function JobBrowseModule() {
           </div>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </div>
-        )}
+
 
         {/* Filters */}
         <JobBrowseFilters

@@ -4,7 +4,7 @@
 
 import React, { useState, useCallback } from "react";
 import {
-  Search, Users, Bookmark, AlertCircle, ChevronLeft, ChevronRight,
+  Search, Users, Bookmark, ChevronLeft, ChevronRight,
   SlidersHorizontal, X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -280,13 +280,7 @@ export default function TalentSearchModule() {
                   </AnimatePresence>
                 </div>
 
-                {/* Error */}
-                {error && !loading && (
-                  <div className="flex items-center gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    {error}
-                  </div>
-                )}
+
 
                 {/* Results count */}
                 {hasSearched && !loading && (

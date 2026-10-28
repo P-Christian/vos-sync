@@ -373,8 +373,6 @@ export default function PipelineSettingsTab({ isStandalonePage = true }: Pipelin
     setSelectedPipelineId,
     loading,
     saving,
-    error,
-    success,
     clearMessages,
     createPipeline,
     setDefaultPipeline,
@@ -536,19 +534,6 @@ export default function PipelineSettingsTab({ isStandalonePage = true }: Pipelin
 
   return (
     <div className="space-y-6">
-      {/* Feedback Messages */}
-      {error && (
-        <div className="flex items-center gap-2.5 p-3.5 bg-destructive/10 border border-destructive/20 rounded-xl text-destructive text-sm">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div className="flex items-center gap-2.5 p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 rounded-xl text-emerald-700 dark:text-emerald-300 text-sm">
-          <CheckCircle className="h-4 w-4 shrink-0" />
-          <span>{success}</span>
-        </div>
-      )}
 
       {/* Header and Template Switcher */}
       {isStandalonePage ? (

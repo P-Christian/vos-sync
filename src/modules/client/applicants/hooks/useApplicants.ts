@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   Applicant,
   ApplicantFilterStatus,
@@ -99,11 +100,9 @@ export function useApplicants() {
         // the filter is pure during render and still tracks the server clock.
         setFetchedAt(Date.now());
       } catch (err: unknown) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to load applicants.";
+        setError(msg);
+        toast.error(msg);
       } finally {
         setLoading(false);
       }
@@ -209,11 +208,9 @@ export function useApplicants() {
         return { ok: true, moved: true };
       } catch (err: unknown) {
         setApplicants(rollbackList);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to update stage.";
+        setError(msg);
+        toast.error(msg);
         return { ok: false, moved: false };
       } finally {
         setSaving(false);
@@ -299,11 +296,9 @@ export function useApplicants() {
         return { ok: true, gated: false };
       } catch (err: unknown) {
         setApplicants(rollbackList);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred."
-        );
+        const msg = err instanceof Error ? err.message : "Failed to update status.";
+        setError(msg);
+        toast.error(msg);
 
         return { ok: false, gated: false };
       } finally {

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { CompanyProfile, CompanyProfileMeta, EditableCompanyFields } from "../types";
 
 export function useCompanyProfile(
@@ -29,7 +30,9 @@ export function useCompanyProfile(
       setCompany(json.company);
       setMeta(json.meta);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "An error occurred.");
+      const msg = err instanceof Error ? err.message : "Failed to load company profile.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -56,8 +59,11 @@ export function useCompanyProfile(
           );
         }
         setSuccessMessage("Company profile updated successfully.");
+        toast.success("Company profile updated successfully.");
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An error occurred while saving.");
+        const msg = err instanceof Error ? err.message : "An error occurred while saving.";
+        setError(msg);
+        toast.error(msg);
         throw err;
       } finally {
         setSaving(false);
@@ -87,8 +93,11 @@ export function useCompanyProfile(
           await fetchProfile();
         }
         setSuccessMessage("Company profile created successfully.");
+        toast.success("Company profile created successfully.");
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An error occurred while setting up profile.");
+        const msg = err instanceof Error ? err.message : "An error occurred while setting up profile.";
+        setError(msg);
+        toast.error(msg);
         throw err;
       } finally {
         setSaving(false);
@@ -125,10 +134,11 @@ export function useCompanyProfile(
       }
       await fetchProfile();
       setSuccessMessage("Company profile submitted for verification successfully.");
+      toast.success("Company profile submitted for verification successfully.");
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "An error occurred while submitting."
-      );
+      const msg = err instanceof Error ? err.message : "An error occurred while submitting.";
+      setError(msg);
+      toast.error(msg);
       throw err;
     } finally {
       setSubmitting(false);

@@ -137,11 +137,6 @@ export default function SecuritySettings({
       if (ok) {
         setForm({ current_password: "", new_password: "", confirm_password: "" });
         setShowLogoutDialog(false);
-        if (revokeOthers) {
-          toast.success("Password changed. All other device sessions were signed out.");
-        } else {
-          toast.success("Password changed successfully.");
-        }
         fetchSessions();
       }
     } finally {
