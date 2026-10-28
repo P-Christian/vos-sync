@@ -3,7 +3,6 @@
 // src/modules/client/messaging/MessagingModule.tsx
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import { AlertCircle } from "lucide-react";
 import { useConversations } from "./hooks/useConversations";
 import { useMessages } from "./hooks/useMessages";
 import ConversationList from "./components/ConversationList";
@@ -37,13 +36,11 @@ export default function MessagingModule({
   const {
     conversations,
     loading: convsLoading,
-    error: convsError,
     loadConversations,
     openOrCreateConversation,
     clearUnreadCount,
     updateConversationPreview,
     archive,
-    clearError: clearConvsError,
   } = useConversations(activeConversation?.conversation_id ?? null);
 
   const {
@@ -151,7 +148,8 @@ export default function MessagingModule({
   // FIX: the old handler ignored `nextArchived` and always archived, so "Unarchive" did nothing.
   const handleArchive = useCallback(
     async (conversationId: number, nextArchived: boolean) => {
-      await archive(conversationId, nextArchived);
+      const ok = await archive(conversationId, nextArchived);
+      if (!ok) return;
       if (activeConversation?.conversation_id === conversationId) handleCloseConversation();
       loadConversations({ archived: showArchived, silent: true });
 
@@ -269,24 +267,6 @@ export default function MessagingModule({
             .client-page-transition { animation: none; }
           }
         `}</style>
-
-        {/* Error banner */}
-        {convsError && (
-          <div
-            role="alert"
-            className="flex items-center gap-3 rounded-xl border border-rose-200/50 bg-rose-50 p-4 text-sm text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
-          >
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {convsError}
-            <button
-              type="button"
-              onClick={clearConvsError}
-              className="ml-auto text-sm underline max-md:min-h-10 md:text-xs"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
 
         {/* Main chat layout */}
         <div className="relative h-[calc(100dvh-96px)] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm sm:h-[calc(100dvh-104px)] max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col dark:border-zinc-800 dark:bg-zinc-900">
