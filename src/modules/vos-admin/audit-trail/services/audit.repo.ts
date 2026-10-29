@@ -49,7 +49,38 @@ export async function fetchAuditLogsRepo(
   }
 
   if (filters.actor_type && filters.actor_type !== "ALL") {
-    filterParams.push(`"actor_type":{"_eq":"${filters.actor_type}"}`);
+    const act = filters.actor_type.toUpperCase();
+    if (act === "ADMIN") {
+      filterParams.push(`"_or":[{"actor_type":{"_eq":"ADMIN"}},{"actor_type":{"_eq":"SYSTEM"}}]`);
+    } else if (act === "SYSTEM") {
+      filterParams.push(`"actor_type":{"_eq":"SYSTEM"}`);
+    } else {
+      // For specific roles (SCH_ADMIN, CLIENT, FREELANCER), resolve target role_ids
+      let targetRoleId: number | null = null;
+      if (act === "FREELANCER") targetRoleId = 1;
+      else if (act === "CLIENT") targetRoleId = 2;
+      else if (act === "SCH_ADMIN" || act === "SCHOOL_ADMIN") targetRoleId = 4;
+
+      if (targetRoleId !== null) {
+        // Query users with this role_id
+        try {
+          const uRes = await fetch(`${DIRECTUS_BASE}/items/vs_user?filter[role_id][_eq]=${targetRoleId}&fields=user_id&limit=500`, { headers: getHeaders(), cache: "no-store" });
+          if (uRes.ok) {
+            const uJson = await uRes.json();
+            const uIds = (uJson.data || []).map((u: { user_id: number }) => u.user_id).filter(Boolean);
+            if (uIds.length > 0) {
+              filterParams.push(`"actor_user_id":{"_in":[${uIds.join(",")}]}`);
+            } else {
+              filterParams.push(`"actor_user_id":{"_eq":-1}`);
+            }
+          }
+        } catch (e) {
+          console.warn("[audit.repo] Role filter resolution error:", e);
+        }
+      } else {
+        filterParams.push(`"actor_type":{"_eq":"${filters.actor_type}"}`);
+      }
+    }
   }
 
   if (filters.organization_type && filters.organization_type !== "ALL") {
@@ -64,12 +95,16 @@ export async function fetchAuditLogsRepo(
     filterParams.push(`"actor_user_id":{"_eq":${filters.actor_user_id}}`);
   }
 
-  if (filters.date_from) {
-    filterParams.push(`"created_at":{"_gte":"${filters.date_from}"}`);
-  }
-
-  if (filters.date_to) {
-    filterParams.push(`"created_at":{"_lte":"${filters.date_to}T23:59:59"}`);
+  if (filters.date_from && filters.date_to) {
+    const cleanFrom = filters.date_from.trim().split("T")[0];
+    const cleanTo = filters.date_to.trim().split("T")[0];
+    filterParams.push(`"created_at":{"_gte":"${cleanFrom}T00:00:00","_lte":"${cleanTo}T23:59:59"}`);
+  } else if (filters.date_from) {
+    const cleanFrom = filters.date_from.trim().split("T")[0];
+    filterParams.push(`"created_at":{"_gte":"${cleanFrom}T00:00:00"}`);
+  } else if (filters.date_to) {
+    const cleanTo = filters.date_to.trim().split("T")[0];
+    filterParams.push(`"created_at":{"_lte":"${cleanTo}T23:59:59"}`);
   }
 
   if (filters.search && filters.search.trim()) {
@@ -153,7 +188,7 @@ export async function fetchAuditLogsRepo(
     )
   );
 
-  const userMap: Record<number, { name: string; email: string }> = {};
+  const userMap: Record<number, { name: string; email: string; role?: string | null }> = {};
   const companyMap: Record<number, string> = {};
   const jobMap: Record<number, string> = {};
 
@@ -163,15 +198,20 @@ export async function fetchAuditLogsRepo(
     if (allUserIds.length > 0) {
       promises.push(
         (async () => {
-          const userUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${allUserIds.join(",")}&fields=user_id,user_fname,user_lname,user_email&limit=-1`;
+          const userUrl = `${DIRECTUS_BASE}/items/vs_user?filter[user_id][_in]=${allUserIds.join(",")}&fields=user_id,user_fname,user_lname,user_email,role_id,role&limit=-1`;
           const userRes = await fetch(userUrl, { headers: getHeaders(), cache: "no-store" });
           if (userRes.ok) {
             const userJson = await userRes.json();
             const users = userJson.data || [];
-            users.forEach((u: { user_id?: number; user_fname?: string; user_lname?: string; user_email?: string }) => {
+            users.forEach((u: { user_id?: number; user_fname?: string; user_lname?: string; user_email?: string; role_id?: number; role?: string }) => {
               if (u.user_id) {
                 const name = `${u.user_fname ?? ""} ${u.user_lname ?? ""}`.trim() || u.user_email || `User #${u.user_id}`;
-                userMap[u.user_id] = { name, email: u.user_email || "" };
+                let roleLabel = u.role || null;
+                if (u.role_id === 1) roleLabel = "Freelancer";
+                else if (u.role_id === 2) roleLabel = "Client";
+                else if (u.role_id === 3 || u.role_id === 5) roleLabel = "Admin";
+                else if (u.role_id === 4) roleLabel = "School Admin";
+                userMap[u.user_id] = { name, email: u.user_email || "", role: roleLabel };
               }
             });
           }
@@ -259,6 +299,7 @@ export async function fetchAuditLogsRepo(
       new_values: newVals,
       actor_name: resolvedUser ? resolvedUser.name : (record.actor_type === "SYSTEM" ? "System" : null),
       actor_email: resolvedUser ? resolvedUser.email : null,
+      actor_role: resolvedUser?.role || (record.actor_type === "ADMIN" ? "Admin" : record.actor_type === "SYSTEM" ? "System" : null),
       resource_name: resourceName,
     };
   });
@@ -269,7 +310,7 @@ export async function fetchAuditLogsRepo(
   };
 }
 
-export async function fetchAuditKPIsRepo(): Promise<AuditKPIData> {
+export async function fetchAuditKPIsRepo(filters?: AuditFilters): Promise<AuditKPIData> {
   const now = new Date();
   const phDateParts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Manila',
@@ -277,14 +318,36 @@ export async function fetchAuditKPIsRepo(): Promise<AuditKPIData> {
     month: '2-digit',
     day: '2-digit',
   }).format(now);
-  const todayStr = phDateParts;
+  const fromDateStr = filters?.date_from || phDateParts;
+  const toDateStr = filters?.date_to || fromDateStr;
+
+  const baseFilterParts: string[] = [];
+  if (fromDateStr && toDateStr) {
+    const cleanFrom = fromDateStr.trim().split("T")[0];
+    const cleanTo = toDateStr.trim().split("T")[0];
+    baseFilterParts.push(`"created_at":{"_gte":"${cleanFrom}T00:00:00","_lte":"${cleanTo}T23:59:59"}`);
+  } else if (fromDateStr) {
+    const cleanFrom = fromDateStr.trim().split("T")[0];
+    baseFilterParts.push(`"created_at":{"_gte":"${cleanFrom}T00:00:00"}`);
+  } else if (toDateStr) {
+    const cleanTo = toDateStr.trim().split("T")[0];
+    baseFilterParts.push(`"created_at":{"_lte":"${cleanTo}T23:59:59"}`);
+  }
+  if (filters?.event_category && filters.event_category !== "ALL") {
+    baseFilterParts.push(`"event_category":{"_eq":"${filters.event_category}"}`);
+  }
+  if (filters?.action && filters.action !== "ALL") {
+    baseFilterParts.push(`"action":{"_eq":"${filters.action}"}`);
+  }
+
+  const baseFilterStr = baseFilterParts.length > 0 ? `&filter={${baseFilterParts.join(",")}}` : "";
 
   try {
     const [todayRes, failedRes, deniedRes, adminRes] = await Promise.all([
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=FAILED&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[status][_eq]=DENIED&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[created_at][_gte]=${todayStr}&filter[actor_type][_eq]=ADMIN&limit=1&meta=filter_count`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[status][_eq]=FAILED&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[status][_eq]=DENIED&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[actor_type][_eq]=ADMIN&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
     ]);
 
     const todayJson = todayRes.ok ? await todayRes.json() : {};
@@ -490,7 +553,7 @@ export async function createAuditRecordRepo(payload: Partial<AuditRecord>): Prom
 
     const recordPayload = {
       ...payload,
-      created_at: payload.created_at || getPHISOTimestamp(),
+      created_at: payload.created_at || new Date().toISOString(),
     };
 
     const url = `${DIRECTUS_BASE}/items/vs_audit_trail`;

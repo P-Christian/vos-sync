@@ -32,6 +32,15 @@ const itemVariants: Variants = {
   },
 };
 
+const getTodayStr = () => {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+};
+
 const DEFAULT_FILTERS: AuditFiltersType = {
   search: '',
   event_category: 'ALL',
@@ -40,8 +49,8 @@ const DEFAULT_FILTERS: AuditFiltersType = {
   actor_type: 'ALL',
   organization_type: 'ALL',
   resource_type: '',
-  date_from: '',
-  date_to: '',
+  date_from: getTodayStr(),
+  date_to: getTodayStr(),
   page: 1,
   limit: 10,
 };

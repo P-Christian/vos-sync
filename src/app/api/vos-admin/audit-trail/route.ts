@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Normal JSON response with KPIs
-    const kpis = await fetchAuditKPIsRepo();
+    const kpis = await fetchAuditKPIsRepo(filters);
 
     return NextResponse.json({
       records,
