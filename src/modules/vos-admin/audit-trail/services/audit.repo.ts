@@ -293,14 +293,20 @@ export async function fetchAuditLogsRepo(
       resourceName = jobMap[rId];
     }
 
+    const isSystemActor = record.actor_type === "SYSTEM";
+    const finalActorName = isSystemActor ? "System" : (resolvedUser ? resolvedUser.name : null);
+    const finalActorEmail = isSystemActor ? null : (resolvedUser ? resolvedUser.email : null);
+    const finalActorRole = isSystemActor ? "Automated Policy" : (resolvedUser?.role || (record.actor_type === "ADMIN" ? "Admin" : record.actor_type));
+    const finalResourceName = resourceName || (isSystemActor && resolvedUser ? resolvedUser.name : null);
+
     return {
       ...record,
       old_values: oldVals,
       new_values: newVals,
-      actor_name: resolvedUser ? resolvedUser.name : (record.actor_type === "SYSTEM" ? "System" : null),
-      actor_email: resolvedUser ? resolvedUser.email : null,
-      actor_role: resolvedUser?.role || (record.actor_type === "ADMIN" ? "Admin" : record.actor_type === "SYSTEM" ? "System" : null),
-      resource_name: resourceName,
+      actor_name: finalActorName,
+      actor_email: finalActorEmail,
+      actor_role: finalActorRole,
+      resource_name: finalResourceName,
     };
   });
 
@@ -339,15 +345,61 @@ export async function fetchAuditKPIsRepo(filters?: AuditFilters): Promise<AuditK
   if (filters?.action && filters.action !== "ALL") {
     baseFilterParts.push(`"action":{"_eq":"${filters.action}"}`);
   }
+  if (filters?.organization_type && filters.organization_type !== "ALL") {
+    baseFilterParts.push(`"organization_type":{"_eq":"${filters.organization_type}"}`);
+  }
+  if (filters?.actor_user_id) {
+    baseFilterParts.push(`"actor_user_id":{"_eq":${filters.actor_user_id}}`);
+  }
+  if (filters?.actor_type && filters.actor_type !== "ALL") {
+    const act = filters.actor_type.toUpperCase();
+    if (act === "ADMIN") {
+      baseFilterParts.push(`"_or":[{"actor_type":{"_eq":"ADMIN"}},{"actor_type":{"_eq":"SYSTEM"}}]`);
+    } else if (act === "SYSTEM") {
+      baseFilterParts.push(`"actor_type":{"_eq":"SYSTEM"}`);
+    } else {
+      let targetRoleId: number | null = null;
+      if (act === "FREELANCER") targetRoleId = 1;
+      else if (act === "CLIENT") targetRoleId = 2;
+      else if (act === "SCH_ADMIN" || act === "SCHOOL_ADMIN") targetRoleId = 4;
 
-  const baseFilterStr = baseFilterParts.length > 0 ? `&filter={${baseFilterParts.join(",")}}` : "";
+      if (targetRoleId !== null) {
+        try {
+          const uRes = await fetch(`${DIRECTUS_BASE}/items/vs_user?filter[role_id][_eq]=${targetRoleId}&fields=user_id&limit=500`, { headers: getHeaders(), cache: "no-store" });
+          if (uRes.ok) {
+            const uJson = await uRes.json();
+            const uIds = (uJson.data || []).map((u: { user_id: number }) => u.user_id).filter(Boolean);
+            if (uIds.length > 0) {
+              baseFilterParts.push(`"actor_user_id":{"_in":[${uIds.join(",")}]}`);
+            } else {
+              baseFilterParts.push(`"actor_user_id":{"_eq":-1}`);
+            }
+          }
+        } catch (e) {
+          console.warn("[audit.repo] Role filter resolution error for KPIs:", e);
+        }
+      } else {
+        baseFilterParts.push(`"actor_type":{"_eq":"${filters.actor_type}"}`);
+      }
+    }
+  }
+
+  const buildFilterQuery = (extraConditions: string[] = []): string => {
+    const combined = [...baseFilterParts, ...extraConditions];
+    return combined.length > 0 ? `&filter={${combined.join(",")}}` : "";
+  };
+
+  const todayFilter = buildFilterQuery();
+  const failedFilter = buildFilterQuery([`"status":{"_eq":"FAILED"}`]);
+  const deniedFilter = buildFilterQuery([`"status":{"_eq":"DENIED"}`]);
+  const adminFilter = buildFilterQuery([`"_or":[{"actor_type":{"_eq":"ADMIN"}},{"actor_type":{"_eq":"SYSTEM"}}]`]);
 
   try {
     const [todayRes, failedRes, deniedRes, adminRes] = await Promise.all([
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[status][_eq]=FAILED&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[status][_eq]=DENIED&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
-      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?filter[actor_type][_eq]=ADMIN&limit=1&meta=filter_count${baseFilterStr}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${todayFilter}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${failedFilter}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${deniedFilter}`, { headers: getHeaders(), cache: "no-store" }),
+      fetch(`${DIRECTUS_BASE}/items/vs_audit_trail?limit=1&meta=filter_count${adminFilter}`, { headers: getHeaders(), cache: "no-store" }),
     ]);
 
     const todayJson = todayRes.ok ? await todayRes.json() : {};
