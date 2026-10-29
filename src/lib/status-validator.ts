@@ -52,6 +52,7 @@ export const LOGIN_ELIGIBLE_ACCOUNT_STATUSES: readonly string[] = [
   "ACTIVE",
   "VERIFIED",
   "PENDING_VERIFICATION",
+  "LIMITED",
 ];
 
 export function canAuthenticate(

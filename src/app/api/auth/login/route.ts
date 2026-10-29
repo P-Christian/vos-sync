@@ -59,7 +59,12 @@ export async function POST(req: NextRequest) {
                               errorMessage.includes("Account is locked") || 
                               errorMessage.includes("Account locked") || 
                               errorMessage.includes("required");
-        const isInactive = errorMessage.includes("not active or verified");
+        const isInactive = errorMessage.includes("not active or verified") ||
+                           errorMessage.includes("suspended") ||
+                           errorMessage.includes("blocked") ||
+                           errorMessage.includes("pending verification") ||
+                           errorMessage.includes("deactivated") ||
+                           errorMessage.includes("pending deletion");
         const status = isInactive ? 403 : isClientError ? 400 : 500;
 
         return NextResponse.json(

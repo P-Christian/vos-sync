@@ -116,6 +116,22 @@ export async function loginUser(
     }
 
     if (!canAuthenticate(user)) {
+        const canonicalStatus = String(user.status ?? "").trim().toUpperCase();
+        const legacyStatus = String(user.user_status ?? "").trim().toUpperCase();
+        const currentStatus = canonicalStatus || legacyStatus;
+
+        if (currentStatus === "SUSPENDED") {
+            throw new Error("Your account has been suspended by administration. Please check your suspension notice or contact support.");
+        } else if (currentStatus === "BLOCKED" || user.is_blocked) {
+            throw new Error("Your account has been blocked due to administrative containment.");
+        } else if (currentStatus === "PENDING_VERIFICATION" || currentStatus === "PENDING") {
+            throw new Error("Your account is pending verification. Please wait for administrator approval.");
+        } else if (currentStatus === "DEACTIVATED") {
+            throw new Error("Your account has been deactivated.");
+        } else if (currentStatus === "PENDING_DELETION") {
+            throw new Error("Your account is currently pending deletion.");
+        }
+
         throw new Error("Account is not active or verified.");
     }
 

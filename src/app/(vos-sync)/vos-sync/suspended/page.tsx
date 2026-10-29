@@ -29,12 +29,12 @@ export default function SuspendedPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 p-4 relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-zinc-950 p-4 relative overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-900/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-rose-900/10 rounded-full blur-3xl pointer-events-none" />
 
-      <Card className="w-full max-w-lg bg-zinc-900 border border-zinc-800 shadow-2xl relative z-10 text-zinc-100">
+      <Card className="w-full max-w-lg bg-zinc-900 border border-zinc-800 shadow-2xl relative z-10 text-zinc-100 overflow-hidden">
         <CardHeader className="text-center pt-8">
           <div className="mx-auto h-16 w-16 bg-red-950/40 text-red-500 border border-red-900/50 flex items-center justify-center rounded-full mb-4 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
             <ShieldAlert className="h-8 w-8" />
@@ -73,23 +73,23 @@ export default function SuspendedPage() {
           </p>
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row gap-3 p-6 border-t border-zinc-800">
+        <CardFooter className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-6 border-t border-zinc-800 w-full">
           <Button
+            type="button"
             variant="outline"
             disabled={loggingOut}
             onClick={handleLogout}
-            className="w-full border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 flex items-center justify-center gap-2"
+            className="w-full border-zinc-800 bg-zinc-950/60 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 flex items-center justify-center gap-2 h-10"
           >
             <LogOut className="h-4 w-4" />
             {loggingOut ? "Signing out..." : "Sign Out"}
           </Button>
           <Button
-            asChild
-            className="w-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
+            type="button"
+            onClick={() => { window.location.href = "mailto:support@vos-sync.com?subject=Account%20Suspended%20Appeal"; }}
+            className="w-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2 h-10 shadow-lg shadow-red-950/50"
           >
-            <a href="mailto:support@vos-sync.com?subject=Account%20Suspended%20Appeal">
-              Contact Support <ExternalLink className="h-4 w-4" />
-            </a>
+            Contact Support <ExternalLink className="h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>

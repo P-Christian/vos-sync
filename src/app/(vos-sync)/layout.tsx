@@ -71,6 +71,8 @@ export default async function DashboardLayout({
         verificationStatus = "PENDING";
     } else if (effectiveStatus === "SUSPENDED" || effectiveStatus === "BLOCKED") {
         verificationStatus = "SUSPENDED";
+    } else if (effectiveStatus === "LIMITED") {
+        verificationStatus = "LIMITED";
     }
 const userProfile = {
         name,

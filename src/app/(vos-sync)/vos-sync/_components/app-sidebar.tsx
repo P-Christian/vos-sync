@@ -83,6 +83,10 @@ export function AppSidebar({
     const isGuest = !userProfile || userProfile.email === "guest@example.com";
     const role = userProfile?.role;
 
+    if (pathname.startsWith('/vos-sync/suspended')) {
+        return null;
+    }
+
     if (!mounted) {
         return (
             <Sidebar

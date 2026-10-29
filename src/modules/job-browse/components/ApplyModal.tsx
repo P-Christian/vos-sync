@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 "use client";
+import { toast } from "sonner";
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -159,6 +160,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   const handleSubmit = async () => {
     const ok = await submitApplication(false);
     if (ok) {
+      toast.success("Application submitted successfully!");
       setTimeout(() => {
         reset();
         setCurrentStep(1);
@@ -802,7 +804,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <Button
                 id="apply-submit-btn"
                 onClick={handleSubmit}
-                disabled={saving || !consentAccepted || !!successMessage}
+                disabled={saving || !consentAccepted || !!successMessage || (!!error && error.includes("suspended"))}
                 title={!consentAccepted ? "Please confirm the declaration above to submit" : undefined}
                 className="h-9 text-sm rounded-xl gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground border-0 font-medium px-5 max-md:min-h-11 disabled:opacity-50 disabled:cursor-not-allowed"
               >
