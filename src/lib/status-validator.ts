@@ -24,6 +24,8 @@ export interface AccountAuthenticationState {
   user_lname?: string;
   status?: string | null;
   user_status?: string | null;
+  verification_status?: string | null;
+  status_version?: number | null;
   otp_verified?: boolean | number | string | null;
   is_blocked?: boolean | number | string | null;
   lock_until?: string | null;

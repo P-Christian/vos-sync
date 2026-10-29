@@ -10,10 +10,11 @@ import type { PendingActionItem } from '../../types/dashboard';
 
 interface AdminPendingQueueProps {
   items: PendingActionItem[];
+  totalPending?: number;
   isLoading?: boolean;
 }
 
-export function AdminPendingQueue({ items, isLoading = false }: AdminPendingQueueProps) {
+export function AdminPendingQueue({ items, totalPending, isLoading = false }: AdminPendingQueueProps) {
   if (isLoading) {
     return (
       <Card className="rounded-2xl border border-border/80 shadow-xs h-full animate-pulse">
@@ -57,7 +58,7 @@ export function AdminPendingQueue({ items, isLoading = false }: AdminPendingQueu
             </CardDescription>
           </div>
           <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-            {items.length} Pending
+            {typeof totalPending === "number" ? totalPending : items.length} Pending
           </span>
         </div>
       </CardHeader>
