@@ -12,6 +12,7 @@ interface DirectusUserRaw {
   role?: string | null;
   role_id?: number | null;
   status?: string | null;
+  verification_status?: string | null;
   status_version?: number | null;
   session_epoch?: string | null;
 }
@@ -113,6 +114,7 @@ export async function fetchAccountStatusUsersRepo(
     role: u.role || 'USER',
     role_id: u.role_id ?? null,
     status: (u.status as AccountStatus) || 'ACTIVE',
+    verification_status: u.verification_status ?? (u.status === 'PENDING_VERIFICATION' ? 'PENDING' : (u.status === 'ACTIVE' ? 'VERIFIED' : null)),
     status_version: u.status_version || 1,
     session_epoch: u.session_epoch ?? null,
     restrictions: restrictionsMap[u.user_id] || [],
@@ -176,6 +178,7 @@ export async function fetchUserStatusDetailRepo(userId: number): Promise<Account
     role: u.role || 'USER',
     role_id: u.role_id,
     status: u.status || 'ACTIVE',
+    verification_status: u.verification_status ?? (u.status === 'PENDING_VERIFICATION' ? 'PENDING' : (u.status === 'ACTIVE' ? 'VERIFIED' : null)),
     status_version: u.status_version || 1,
     session_epoch: u.session_epoch,
     restrictions,
@@ -198,13 +201,11 @@ export async function updateUserStatusRepo(
 ): Promise<boolean> {
   // Update vs_user status
   const userUrl = `${DIRECTUS_BASE}/items/vs_user/${userId}`;
-  const userPayload = {
+    const userPayload = {
     status: newStatus,
-    status_version: newVersion,
     session_epoch: newStatus !== 'ACTIVE' && newStatus !== 'LIMITED' ? new Date().toISOString() : undefined
   };
-
-  const userRes = await fetch(userUrl, {
+const userRes = await fetch(userUrl, {
     method: 'PATCH',
     headers: getHeaders(),
     body: JSON.stringify(userPayload)

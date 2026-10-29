@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     let companies: Record<string, unknown>[] = [];
+    let companyVerifications: Record<string, unknown>[] = [];
     let schools: Record<string, unknown>[] = [];
     let usersCount = 0;
     let geminiTelemetry: Record<string, unknown> | null = null;
@@ -43,9 +44,10 @@ export async function GET(req: NextRequest) {
       const headers = getDirectusHeaders();
 
       // Run fetches in parallel with resilient error handling
-      const [compRes, schoolRes, userRes, geminiRes] = await Promise.allSettled([
+      const [compRes, compVerifRes, schoolRes, userRes, geminiRes] = await Promise.allSettled([
         fetch(`${DIRECTUS_BASE}/items/vs_company?fields=company_id,company_name,verification_status,created_at&limit=500`, { headers, cache: "no-store" }),
-        fetch(`${DIRECTUS_BASE}/items/vs_school?fields=school_id,school_name,verification_status,created_at&limit=500`, { headers, cache: "no-store" }),
+        fetch(`${DIRECTUS_BASE}/items/vs_company_verifications?fields=id,company_id,status,created_at&sort=-created_at,-id&limit=500`, { headers, cache: "no-store" }),
+        fetch(`${DIRECTUS_BASE}/items/vs_school?fields=school_id,school_name,verification_status,school_status,created_at&limit=500`, { headers, cache: "no-store" }),
         fetch(`${DIRECTUS_BASE}/items/vs_user?aggregate[count]=user_id`, { headers, cache: "no-store" }),
         fetch(new URL("/api/vos-admin/gemini-monitoring", req.url).toString(), {
           headers: {
@@ -62,6 +64,15 @@ export async function GET(req: NextRequest) {
           companies = Array.isArray(compJson.data) ? compJson.data : [];
         } catch {
           companies = [];
+        }
+      }
+
+      if (compVerifRes.status === "fulfilled" && compVerifRes.value.ok) {
+        try {
+          const compVerifJson = await compVerifRes.value.json();
+          companyVerifications = Array.isArray(compVerifJson.data) ? compVerifJson.data : [];
+        } catch {
+          companyVerifications = [];
         }
       }
 
@@ -92,20 +103,39 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Map latest verification attempt for each company
+    const latestCompanyVerifMap: Record<number, Record<string, unknown>> = {};
+    companyVerifications.forEach((v) => {
+      const cid = Number(v.company_id);
+      if (!latestCompanyVerifMap[cid]) {
+        latestCompanyVerifMap[cid] = v;
+      }
+    });
+
+    // Helper: align with Company Management getCompanyStatusBucket()
+    const getCompanyBucket = (c: Record<string, unknown>) => {
+      const cid = Number(c.company_id);
+      const cv = latestCompanyVerifMap[cid];
+      const compStatus = String(c.verification_status || "").toUpperCase();
+      const verifStatus = String(cv?.status || "").toUpperCase();
+
+      if (compStatus === "VERIFIED" || verifStatus === "APPROVED") return "VERIFIED";
+      if (compStatus === "REJECTED" || compStatus === "SUSPENDED" || verifStatus === "REJECTED" || verifStatus === "SUSPENDED") return "REJECTED";
+      if (verifStatus === "CORRECTION_REQUIRED") return "NEEDS_REVISION";
+      if (compStatus === "PENDING_VERIFICATION" || verifStatus === "PENDING_VERIFICATION" || verifStatus === "IN_REVIEW") {
+        return "PENDING_VERIFICATION";
+      }
+      return "DRAFT";
+    };
+
     // Calculations
-    const pendingCompanies = companies.filter((c) => {
-      const s = String(c.verification_status || "").toUpperCase();
-      return s === "PENDING" || s === "PENDING_VERIFICATION" || s === "IN_REVIEW";
-    });
+    const pendingCompanies = companies.filter((c) => getCompanyBucket(c) === "PENDING_VERIFICATION");
+    const verifiedCompanies = companies.filter((c) => getCompanyBucket(c) === "VERIFIED");
 
-    const verifiedCompanies = companies.filter((c) => {
-      const s = String(c.verification_status || "").toUpperCase();
-      return s === "VERIFIED" || s === "APPROVED";
-    });
-
+    // Align with School Management computeSchoolKpis()
     const pendingSchools = schools.filter((s) => {
       const st = String(s.verification_status || "").toUpperCase();
-      return st === "PENDING" || st === "IN_REVIEW";
+      return st === "PENDING_VERIFICATION" || st === "DRAFT" || st === "CORRECTION_REQUIRED";
     });
 
     const verifiedSchools = schools.filter((s) => {
@@ -134,7 +164,7 @@ export async function GET(req: NextRequest) {
       geminiAvgLatencyMs,
     };
 
-    // Pending Action Queue (top 5 pending)
+    // Pending Action Queue (top 5 pending, combined and sorted by submission date descending)
     const pendingActions: PendingActionItem[] = [
       ...pendingCompanies.map((c) => ({
         id: (c.company_id as string | number) || Math.random(),
@@ -152,14 +182,28 @@ export async function GET(req: NextRequest) {
         detail: "Institutional Accreditation Review Required",
         reviewUrl: `/vos-sync/vos-admin/school-verification?schoolId=${s.school_id}`,
       })),
-    ].slice(0, 5);
+    ]
+      .sort((a, b) => {
+        const timeA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+        const timeB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+        return timeB - timeA;
+      })
+      .slice(0, 5);
 
     // Distribution breakdown
     const distribution: StatusDistributionItem[] = [
-      { name: "Verified Companies", value: Math.max(verifiedCompanies.length, 12), fill: "#3b82f6" },
-      { name: "Verified Schools", value: Math.max(verifiedSchools.length, 6), fill: "#10b981" },
-      { name: "Pending Review", value: Math.max(pendingVerifications, 4), fill: "#f59e0b" },
-      { name: "Needs Correction / Other", value: Math.max(companies.length - verifiedCompanies.length - pendingCompanies.length, 2), fill: "#64748b" },
+      { name: "Verified Companies", value: verifiedCompanies.length, fill: "#3b82f6" },
+      { name: "Verified Schools", value: verifiedSchools.length, fill: "#10b981" },
+      { name: "Pending Review", value: pendingVerifications, fill: "#f59e0b" },
+      {
+        name: "Needs Correction / Other",
+        value: Math.max(
+          (companies.length + schools.length) -
+            (verifiedCompanies.length + verifiedSchools.length + pendingVerifications),
+          0
+        ),
+        fill: "#64748b",
+      },
     ];
 
     // Monthly velocity trend points

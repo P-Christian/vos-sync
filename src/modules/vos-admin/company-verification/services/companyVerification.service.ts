@@ -53,5 +53,14 @@ export async function submitVerificationDecision(
   }
 
   const result = await response.json();
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("vos:verification-updated", {
+        detail: { entity: "company", companyId: payload.companyId, action: payload.action },
+      })
+    );
+  }
+
   return { success: true, message: result.message };
 }

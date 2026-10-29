@@ -72,6 +72,7 @@ export interface AccountStatusUser {
   role: string;
   role_id: number | null;
   status: AccountStatus;
+  verification_status?: string | null;
   status_version: number;
   session_epoch?: string | null;
   restrictions?: AccountRestriction[];

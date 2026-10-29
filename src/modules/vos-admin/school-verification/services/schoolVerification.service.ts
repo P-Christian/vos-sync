@@ -324,5 +324,14 @@ export async function submitSchoolVerificationDecision(
   }
 
   const result = await response.json();
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("vos:verification-updated", {
+        detail: { entity: "school", schoolId: payload.schoolId, action: payload.action },
+      })
+    );
+  }
+
   return { success: true, message: result.message };
 }

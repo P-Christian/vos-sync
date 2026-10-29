@@ -203,6 +203,17 @@ export function useMessages(currentUserId: number = 0) {
           break;
         } catch (err) {
           lastError = err;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          // If error is permission or privilege suspension, fail immediately without useless retries
+          if (
+            errMsg.includes("suspended") ||
+            errMsg.includes("privilege") ||
+            errMsg.includes("Forbidden") ||
+            errMsg.includes("restricted") ||
+            errMsg.includes("not allowed")
+          ) {
+            break;
+          }
           attempts++;
           if (attempts <= MAX_RETRIES) {
             await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -247,7 +258,17 @@ export function useMessages(currentUserId: number = 0) {
         );
         const msg = lastError instanceof Error ? lastError.message : "Failed to send message.";
         setError(msg);
-        toast.error("Failed to send message after 5 retries.");
+        if (
+          msg.includes("suspended") ||
+          msg.includes("privilege") ||
+          msg.includes("Forbidden") ||
+          msg.includes("restricted") ||
+          msg.includes("not allowed")
+        ) {
+          toast.error(msg);
+        } else {
+          toast.error("Failed to send message after 5 retries.");
+        }
         return false;
       }
     },

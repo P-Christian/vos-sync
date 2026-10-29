@@ -87,6 +87,20 @@ export function useAdminDashboardData() {
 
   useEffect(() => {
     fetchData();
+
+    const handleVerificationUpdated = () => {
+      fetchData();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('vos:verification-updated', handleVerificationUpdated);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('vos:verification-updated', handleVerificationUpdated);
+      }
+    };
   }, [fetchData]);
 
   return {

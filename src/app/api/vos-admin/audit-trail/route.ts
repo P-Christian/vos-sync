@@ -1,45 +1,22 @@
 // src/app/api/vos-admin/audit-trail/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-import { cookies } from "next/headers";
 import { fetchAuditLogsRepo, fetchAuditKPIsRepo, createAuditRecordRepo, AuditFilters } from "@/modules/vos-admin/audit-trail";
+import { authenticateRequest, isAdministratorSession } from "@/lib/authenticated-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET 
-);
-
-async function verifyAdminRole(req: NextRequest): Promise<{ adminId: number; roleId: number } | null> {
-  if (process.env.NEXT_PUBLIC_AUTH_DISABLED === "true") {
-    return { adminId: 1, roleId: 3 };
-  }
-  const cookieStore = await cookies();
-  const token = req.headers.get("authorization")?.replace("Bearer ", "") || cookieStore.get("vos_sync_access_token")?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    const adminId = Number(payload.sub || payload.user_id || payload.id);
-    const roleId = Number(payload.role_id ?? payload.role ?? 0);
-    return { adminId, roleId };
-  } catch {
-    return null;
-  }
-}
-
 export async function GET(req: NextRequest) {
   try {
-    const auth = await verifyAdminRole(req);
-    if (!auth) {
-      return NextResponse.json({ error: "Unauthorized: Invalid or missing token" }, { status: 401 });
+    const session = await authenticateRequest(req);
+    if (!session || !isAdministratorSession(session)) {
+      return NextResponse.json(
+        { error: session ? "Forbidden: Access restricted to administrators" : "Unauthorized: Invalid or missing token" },
+        { status: session ? 403 : 401 }
+      );
     }
 
-    // Role restriction: Admin only
-    if (auth.roleId !== 3 && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
-      return NextResponse.json({ error: "Forbidden: Access restricted to administrators" }, { status: 403 });
-    }
+    const adminId = Number(session.userId);
 
     const { searchParams } = new URL(req.url);
     const isExport = searchParams.get("export") === "csv";
@@ -69,7 +46,7 @@ export async function GET(req: NextRequest) {
         action: "EXPORT",
         status: "SUCCESS",
         actor_type: "ADMIN",
-        actor_user_id: auth.adminId,
+        actor_user_id: adminId,
         reason: `Exported ${records.length} audit records to CSV`,
       });
 
@@ -127,7 +104,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Normal JSON response with KPIs
-    const kpis = await fetchAuditKPIsRepo();
+    const kpis = await fetchAuditKPIsRepo(filters);
 
     return NextResponse.json({
       records,

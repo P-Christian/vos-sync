@@ -88,7 +88,11 @@ export function SchoolAdminDashboard() {
 
       {/* Operational Queues & Shortcuts */}
       <section className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-        <AdminPendingQueue items={data?.pendingActions || []} isLoading={isLoading} />
+        <AdminPendingQueue
+          items={data?.pendingActions || []}
+          totalPending={data?.kpis.pendingVerifications}
+          isLoading={isLoading}
+        />
         <AdminQuickShortcuts />
       </section>
     </div>

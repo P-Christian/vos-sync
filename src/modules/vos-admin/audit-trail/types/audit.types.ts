@@ -67,6 +67,7 @@ export interface AuditRecord {
   // Dynamic resolved actor info
   actor_name?: string | null;
   actor_email?: string | null;
+  actor_role?: string | null;
   resource_type: string | null;
   resource_id: string | null;
   resource_name?: string | null;
