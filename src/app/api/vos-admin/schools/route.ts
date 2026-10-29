@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, isAdministratorSession } from "@/lib/authenticated-session";
+import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import {
   SCHOOL_SEARCH_LIMIT,
@@ -19,22 +19,11 @@ const searchTermSchema = z
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await verifyAdminRole(req);
-    if (!auth) {
+    const session = await authenticateRequest(req);
+    if (!session || !isAdministratorSession(session)) {
       return NextResponse.json(
-        { error: "Unauthorized: Invalid or missing token" },
-        { status: 401 }
-      );
-    }
-
-    // Role restriction: VOS Admin only
-    if (
-      auth.roleId !== 3 &&
-      process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Access restricted to administrators" },
-        { status: 403 }
+        { error: session ? "Forbidden: Access restricted to administrators" : "Unauthorized: Invalid or missing token" },
+        { status: session ? 403 : 401 }
       );
     }
 
@@ -144,24 +133,14 @@ function normalizeKey(value: string | null | undefined): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await verifyAdminRole(req);
-    if (!auth) {
+    const session = await authenticateRequest(req);
+    if (!session || !isAdministratorSession(session)) {
       return NextResponse.json(
-        { error: "Unauthorized: Invalid or missing token" },
-        { status: 401 }
+        { error: session ? "Forbidden: Access restricted to administrators" : "Unauthorized: Invalid or missing token" },
+        { status: session ? 403 : 401 }
       );
     }
-
-    // Role restriction: VOS Admin only
-    if (
-      auth.roleId !== 3 &&
-      process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Access restricted to administrators" },
-        { status: 403 }
-      );
-    }
+    const adminId = Number(session.userId);
 
     const raw = (await req.json()) as unknown;
     const parsed = placeholderBodySchema.safeParse(raw);

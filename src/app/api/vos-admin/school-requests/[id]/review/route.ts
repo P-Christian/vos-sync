@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, isAdministratorSession } from "@/lib/authenticated-session";
+import { NextRequest, NextResponse } from "next/server";
 import { z, ZodError } from "zod";
 import {
   fetchSchoolRequestById,
@@ -93,24 +93,14 @@ async function convergeManualRouteReplay(
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await verifyAdminRole(req);
-    if (!auth) {
+    const session = await authenticateRequest(req);
+    if (!session || !isAdministratorSession(session)) {
       return NextResponse.json(
-        { error: "Unauthorized: Invalid or missing token" },
-        { status: 401 }
+        { error: session ? "Forbidden: Access restricted to administrators" : "Unauthorized: Invalid or missing token" },
+        { status: session ? 403 : 401 }
       );
     }
-
-    // Role restriction: VOS Admin only
-    if (
-      auth.roleId !== 3 &&
-      process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Access restricted to administrators" },
-        { status: 403 }
-      );
-    }
+    const auth = { adminId: Number(session.userId), roleId: Number(session.roleId ?? 3) };
 
     const { id: paramId } = await params;
     const id = parseInt(paramId, 10);

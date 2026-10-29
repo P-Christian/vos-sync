@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest, isAdministratorSession } from "@/lib/authenticated-session";
+import { NextRequest, NextResponse } from "next/server";
 import {
   CourseRequestDecisionError,
   getCourseRequestCandidates,
@@ -10,22 +10,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await verifyAdminRole(req);
-    if (!auth) {
+    const session = await authenticateRequest(req);
+    if (!session || !isAdministratorSession(session)) {
       return NextResponse.json(
-        { error: "Unauthorized: Invalid or missing token" },
-        { status: 401 }
-      );
-    }
-
-    // Role restriction: VOS Admin only
-    if (
-      auth.roleId !== 3 &&
-      process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true"
-    ) {
-      return NextResponse.json(
-        { error: "Forbidden: Access restricted to administrators" },
-        { status: 403 }
+        { error: session ? "Forbidden: Access restricted to administrators" : "Unauthorized: Invalid or missing token" },
+        { status: session ? 403 : 401 }
       );
     }
 
