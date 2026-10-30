@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   const configuredModel =
     process.env.GEMINI_MODEL || process.env.NEXT_PUBLIC_GEMINI_MODEL || "gemini-2.0-flash";
   const apiKeyConfigured = Boolean(
-    process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY
+    process.env.GEMINI_API_KEY
   );
 
   // PH local timestamp for response
