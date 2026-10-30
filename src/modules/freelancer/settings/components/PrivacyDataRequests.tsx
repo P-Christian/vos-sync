@@ -26,6 +26,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import type {
+  FreelancerProfile,
+  VsWorkExperience,
+  VsEducation,
+  VsUserSkillMap,
+  VsJobSeekerProfile,
+} from "@/modules/freelancer/freelancer-profile/types/freelancer-profile.types";
+import type { ApplicationItem } from "@/modules/freelancer/freelancer-applications/types";
 
 interface DataRequestItem {
   request_id: number;
@@ -194,9 +202,12 @@ export default function PrivacyDataRequests() {
     }
   };
 
-  const fetchUserDataForExport = async () => {
-    let profile: any = null;
-    let applications: any[] = [];
+  const fetchUserDataForExport = async (): Promise<{
+    profile: FreelancerProfile | null;
+    applications: ApplicationItem[];
+  }> => {
+    let profile: FreelancerProfile | null = null;
+    let applications: ApplicationItem[] = [];
     try {
       const [profileRes, appsRes] = await Promise.all([
         fetch("/api/freelancer/profile"),
@@ -204,11 +215,11 @@ export default function PrivacyDataRequests() {
       ]);
       if (profileRes.ok) {
         const pJson = await profileRes.json();
-        profile = pJson.data || pJson;
+        profile = (pJson.data || pJson) as FreelancerProfile;
       }
       if (appsRes.ok) {
         const aJson = await appsRes.json();
-        applications = aJson.applications || aJson.data || [];
+        applications = (aJson.applications || aJson.data || []) as ApplicationItem[];
       }
     } catch (e) {
       console.error("Error fetching export user data:", e);
@@ -221,13 +232,15 @@ export default function PrivacyDataRequests() {
     const toastId = toast.loading("Preparing CSV export...");
     try {
       const { profile, applications } = await fetchUserDataForExport();
-      const seekerProfile = profile?.job_seeker_profile?.[0] || profile?.job_seeker_profile || {};
+      const seekerProfile = (Array.isArray(profile?.job_seeker_profile)
+        ? profile?.job_seeker_profile?.[0]
+        : (profile?.job_seeker_profile as VsJobSeekerProfile | undefined)) || undefined;
       const fullName = [profile?.user_fname, profile?.user_lname].filter(Boolean).join(" ") || "Candidate";
       const email = profile?.user_email || "N/A";
       const contact = profile?.user_contact || "N/A";
       const location = [profile?.user_city, profile?.user_province].filter(Boolean).join(", ") || "N/A";
       const summary = seekerProfile?.professional_summary || "N/A";
-      const skills = (profile?.skills || []).map((s: any) => s.skill?.skill_name || s.skill_name).filter(Boolean);
+      const skills = (profile?.skills || []).map((s: VsUserSkillMap & { skill_name?: string }) => s.skill?.skill_name || s.skill_name).filter(Boolean);
 
       const rows: string[][] = [
         ["SECTION", "FIELD", "VALUE"],
@@ -244,7 +257,7 @@ export default function PrivacyDataRequests() {
       ];
 
       if (profile?.work_experience && profile.work_experience.length > 0) {
-        profile.work_experience.forEach((exp: any, i: number) => {
+        profile.work_experience.forEach((exp: VsWorkExperience, i: number) => {
           rows.push([
             "Work Experience",
             `Role #${i + 1}`,
@@ -254,7 +267,7 @@ export default function PrivacyDataRequests() {
       }
 
       if (profile?.education && profile.education.length > 0) {
-        profile.education.forEach((edu: any, i: number) => {
+        profile.education.forEach((edu: VsEducation, i: number) => {
           rows.push([
             "Education",
             `Institution #${i + 1}`,
@@ -264,7 +277,7 @@ export default function PrivacyDataRequests() {
       }
 
       if (applications && applications.length > 0) {
-        applications.forEach((app: any) => {
+        applications.forEach((app: ApplicationItem) => {
           const title = app.job_title || "Job Application";
           const company = app.company_name || "N/A";
           const status = app.current_stage?.stage_name || app.application_status || "Applied";
@@ -306,13 +319,15 @@ export default function PrivacyDataRequests() {
     const toastId = toast.loading("Generating printable PDF document...");
     try {
       const { profile, applications } = await fetchUserDataForExport();
-      const seekerProfile = profile?.job_seeker_profile?.[0] || profile?.job_seeker_profile || {};
+      const seekerProfile = (Array.isArray(profile?.job_seeker_profile)
+        ? profile?.job_seeker_profile?.[0]
+        : (profile?.job_seeker_profile as VsJobSeekerProfile | undefined)) || undefined;
       const fullName = [profile?.user_fname, profile?.user_lname].filter(Boolean).join(" ") || "Candidate Profile";
       const email = profile?.user_email || "N/A";
       const contact = profile?.user_contact || "N/A";
       const location = [profile?.user_city, profile?.user_province].filter(Boolean).join(", ") || "N/A";
       const summary = seekerProfile?.professional_summary || "No professional summary provided.";
-      const skills = (profile?.skills || []).map((s: any) => s.skill?.skill_name || s.skill_name).filter(Boolean);
+      const skills = (profile?.skills || []).map((s: VsUserSkillMap & { skill_name?: string }) => s.skill?.skill_name || s.skill_name).filter(Boolean);
 
       const doc = new jsPDF({ unit: "mm", format: "a4" });
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -465,7 +480,7 @@ export default function PrivacyDataRequests() {
         doc.text("No job applications submitted yet.", margin, y + 4);
         y += 10;
       } else {
-        applications.forEach((app: any) => {
+        applications.forEach((app: ApplicationItem) => {
           if (y > pageHeight - 32) {
             renderFooter(doc);
             doc.addPage();
@@ -589,9 +604,18 @@ export default function PrivacyDataRequests() {
                                 variant="outline"
                                 size="sm"
                                 className="rounded-lg gap-1.5 max-md:min-h-11 font-medium"
+                                disabled={downloadingState?.id === linkedArtifact.artifact_id}
                               >
-                                <Download className="h-3.5 w-3.5" /> Download Export
-                                <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5" />
+                                {downloadingState?.id === linkedArtifact.artifact_id ? (
+                                  <>
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Downloading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-3.5 w-3.5" /> Download Export
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-60 ml-0.5" />
+                                  </>
+                                )}
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
