@@ -15,11 +15,9 @@ import {
   FileText, 
   LockKeyhole,
   ChevronDown,
-  Archive,
   FileSpreadsheet,
-  FileCode,
 } from "lucide-react";
-import JSZip from "jszip";
+import { jsPDF } from "jspdf";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +60,7 @@ export default function PrivacyDataRequests() {
   const [submittingExport, setSubmittingExport] = useState(false);
   const [submittingDeactivate, setSubmittingDeactivate] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [downloadingState, setDownloadingState] = useState<{ id: number; format: "csv" | "pdf" } | null>(null);
 
   // Deactivation confirmation input
   const [deactivateInput, setDeactivateInput] = useState("");
@@ -195,181 +194,315 @@ export default function PrivacyDataRequests() {
     }
   };
 
-  const buildFullExportData = (artifact: ExportArtifactItem) => {
-    return {
-      metadata: {
-        export_id: artifact.artifact_id,
-        request_id: artifact.request_id,
-        user_id: artifact.user_id,
-        export_version: "2.0",
-        generated_at: artifact.generated_at,
-        integrity_hash: artifact.integrity_hash,
-        compliance: "Data Portability & Regulatory Privacy Archive",
-      },
-      user_profile: {
-        user_id: artifact.user_id,
-        role: "freelancer",
-        status: "active",
-        export_timestamp: new Date().toISOString(),
-        notice: "Contains personal data, historical records, and platform application history.",
-      },
-      applications: [
-        {
-          application_id: 101,
-          status: "Under Review",
-          applied_at: artifact.generated_at,
-          category: "Technical Services",
-        },
-      ],
-      sessions: [
-        {
-          session_type: "Current Device",
-          last_activity: new Date().toISOString(),
-        },
-      ],
-    };
-  };
-
-  const handleDownloadJSON = (artifact: ExportArtifactItem) => {
-    const data = buildFullExportData(artifact);
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `vos_data_export_${artifact.artifact_id}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("JSON data export downloaded.");
-  };
-
-  const handleDownloadCSV = (artifact: ExportArtifactItem) => {
-    const data = buildFullExportData(artifact);
-    const rows = [
-      ["SECTION", "FIELD", "VALUE"],
-      ["Metadata", "Export ID", String(data.metadata.export_id)],
-      ["Metadata", "User ID", String(data.metadata.user_id)],
-      ["Metadata", "Generated At", data.metadata.generated_at],
-      ["Metadata", "Integrity Hash", data.metadata.integrity_hash],
-      ["Profile", "Role", data.user_profile.role],
-      ["Profile", "Status", data.user_profile.status],
-      ["Profile", "Export Timestamp", data.user_profile.export_timestamp],
-      ...data.applications.map((app) => [
-        "Applications",
-        `Application #${app.application_id}`,
-        `Status: ${app.status} | Category: ${app.category}`,
-      ]),
-    ];
-
-    const csvContent = rows
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\r\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `vos_data_export_${artifact.artifact_id}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("CSV spreadsheet export downloaded.");
-  };
-
-  const handleDownloadZIP = async (artifact: ExportArtifactItem) => {
+  const fetchUserDataForExport = async () => {
+    let profile: any = null;
+    let applications: any[] = [];
     try {
-      const data = buildFullExportData(artifact);
-      const zip = new JSZip();
+      const [profileRes, appsRes] = await Promise.all([
+        fetch("/api/freelancer/profile"),
+        fetch("/api/freelancer/applications"),
+      ]);
+      if (profileRes.ok) {
+        const pJson = await profileRes.json();
+        profile = pJson.data || pJson;
+      }
+      if (appsRes.ok) {
+        const aJson = await appsRes.json();
+        applications = aJson.applications || aJson.data || [];
+      }
+    } catch (e) {
+      console.error("Error fetching export user data:", e);
+    }
+    return { profile, applications };
+  };
 
-      // 1. Readable HTML viewer index
-      const htmlViewer = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>VOS Sync - Personal Data Export</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 2rem; background: #f8fafc; color: #0f172a; }
-    .card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    h1 { color: #0f172a; margin-top: 0; font-size: 1.5rem; }
-    h2 { font-size: 1.1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; color: #334155; }
-    table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.6rem 0.75rem; border-bottom: 1px solid #f1f5f9; }
-    th { color: #64748b; font-weight: 600; width: 30%; }
-    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; background: #ecfdf5; color: #047857; }
-    .hash { font-family: monospace; font-size: 0.8rem; background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 4px; word-break: break-all; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>VOS Sync - Personal Data Archive</h1>
-    <p style="color: #64748b; font-size: 0.9rem;">Export generated on: ${data.metadata.generated_at}</p>
-    <div style="margin-top: 0.5rem;"><span class="badge">Verified Export</span></div>
-  </div>
+  const handleDownloadCSV = async (artifact: ExportArtifactItem) => {
+    setDownloadingState({ id: artifact.artifact_id, format: "csv" });
+    const toastId = toast.loading("Preparing CSV export...");
+    try {
+      const { profile, applications } = await fetchUserDataForExport();
+      const seekerProfile = profile?.job_seeker_profile?.[0] || profile?.job_seeker_profile || {};
+      const fullName = [profile?.user_fname, profile?.user_lname].filter(Boolean).join(" ") || "Candidate";
+      const email = profile?.user_email || "N/A";
+      const contact = profile?.user_contact || "N/A";
+      const location = [profile?.user_city, profile?.user_province].filter(Boolean).join(", ") || "N/A";
+      const summary = seekerProfile?.professional_summary || "N/A";
+      const skills = (profile?.skills || []).map((s: any) => s.skill?.skill_name || s.skill_name).filter(Boolean);
 
-  <div class="card">
-    <h2>Export Integrity & Manifest</h2>
-    <table>
-      <tr><th>Export ID</th><td>${data.metadata.export_id}</td></tr>
-      <tr><th>User ID</th><td>${data.metadata.user_id}</td></tr>
-      <tr><th>Compliance</th><td>${data.metadata.compliance}</td></tr>
-      <tr><th>SHA-256 Hash</th><td><span class="hash">${data.metadata.integrity_hash}</span></td></tr>
-    </table>
-  </div>
+      const rows: string[][] = [
+        ["SECTION", "FIELD", "VALUE"],
+        ["Metadata", "Export ID", String(artifact.artifact_id)],
+        ["Metadata", "User ID", String(artifact.user_id)],
+        ["Metadata", "Generated At", artifact.generated_at],
+        ["Metadata", "Integrity Hash", artifact.integrity_hash],
+        ["Personal Details", "Full Name", fullName],
+        ["Personal Details", "Email Address", email],
+        ["Personal Details", "Contact Number", contact],
+        ["Personal Details", "Location", location],
+        ["Profile", "Professional Summary", summary],
+        ["Profile", "Core Skills", skills.join("; ") || "None recorded"],
+      ];
 
-  <div class="card">
-    <h2>Profile & Account Summary</h2>
-    <table>
-      <tr><th>Role</th><td>${data.user_profile.role}</td></tr>
-      <tr><th>Account Status</th><td>${data.user_profile.status}</td></tr>
-      <tr><th>Notice</th><td>${data.user_profile.notice}</td></tr>
-    </table>
-  </div>
+      if (profile?.work_experience && profile.work_experience.length > 0) {
+        profile.work_experience.forEach((exp: any, i: number) => {
+          rows.push([
+            "Work Experience",
+            `Role #${i + 1}`,
+            `${exp.job_title} at ${exp.company_name} (${exp.start_date || ""} - ${exp.end_date || (exp.is_current_role ? "Present" : "")})`,
+          ]);
+        });
+      }
 
-  <div class="card">
-    <h2>Sub-files Included in this Archive</h2>
-    <table>
-      <tr><th>data/profile.json</th><td>Raw structured profile metadata</td></tr>
-      <tr><th>data/summary.csv</th><td>Tabular records for spreadsheet applications</td></tr>
-      <tr><th>manifest.json</th><td>Cryptographic integrity verification metadata</td></tr>
-    </table>
-  </div>
-</body>
-</html>`;
+      if (profile?.education && profile.education.length > 0) {
+        profile.education.forEach((edu: any, i: number) => {
+          rows.push([
+            "Education",
+            `Institution #${i + 1}`,
+            `${edu.course_name || "Course"} at ${edu.school_name} (${edu.start_date || ""} - ${edu.end_date || ""})`,
+          ]);
+        });
+      }
 
-      // 2. CSV summary
-      const csvSummary = [
-        ["FIELD", "VALUE"],
-        ["Export ID", String(data.metadata.export_id)],
-        ["User ID", String(data.metadata.user_id)],
-        ["Role", data.user_profile.role],
-        ["Status", data.user_profile.status],
-        ["Generated At", data.metadata.generated_at],
-        ["Hash", data.metadata.integrity_hash],
-      ]
-        .map((r) => r.map((c) => `"${c}"`).join(","))
+      if (applications && applications.length > 0) {
+        applications.forEach((app: any) => {
+          const title = app.job_title || "Job Application";
+          const company = app.company_name || "N/A";
+          const status = app.current_stage?.stage_name || app.application_status || "Applied";
+          const date = app.applied_at ? format(new Date(app.applied_at), "yyyy-MM-dd") : "N/A";
+          rows.push([
+            "Application History",
+            `Application #${app.application_id}`,
+            `Role: ${title} | Company: ${company} | Status: ${status} | Date: ${date}`,
+          ]);
+        });
+      } else {
+        rows.push(["Application History", "Applications", "No applications submitted yet."]);
+      }
+
+      const csvContent = rows
+        .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
         .join("\r\n");
 
-      // 3. Assemble zip
-      zip.file("index.html", htmlViewer);
-      zip.file("manifest.json", JSON.stringify(data.metadata, null, 2));
-      zip.file("data/profile.json", JSON.stringify(data.user_profile, null, 2));
-      zip.file("data/summary.csv", csvSummary);
-
-      const content = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(content);
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `vos_data_export_${artifact.artifact_id}.zip`;
+      link.download = `vos_data_export_${artifact.artifact_id}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      toast.success("ZIP archive package downloaded with readable HTML viewer.");
+      toast.success("CSV spreadsheet export downloaded.", { id: toastId });
     } catch (err: unknown) {
       console.error(err);
-      toast.error("Failed to generate ZIP archive.");
+      toast.error("Failed to generate CSV export.", { id: toastId });
+    } finally {
+      setDownloadingState(null);
+    }
+  };
+
+  const handleDownloadPDF = async (artifact: ExportArtifactItem) => {
+    setDownloadingState({ id: artifact.artifact_id, format: "pdf" });
+    const toastId = toast.loading("Generating printable PDF document...");
+    try {
+      const { profile, applications } = await fetchUserDataForExport();
+      const seekerProfile = profile?.job_seeker_profile?.[0] || profile?.job_seeker_profile || {};
+      const fullName = [profile?.user_fname, profile?.user_lname].filter(Boolean).join(" ") || "Candidate Profile";
+      const email = profile?.user_email || "N/A";
+      const contact = profile?.user_contact || "N/A";
+      const location = [profile?.user_city, profile?.user_province].filter(Boolean).join(", ") || "N/A";
+      const summary = seekerProfile?.professional_summary || "No professional summary provided.";
+      const skills = (profile?.skills || []).map((s: any) => s.skill?.skill_name || s.skill_name).filter(Boolean);
+
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      const contentWidth = pageWidth - margin * 2;
+
+      // Header Top Band
+      doc.setFillColor(37, 99, 235);
+      doc.rect(margin, 12, contentWidth, 3, "F");
+
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(15, 23, 42);
+      doc.text("VOS SYNC - PERSONAL DATA EXPORT REPORT", margin, 22);
+
+      // Subtitle
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("OFFICIAL DATA PORTABILITY PRIVACY RECORD", margin, 27);
+      const dateText = `Generated: ${artifact.generated_at ? format(new Date(artifact.generated_at), "yyyy-MM-dd HH:mm") : format(new Date(), "yyyy-MM-dd HH:mm")}`;
+      doc.text(dateText, pageWidth - margin - doc.getTextWidth(dateText), 27);
+
+      // Divider line
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(margin, 30, pageWidth - margin, 30);
+
+      // Section 1: Candidate Personal Info Box
+      let y = 35;
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(margin, y, contentWidth, 24, 2, 2, "F");
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin, y, contentWidth, 24, 2, 2, "S");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Candidate Information", margin + 4, y + 6);
+
+      doc.setFontSize(8.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text("Full Name:", margin + 4, y + 12);
+      doc.setFont("helvetica", "normal");
+      doc.text(fullName, margin + 28, y + 12);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Email:", margin + 4, y + 18);
+      doc.setFont("helvetica", "normal");
+      doc.text(email, margin + 28, y + 18);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Contact:", margin + 95, y + 12);
+      doc.setFont("helvetica", "normal");
+      doc.text(contact, margin + 115, y + 12);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Location:", margin + 95, y + 18);
+      doc.setFont("helvetica", "normal");
+      doc.text(location, margin + 115, y + 18);
+
+      // Section 2: Professional Profile & Core Skills
+      y += 28;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Professional Profile & Core Skills", margin, y);
+      y += 4;
+
+      // Prepare complete summary text and full skills list
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      const splitSummary = doc.splitTextToSize(summary, contentWidth - 8);
+      const summaryLineHeight = 3.8;
+      const summaryBlockHeight = splitSummary.length * summaryLineHeight;
+
+      const skillsText = skills.length > 0 ? skills.join(", ") : "None recorded";
+      const splitSkills = doc.splitTextToSize(skillsText, contentWidth - 8);
+      const skillsLineHeight = 3.8;
+      const skillsBlockHeight = splitSkills.length * skillsLineHeight;
+
+      // Card bounding box dynamically sized
+      const cardInnerPadding = 16;
+      const cardTotalHeight = summaryBlockHeight + skillsBlockHeight + cardInnerPadding;
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin, y, contentWidth, cardTotalHeight, 1.5, 1.5, "S");
+
+      // Draw SUMMARY
+      let innerY = y + 5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("SUMMARY", margin + 4, innerY);
+
+      innerY += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      doc.text(splitSummary, margin + 4, innerY);
+
+      // Draw CORE SKILLS
+      innerY += summaryBlockHeight + 3;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`CORE SKILLS (${skills.length})`, margin + 4, innerY);
+
+      innerY += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(51, 65, 85);
+      doc.text(splitSkills, margin + 4, innerY);
+
+      y += cardTotalHeight + 8;
+
+      // Helper for adding footer to current page
+      const renderFooter = (pageDoc: typeof doc) => {
+        const footerY = pageHeight - 16;
+        pageDoc.setDrawColor(226, 232, 240);
+        pageDoc.line(margin, footerY, pageWidth - margin, footerY);
+        pageDoc.setFont("helvetica", "normal");
+        pageDoc.setFontSize(7);
+        pageDoc.setTextColor(148, 163, 184);
+        pageDoc.text(`Export ID: ${artifact.artifact_id}  |  SHA-256: ${artifact.integrity_hash}`, margin, footerY + 4);
+        pageDoc.text("CONFIDENTIAL - FOR PERSONAL USE ONLY", pageWidth - margin - pageDoc.getTextWidth("CONFIDENTIAL - FOR PERSONAL USE ONLY"), footerY + 4);
+      };
+
+      // Check if Application History needs a new page
+      if (y > pageHeight - 65) {
+        renderFooter(doc);
+        doc.addPage();
+        y = 22;
+      }
+
+      // Section 3: Applications History
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`Application History (${applications.length})`, margin, y);
+      y += 4;
+
+      if (applications.length === 0) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text("No job applications submitted yet.", margin, y + 4);
+        y += 10;
+      } else {
+        applications.forEach((app: any) => {
+          if (y > pageHeight - 32) {
+            renderFooter(doc);
+            doc.addPage();
+            y = 22;
+          }
+
+          doc.setFillColor(248, 250, 252);
+          doc.setDrawColor(226, 232, 240);
+          doc.roundedRect(margin, y, contentWidth, 12, 1.5, 1.5, "S");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(8.5);
+          doc.setTextColor(30, 41, 59);
+          doc.text(String(app.job_title || "Application"), margin + 4, y + 5.5);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(8);
+          doc.setTextColor(100, 116, 139);
+          const compText = String(app.company_name || "");
+          const stageText = String(app.current_stage?.stage_name || app.application_status || "Applied");
+          const dateApplied = app.applied_at ? format(new Date(app.applied_at), "yyyy-MM-dd") : "";
+          doc.text(`${compText}  •  Status: ${stageText}  •  Applied: ${dateApplied}`, margin + 4, y + 9.5);
+
+          y += 14;
+        });
+      }
+
+      // Render footer on the final page
+      renderFooter(doc);
+
+            doc.save(`vos_data_export_${artifact.artifact_id}.pdf`);
+      toast.success("PDF data export downloaded.", { id: toastId });
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error("Failed to generate PDF document.", { id: toastId });
+    } finally {
+      setDownloadingState(null);
     }
   };
 
@@ -390,7 +523,7 @@ export default function PrivacyDataRequests() {
           <div className="space-y-1">
             <CardTitle>Data Portability (Export Data)</CardTitle>
             <CardDescription>
-              Request a portable archive containing your personal data, profile history, and applications in machine-readable JSON, spreadsheet CSV, or packaged ZIP archive with a readable viewer.
+              Request a portable archive containing your personal data, profile history, and applications in spreadsheet CSV or printable PDF document format.
             </CardDescription>
           </div>
           <Button 
@@ -463,16 +596,6 @@ export default function PrivacyDataRequests() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
                               <DropdownMenuItem
-                                onClick={() => handleDownloadZIP(linkedArtifact)}
-                                className="cursor-pointer gap-2 py-2"
-                              >
-                                <Archive className="h-4 w-4 text-primary" />
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-xs">Archive Package (.ZIP)</span>
-                                  <span className="text-[10px] text-muted-foreground">Includes HTML viewer & sub-files</span>
-                                </div>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
                                 onClick={() => handleDownloadCSV(linkedArtifact)}
                                 className="cursor-pointer gap-2 py-2"
                               >
@@ -483,13 +606,13 @@ export default function PrivacyDataRequests() {
                                 </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => handleDownloadJSON(linkedArtifact)}
+                                onClick={() => handleDownloadPDF(linkedArtifact)}
                                 className="cursor-pointer gap-2 py-2"
                               >
-                                <FileCode className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <FileText className="h-4 w-4 text-rose-600 dark:text-rose-400" />
                                 <div className="flex flex-col">
-                                  <span className="font-semibold text-xs">Machine-Readable (.JSON)</span>
-                                  <span className="text-[10px] text-muted-foreground">Raw exported payload</span>
+                                  <span className="font-semibold text-xs">Document (.PDF)</span>
+                                  <span className="text-[10px] text-muted-foreground">Printable summary document</span>
                                 </div>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
