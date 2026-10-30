@@ -103,7 +103,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   useEffect(() => {
     if (open && job) {
       loadPrefill(job);
-      
+
       // Check for active referral claim
       setReferrerName(null);
       fetch(`/api/freelancer/referrals/check-claim?job_id=${job.job_id}`)
@@ -174,7 +174,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
   if (!job) return null;
 
   const hasScreening = !!(job.screening_questions && job.screening_questions.length > 0);
-  
+
   // Jobstreet style steps
   const steps = [
     { id: "documents", label: "Choose documents" },
@@ -216,20 +216,18 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               return (
                 <div key={step.id} className="flex flex-col items-center gap-1.5 flex-1">
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${
-                      isCompleted
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold border-2 transition-all ${isCompleted
                         ? "bg-primary border-primary text-white"
                         : isActive
-                        ? "bg-white dark:bg-zinc-900 border-primary text-primary"
-                        : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-400"
-                    }`}
+                          ? "bg-white dark:bg-zinc-900 border-primary text-primary"
+                          : "bg-white dark:bg-zinc-900 border-zinc-300 dark:border-zinc-700 text-zinc-400"
+                      }`}
                   >
                     {isCompleted ? "✓" : stepNum}
                   </div>
                   <span
-                    className={`text-[8px] font-semibold text-center hidden sm:block ${
-                      isActive ? "text-primary font-bold" : "text-muted-foreground"
-                    }`}
+                    className={`text-[8px] font-semibold text-center hidden sm:block ${isActive ? "text-primary font-bold" : "text-muted-foreground"
+                      }`}
                   >
                     {step.label}
                   </span>
@@ -414,7 +412,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       value={formData.cover_letter}
                       onChange={(e) => handleFieldChange("cover_letter", e.target.value)}
                       rows={5}
-                      className="resize-none text-base md:text-sm rounded-xl w-full min-w-0 break-words break-all whitespace-pre-wrap overflow-x-hidden"
+                      className="resize-none text-base md:text-sm rounded-xl w-full min-w-0 max-w-full break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap overflow-x-hidden"
                       disabled={saving}
                     />
 
@@ -496,7 +494,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                             value={currentAnswer}
                             onChange={(e) => handleAnswerChange(i, e.target.value)}
                             rows={3}
-                            className="resize-none text-base md:text-sm rounded-xl bg-background border-muted w-full min-w-0 break-words break-all whitespace-pre-wrap overflow-x-hidden"
+                            className="resize-none text-base md:text-sm rounded-xl bg-background border-muted w-full min-w-0 max-w-full break-words break-all [overflow-wrap:anywhere] whitespace-pre-wrap overflow-x-hidden"
                             disabled={saving}
                           />
                         </div>
@@ -522,13 +520,13 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
               <div className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label htmlFor="apply-salary" className="text-sm font-semibold">Expected Salary (PHP/mo)</Label>
+                    <div className="flex items-center justify-between"><Label htmlFor="apply-salary" className="text-sm font-semibold">Expected Salary (PHP/mo)</Label></div>
                     <Input
                       id="apply-salary"
                       type="number"
                       placeholder="e.g. 50000"
                       value={formData.expected_salary}
-                      onChange={(e) => handleFieldChange("expected_salary", e.target.value)}
+                      min={0} max={99999999.99} step="any" onChange={(e) => { const val = e.target.value; if (val === "" || /^\d{0,8}(\.\d{0,2})?$/.test(val)) { handleFieldChange("expected_salary", val); } }}
                       className="text-base md:text-sm rounded-xl h-11 md:h-10"
                       disabled={saving}
                     />
@@ -551,7 +549,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
 
                 <div className="space-y-4 w-full min-w-0">
                   <h4 className="text-sm md:text-xs font-bold uppercase tracking-wider text-muted-foreground">My Profile Preview</h4>
-                  
+
                   {/* Summary */}
                   <div className="space-y-1 w-full min-w-0">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">Professional Summary</span>
@@ -589,8 +587,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                             : formatDDMMYYYY(exp.end_date);
                           return (
                             <div key={i} className="text-sm md:text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
-                              <p className="font-semibold text-foreground">{exp.job_title}</p>
-                              <p className="text-muted-foreground text-[10px]">{exp.company_name} &bull; {formatDDMMYYYY(exp.start_date)} - {endDisplay}</p>
+                              <p className="font-semibold text-foreground break-words [overflow-wrap:anywhere]">{exp.job_title}</p>
+                              <p className="text-muted-foreground text-[10px] break-words [overflow-wrap:anywhere]">{exp.company_name} &bull; {formatDDMMYYYY(exp.start_date)} - {endDisplay}</p>
                             </div>
                           );
                         })}
@@ -607,8 +605,8 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <div className="space-y-2">
                         {profileData.education.map((edu: any, i: number) => (
                           <div key={i} className="text-sm md:text-xs border-l-2 border-zinc-200 dark:border-zinc-800 pl-3 py-0.5">
-                            <p className="font-semibold text-foreground">{edu.course_name || "Course Not Specified"}</p>
-                            <p className="text-muted-foreground text-[10px]">{edu.school_name} &bull; {formatDDMMYYYY(edu.start_date)} - {formatDDMMYYYY(edu.end_date)}</p>
+                            <p className="font-semibold text-foreground break-words [overflow-wrap:anywhere]">{edu.course_name || "Course Not Specified"}</p>
+                            <p className="text-muted-foreground text-[10px] break-words [overflow-wrap:anywhere]">{edu.school_name} &bull; {formatDDMMYYYY(edu.start_date)} - {formatDDMMYYYY(edu.end_date)}</p>
                           </div>
                         ))}
                       </div>
@@ -679,7 +677,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                       <div className="space-y-1 mt-1.5 w-full min-w-0 max-w-full overflow-hidden">
                         <span className="text-[9px] font-semibold text-muted-foreground block">Cover Letter</span>
                         {formData.cover_letter && (
-                          <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 p-3 rounded-xl border line-clamp-4 whitespace-pre-wrap text-[11px] w-full min-w-0 max-w-full break-all [word-break:break-all] [overflow-wrap:anywhere] overflow-hidden">
+                          <p className="text-zinc-600 dark:text-zinc-400 italic bg-muted/40 px-4 py-3 rounded-xl border max-h-36 overflow-y-auto overflow-x-hidden whitespace-pre-wrap text-[11px] leading-relaxed w-full min-w-0 max-w-full break-words break-all [word-break:break-all] [overflow-wrap:anywhere]">
                             {formData.cover_letter}
                           </p>
                         )}
@@ -698,7 +696,7 @@ export function ApplyModal({ job, open, onClose, onSuccess }: Props) {
                     <div className="min-w-0 max-w-full overflow-hidden">
                       <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block">Expected Salary</span>
                       <p className="font-semibold text-foreground text-sm md:text-xs mt-0.5 truncate">
-                        {formData.expected_salary ? `PHP ${Number(formData.expected_salary).toLocaleString()} / mo` : "Not disclosed"}
+                        {formData.expected_salary && !isNaN(Number(formData.expected_salary)) ? `PHP ${Number(formData.expected_salary).toLocaleString("en-US", { maximumFractionDigits: 2 })} / mo` : "Not disclosed"}
                       </p>
                     </div>
                     <div className="min-w-0 max-w-full overflow-hidden">

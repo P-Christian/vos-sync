@@ -472,6 +472,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (body.expected_salary !== undefined && body.expected_salary !== null && body.expected_salary !== "") {
+      const salaryNum = Number(body.expected_salary);
+      if (isNaN(salaryNum) || salaryNum < 0 || salaryNum > 99999999.99) {
+        return NextResponse.json(
+          { error: "Expected salary must be between 0 and 99,999,999.99 PHP." },
+          { status: 400 }
+        );
+      }
+    }
+
     const nextVersion = (Number(existingApplication?.draft_version) || 0) + 1;
     const payload: Record<string, unknown> = {
       job_id: Number(body.job_id),
