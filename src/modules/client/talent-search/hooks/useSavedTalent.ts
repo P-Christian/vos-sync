@@ -2,7 +2,7 @@
 
 // src/modules/client/talent-search/hooks/useSavedTalent.ts
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SavedTalent } from "../types";
 
 export function useSavedTalent() {
@@ -31,6 +31,26 @@ export function useSavedTalent() {
     }
   }, []);
 
+  // Initial load on mount without synchronous setState in effect
+  useEffect(() => {
+    let isMounted = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/client/saved-talent");
+        const json = await res.json();
+        if (isMounted && res.ok && Array.isArray(json.saved)) {
+          setSaved(json.saved);
+        }
+      } catch {
+        // Silently catch error on initial background mount
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const saveTalent = useCallback(
     async (
       talentUserId: number,
@@ -54,10 +74,14 @@ export function useSavedTalent() {
         const json = await res.json();
 
         if (!res.ok) {
-          if (res.status === 409) return true; // Already saved
+          if (res.status === 409) {
+            void fetchSaved();
+            return true; // Already saved
+          }
           throw new Error(json.error || "Failed to save talent.");
         }
 
+        void fetchSaved();
         return true;
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "An error occurred.");
@@ -66,7 +90,7 @@ export function useSavedTalent() {
         setSaving(false);
       }
     },
-    []
+    [fetchSaved]
   );
 
   const unsaveTalent = useCallback(async (talentUserId: number): Promise<boolean> => {

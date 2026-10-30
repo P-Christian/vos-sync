@@ -17,8 +17,9 @@ export function retrieveCandidatePool(
   profiles: NormalizedProfile[],
   analyzedQuery: AnalyzedQuery,
   taxonomyContext?: ResolvedTaxonomyContext | null,
-  minRetrievalThreshold: number = 20,
-  rawSearchKeyword?: string
+  _minRetrievalThreshold: number = 0,
+  rawSearchKeyword?: string,
+  effectiveSkills?: string[]
 ): CandidateRetrievalResult[] {
   const { cleanedQuery } = analyzedQuery;
   const effectiveQuery = cleanText(rawSearchKeyword) || cleanedQuery;
@@ -38,6 +39,8 @@ export function retrieveCandidatePool(
   if (effectiveQuery && !expandedAliases.includes(effectiveQuery)) {
     expandedAliases.push(effectiveQuery);
   }
+
+  const effectiveSkillsClean = (effectiveSkills ?? []).map(cleanText).filter(Boolean);
 
   const results: CandidateRetrievalResult[] = [];
 
@@ -104,7 +107,7 @@ export function retrieveCandidatePool(
       }
     }
 
-    // 2. Match against DB Expanded Taxonomy Aliases
+    // 4. Match against DB Expanded Taxonomy Aliases
     for (const alias of expandedAliases) {
       if (!alias || alias.length < 3) continue;
 
@@ -120,19 +123,63 @@ export function retrieveCandidatePool(
       }
     }
 
-    // 3. Match against Candidate Skills
+    // 5. Match against Candidate Skills
     for (const skill of candidateSkillsClean) {
       if (!skill) continue;
-      if (cleanedQuery.includes(skill) || skill.includes(cleanedQuery)) {
-        const score = 70;
+
+      // A. Match against effective role skills (e.g. "menu engineering", "food cost control" for Chef)
+      if (effectiveSkillsClean.length > 0) {
+        if (effectiveSkillsClean.includes(skill)) {
+          const score = 75;
+          if (score > bestScore) {
+            bestScore = score;
+            primaryReason = `SKILL_ROLE_MATCH (${skill})`;
+          }
+        } else {
+          // Token overlap with role skills for multi-word skills
+          const skillTokens = skill.split(/\s+/).filter(Boolean);
+          for (const roleSkill of effectiveSkillsClean) {
+            const roleTokens = roleSkill.split(/\s+/).filter(Boolean);
+            if (roleTokens.length > 1 && skillTokens.length > 1) {
+              const overlap = computeTokenOverlapScore(skill, roleSkill);
+              if (overlap >= 0.7) {
+                const score = 70;
+                if (score > bestScore) {
+                  bestScore = score;
+                  primaryReason = `SKILL_ROLE_MATCH (${skill})`;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // B. Match directly against search query or aliases
+      if (skill === cleanedQuery || skill === effectiveQuery) {
+        const score = 80;
         if (score > bestScore) {
           bestScore = score;
-          primaryReason = `SKILL_MATCH (${skill})`;
+          primaryReason = `SKILL_EXACT_MATCH (${skill})`;
+        }
+      } else if (skill.length >= 3) {
+        // Multi-char skills: token/word containment (avoids single/double letters like 'c' matching 'chef')
+        const queryTokens = cleanedQuery.split(/\s+/).filter(Boolean);
+        const skillTokens = skill.split(/\s+/).filter(Boolean);
+
+        const isQueryTokenInSkill = queryTokens.some((qt) => qt.length >= 3 && skillTokens.includes(qt));
+        const isSkillTokenInQuery = skillTokens.some((st) => st.length >= 3 && queryTokens.includes(st));
+
+        if (isQueryTokenInSkill || isSkillTokenInQuery) {
+          const score = 70;
+          if (score > bestScore) {
+            bestScore = score;
+            primaryReason = `SKILL_MATCH (${skill})`;
+          }
         }
       }
     }
 
-    // 4. Match against Profile Summary
+    // 6. Match against Profile Summary
     const summaryClean = cleanText(candidate.summary);
     if (summaryClean) {
       for (const alias of expandedAliases) {
@@ -146,8 +193,8 @@ export function retrieveCandidatePool(
       }
     }
 
-    // Retain candidates meeting threshold (default >= 20 pts for High Recall)
-    if (bestScore >= minRetrievalThreshold) {
+    // Retain candidates meeting threshold (default threshold is 0, retaining all profiles)
+    if (bestScore >= _minRetrievalThreshold) {
       results.push({
         candidate,
         retrievalScore: bestScore,
@@ -157,5 +204,39 @@ export function retrieveCandidatePool(
   }
 
   // Sort candidate pool by Layer 1 retrieval score
-  return results.sort((a, b) => b.retrievalScore - a.retrievalScore);
+  results.sort((a, b) => b.retrievalScore - a.retrievalScore);
+
+  console.log(
+    `[talent-search] 🔍 Layer 1 evaluation breakdown (${profiles.length} total profiles evaluated, all retained for Layer 2 scoring):`
+  );
+  const matched = results.filter((r) => r.retrievalScore > 0);
+  const unmatched = results.filter((r) => r.retrievalScore === 0);
+
+  if (matched.length > 0) {
+    for (const r of matched) {
+      const titles = r.candidate.titles.filter(Boolean).slice(0, 2).join(", ") || r.candidate.headline || "None";
+      console.log(
+        `  🎯 [MATCH] ID #${r.candidate.id} ${r.candidate.name} (Score: ${r.retrievalScore}) — Reason: ${r.retrievalReason} | Title: "${titles}"`
+      );
+    }
+  } else {
+    console.log(`  ℹ️  No explicit Layer 1 matches; retaining all profiles for Layer 2 engine scoring.`);
+  }
+
+  if (unmatched.length > 0) {
+    const limitLog = unmatched.length <= 40 ? unmatched.length : 15;
+    for (let i = 0; i < limitLog; i++) {
+      const u = unmatched[i];
+      const titles = u.candidate.titles.filter(Boolean).slice(0, 2).join(", ") || u.candidate.headline || "None";
+      const skills = u.candidate.skills.slice(0, 4).join(", ") || "No skills";
+      console.log(
+        `  ⚪ [LOW/NO MATCH] ID #${u.candidate.id} ${u.candidate.name} (Score: 0) | Titles: [${titles}] | Skills: [${skills}]`
+      );
+    }
+    if (unmatched.length > limitLog) {
+      console.log(`  ... and ${unmatched.length - limitLog} more profiles with score 0.`);
+    }
+  }
+
+  return results;
 }
