@@ -863,6 +863,13 @@ export async function PATCH(req: NextRequest) {
     if (body.action === "withdraw") {
       const rawStatus = String(appData.application_status || "").toUpperCase();
       const terminalStatuses = ["HIRED", "REJECTED", "WITHDRAWN"];
+      if (body.reason && typeof body.reason === "string" && body.reason.trim().length > 255) {
+        return NextResponse.json(
+          { error: "Reason for withdrawal cannot exceed 255 characters." },
+          { status: 400 }
+        );
+      }
+
       if (terminalStatuses.includes(rawStatus)) {
         return NextResponse.json(
           { error: `Cannot withdraw application when status is already ${rawStatus}.` },
