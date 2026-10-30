@@ -472,6 +472,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (body.expected_salary !== undefined && body.expected_salary !== null && body.expected_salary !== "") {
+      const salaryNum = Number(body.expected_salary);
+      if (isNaN(salaryNum) || salaryNum < 0 || salaryNum > 99999999.99) {
+        return NextResponse.json(
+          { error: "Expected salary must be between 0 and 99,999,999.99 PHP." },
+          { status: 400 }
+        );
+      }
+    }
+
     const nextVersion = (Number(existingApplication?.draft_version) || 0) + 1;
     const payload: Record<string, unknown> = {
       job_id: Number(body.job_id),
@@ -661,17 +671,6 @@ export async function POST(req: NextRequest) {
         console.error("Failed to assign initial pipeline stage:", stageErr);
       }
 
-      // Trigger notification
-      await createNotification({
-        event_type: "application_submitted",
-        recipient_user_id: userId,
-        entity_type: "job_application",
-        entity_id: applicationId,
-        category: "Application Updates",
-        title: "Application Submitted!",
-        message: "Your application has been received. We will notify you of any updates.",
-        action_url: "/vos-sync/freelancer/applications",
-      }).catch((e) => console.error("Error creating candidate notification:", e));
 
       // Referrals
       try {
@@ -863,6 +862,13 @@ export async function PATCH(req: NextRequest) {
     if (body.action === "withdraw") {
       const rawStatus = String(appData.application_status || "").toUpperCase();
       const terminalStatuses = ["HIRED", "REJECTED", "WITHDRAWN"];
+      if (body.reason && typeof body.reason === "string" && body.reason.trim().length > 255) {
+        return NextResponse.json(
+          { error: "Reason for withdrawal cannot exceed 255 characters." },
+          { status: 400 }
+        );
+      }
+
       if (terminalStatuses.includes(rawStatus)) {
         return NextResponse.json(
           { error: `Cannot withdraw application when status is already ${rawStatus}.` },

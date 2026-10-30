@@ -70,7 +70,7 @@ export function ApplicationProgressTimeline({ status, application }: Props) {
   // Fallback: If no dynamic stages exist from pipeline snapshot, use default 4 stages
   if (linearStages.length === 0) {
     const defaultSteps = [
-      { label: "Application Received", desc: "Your application was successfully submitted.", statusKey: "APPLIED" },
+      { label: "Application Submitted", desc: "Your application was successfully submitted.", statusKey: "APPLIED" },
       { label: "Shortlisted", desc: "The employer has shortlisted you for potential opportunities.", statusKey: "SHORTLISTED" },
       { label: "Interviewing", desc: "You have entered the interview phase with the employer.", statusKey: "INTERVIEWING" },
       { label: "Hired", desc: "Congratulations! You have been hired for this role.", statusKey: "HIRED" },
@@ -93,7 +93,7 @@ export function ApplicationProgressTimeline({ status, application }: Props) {
                   <CheckCircle className="h-3.5 w-3.5" />
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Application Received</p>
+                  <p className="text-sm font-semibold text-foreground">Application Submitted</p>
                   <p className="text-sm md:text-xs text-muted-foreground mt-0.5">
                     Your application was successfully submitted.
                   </p>

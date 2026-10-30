@@ -67,8 +67,9 @@ function formatStatusLabel(val: string): string {
  */
 function normalizeStageName(val: string): string {
   const trimmed = val.trim();
-  if (trimmed.toUpperCase() === "APPLIED") {
-    return "Application Received";
+  const upper = trimmed.toUpperCase();
+  if (upper === "APPLIED" || upper === "APPLICATION RECEIVED") {
+    return "Application Submitted";
   }
   return trimmed;
 }
@@ -86,7 +87,7 @@ function getApplicationEffectiveStatus(app: ApplicationItem): string {
   // If status is advanced (e.g. INTERVIEWING, HIRED, REJECTED, WITHDRAWN)
   // but current_stage says "Application Received", prioritize the actual application_status
   if (
-    stageName === "Application Received" &&
+    (stageName === "Application Submitted" || stageName === "Application Received") &&
     app.application_status &&
     app.application_status !== "APPLIED" &&
     app.application_status !== "DRAFT"
