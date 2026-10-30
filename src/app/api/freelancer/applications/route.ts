@@ -671,17 +671,6 @@ export async function POST(req: NextRequest) {
         console.error("Failed to assign initial pipeline stage:", stageErr);
       }
 
-      // Trigger notification
-      await createNotification({
-        event_type: "application_submitted",
-        recipient_user_id: userId,
-        entity_type: "job_application",
-        entity_id: applicationId,
-        category: "Application Updates",
-        title: "Application Submitted!",
-        message: "Your application has been received. We will notify you of any updates.",
-        action_url: "/vos-sync/freelancer/applications",
-      }).catch((e) => console.error("Error creating candidate notification:", e));
 
       // Referrals
       try {
