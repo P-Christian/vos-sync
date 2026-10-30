@@ -17,7 +17,7 @@ export function retrieveCandidatePool(
   profiles: NormalizedProfile[],
   analyzedQuery: AnalyzedQuery,
   taxonomyContext?: ResolvedTaxonomyContext | null,
-  minRetrievalThreshold: number = 0,
+  _minRetrievalThreshold: number = 0,
   rawSearchKeyword?: string,
   effectiveSkills?: string[]
 ): CandidateRetrievalResult[] {
@@ -193,12 +193,14 @@ export function retrieveCandidatePool(
       }
     }
 
-    // Retain all candidates in pool so even low/unmatched profiles can be scored by Layer 2
-    results.push({
-      candidate,
-      retrievalScore: bestScore,
-      retrievalReason: primaryReason,
-    });
+    // Retain candidates meeting threshold (default threshold is 0, retaining all profiles)
+    if (bestScore >= _minRetrievalThreshold) {
+      results.push({
+        candidate,
+        retrievalScore: bestScore,
+        retrievalReason: primaryReason,
+      });
+    }
   }
 
   // Sort candidate pool by Layer 1 retrieval score
