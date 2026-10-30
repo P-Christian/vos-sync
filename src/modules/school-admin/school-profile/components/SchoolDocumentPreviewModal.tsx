@@ -98,15 +98,26 @@ export const SchoolDocumentPreviewModal: React.FC<SchoolDocumentPreviewModalProp
   const [pageNumber, setPageNumber] = useState(1);
   const [numPages, setNumPages] = useState<number | null>(null);
 
+  const currentDocId = doc ? doc.id : null;
+  const [prevDocId, setPrevDocId] = useState<string | null>(currentDocId);
+
+  if (currentDocId !== prevDocId) {
+    setPrevDocId(currentDocId);
+    setZoom(1);
+    setRotation(0);
+    setPan({ x: 0, y: 0 });
+    setIsDragging(false);
+    setPdfData(null);
+    setLoadingPdf(Boolean(doc && isPdf));
+    setPdfError(null);
+    setPageNumber(1);
+    setNumPages(null);
+  }
+
   useEffect(() => {
     if (!doc || !isPdf) return;
 
     let isMounted = true;
-    setLoadingPdf(true);
-    setPdfError(null);
-    setPdfData(null);
-    setPageNumber(1);
-    setNumPages(null);
 
     fetch(assetUrl, { credentials: "same-origin" })
       .then((res) => {
@@ -292,6 +303,7 @@ export const SchoolDocumentPreviewModal: React.FC<SchoolDocumentPreviewModalProp
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={assetUrl}
                 alt={doc.name}
