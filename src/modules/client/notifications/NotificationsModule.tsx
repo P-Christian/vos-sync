@@ -86,10 +86,13 @@ export default function NotificationsModule() {
     return () => unsubscribe();
   }, [subscribe, loadNotifications]);
 
-  // Clear selections when tab or search query changes
-  useEffect(() => {
+  // Reset selection when tab or search query changes (adjusted during render, no effect needed)
+  const filterKey = `${activeTab}-${searchQuery}`;
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey);
     setSelectedIds(new Set());
-  }, [activeTab, searchQuery]);
+  }
 
   const handleClearFilters = () => {
     setActiveTab("ALL");
