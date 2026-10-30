@@ -3,6 +3,7 @@ import {
   isAdministratorSession,
   isClientSession,
   isFreelancerSession,
+  isSchoolAdminSession,
 } from "@/lib/authenticated-session";
 
 export type ProtectedAssetKind =
@@ -10,6 +11,7 @@ export type ProtectedAssetKind =
   | "FREELANCER_RESUME"
   | "FREELANCER_IDENTITY"
   | "ASSESSMENT_PROOF"
+  | "SCHOOL_DOCUMENT"
   | "UNKNOWN";
 
 export interface AssetAuthorization {
@@ -40,6 +42,11 @@ interface IdentityRecord {
 
 interface AssessmentProofRecord {
   attempt_id?: string | number | null;
+}
+
+interface SchoolDocumentRecord {
+  school_id?: string | number | { school_id?: string | number } | null;
+  directus_file_id?: string | null;
 }
 
 interface DirectusCollectionResponse<T> {
@@ -277,6 +284,49 @@ async function findAssessmentProofs(
   return { records: result.data?.data ?? [], lookupFailed: !result.ok };
 }
 
+async function findSchoolDocument(
+  baseUrl: string,
+  token: string,
+  fileId: string,
+): Promise<{ records: SchoolDocumentRecord[]; lookupFailed: boolean }> {
+  const params = new URLSearchParams({
+    "filter[directus_file_id][_eq]": fileId,
+    fields: "school_id,directus_file_id",
+    limit: "20",
+  });
+  const result = await getJson<DirectusCollectionResponse<SchoolDocumentRecord>>(
+    baseUrl,
+    token,
+    `/items/vs_school_document?${params.toString()}`,
+  );
+  return { records: result.data?.data ?? [], lookupFailed: !result.ok };
+}
+
+async function resolveSchoolAdminSchools(
+  baseUrl: string,
+  token: string,
+  userId: string | number,
+): Promise<(string | number)[]> {
+  const params = new URLSearchParams({
+    "filter[user_id][_eq]": String(userId),
+    "filter[is_active][_eq]": "true",
+    fields: "school_id",
+    limit: "10",
+  });
+  const result = await getJson<
+    DirectusCollectionResponse<{ school_id?: string | number | { school_id?: string | number } }>
+  >(baseUrl, token, `/items/vs_school_admin?${params.toString()}`);
+  if (!result.ok) return [];
+  return (result.data?.data ?? [])
+    .map((r) => {
+      if (typeof r.school_id === "object" && r.school_id !== null) {
+        return (r.school_id as Record<string, unknown>).school_id as string | number;
+      }
+      return r.school_id;
+    })
+    .filter((id): id is string | number => id !== null && id !== undefined);
+}
+
 async function resolveClientCompany(
   baseUrl: string,
   token: string,
@@ -424,6 +474,7 @@ export async function authorizeAssetAccess(
   const resumes = await findResumes(config.baseUrl, config.token, fileId);
   const identities = await findIdentityRecords(config.baseUrl, config.token, fileId);
   const proofs = await findAssessmentProofs(config.baseUrl, config.token, fileId);
+  const schoolDocs = await findSchoolDocument(config.baseUrl, config.token, fileId);
 
   const kind: ProtectedAssetKind = companyDocs.records.length
     ? "CLIENT_DOCUMENT"
@@ -433,7 +484,9 @@ export async function authorizeAssetAccess(
         ? "FREELANCER_RESUME"
         : proofs.records.length
           ? "ASSESSMENT_PROOF"
-          : "UNKNOWN";
+          : schoolDocs.records.length
+            ? "SCHOOL_DOCUMENT"
+            : "UNKNOWN";
   const protectedByFolder = Boolean(
     folder.id && protectedFolderIds().has(folder.id),
   ) || Boolean(folder.name && PROTECTED_FOLDER_NAMES.has(folder.name));
@@ -441,7 +494,11 @@ export async function authorizeAssetAccess(
   // lookup fails, fail closed: availability loss is safer than exposing a
   // protected document through a service-token proxy.
   const associationLookupFailed =
-    companyDocs.lookupFailed || resumes.lookupFailed || identities.lookupFailed || proofs.lookupFailed;
+    companyDocs.lookupFailed ||
+    resumes.lookupFailed ||
+    identities.lookupFailed ||
+    proofs.lookupFailed ||
+    schoolDocs.lookupFailed;
   const isProtected =
     metadata.lookupFailed ||
     folder.lookupFailed ||
@@ -456,6 +513,18 @@ export async function authorizeAssetAccess(
   }
   if (!session) return { allowed: false, protected: true, notFound: false, kind };
   if (isAdministratorSession(session)) return { allowed: true, protected: true, notFound: false, kind };
+
+  if (kind === "SCHOOL_DOCUMENT" && isSchoolAdminSession(session)) {
+    const schoolIds = await resolveSchoolAdminSchools(config.baseUrl, config.token, session.userId);
+    const owned = schoolDocs.records.some((record) => {
+      const recSchoolId =
+        typeof record.school_id === "object" && record.school_id !== null
+          ? (record.school_id as Record<string, unknown>).school_id
+          : record.school_id;
+      return schoolIds.some((sId) => sameId(sId, recSchoolId));
+    });
+    return { allowed: owned, protected: true, notFound: false, kind };
+  }
 
   if (kind === "CLIENT_DOCUMENT" && isClientSession(session)) {
     const companyId = await resolveClientCompany(config.baseUrl, config.token, session.userId);

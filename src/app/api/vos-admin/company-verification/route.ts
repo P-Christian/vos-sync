@@ -603,13 +603,13 @@ export async function POST(req: NextRequest) {
                   }),
                 });
 
-                const idVerFindUrl = `${DIRECTUS_BASE}/items/identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
+                const idVerFindUrl = `${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
                 const idVerFindRes = await fetch(idVerFindUrl, { headers: getDirectusHeaders(), cache: "no-store" });
                 if (idVerFindRes.ok) {
                   const idVerFindJson = await idVerFindRes.json();
                   const latestIdVer = idVerFindJson.data?.[0];
                   if (latestIdVer && latestIdVer.id) {
-                    await fetch(`${DIRECTUS_BASE}/items/identity_verifications/${latestIdVer.id}`, {
+                    await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications/${latestIdVer.id}`, {
                       method: "PATCH",
                       headers: getDirectusHeaders(),
                       body: JSON.stringify({
@@ -672,13 +672,13 @@ export async function POST(req: NextRequest) {
                   }),
                 });
 
-                const idVerFindUrl = `${DIRECTUS_BASE}/items/identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
+                const idVerFindUrl = `${DIRECTUS_BASE}/items/vs_identity_verifications?filter[user_id][_eq]=${uid}&sort=-submitted_at&limit=1`;
                 const idVerFindRes = await fetch(idVerFindUrl, { headers: getDirectusHeaders(), cache: "no-store" });
                 if (idVerFindRes.ok) {
                   const idVerFindJson = await idVerFindRes.json();
                   const latestIdVer = idVerFindJson.data?.[0];
                   if (latestIdVer && latestIdVer.id) {
-                    await fetch(`${DIRECTUS_BASE}/items/identity_verifications/${latestIdVer.id}`, {
+                    await fetch(`${DIRECTUS_BASE}/items/vs_identity_verifications/${latestIdVer.id}`, {
                       method: "PATCH",
                       headers: getDirectusHeaders(),
                       body: JSON.stringify({

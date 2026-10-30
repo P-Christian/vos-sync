@@ -111,17 +111,10 @@ async function fetchDirectusRequests(queryParams: URLSearchParams): Promise<Gemi
   if (!DIRECTUS_BASE) return [];
 
   try {
-    let res = await fetch(`${DIRECTUS_BASE}/items/vs_gemini_requests?${queryParams}`, {
+    const res = await fetch(`${DIRECTUS_BASE}/items/vs_gemini_requests?${queryParams}`, {
       headers: getHeaders(),
       cache: "no-store",
     });
-
-    if (res.status === 404) {
-      res = await fetch(`${DIRECTUS_BASE}/items/gemini_requests?${queryParams}`, {
-        headers: getHeaders(),
-        cache: "no-store",
-      });
-    }
 
     if (!res.ok) return [];
     const json = await res.json();

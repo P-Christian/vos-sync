@@ -588,23 +588,6 @@ export async function GET(
       }
     }
 
-    // Fetch pinned message IDs for this user
-    const userPinnedSet = new Set<number>();
-    try {
-      const pinRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_message_pin?filter[user_id][_eq]=${userId}&filter[conversation_id][_eq]=${conversationId}&fields=message_id&limit=100`,
-        { headers: getHeaders(), cache: "no-store" }
-      );
-      if (pinRes.ok) {
-        const pinData = (await pinRes.json()).data ?? [];
-        for (const p of pinData) {
-          userPinnedSet.add(Number(p.message_id));
-        }
-      }
-    } catch {
-      /* fallback */
-    }
-
     // Enrich messages with attachments, system_message, system_card_data, reactions, and reply_to
     // Reverse array so messages returned are in chronological order (oldest -> newest)
     const enriched = messages.map((msg) => {
@@ -636,9 +619,7 @@ export async function GET(
         }
       }
 
-      const isPinnedForUser = userPinnedSet.size > 0
-        ? userPinnedSet.has(msg.message_id as number)
-        : Boolean(msg.is_pinned && Number(msg.pinned_by) === userId);
+      const isPinnedForUser = Boolean(msg.is_pinned && Number(msg.pinned_by) === userId);
 
       return {
         ...msg,

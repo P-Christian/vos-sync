@@ -63,25 +63,6 @@ export async function DELETE(
       return NextResponse.json({ success: true, message: "Message already deleted." });
     }
 
-    // Clean up any pins for this message across all users
-    try {
-      const pinRes = await fetch(
-        `${DIRECTUS_BASE}/items/vs_message_pin?filter[message_id][_eq]=${msgIdNum}&fields=pin_id`,
-        { headers: getHeaders(), cache: "no-store" }
-      );
-      if (pinRes.ok) {
-        const pinData = (await pinRes.json()).data ?? [];
-        for (const p of pinData) {
-          await fetch(`${DIRECTUS_BASE}/items/vs_message_pin/${p.pin_id}`, {
-            method: "DELETE",
-            headers: getHeaders(),
-          });
-        }
-      }
-    } catch {
-      // Ignore if vs_message_pin table does not exist
-    }
-
     // Soft-delete in vs_message and clear pinned state
     const now = getPHTimeString();
     const patchRes = await fetch(`${DIRECTUS_BASE}/items/vs_message/${msgIdNum}`, {
