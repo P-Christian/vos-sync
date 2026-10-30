@@ -17,7 +17,6 @@ export function retrieveCandidatePool(
   profiles: NormalizedProfile[],
   analyzedQuery: AnalyzedQuery,
   taxonomyContext?: ResolvedTaxonomyContext | null,
-  minRetrievalThreshold: number = 0,
   rawSearchKeyword?: string,
   effectiveSkills?: string[]
 ): CandidateRetrievalResult[] {
