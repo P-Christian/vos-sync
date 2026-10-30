@@ -643,8 +643,8 @@ export async function GET(req: NextRequest) {
 
     const analyzedQuery = analyzeQuery(matchKeyword);
     console.log(`[talent-search] 🔍 Layer 1: scanning ${normalizedProfilesList.length} total profiles...`);
-    const retrievedPool = retrieveCandidatePool(normalizedProfilesList, analyzedQuery, taxonomyContext, 15, keyword);
-    console.log(`[talent-search] ✅ Layer 1 pool: ${retrievedPool.length} candidates passed retrieval threshold`);
+    const retrievedPool = retrieveCandidatePool(normalizedProfilesList, analyzedQuery, taxonomyContext, 0, keyword, effectiveRequestedSkills);
+    console.log(`[talent-search] ✅ Layer 1 pool: ${retrievedPool.length} candidates retained for Layer 2 scoring`);
 
     // Layer 2: Run Matching Engine & Final Scoring on Retrieved Candidate Pool
     const allTalents: TalentResult[] = (retrievedPool
@@ -730,6 +730,11 @@ export async function GET(req: NextRequest) {
       .filter((t): t is TalentResult => t !== null)) as TalentResult[];
 
     console.log(`[talent-search] ✅ Layer 2 scored: ${allTalents.length} candidates after engine scoring`);
+    for (const t of allTalents) {
+      console.log(
+        `  🎯 [Layer 2 Candidate] ID #${t.user_id} ${t.name} | Ranking Score: ${t.ranking_score ?? "N/A"} | Match Score: ${t.match_score ?? "N/A"} | Relevant Exp: ${t.relevant_experience_years} yrs`
+      );
+    }
 
     // ────────────────────────────────────────────
     // 5. Explicit sidebar filters (skills, location, experience, school)
@@ -742,6 +747,9 @@ export async function GET(req: NextRequest) {
     console.log(`[talent-search] ✅ Layer 2 candidates entering ranking: ${filtered.length}`);
 
     // Filter by user-specified skills only (not expanded DB role skills — those are for scoring only)
+    if (requestedSkills.length > 0 && !verifiedJobIdForMatch) {
+      console.log(`[talent-search] 🏷️ Filtering by requested skills: [${requestedSkills.join(", ")}]`);
+    }
     if (requestedSkills.length > 0 && !verifiedJobIdForMatch) {
       filtered = filtered.filter((t) => {
         const lowerSkills = t.skills.map((s: string) => s.toLowerCase());
@@ -789,6 +797,10 @@ export async function GET(req: NextRequest) {
     }
 
     const total = filtered.length;
+    console.log(`[talent-search] 🏁 Final ranked candidates (${total} total, page ${page}, limit ${limit}):`);
+    filtered.slice(0, 5).forEach((t, i) => {
+      console.log(`  #${i + 1} ID #${t.user_id} ${t.name} (Headline: "${t.headline || 'None'}", Ranking: ${t.ranking_score ?? t.match_score ?? 0})`);
+    });
 
     // ────────────────────────────────────────────
     // 6. Gemini Layer B: AI Reranking (job match mode only, top 50)
