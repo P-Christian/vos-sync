@@ -21,7 +21,7 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-// ─── PATCH — Mark single notification as read ─────────────────────────────
+// ─── PATCH — Mark single notification as read / unread / starred ──────────
 
 export async function PATCH(
   req: NextRequest,
@@ -72,28 +72,120 @@ export async function PATCH(
       );
     }
 
-    // Mark as read
+    const body = await req.json().catch(() => ({}));
+    const patchData: Record<string, unknown> = {};
+
+    if (typeof body.is_read === "boolean") {
+      patchData.is_read = body.is_read ? 1 : 0;
+    }
+    if (typeof body.is_starred === "boolean") {
+      patchData.is_starred = body.is_starred ? 1 : 0;
+    }
+
+    if (Object.keys(patchData).length === 0) {
+      patchData.is_read = 1;
+    }
+
+    // Update notification in Directus
     const patchRes = await fetch(
       `${DIRECTUS_BASE}/items/vs_employer_notification/${notificationId}`,
       {
         method: "PATCH",
         headers: getHeaders(),
-        body: JSON.stringify({ is_read: 1 }),
+        body: JSON.stringify(patchData),
       }
     );
 
     if (!patchRes.ok) {
       const text = await patchRes.text();
-      console.error("Directus mark-read error:", text);
+      console.error("Directus notification update error:", text);
       return NextResponse.json(
-        { error: "Failed to mark notification as read." },
+        { error: "Failed to update notification." },
         { status: patchRes.status }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, ...patchData });
   } catch (err: unknown) {
     console.error("PATCH /api/client/notifications/[id] error:", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── DELETE — Delete single notification ──────────────────────────────────
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const notificationId = parseInt(id, 10);
+
+    if (!notificationId || isNaN(notificationId)) {
+      return NextResponse.json(
+        { error: "Invalid notification ID." },
+        { status: 400 }
+      );
+    }
+
+    const session = await authenticateRequest(req);
+    if (!session && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    if (session && !isClientSession(session) && process.env.NEXT_PUBLIC_AUTH_DISABLED !== "true") {
+      return NextResponse.json({ error: "Forbidden: employer access required." }, { status: 403 });
+    }
+
+    const userId = session?.userId ? Number(session.userId) : 1;
+
+    // Verify ownership
+    const checkRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_employer_notification/${notificationId}?fields=notification_id,user_id`,
+      { headers: getHeaders(), cache: "no-store" }
+    );
+
+    if (!checkRes.ok) {
+      return NextResponse.json(
+        { error: "Notification not found." },
+        { status: 404 }
+      );
+    }
+
+    const checkJson = await checkRes.json();
+    const notification = checkJson.data;
+
+    if (!notification || Number(notification.user_id) !== userId) {
+      return NextResponse.json(
+        { error: "Not authorized to delete this notification." },
+        { status: 403 }
+      );
+    }
+
+    const delRes = await fetch(
+      `${DIRECTUS_BASE}/items/vs_employer_notification/${notificationId}`,
+      {
+        method: "DELETE",
+        headers: getHeaders(),
+      }
+    );
+
+    if (!delRes.ok) {
+      const text = await delRes.text();
+      console.error("Directus delete error:", text);
+      return NextResponse.json(
+        { error: "Failed to delete notification." },
+        { status: delRes.status }
+      );
+    }
+
+    return NextResponse.json({ success: true, deleted_id: notificationId });
+  } catch (err: unknown) {
+    console.error("DELETE /api/client/notifications/[id] error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Internal server error" },
       { status: 500 }

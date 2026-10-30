@@ -107,14 +107,16 @@ export default function TalentSearchModule() {
   const handleDrawerToggleSave = useCallback(
     async (p: TalentProfile) => {
       if (p.is_saved) {
-        await unsaveTalent(p.user_id);
+        const ok = await unsaveTalent(p.user_id);
+        if (ok) toggleSaved(p.user_id, false);
       } else {
-        await saveTalent(p.user_id);
+        const ok = await saveTalent(p.user_id);
+        if (ok) toggleSaved(p.user_id, true);
       }
       // re-fetch profile to update saved state
       fetchProfile(p.user_id);
     },
-    [saveTalent, unsaveTalent, fetchProfile]
+    [saveTalent, unsaveTalent, fetchProfile, toggleSaved]
   );
 
   const handleOpenInvite = useCallback(
